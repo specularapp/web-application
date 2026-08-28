@@ -1,14 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safePath } from "@/lib/security/safe-path";
 import { createClient } from "@/lib/supabase/server";
-
-function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = safeNext(searchParams.get("next"));
+  const next = safePath(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();
