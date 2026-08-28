@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typegen": "next typegen",
     "typecheck": "next typegen && tsc --noEmit",
+    "audit": "npm audit --audit-level=high",
     "env:check": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/check-env.mjs",
     "db:sync": "node scripts/db.mjs sync",
     "db:new": "node scripts/db.mjs new",
