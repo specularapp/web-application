@@ -35,7 +35,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | Dinheiro | `Intl.NumberFormat` com inteiros em centavos no banco | sem lib | dinero.js |
 | Seletor de data | react-day-picker v10 | acessível, headless, pt-BR | kits de UI |
 | Editor de texto rico (contrato, proposta) | @tiptap/react, @tiptap/starter-kit | headless, extensível, JSON no banco, sanitizado no servidor | Quill |
-| Toasts | componente próprio (`components/ui/toast.tsx` + `providers/toast-provider.tsx`) | identidade completa, comportamento simples e sob controle | sonner, react-toastify |
+| Toasts | componente próprio (`components/ui/toast/` + `components/providers/toast-provider/`) | identidade completa, comportamento simples e sob controle | sonner, react-toastify |
 | Upload | react-dropzone + Supabase Storage com URL assinada | UI headless, servidor gera a URL | uppy |
 | Animação | motion, só onde CSS não resolve (kanban) | layout animations | |
 | E-mail | @react-email/components | templates em React para o Resend | |
@@ -43,9 +43,28 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | Validação CPF e CNPJ | função própria em `lib/utils` | algoritmo simples | brazilian-utils |
 | Estado global de UI | React context; zustand só se necessário | simplicidade | redux |
 | Dados no cliente | Server Components, actions e `useOptimistic`; Supabase Realtime no kanban | evita cache duplicado | TanStack Query (reavaliar) |
-| Rate limit | implementação própria com ioredis | já temos Redis | @upstash/ratelimit |
+| Rate limit | implementação própria com ioredis | já temos Redis | @upstash/ratelimit (fala REST do Upstash, não o TCP do ioredis: exigiria segunda conexão e prendia a um fornecedor) |
 | Testes | vitest, @testing-library/react, playwright (instalar junto com a configuração) | padrão Next 16 | jest |
-| Monitoramento | Sentry, ao publicar | | |
+
+## Mapeadas, ainda não instaladas
+
+Aprovadas na tabela, sem `npm install` até a feature entrar.
+
+| Necessidade | Lib | Por quê | Descartadas |
+| --- | --- | --- | --- |
+| Rastreamento de erros e integridade operacional | @sentry/nextjs, ao publicar | source maps do Next 16, captura em Server Component, Server Action e Route Handler, e liga erro a release. Instalar junto com a configuração de deploy | próprio (sem agregação nem alerta) |
+| Fila, retry de webhook e processamento assíncrono (Stripe, Resend, n8n) | inngest | roda por HTTP em serverless, com retry, passo durável e concorrência. O deploy é Vercel | bullmq (exige worker Node sempre ligado, inviável em serverless, mesmo reaproveitando o ioredis) |
+| Server Actions com validação e autenticação | next-safe-action | tipa entrada e saída de ponta a ponta e centraliza zod, sessão e erro num middleware, no lugar do `unknown` + `safeParse` + `ActionResult` repetido em cada action | wrapper próprio (mesma ideia, mas manutenção nossa) |
+
+### Antes de adotar next-safe-action
+
+`features/auth/actions.ts` já define o padrão da casa: entrada `unknown`, `safeParse` por argumento e retorno `ActionResult<T>` (`{ ok, data } | { ok, error }`), com mensagem de erro em português. A lib traz convenção própria de retorno, então a adoção precisa ou mapear para esse contrato ou migrar as actions existentes de uma vez. Não misturar os dois estilos, conforme `rules.md`.
+
+### Não adotadas
+
+| Proposta | Motivo |
+| --- | --- |
+| @t3-oss/env-nextjs | `lib/env.ts` já valida com zod e é lazy por serviço: só exige as variáveis da integração em uso. O t3 valida tudo no boot, o que obrigaria toda variável a existir em todo ambiente. Seria regressão |
 
 ## Proibidas
 

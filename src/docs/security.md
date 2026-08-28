@@ -29,6 +29,39 @@
 5. Entrada: zod em toda action e route; ids como uuid; `safeNext` contra open redirect no callback.
 6. Webhooks: Stripe, Resend e n8n verificam assinatura antes de ler o corpo.
 7. Segredos: `env.ts` valida formato por serviço; `.env` fora do git; `server-only` nos clientes.
+8. Rate limit em `lib/security/rate-limit.ts`: janela deslizante com sorted set no Redis, num script Lua (contar, expirar e gravar num passo atômico). Escopos e limites por minuto em `rateLimitRules`: `auth` 10 por IP, `action` 120 por usuário, `ai` 20 por usuário, `publicLink` 30 por IP. Aplicado nas Server Actions de `features/auth` (OAuth, cadastro de autenticador, verificação e remoção de TOTP), com chave por operação e IP. Falha do Redis libera o request (fail-open): indisponibilidade do cache não pode derrubar o login. Webhooks seguem sem limite, protegidos pela assinatura.
+9. Turnstile (Cloudflare) em `lib/security/turnstile.ts`, com o widget em `components/security/turnstile-widget/`. A verificação é fail-closed: token inválido, erro de rede ou timeout de 5s reprovam. `TURNSTILE_SECRET_KEY` só no servidor; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` é pública por design. A CSP libera `challenges.cloudflare.com` em `frame-src` e `connect-src`; o script carrega pelo nonce com `strict-dynamic`, sem allowlist de host.
+
+10. Caminho de redirecionamento em `lib/security/safe-path.ts`, usado pelo callback OAuth e por `nextPathSchema`. Recusa o que não começa com `/`, o que tem barra invertida em qualquer posição e o que tem caractere de controle, espaço ou DEL. O bloqueio de `//` sozinho não bastava: o navegador normaliza `\` para `/`, então `/\evil.com` virava protocol-relative e saía do domínio.
+11. Limite de corpo em `lib/security/payload.ts`: webhooks leem no máximo 1 MB, conferindo o `Content-Length` antes e contando os bytes durante a leitura (o cabeçalho pode faltar ou mentir em transferência chunked). Acima disso responde 413 sem carregar o corpo na memória.
+12. Dependências: `npm run audit` (`--audit-level=high`).
+
+## Auditoria OWASP
+
+Levantamento contra a lista de API e Web Top 10.
+
+| Risco | Situação | Onde |
+| --- | --- | --- |
+| BOLA e IDOR | coberto | RLS com `is_member` em toda tabela; trocar o id na URL não vaza porque o filtro é do banco, não da aplicação |
+| BFLA | coberto | `has_role` por operação; excluir organização exige `owner` |
+| Elevação de privilégio | coberto | `create_invite` recusa `p_role = 'owner'` e exige `owner` ou `admin` para convidar |
+| SQL injection | coberto | Supabase parametriza; funções `security definer` com `search_path` vazio |
+| XSS | coberto | escape padrão do React e CSP por nonce com `strict-dynamic` |
+| Clickjacking | coberto | `X-Frame-Options: DENY` e `frame-ancestors 'none'` |
+| CSRF | coberto | Server Actions do Next validam origem; cookies `SameSite=Lax` |
+| Sequestro de sessão | coberto | CSP estrita, JWT de 1h com rotação, `Secure` |
+| Força bruta | coberto | rate limit nas actions de auth |
+| Segredo no bundle | coberto | `server-only` quebra o build se um módulo de servidor for importado no cliente |
+| Open redirect | corrigido | `safe-path.ts` (item 10) |
+| Corpo gigante e exaustão | corrigido para webhooks | `payload.ts` (item 11) |
+| Dependência vulnerável | monitorado | `npm run audit`; falta rodar em CI e ligar o Dependabot |
+| Mass assignment | pendente | nenhuma escrita de feature existe ainda. Regra ao criar: montar o objeto campo a campo a partir do schema zod, nunca repassar o corpo recebido |
+| Exposição excessiva de dados | pendente | idem. Regra: `select()` com colunas explícitas, nunca `select('*')` em resposta que sai para o cliente |
+| CORS | pendente | `api/v1` ainda não existe. Ao criar, origem explícita, nunca `*` com credenciais |
+| SSRF | pendente | não há campo que aceite URL. Vira risco no upload por link e no disparo para o n8n; validar host contra lista de permitidos e recusar faixa privada e `169.254.169.254` |
+| ReDoS | atenção | evitar quantificador aninhado em regex sobre entrada do usuário |
+
+Rate limit não é defesa contra DDoS volumétrico: o tráfego chega ao runtime e cada bloqueio ainda custa invocação e ida ao Redis. Ele cobre brute-force, scraping, enumeração e abuso de endpoint caro. Flood se resolve na borda (WAF e proteção do provedor), fora da aplicação.
 
 ## Regras para código no cliente
 
@@ -41,7 +74,7 @@
 
 ## Plano de evolução, em ordem
 
-1. Rate limit em `lib/security/rate-limit.ts` com ioredis (janela deslizante): login e callback 10/min por IP, actions 120/min por usuário, IA 20/min por usuário, links públicos 30/min por IP. Webhooks sem limite, protegidos pela assinatura.
+1. Plugar os escopos `action`, `ai` e `publicLink` conforme cada feature entrar (o motor e os limites já existem; só `auth` está em uso). Montar o `TurnstileWidget` nas telas de login, cadastro e recuperação de senha assim que os formulários existirem, chamando `verifyTurnstile` na action antes de qualquer efeito.
 2. Tabela `audit_logs` (quem, o quê, quando, organização) alimentada por triggers nas tabelas sensíveis.
 3. Storage: buckets privados, upload por URL assinada gerada no servidor, validação de tipo e tamanho, RLS em `storage.objects` por `organization_id` no caminho.
 4. CSP com `report-to` para observar violações antes de endurecer mais; remover `style-src-attr` quando viável.
