@@ -11,6 +11,7 @@ SaaS de gestão para freelancers e agências.
 - [Segurança](src/docs/security.md): onde cada credencial vive, CSP, regras e plano
 - [Tema](src/docs/theme.md): mapa do claro e escuro
 - [Bibliotecas](src/docs/libs.md): o que usar para cada necessidade
+- [Histórico](src/docs/history.md): feitos e tempo por dia
 
 ## Setup
 

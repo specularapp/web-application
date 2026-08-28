@@ -66,3 +66,4 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 
 - Ler `rules.md`, `objective.md` e `structure.md` antes de agir.
 - Ao terminar qualquer alteração, rodar `npm run typecheck`, `npm run lint` e `npm run build`.
+- Ao encerrar o dia, registrar feitos, tempo e pendências em `src/docs/history.md`.
