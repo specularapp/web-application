@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { getResend } from "@/lib/resend/client";
+import { payloadTooLargeResponse, readTextWithLimit } from "@/lib/security/payload";
 
 export async function POST(request: Request) {
   const id = request.headers.get("svix-id");
@@ -7,7 +8,12 @@ export async function POST(request: Request) {
   const signature = request.headers.get("svix-signature");
   if (!id || !timestamp || !signature) return new Response("Assinatura ausente", { status: 400 });
 
-  const payload = await request.text();
+  let payload: string;
+  try {
+    payload = await readTextWithLimit(request);
+  } catch {
+    return payloadTooLargeResponse();
+  }
 
   try {
     const event = getResend().webhooks.verify({

@@ -1,12 +1,19 @@
 import type Stripe from "stripe";
 import { env } from "@/lib/env";
+import { payloadTooLargeResponse, readTextWithLimit } from "@/lib/security/payload";
 import { getStripe } from "@/lib/stripe/client";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
   if (!signature) return new Response("Assinatura ausente", { status: 400 });
 
-  const body = await request.text();
+  let body: string;
+  try {
+    body = await readTextWithLimit(request);
+  } catch {
+    return payloadTooLargeResponse();
+  }
+
   let event: Stripe.Event;
 
   try {
