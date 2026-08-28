@@ -1,0 +1,13 @@
+.link {
+  color: var(--color-link);
+  border-radius: var(--radius-xs);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.link[data-tone="inherit"] { color: inherit; }
+
+.link[data-underline="always"],
+.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

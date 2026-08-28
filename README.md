@@ -8,6 +8,9 @@ SaaS de gestão para freelancers e agências.
 - [Objetivo](src/docs/objective.md): visão do produto e módulos
 - [Estrutura](src/docs/structure.md): stack, pastas e convenções
 - [Setup](src/docs/setup.md): onde obter cada chave de API e configurar domínio
+- [Segurança](src/docs/security.md): onde cada credencial vive, CSP, regras e plano
+- [Tema](src/docs/theme.md): mapa do claro e escuro
+- [Bibliotecas](src/docs/libs.md): o que usar para cada necessidade
 
 ## Setup
 

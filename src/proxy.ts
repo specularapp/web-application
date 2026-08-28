@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { siteConfig } from "@/lib/metadata";
+import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const MFA_PATH = "/mfa";
@@ -43,16 +44,21 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  const nonce = createNonce();
+  const csp = buildContentSecurityPolicy(nonce);
+  request.headers.set("x-nonce", nonce);
+  request.headers.set("Content-Security-Policy", csp);
+
   const { response, claims, mfaPending } = await updateSession(request);
   const isAuthPath = authPaths.has(pathname);
 
   if (!claims) {
-    if (isAuthPath || isPublic(pathname)) return response;
+    if (isAuthPath || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
     return redirectWithCookies(withNext(request, "/login", pathname), response);
   }
 
   if (mfaPending) {
-    if (pathname === MFA_PATH || isPublic(pathname)) return response;
+    if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
     return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
   }
 
@@ -60,7 +66,7 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies(new URL("/dashboard", request.url), response);
   }
 
-  return response;
+  return applyContentSecurityPolicy(response, csp);
 }
 
 export const config = {

@@ -15,7 +15,7 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 - TypeScript estrito. Nada de `any`.
 - Nenhuma regra de negócio dentro de `src/app`. Páginas apenas compõem `features` e `components`.
 - Toda regra de negócio precisa servir web e mobile: no banco (RLS, funções, triggers) ou em `features/<dominio>/service.ts` exposto por Server Action e por Route Handler em `api/v1`. Nunca só em Server Action.
-- Estilo com tokens de `src/styles/tokens.css` (paleta Apple, claro e escuro). Nunca valores soltos de cor, espaçamento ou tipografia. Todo componente funciona nos dois temas.
+- Estilo com tokens de `src/styles/tokens.css` (paleta Apple, claro e escuro). Nunca valores soltos de cor, espaçamento ou tipografia. Todo componente funciona nos dois temas. Primitivo sem interação: Server Component com CSS Module e variantes `data-*`. Interativo: Emotion com `"use client"`.
 
 ## 3. Interface: obrigatório em literalmente todo código de UI
 
@@ -41,11 +41,13 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 - Contraste mínimo AA. Imagens com `alt` descritivo ou `alt=""` quando decorativas.
 - `aria-*` somente quando o elemento semântico não resolve.
 - Respeitar `prefers-reduced-motion` em qualquer animação.
+- Todo componente funciona nos dois temas, só com tokens. Mapa em `src/docs/theme.md`.
 
 ## 4. Segurança
 
 - Toda entrada de usuário validada no servidor com `zod`, mesmo que já validada no cliente.
 - Nenhum segredo no cliente. Só variáveis `NEXT_PUBLIC_` chegam ao browser.
+- Nunca `localStorage`, `sessionStorage` ou `IndexedDB` para token, sessão ou dado pessoal. Preferência de UI vai em cookie. O lint bloqueia. Mapa completo em `src/docs/security.md`.
 - Supabase com RLS ativa em todas as tabelas. A chave secreta só existe no servidor.
 - Webhooks (Stripe, Resend, n8n) sempre verificam assinatura antes de processar.
 - Rate limit em rotas públicas, autenticação e endpoints de IA.
@@ -58,7 +60,7 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 - Sensação de offline: Server Components por padrão, `loading.tsx` ou `Suspense` por segmento, prefetch em links, cache em Redis para leituras repetidas, revalidação por tag.
 - Client Components só onde há interação real.
 - Imagens via `next/image`, fontes via `next/font`.
-- Nenhuma dependência nova sem necessidade clara.
+- Nenhuma dependência nova sem necessidade clara. Só bibliotecas listadas em `src/docs/libs.md`; lib nova entra na tabela antes de ser instalada.
 
 ## 6. Processo
 

@@ -7,9 +7,9 @@ import { useServerInsertedHTML } from "next/navigation";
 
 type Inserted = { name: string; isGlobal: boolean };
 
-export function EmotionRegistry({ children }: { children: React.ReactNode }) {
+export function EmotionRegistry({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   const [registry] = useState(() => {
-    const cache = createCache({ key: "sp" });
+    const cache = createCache({ key: "sp", nonce });
     cache.compat = true;
     const previousInsert = cache.insert;
     let inserted: Inserted[] = [];

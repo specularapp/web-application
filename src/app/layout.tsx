@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
+import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
 import { siteConfig } from "@/lib/metadata";
+import { readThemeCookie } from "@/lib/theme";
 import "@/styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -55,15 +57,19 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
+  const nonce = headerStore.get("x-nonce") ?? undefined;
+  const theme = readThemeCookie(cookieStore.get("theme")?.value);
+
   return (
     <html
       lang="pt-BR"
       className={`${inter.variable} ${geistMono.variable} ${playfair.variable}`}
-      suppressHydrationWarning
+      data-theme={theme}
     >
       <body>
-        <EmotionRegistry>{children}</EmotionRegistry>
+        <EmotionRegistry nonce={nonce}>{children}</EmotionRegistry>
       </body>
     </html>
   );

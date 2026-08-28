@@ -1,0 +1,21 @@
+.skeleton {
+  display: block;
+  width: 100%;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  animation: pulse 1.6s var(--ease-standard) infinite;
+}
+
+.skeleton[data-shape="text"] {
+  height: 1em;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton[data-shape="circle"] {
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+}
+
+@keyframes pulse {
+  50% { opacity: 0.45; }
+}

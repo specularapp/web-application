@@ -1,0 +1,9 @@
+.logo {
+  display: inline-block;
+  flex-shrink: 0;
+  height: var(--logo-height);
+  aspect-ratio: var(--logo-ratio);
+  background-color: var(--color-brand);
+  -webkit-mask: var(--logo-image) center / contain no-repeat;
+  mask: var(--logo-image) center / contain no-repeat;
+}

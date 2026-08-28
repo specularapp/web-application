@@ -52,7 +52,7 @@ db/
 
 - Rotas em português, código em inglês.
 - Páginas só compõem componentes de `features` e `components`.
-- Estilo com Emotion e tokens de `styles/tokens.css`. Nada de valores soltos.
+- Estilo sempre com tokens de `styles/tokens.css`. Primitivos sem interação (Text, Stack, Container, Table, Label, Field, Logo...) são Server Components com CSS Modules (`*.module.css` ao lado do componente, variantes por `data-*`), zero JS no cliente. Componentes interativos (Button com loading, Dialog, Switch, Toast...) usam Emotion e `"use client"`. Nada de valores soltos.
 - Metadados via `createMetadata` em toda página.
 - Dados via Server Components e Server Actions. Cache em Redis onde houver leitura repetida.
 - Webhooks verificam assinatura. Toda entrada validada com zod no servidor.
