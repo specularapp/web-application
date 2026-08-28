@@ -1,7 +1,7 @@
 import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from "react";
 import { cx } from "@/lib/utils/cx";
-import { Label } from "./label";
-import { Text } from "./text";
+import { Label } from "../label";
+import { Text } from "../text";
 import styles from "./field.module.css";
 
 type ControlProps = {

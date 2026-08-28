@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef } from "react";
 import { cx } from "@/lib/utils/cx";
-import { VisuallyHidden } from "./visually-hidden";
+import { VisuallyHidden } from "../visually-hidden";
 import styles from "./spinner.module.css";
 
 type SpinnerProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
