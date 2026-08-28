@@ -1,0 +1,4 @@
+revoke execute on all functions in schema public from public, anon;
+
+alter default privileges for role postgres in schema public
+  revoke execute on functions from public, anon;

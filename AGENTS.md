@@ -1,3 +1,7 @@
+# Specular
+
+Antes de qualquer alteração, leia `src/docs/rules.md`, `src/docs/objective.md` e `src/docs/structure.md`. As regras valem para todo o código. Ao terminar, rode `npm run typecheck`, `npm run lint` e `npm run build`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

@@ -5,17 +5,46 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "eslint .",
+    "typegen": "next typegen",
+    "typecheck": "next typegen && tsc --noEmit",
+    "env:check": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/check-env.mjs",
+    "db:sync": "node scripts/db.mjs sync",
+    "db:new": "node scripts/db.mjs new",
+    "db:push": "node scripts/db.mjs push",
+    "db:pull": "node scripts/db.mjs pull",
+    "db:status": "node scripts/db.mjs status",
+    "db:types": "node scripts/db.mjs types",
+    "db:link": "node scripts/db.mjs link",
+    "db:config-push": "node scripts/db.mjs config-push"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.112.4",
+    "cmdk": "^1.1.1",
+    "ioredis": "^6.0.0",
     "next": "16.3.3",
+    "openai": "^7.8.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "resend": "^6.24.0",
+    "server-only": "^0.0.1",
+    "stripe": "^22.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.3",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "supabase": "^2.116.0",
     "typescript": "^5"
   }
 }
