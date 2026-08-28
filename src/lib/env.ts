@@ -69,6 +69,16 @@ export const env = {
     z.object({ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_") }),
     () => ({ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }),
   ),
+  turnstile: define(
+    "Turnstile (chave secreta)",
+    z.object({ TURNSTILE_SECRET_KEY: z.string().min(1) }),
+    () => ({ TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY }),
+  ),
+  turnstilePublic: define(
+    "Turnstile (chave pública)",
+    z.object({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1) }),
+    () => ({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY }),
+  ),
   n8n: define(
     "n8n",
     z.object({

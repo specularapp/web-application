@@ -1,8 +1,10 @@
 "use server";
 
 import type { Route } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { siteConfig } from "@/lib/metadata";
+import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
   factorIdSchema,
@@ -14,7 +16,18 @@ import {
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
+const TOO_MANY = "Muitas tentativas. Aguarde um instante e tente de novo.";
+
+async function withinAuthLimit(operation: string) {
+  const headerStore = await headers();
+  const ip = clientIp(headerStore);
+  const { allowed } = await checkRateLimit("auth", `${operation}:${ip}`, crypto.randomUUID());
+  return allowed;
+}
+
 export async function signInWithOAuth(provider: unknown, next?: unknown): Promise<never> {
+  if (!(await withinAuthLimit("oauth"))) redirect("/login?erro=limite");
+
   const parsedProvider = oauthProviderSchema.safeParse(provider);
   if (!parsedProvider.success) redirect("/login?erro=provedor");
 
@@ -46,6 +59,8 @@ export async function listTotpFactors() {
 export async function enrollTotp(
   friendlyName: unknown,
 ): Promise<ActionResult<{ factorId: string; qrCode: string; secret: string }>> {
+  if (!(await withinAuthLimit("enroll"))) return { ok: false, error: TOO_MANY };
+
   const name = friendlyNameSchema.safeParse(friendlyName);
   if (!name.success) return { ok: false, error: "Nome do autenticador inválido" };
 
@@ -57,6 +72,8 @@ export async function enrollTotp(
 }
 
 export async function verifyTotp(factorId: unknown, code: unknown): Promise<ActionResult> {
+  if (!(await withinAuthLimit("totp"))) return { ok: false, error: TOO_MANY };
+
   const id = factorIdSchema.safeParse(factorId);
   const totp = totpCodeSchema.safeParse(code);
   if (!id.success || !totp.success) return { ok: false, error: "Código inválido" };
@@ -69,6 +86,8 @@ export async function verifyTotp(factorId: unknown, code: unknown): Promise<Acti
 }
 
 export async function unenrollTotp(factorId: unknown): Promise<ActionResult> {
+  if (!(await withinAuthLimit("unenroll"))) return { ok: false, error: TOO_MANY };
+
   const id = factorIdSchema.safeParse(factorId);
   if (!id.success) return { ok: false, error: "Autenticador inválido" };
 
