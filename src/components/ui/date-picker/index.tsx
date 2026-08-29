@@ -184,13 +184,12 @@ const Pill = styled.button`
   text-transform: capitalize;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-sm);
+  corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
-  --ck-background: var(--color-fill-quaternary);
 
   &:hover,
   &[aria-expanded="true"] {
     background-color: var(--color-fill-tertiary);
-    --ck-background: var(--color-fill-tertiary);
   }
 
   &:focus-visible {
@@ -376,7 +375,6 @@ function CaptionDropdown({ label, options, value, onChange }: CaptionDropdownPro
           setActive(value);
           setOpen((state) => !state);
         }}
-        {...squircle("sm")}
       >
         {selected?.label}
         <CaretDownIcon weight="bold" aria-hidden="true" />
