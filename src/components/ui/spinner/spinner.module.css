@@ -1,17 +1,27 @@
 .spinner {
+  --diameter: 1.25rem;
+  --thickness: 2px;
+  --spin-duration: 1s;
   display: inline-block;
   flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid var(--color-fill);
-  border-top-color: currentColor;
+  width: var(--diameter);
+  height: var(--diameter);
+  color: var(--color-label-secondary);
+  border: var(--thickness) solid transparent;
+  border-block-color: currentColor;
   border-radius: var(--radius-full);
-  animation: spin 0.8s linear infinite;
+  animation: dualArc var(--spin-duration) linear infinite;
 }
 
-.spinner[data-size="sm"] { width: 1rem; height: 1rem; }
-.spinner[data-size="lg"] { width: 2rem; height: 2rem; border-width: 3px; }
+.spinner[data-size="sm"] {
+  --diameter: 1rem;
+}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.spinner[data-size="lg"] {
+  --diameter: 2rem;
+  --thickness: 3px;
+}
+
+@keyframes dualArc {
+  to { rotate: 360deg; }
 }

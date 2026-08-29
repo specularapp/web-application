@@ -6,13 +6,30 @@ type ProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   value?: number;
   max?: number;
   tone?: "accent" | "success" | "warning" | "danger";
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  segments?: number;
 };
 
-export function Progress({ value, max = 100, tone = "accent", size = "md", className, style, ...props }: ProgressProps) {
+function fillOf(index: number, segments: number, ratio: number) {
+  const fraction = ratio * segments - index;
+  return Math.round(Math.min(1, Math.max(0, fraction)) * 1000) / 1000;
+}
+
+function tickStyle(vars: Record<string, number>) {
+  return vars as CSSProperties;
+}
+
+export function Progress({
+  value,
+  max = 100,
+  tone = "accent",
+  size = "md",
+  segments = 32,
+  className,
+  ...props
+}: ProgressProps) {
   const indeterminate = value === undefined;
-  const percent = indeterminate ? 0 : Math.min(100, Math.max(0, (value / max) * 100));
-  const vars = { ...style, "--progress": `${percent}%` } as CSSProperties;
+  const ratio = indeterminate ? 0 : Math.min(1, Math.max(0, value / max));
 
   return (
     <div
@@ -24,10 +41,15 @@ export function Progress({ value, max = 100, tone = "accent", size = "md", class
       data-tone={tone}
       data-size={size}
       data-indeterminate={indeterminate || undefined}
-      style={vars}
       {...props}
     >
-      <div className={styles.bar} />
+      {Array.from({ length: segments }, (_, index) => (
+        <span
+          key={index}
+          className={styles.tick}
+          style={tickStyle(indeterminate ? { "--index": index } : { "--fill": fillOf(index, segments, ratio) })}
+        />
+      ))}
     </div>
   );
 }

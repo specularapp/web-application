@@ -13,6 +13,8 @@
 }
 
 .skeleton[data-shape="circle"] {
+  width: auto;
+  height: 2.5rem;
   aspect-ratio: 1;
   border-radius: var(--radius-full);
 }
