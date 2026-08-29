@@ -5,11 +5,16 @@ import { updateSession } from "@/lib/supabase/proxy";
 
 const MFA_PATH = "/mfa";
 const marketingPaths = new Set(["/", "/precos", "/termos", "/privacidade"]);
+const openPaths = new Set(["/componentes"]);
 const authPaths = new Set(["/login", "/cadastro", "/recuperar-senha", "/redefinir-senha"]);
 const sharedPrefixes = ["/p/", "/cv/", "/orcamento/", "/contrato/", "/cobranca/"];
 
 function isPublic(pathname: string) {
-  return marketingPaths.has(pathname) || sharedPrefixes.some((prefix) => pathname.startsWith(prefix));
+  return (
+    marketingPaths.has(pathname) ||
+    openPaths.has(pathname) ||
+    sharedPrefixes.some((prefix) => pathname.startsWith(prefix))
+  );
 }
 
 function redirectWithCookies(url: URL, from: NextResponse) {

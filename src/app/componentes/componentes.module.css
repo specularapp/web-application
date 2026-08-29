@@ -1,0 +1,179 @@
+.page {
+  min-height: 100dvh;
+  padding-block: var(--space-10) var(--space-16);
+  background-color: var(--color-bg-grouped);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 44rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.stat {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius-lg);
+  --ck-background: var(--color-bg-grouped-secondary);
+  --ck-border-color: var(--color-separator);
+}
+
+.groups {
+  display: grid;
+  gap: var(--space-12);
+  margin-top: var(--space-12);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.groupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-separator);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-4);
+}
+
+.box {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: var(--space-4);
+  min-width: 0;
+  height: 100%;
+  --corner: var(--radius-2xl);
+  --pad: var(--space-4);
+  padding: var(--pad);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--corner);
+  --ck-background: var(--color-bg-grouped-secondary);
+  --ck-border-color: var(--color-separator);
+}
+
+.box[data-wide] {
+  grid-column: 1 / -1;
+}
+
+.boxHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg-grouped);
+  border-radius: max(var(--radius-xs), calc(var(--corner) - var(--pad)));
+  --ck-background: var(--color-bg-grouped);
+}
+
+.demo[data-layout="stack"] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.samples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.sample {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 0;
+}
+
+.sampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-medium);
+  line-height: 1.8;
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.chip::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  background-color: var(--chip-dot);
+  border-radius: var(--radius-full);
+}
+
+.chip[data-state="ready"] {
+  --chip-dot: var(--color-success);
+}
+
+.chip[data-state="pending"] {
+  --chip-dot: var(--color-label-tertiary);
+}
+
+.pendingGroup {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pendingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-2);
+}
+
+.pendingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius-md);
+  --ck-background: var(--color-bg-grouped-secondary);
+  --ck-border-color: var(--color-separator);
+}

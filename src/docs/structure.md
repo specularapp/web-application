@@ -27,6 +27,7 @@ src/
     (public)/           páginas compartilháveis com clientes: portfólio, currículo, orçamento, contrato, cobrança
     api/                health e webhooks (stripe, n8n, resend)
     auth/callback/      troca de código do Supabase
+    componentes/        vitrine do design system, pública e noindex
   components/
     ui/                 primitivos reutilizáveis (Button, Input, Card)
     layout/             shell da aplicação (Sidebar, Topbar)
@@ -53,6 +54,7 @@ db/
 - Rotas em português, código em inglês.
 - Páginas só compõem componentes de `features` e `components`.
 - Estilo sempre com tokens de `styles/tokens.css`. Primitivos sem interação (Text, Stack, Container, Table, Label, Field, Logo...) são Server Components com CSS Modules (`*.module.css` ao lado do componente, variantes por `data-*`), zero JS no cliente. Componentes interativos (Button com loading, Dialog, Switch, Toast...) usam Emotion e `"use client"`. Nada de valores soltos.
+- Todo componente novo entra na vitrine `/componentes` com nome e exemplo, conferido nos dois temas.
 - Metadados via `createMetadata` em toda página.
 - Dados via Server Components e Server Actions. Cache em Redis onde houver leitura repetida.
 - Webhooks verificam assinatura. Toda entrada validada com zod no servidor.
@@ -80,6 +82,24 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - Inter (`--font-sans`) como principal, Geist Mono (`--font-mono`) para código e números, Playfair Display (`--font-serif`) para títulos editoriais. Todas via `next/font`.
 - Use `--font-body`, `--font-code` e `--font-display`, que já incluem os fallbacks.
 - Escala de tipos da Apple: caption 2 e 1, footnote, subheadline, callout, body, headline, title 3 a 1 e large title.
+
+### Controles
+
+- Altura e respiro em `--control-height-*` e `--control-padding-*`, nos tamanhos `sm`, `md` e `lg`.
+- `--touch-target` garante 44px em ponteiro grosso. O helper `controlMetrics` de `src/components/ui/styles.ts` aplica os três de uma vez.
+- Cor de botão e de controle sai de variáveis locais (`--button-background`, `--button-foreground`, `--button-border`), definidas por `data-variant` e sobrescritas por prop quando precisar de cor sob medida.
+- Botão cobre a família inteira por prop: texto puro, `iconStart`, `iconEnd`, `iconOnly` (quadrado, exposto como `IconButton` com `label` obrigatório) e `locked` com `plan`, que anexa a etiqueta do plano sem tirar o clique, para o clique levar ao upgrade.
+
+### Cantos
+
+- Superelipse da Apple pelo cornerKit, obrigatório em todo canto arredondado. `squircle("lg")` de `src/lib/corners.ts` devolve os atributos e o `SquircleProvider` do layout raiz aplica. Contrato e armadilhas em `src/docs/libs.md`.
+- `border-radius` continua declarado no CSS: é o que aparece antes do JS e o fallback onde o cornerKit não desenha.
+- `globals.css` aplica `corner-shape: squircle` em `[data-squircle]`, que é o caminho nativo em Chromium 139+ e some sozinho onde não há suporte. Pílula e círculo não recebem `data-squircle` e ficam no `round`, que já é o padrão do CSS: não precisam declarar nada.
+- Escala em passos de 4px para o encaixe concêntrico: xs 4, sm 8, md 12, lg 16, xl 20, 2xl 28. A regra da Apple é raio interno igual ao externo menos o padding, e nessa escala a conta sempre cai em outro token (20 menos 8 dá 12, 16 menos 4 dá 12).
+- **Canto de dentro é sempre concêntrico.** Nada aninhado escolhe raio próprio: ele sai do raio do pai menos o padding que os separa. No CSS é `calc(var(--corner) - var(--pad))`, no TS é `concentric(raioDoPai, espacamento)` de `src/lib/corners.ts`. Quando os dois convivem, o mesmo número alimenta o `border-radius` e o `data-squircle-radius`, senão o fallback e o desenho do cornerKit discordam.
+- Botão é o exemplo da casa: raio 20 no tamanho `md` e `padding-block` de 8 dão etiqueta interna de 12, que é outro token da escala. É por isso que a escala anda de 4 em 4.
+- Botão só de ícone tem escala própria (`--icon-button-radius-*` e `iconButtonCornerRadius`), com o raio em exatamente metade do lado: 18 em 36, 22 em 44, 26 em 52. É o máximo que a superelipse aceita antes do clamp, e dá o formato de ícone do iOS. Passar disso não arredonda mais, só faz o CSS e o cornerKit divergirem.
+- Nesse botão o lado é fixo (`width` e `height`, não `min-`), o padding é zero e o glifo é 45% da altura por `calc`, então a proporção do ícone é idêntica nos três tamanhos.
 
 ### Marca
 

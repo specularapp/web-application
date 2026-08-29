@@ -9,6 +9,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | next, react, react-dom | base |
 | @emotion/react, @emotion/styled, @emotion/cache | estilo dos componentes interativos (client), SSR com nonce. Primitivos estáticos usam CSS Modules |
 | @phosphor-icons/react | ícones (importar por nome) |
+| @cornerkit/core | **obrigatória em todo border-radius**: cantos squircle no padrão Apple. Ver a seção Cantos |
 | cmdk | paleta de comandos |
 | zod | validação no servidor e no cliente |
 | @supabase/ssr, @supabase/supabase-js | auth, banco, storage, realtime |
@@ -65,6 +66,33 @@ Aprovadas na tabela, sem `npm install` até a feature entrar.
 | Proposta | Motivo |
 | --- | --- |
 | @t3-oss/env-nextjs | `lib/env.ts` já valida com zod e é lazy por serviço: só exige as variáveis da integração em uso. O t3 valida tudo no boot, o que obrigaria toda variável a existir em todo ambiente. Seria regressão |
+
+## Cantos: @cornerkit/core é obrigatória
+
+Todo canto arredondado do produto passa pelo cornerKit. Não existe canto redondo "na mão".
+
+Como usar:
+
+- O raio vem de `src/lib/corners.ts`, nunca um número solto. `squircle("lg")` devolve `data-squircle` e `data-squircle-radius` já convertidos de token para pixel.
+- `SquircleProvider` fica montado no layout raiz e roda `auto()`, que varre `[data-squircle]` e reaplica a cada navegação. Por isso primitivo estático continua Server Component e sem JS próprio: ele só emite os atributos.
+- `border-radius` continua no CSS junto com os atributos. Ele é o que aparece antes do JS rodar e onde o cornerKit cai no fallback.
+- Pílula e círculo (`--radius-full`) **não** recebem `data-squircle`. Capsule da Apple é arco de circunferência; superelipse no raio máximo distorce.
+- `CORNER_SMOOTHING` é 0.6, o valor iOS. Fica num lugar só.
+
+O que saber antes de mexer:
+
+- **Elemento com borda precisa da cor, não só da largura.** O cornerKit só entra no caminho de SVG se `border.color` existir: a checagem é `width > 0 && (color || gradient)`. Passar só a largura cai no caminho de `clip-path`, e aí a borda CSS segue o arco circular enquanto o recorte segue a superelipse, então ela aparece quebrada no canto. Por isso `squircle("lg", { color: "var(--color-separator)" })`. A cor pode ser `var(...)`: o atributo aceita qualquer string e vira `style.stroke` no path, que resolve porque o SVG é filho do elemento.
+- **Com borda não existe recorte.** Nesse caminho o cornerKit insere um `<svg class="cornerkit-border">` como primeiro filho e limpa o `clip-path`. Some o problema de `outline` cortado. Sem borda ele usa `clip-path: path(...)`, e só aí o anel de foco precisa ser interno.
+- **A CSP bloqueia o estilo que o cornerKit injeta.** Ele faz `document.head.appendChild` de um `<style id="cornerkit-svg-border-styles">` que posiciona `.cornerkit-border` em `position: absolute` com `z-index: -1`. Sem nonce isso não passa no nosso `style-src`, e o SVG entraria no fluxo empurrando o conteúdo. Por isso a regra `.cornerkit-border` está no nosso `globals.css`. Se atualizar a lib, confira se essa regra mudou.
+- No caminho com borda ele força `background-color: transparent !important` e `box-shadow: none !important` no elemento e repinta pelo SVG lendo `--ck-background`. Todo elemento squircle declara `--ck-background` e `--ck-border-color`.
+- O `globals.css` zera a borda CSS quando o SVG existe (`:has(> .cornerkit-border)`) ou quando há recorte. Antes do JS rodar a borda CSS aparece normal, como fallback.
+- `INPUT`, `SELECT`, `TEXTAREA`, `IMG`, `VIDEO`, `CANVAS` e outros elementos vazios ou substituídos não aceitam o SVG filho: neles o cornerKit cai no `clip-path` mesmo com borda. Vale lembrar quando os campos de formulário entrarem.
+- Ícone dentro de botão é `currentColor` por padrão no Phosphor, então herda a cor do texto sozinho. Não pinte ícone à mão.
+- O `auto()` **não** observa mutação de DOM: ele varre `[data-squircle]` uma vez e registra um IntersectionObserver só para o que está fora da tela. Elemento criado depois (diálogo, item de lista, badge condicional) nunca seria desenhado. Por isso o `SquircleProvider` mantém um `MutationObserver` próprio, com `requestAnimationFrame` para agrupar e ignorando inserção do próprio `.cornerkit-border`, senão o desenho realimentaria a varredura.
+- O provider destrói e recria a instância a cada navegação. O registro do cornerKit não poda elemento removido do DOM, então sem isso os observers acumulariam a cada rota.
+- O React **não** apaga o que o cornerKit escreve em `style`: no diff ele só limpa chave que ele mesmo tinha posto antes. Convivem sem briga.
+- Toda variante de botão passa borda, inclusive as de borda transparente. Sem borda o cornerKit usaria `clip-path`, que corta o `outline` do foco, e o anel ficaria por dentro em umas variantes e por fora em outras. Uniformidade vale o SVG a mais.
+- `@cornerkit/react` foi avaliada e não ficou: expõe `useSquircle`, e hook não pode ser condicional. O Button tem variante pílula que não pode ser squircle, então precisaria chamar o hook sempre e desligar por dentro. Atributo resolve nos dois casos, e serve a Server Component, que o hook não serve.
 
 ## Proibidas
 
