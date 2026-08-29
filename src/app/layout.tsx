@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
+import { SquircleProvider } from "@/components/providers/squircle-provider";
 import { siteConfig } from "@/lib/metadata";
 import { readThemeCookie } from "@/lib/theme";
 import "@/styles/globals.css";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <EmotionRegistry nonce={nonce}>{children}</EmotionRegistry>
+        <SquircleProvider />
       </body>
     </html>
   );

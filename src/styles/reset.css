@@ -166,6 +166,14 @@
   outline-offset: 2px;
 }
 
+:where([data-squircle][style*="clip-path"]):focus-visible {
+  outline-offset: -2px;
+}
+
+:where([data-squircle]):focus-visible {
+  --ck-border-color: var(--color-focus);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   :where(html:focus-within) {
     scroll-behavior: smooth;

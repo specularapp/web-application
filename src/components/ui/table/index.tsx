@@ -1,11 +1,21 @@
 import type { ComponentPropsWithoutRef } from "react";
+import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./table.module.css";
 
 type TableScrollProps = ComponentPropsWithoutRef<"div"> & { label: string };
 
 export function TableScroll({ label, className, ...props }: TableScrollProps) {
-  return <div role="region" aria-label={label} tabIndex={0} className={cx(styles.scroll, className)} {...props} />;
+  return (
+    <div
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+      className={cx(styles.scroll, className)}
+      {...squircle("lg", { color: "var(--color-separator)" })}
+      {...props}
+    />
+  );
 }
 
 type TableProps = ComponentPropsWithoutRef<"table"> & { density?: "default" | "compact" };
@@ -28,10 +38,19 @@ export function TableRow({ className, ...props }: ComponentPropsWithoutRef<"tr">
 
 type CellProps = { align?: "start" | "center" | "end" };
 
-export function TableHeaderCell({ align = "start", className, scope = "col", ...props }: Omit<ComponentPropsWithoutRef<"th">, "align"> & CellProps) {
+export function TableHeaderCell({
+  align = "start",
+  className,
+  scope = "col",
+  ...props
+}: Omit<ComponentPropsWithoutRef<"th">, "align"> & CellProps) {
   return <th scope={scope} className={cx(styles.headerCell, className)} data-align={align} {...props} />;
 }
 
-export function TableCell({ align = "start", className, ...props }: Omit<ComponentPropsWithoutRef<"td">, "align"> & CellProps) {
+export function TableCell({
+  align = "start",
+  className,
+  ...props
+}: Omit<ComponentPropsWithoutRef<"td">, "align"> & CellProps) {
   return <td className={cx(styles.cell, className)} data-align={align} {...props} />;
 }
