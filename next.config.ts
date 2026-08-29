@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
+  experimental: {
+    optimizePackageImports: ["@phosphor-icons/react"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
