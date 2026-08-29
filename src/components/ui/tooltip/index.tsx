@@ -3,7 +3,6 @@
 import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
 import { cloneElement, useId, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
-import { squircle } from "@/lib/corners";
 
 type TriggerProps = { "aria-describedby"?: string };
 
@@ -24,8 +23,9 @@ const enter = keyframes`
 `;
 
 const Root = styled.span`
+  --bubble-radius: var(--radius-md);
   --arrow-size: 0.625rem;
-  --arrow-inset: calc(var(--radius-sm) + var(--arrow-size) / 2);
+  --arrow-inset: calc(var(--bubble-radius) + var(--arrow-size) / 2);
   --offset: calc(var(--space-2) + var(--space-half));
   position: relative;
   display: inline-flex;
@@ -36,24 +36,22 @@ const Bubble = styled.span`
   position: absolute;
   z-index: var(--z-overlay);
   width: max-content;
-  max-width: 20rem;
-  padding: calc(var(--space-1) + var(--space-half)) var(--space-3);
-  font-family: var(--font-body);
-  font-size: var(--text-caption-1);
-  font-weight: var(--weight-regular);
+  max-width: 18rem;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-code);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
   line-height: var(--leading-normal);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-normal);
   color: var(--color-bg);
   text-align: start;
-  text-wrap: balance;
+  text-wrap: pretty;
   background-color: var(--color-label);
-  border: 1px solid var(--color-label);
-  border-radius: var(--radius-sm);
+  border-radius: var(--bubble-radius);
+  corner-shape: squircle;
   pointer-events: none;
   transform-origin: var(--origin-x) var(--origin-y);
   animation: ${enter} var(--duration-fast) var(--ease-standard);
-  --ck-background: var(--color-label);
-  --ck-border-color: var(--color-label);
 
   &[data-side="top"] {
     bottom: calc(100% + var(--offset));
@@ -101,11 +99,11 @@ const Arrow = styled.span`
   }
 
   [data-align="start"] > & {
-    inset-inline-start: var(--radius-sm);
+    inset-inline-start: var(--bubble-radius);
   }
 
   [data-align="end"] > & {
-    inset-inline-end: var(--radius-sm);
+    inset-inline-end: var(--bubble-radius);
   }
 
   [data-align="center"] > & {
@@ -134,13 +132,7 @@ export function Tooltip({ content, side = "top", align = "center", open, classNa
     >
       {cloneElement(children, { "aria-describedby": visible ? bubbleId : undefined })}
       {visible && (
-        <Bubble
-          id={bubbleId}
-          role="tooltip"
-          data-side={side}
-          data-align={align}
-          {...squircle("sm", { color: "var(--color-label)" })}
-        >
+        <Bubble id={bubbleId} role="tooltip" data-side={side} data-align={align}>
           {content}
           <Arrow aria-hidden="true" />
         </Bubble>

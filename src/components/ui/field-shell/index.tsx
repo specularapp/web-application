@@ -2,10 +2,7 @@
 
 import styled from "@emotion/styled";
 import type { ComponentPropsWithoutRef, Ref } from "react";
-import { controlCornerRadius, squirclePx } from "@/lib/corners";
 import { fieldMetrics, type ControlSize } from "../styles";
-
-const fieldBorder = { color: "var(--color-border)" };
 
 const Surface = styled.span`
   display: flex;
@@ -17,8 +14,7 @@ const Surface = styled.span`
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--field-radius);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-border);
+  corner-shape: squircle;
 
   &[data-size="sm"] {
     ${fieldMetrics("sm")};
@@ -37,7 +33,6 @@ const Surface = styled.span`
 
   &[data-invalid] {
     border-color: var(--color-danger);
-    --ck-border-color: var(--color-danger);
   }
 
   &:has(:disabled) {
@@ -68,12 +63,5 @@ export type FieldShellProps = ComponentPropsWithoutRef<"span"> & {
 };
 
 export function FieldShell({ size = "md", invalid = false, ...props }: FieldShellProps) {
-  return (
-    <Surface
-      data-size={size}
-      data-invalid={invalid || undefined}
-      {...squirclePx(controlCornerRadius[size], fieldBorder)}
-      {...props}
-    />
-  );
+  return <Surface data-size={size} data-invalid={invalid || undefined} {...props} />;
 }
