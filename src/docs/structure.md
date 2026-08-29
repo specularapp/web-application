@@ -95,7 +95,7 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 ### Campos de formulário
 
 - Fonte com piso de 16px por `fieldMetrics`. Abaixo disso o iOS dá zoom ao focar, e a escala de tipos tem tamanhos de 13 e 15px, então o piso não é opcional.
-- Rótulo e dica do `Field` recuam `padding do controle + 1px de borda`, lido do `size` do filho, para o texto do rótulo começar exatamente onde começa o texto digitado. Alinhar só a caixa deixa o rótulo saltado para a esquerda.
+- Rótulo, caixa do campo e dica compartilham a mesma borda esquerda, sem recuo óptico. O rótulo recuado até o texto digitado foi testado e descartado: parece deslocado.
 - Campo de texto não tem indicador de foco, por decisão de produto. É desvio consciente de `rules.md`, que exige foco visível: quem navega por teclado perde a referência de onde está. Botão e link mantêm o anel.
 - Máscara sai da prop `mask` do `Input`, com os padrões em `src/lib/masks.ts`: `cpf`, `cnpj`, `document` (troca de CPF para CNPJ ao passar de 11 dígitos), `phone` (fixo ou celular pelo comprimento), `cep`, `date`, `currency`, `percent` e `integer`. Nunca escrever regex de máscara solta em feature.
 - Máscara numérica preenche a partir do centavo: o valor bruto é a sequência de dígitos e a formatação divide por 100 com `Intl.NumberFormat` em pt-BR. Digitar 1, 2, 3 dá R$ 0,01, R$ 0,12, R$ 1,23. É por isso que dinheiro vai para o banco em centavos inteiros: o campo já entrega assim.

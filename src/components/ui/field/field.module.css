@@ -7,11 +7,6 @@
   text-align: start;
 }
 
-.label,
-.hint {
-  padding-inline-start: var(--field-inset);
-}
-
 .errorTrigger {
   position: relative;
   display: flex;

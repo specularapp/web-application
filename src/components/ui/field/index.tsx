@@ -6,13 +6,11 @@ import {
   isValidElement,
   useId,
   useState,
-  type CSSProperties,
   type FocusEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { cx } from "@/lib/utils/cx";
-import type { ControlSize } from "../styles";
 import { Label } from "../label";
 import { Text } from "../text";
 import { Tooltip } from "../tooltip";
@@ -21,7 +19,6 @@ import styles from "./field.module.css";
 
 type ControlProps = {
   id?: string;
-  size?: ControlSize;
   required?: boolean;
   iconEnd?: ReactNode;
   "aria-describedby"?: string;
@@ -64,8 +61,6 @@ export function Field({
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
 
-  const size = (isValidElement<ControlProps>(children) && children.props.size) || "md";
-  const inset = { "--field-inset": `calc(var(--control-padding-${size}) + 1px)` } as CSSProperties;
   const showError = Boolean(error) && (revealError ?? touched);
   const describedBy = [hint ? hintId : null, showError ? errorId : null].filter(Boolean).join(" ") || undefined;
 
@@ -88,17 +83,16 @@ export function Field({
   return (
     <div
       className={cx(styles.field, className)}
-      style={inset}
       onBlurCapture={(event: FocusEvent<HTMLDivElement>) => {
         if (isFilledControl(event.target)) setTouched(true);
       }}
     >
-      <Label htmlFor={id} required={required} className={styles.label}>
+      <Label htmlFor={id} required={required}>
         {label}
       </Label>
       {control}
       {hint && (
-        <Text id={hintId} variant="footnote" tone="secondary" className={styles.hint}>
+        <Text id={hintId} variant="footnote" tone="secondary">
           {hint}
         </Text>
       )}
