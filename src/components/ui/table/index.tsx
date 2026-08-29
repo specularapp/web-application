@@ -12,7 +12,7 @@ export function TableScroll({ label, className, ...props }: TableScrollProps) {
       aria-label={label}
       tabIndex={0}
       className={cx(styles.scroll, className)}
-      {...squircle("lg", { color: "var(--color-separator)" })}
+      {...squircle("lg")}
       {...props}
     />
   );

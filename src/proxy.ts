@@ -1,18 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { MFA_PATH, publicAuthPaths } from "@/lib/auth-paths";
 import { siteConfig } from "@/lib/metadata";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const MFA_PATH = "/mfa";
 const marketingPaths = new Set(["/", "/precos", "/termos", "/privacidade"]);
 const openPaths = new Set(["/componentes"]);
-const authPaths = new Set(["/login", "/cadastro", "/recuperar-senha", "/redefinir-senha"]);
+const authPaths = new Set<string>(publicAuthPaths);
 const sharedPrefixes = ["/p/", "/cv/", "/orcamento/", "/contrato/", "/cobranca/"];
+const openPrefixes = ["/auth/"];
 
 function isPublic(pathname: string) {
   return (
     marketingPaths.has(pathname) ||
     openPaths.has(pathname) ||
+    openPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     sharedPrefixes.some((prefix) => pathname.startsWith(prefix))
   );
 }
@@ -52,6 +54,7 @@ export async function proxy(request: NextRequest) {
   const nonce = createNonce();
   const csp = buildContentSecurityPolicy(nonce);
   request.headers.set("x-nonce", nonce);
+  request.headers.set("x-pathname", pathname);
   request.headers.set("Content-Security-Policy", csp);
 
   const { response, claims, mfaPending } = await updateSession(request);
@@ -77,7 +80,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|logotipo|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image).*)",
+      source:
+        "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|logotipo|banners|bg|brands|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

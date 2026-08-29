@@ -17,7 +17,7 @@ export function Surface({ as: Tag = "div", tone = "raised", pad, className, ...p
       className={cx(styles.surface, className)}
       data-tone={tone}
       data-pad={pad}
-      {...squircleAuto({ color: "var(--color-border)" })}
+      {...squircleAuto()}
       {...props}
     />
   );

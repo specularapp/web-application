@@ -17,7 +17,7 @@ export function Skeleton({ shape = "text", width, height, className, style, ...p
       className={cx(styles.skeleton, className)}
       data-shape={shape}
       style={size}
-      {...(shape === "circle" ? {} : squircle(shape === "text" ? "sm" : "md"))}
+      {...(shape === "circle" ? {} : squircle(shape === "text" ? "sm" : "md", { clip: true }))}
       {...props}
     />
   );

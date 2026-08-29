@@ -1,0 +1,133 @@
+.badge {
+  --badge-hue: var(--sys-gray);
+  --badge-hue-share: 70%;
+  --badge-ink: color-mix(in oklab, var(--badge-hue) var(--badge-hue-share), var(--color-label));
+  --badge-tint: light-dark(
+    color-mix(in oklab, var(--badge-hue) 14%, transparent),
+    color-mix(in oklab, var(--badge-hue) 18%, transparent)
+  );
+  --badge-line: light-dark(
+    color-mix(in oklab, var(--badge-hue) 36%, transparent),
+    color-mix(in oklab, var(--badge-hue) 44%, transparent)
+  );
+  --badge-height: 1.5rem;
+  --badge-radius: var(--radius-sm);
+  --badge-padding: calc(var(--space-2) + var(--space-half));
+  --badge-gap: calc(var(--space-1) + var(--space-half));
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--badge-gap);
+  box-sizing: border-box;
+  height: var(--badge-height);
+  min-width: var(--badge-height);
+  max-width: 100%;
+  padding-inline: var(--badge-padding);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  vertical-align: middle;
+  color: var(--badge-foreground);
+  background-color: var(--badge-background);
+  border: 1px solid var(--badge-border);
+  border-radius: var(--badge-radius);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.badge[data-size="sm"] {
+  --badge-height: 1.25rem;
+  --badge-radius: var(--radius-sm);
+  --badge-padding: var(--space-2);
+  --badge-gap: var(--space-1);
+  font-size: var(--text-caption-2);
+}
+
+.badge[data-size="lg"] {
+  --badge-height: 1.75rem;
+  --badge-radius: var(--radius-md);
+  --badge-padding: var(--space-3);
+  --badge-gap: var(--space-2);
+  font-size: var(--text-footnote);
+}
+
+.badge[data-shape="pill"] {
+  --badge-radius: var(--radius-full);
+}
+
+.badge[data-icon-only] {
+  width: var(--badge-height);
+  padding-inline: 0;
+}
+
+.badge[data-variant="soft"] {
+  --badge-background: var(--badge-tint);
+  --badge-foreground: var(--badge-ink);
+  --badge-border: transparent;
+}
+
+.badge[data-variant="solid"] {
+  --badge-background: var(--badge-ink);
+  --badge-foreground: var(--color-bg);
+  --badge-border: transparent;
+}
+
+.badge[data-variant="outline"] {
+  --badge-background: transparent;
+  --badge-foreground: var(--badge-ink);
+  --badge-border: var(--badge-line);
+}
+
+.badge[data-tone="neutral"] { --badge-hue: var(--sys-gray); }
+.badge[data-tone="brand"] { --badge-hue: var(--color-brand); }
+.badge[data-tone="accent"] { --badge-hue: var(--color-accent); }
+.badge[data-tone="success"] { --badge-hue: var(--color-success); }
+.badge[data-tone="warning"] { --badge-hue: var(--color-warning); }
+.badge[data-tone="danger"] { --badge-hue: var(--color-danger); }
+.badge[data-tone="info"] { --badge-hue: var(--color-info); }
+
+.badge[data-tone="red"] { --badge-hue: var(--sys-red); }
+.badge[data-tone="orange"] { --badge-hue: var(--sys-orange); }
+.badge[data-tone="green"] { --badge-hue: var(--sys-green); }
+.badge[data-tone="mint"] { --badge-hue: var(--sys-mint); }
+.badge[data-tone="teal"] { --badge-hue: var(--sys-teal); }
+.badge[data-tone="cyan"] { --badge-hue: var(--sys-cyan); }
+.badge[data-tone="blue"] { --badge-hue: var(--sys-blue); }
+.badge[data-tone="indigo"] { --badge-hue: var(--sys-indigo); }
+.badge[data-tone="purple"] { --badge-hue: var(--sys-purple); }
+.badge[data-tone="pink"] { --badge-hue: var(--sys-pink); }
+.badge[data-tone="brown"] { --badge-hue: var(--sys-brown); }
+
+.badge[data-tone="yellow"] {
+  --badge-hue: var(--sys-yellow);
+  --badge-hue-share: 60%;
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.icon svg {
+  width: 1.2em;
+  height: 1.2em;
+  fill: currentColor;
+}
+
+.badge[data-icon-only] .icon svg {
+  width: calc(var(--badge-height) * 0.5);
+  height: calc(var(--badge-height) * 0.5);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

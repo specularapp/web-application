@@ -2,7 +2,7 @@
 
 import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
-import { CalendarBlankIcon, CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import {
@@ -13,14 +13,14 @@ import {
   useState,
   type ComponentProps,
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import { DayPicker, useDayPicker } from "react-day-picker";
 import { createPortal } from "react-dom";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { FieldAdornment, FieldShell } from "../field-shell";
-import { thinScrollbar, type ControlSize } from "../styles";
+import { Listbox, type ListboxOption } from "../listbox";
+import { popIn, type ControlSize } from "../styles";
 
 export type DatePickerProps = {
   id?: string;
@@ -44,13 +44,6 @@ export type DatePickerProps = {
 
 const GAP = 8;
 const MARGIN = 16;
-
-const enter = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(var(--slide)) scale(0.97);
-  }
-`;
 
 const rise = keyframes`
   from {
@@ -137,7 +130,7 @@ const Popover = styled.div`
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   transform-origin: var(--origin);
-  animation: ${enter} var(--duration-fast) var(--ease-standard);
+  animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
   &[data-mode="sheet"] {
     inset-inline: 0;
@@ -171,252 +164,16 @@ const Popover = styled.div`
   }
 `;
 
-const Pill = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 2rem;
-  padding-inline: var(--space-3) var(--space-2);
-  font: inherit;
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label);
-  text-transform: capitalize;
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-sm);
-  corner-shape: squircle;
-  transition: background-color var(--duration-fast) var(--ease-standard);
-
-  &:hover,
-  &[aria-expanded="true"] {
-    background-color: var(--color-fill-tertiary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-label);
-    outline-offset: -2px;
-  }
-
-  & svg {
-    width: 0.875rem;
-    height: 0.875rem;
-    color: var(--color-label-secondary);
-    fill: currentColor;
-  }
-`;
-
-const Menu = styled.div`
-  position: relative;
-  display: inline-flex;
-`;
-
-const List = styled.div`
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  inset-inline-start: 0;
-  z-index: 1;
-  min-width: max(100%, 10rem);
-  width: max-content;
-  padding: var(--space-1);
-  background-color: var(--color-bg-grouped-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
-  box-shadow: var(--shadow-md);
-  transform-origin: top left;
-  animation: ${enter} var(--duration-fast) var(--ease-standard);
-  --slide: calc(var(--space-1) * -1);
-`;
-
-const Scroll = styled.ul`
-  position: relative;
-  max-height: 14rem;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-  outline: none;
-  ${thinScrollbar};
-`;
-
-const Option = styled.li`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 2.25rem;
-  padding-inline: var(--space-3) var(--space-2);
-  font-size: var(--text-subheadline);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: var(--tracking-tight);
-  text-transform: capitalize;
-  white-space: nowrap;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
-
-  &[data-active] {
-    background-color: var(--color-fill-quaternary);
-  }
-
-  &[aria-selected="true"] {
-    font-weight: var(--weight-semibold);
-    background-color: var(--color-fill-tertiary);
-  }
-
-  & svg {
-    width: 1rem;
-    height: 1rem;
-    color: var(--color-label);
-    fill: currentColor;
-  }
-`;
-
-type Choice = { value: number; label: string };
-
-function revealOption(list: HTMLElement, option: HTMLElement) {
-  const top = option.offsetTop;
-  const bottom = top + option.offsetHeight;
-  if (top < list.scrollTop) list.scrollTop = top;
-  else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
-}
-
-type CaptionDropdownProps = {
-  label: string;
-  options: Choice[];
-  value: number;
-  onChange: (value: number) => void;
-};
-
-function CaptionDropdown({ label, options, value, onChange }: CaptionDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(value);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-  const pillRef = useRef<HTMLButtonElement>(null);
-  const listId = useId();
-  const selected = options.find((option) => option.value === value);
-
-  const close = (restoreFocus = true) => {
-    setOpen(false);
-    if (restoreFocus) pillRef.current?.focus();
-  };
-
-  const choose = (next: number) => {
-    onChange(next);
-    close();
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) close(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const list = listRef.current;
-    const selected = document.getElementById(`${listId}-${value}`);
-    if (!list || !selected) return;
-    list.focus({ preventScroll: true });
-    list.scrollTop = selected.offsetTop;
-  }, [open, value, listId]);
-
-  useEffect(() => {
-    if (!open) return;
-    const list = listRef.current;
-    const option = document.getElementById(`${listId}-${active}`);
-    if (list && option) revealOption(list, option);
-  }, [open, active, listId]);
-
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLUListElement>) => {
-    const index = options.findIndex((option) => option.value === active);
-    const step = (delta: number) => {
-      event.preventDefault();
-      const next = options[Math.min(options.length - 1, Math.max(0, index + delta))];
-      if (next) setActive(next.value);
-    };
-
-    switch (event.key) {
-      case "ArrowDown":
-        return step(1);
-      case "ArrowUp":
-        return step(-1);
-      case "Home":
-        return step(-options.length);
-      case "End":
-        return step(options.length);
-      case "Enter":
-      case " ":
-        event.preventDefault();
-        return choose(active);
-      case "Escape":
-        event.preventDefault();
-        event.stopPropagation();
-        return close();
-      case "Tab":
-        return close(false);
-    }
-  };
-
-  return (
-    <Menu ref={menuRef}>
-      <Pill
-        ref={pillRef}
-        type="button"
-        aria-label={label}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        onClick={() => {
-          setActive(value);
-          setOpen((state) => !state);
-        }}
-      >
-        {selected?.label}
-        <CaretDownIcon weight="bold" aria-hidden="true" />
-      </Pill>
-      {open && (
-        <List>
-          <Scroll
-            ref={listRef}
-            id={listId}
-            role="listbox"
-            aria-label={label}
-            aria-activedescendant={`${listId}-${active}`}
-            tabIndex={-1}
-            onKeyDown={onKeyDown}
-          >
-            {options.map((option) => (
-              <Option
-                key={option.value}
-                id={`${listId}-${option.value}`}
-                role="option"
-                aria-selected={option.value === value}
-                data-active={option.value === active || undefined}
-                onPointerMove={() => setActive(option.value)}
-                onClick={() => choose(option.value)}
-              >
-                {option.label}
-                {option.value === value && <CheckIcon weight="bold" aria-hidden="true" />}
-              </Option>
-            ))}
-          </Scroll>
-        </List>
-      )}
-    </Menu>
-  );
-}
-
 type Components = NonNullable<ComponentProps<typeof DayPicker>["components"]>;
 type CaptionProps = ComponentProps<NonNullable<Components["MonthCaption"]>>;
 
-const monthOptions: Choice[] = Array.from({ length: 12 }, (_, month) => ({
+function capitalize(text: string) {
+  return text.charAt(0).toLocaleUpperCase("pt-BR") + text.slice(1);
+}
+
+const monthOptions: ListboxOption<number>[] = Array.from({ length: 12 }, (_, month) => ({
   value: month,
-  label: format(new Date(2000, month, 1), "LLLL", { locale: ptBR }),
+  label: capitalize(format(new Date(2000, month, 1), "LLLL", { locale: ptBR })),
 }));
 
 function clamp(date: Date, start: Date, end: Date) {
@@ -430,7 +187,7 @@ function CalendarCaption({ calendarMonth, displayIndex: _displayIndex, ...props 
   const current = calendarMonth.date;
   const start = dayPickerProps.startMonth ?? new Date(1900, 0);
   const end = dayPickerProps.endMonth ?? new Date(current.getFullYear() + 10, 11);
-  const yearOptions: Choice[] = Array.from({ length: end.getFullYear() - start.getFullYear() + 1 }, (_, offset) => {
+  const yearOptions: ListboxOption<number>[] = Array.from({ length: end.getFullYear() - start.getFullYear() + 1 }, (_, offset) => {
     const year = start.getFullYear() + offset;
     return { value: year, label: String(year) };
   });
@@ -439,13 +196,13 @@ function CalendarCaption({ calendarMonth, displayIndex: _displayIndex, ...props 
 
   return (
     <div {...props}>
-      <CaptionDropdown
+      <Listbox
         label="Mês"
         options={monthOptions}
         value={current.getMonth()}
         onChange={(month) => go(current.getFullYear(), month)}
       />
-      <CaptionDropdown
+      <Listbox
         label="Ano"
         options={yearOptions}
         value={current.getFullYear()}

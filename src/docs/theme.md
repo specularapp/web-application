@@ -5,7 +5,7 @@
 - `src/styles/tokens.css`: primitivos `--sys-*` e semânticos `--color-*` com `light-dark()`; `color-scheme: light dark` no `:root`.
 - Preferência: cookie `theme` com `light` ou `dark`; ausente significa seguir o sistema. O layout raiz lê o cookie e coloca `data-theme` no `html`, que só troca o `color-scheme`. Sem flash, sem script inline, compatível com a CSP.
 - Helper: `src/lib/theme.ts` (`readThemeCookie`, `themeCookieString`).
-- `ThemeToggle` (a implementar): escreve o cookie e `document.documentElement.dataset.theme` na hora; ciclo sistema → claro → escuro; `aria-label` descreve o estado atual e o próximo.
+- `ThemeToggle` (`components/layout/theme-toggle/`): `Listbox` com Sistema, Claro e Escuro. Escreve o cookie por `themeCookieString` e troca `document.documentElement.dataset.theme` na hora (remove o atributo em Sistema). Recebe o valor inicial do layout raiz, que já leu o cookie, então não há salto na hidratação. Montado flutuando no canto inferior esquerdo, numa doca arrastável pela alça (ponteiro com captura, setas do teclado em passos de 16px, sempre dentro da viewport), só em homologação (`isHomologation()` em `lib/env.ts`: `NODE_ENV` diferente de produção ou `VERCEL_ENV` preview). Em produção o seletor vai para a tela de configurações.
 
 ## O que já responde ao tema
 
@@ -18,6 +18,10 @@
 | `theme-color` do navegador | `viewport.themeColor` por `prefers-color-scheme`; segue o sistema |
 | Imagem Open Graph | sempre escura (imagem estática) |
 | Emotion | só `var(--color-*)` |
+
+## Tema forçado por rota
+
+- Autenticação (`/login`, `/cadastro`, `/recuperar-senha`, `/redefinir-senha`, `/mfa`) é sempre escura. O proxy grava `x-pathname` e o layout raiz troca o `data-theme` para `dark` quando `isAuthPath()` bate, ignorando o cookie só nessas rotas. `color-scheme` num elemento interno não serve: o `light-dark()` das variáveis é resolvido no `:root`.
 
 ## Regras
 

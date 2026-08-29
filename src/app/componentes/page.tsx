@@ -2,17 +2,30 @@ import {
   ArchiveIcon,
   ArrowsClockwiseIcon,
   CalendarBlankIcon,
+  CheckCircleIcon,
+  CircleDashedIcon,
+  CircleHalfIcon,
+  ClockIcon,
   CreditCardIcon,
   ExportIcon,
+  EyeIcon,
   PaperPlaneTiltIcon,
   PersonArmsSpreadIcon,
   PlusIcon,
   QuestionIcon,
+  SparkleIcon,
   SunIcon,
   TrashIcon,
+  WarningIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
+import { Avatar, AvatarGroup } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { BrandIcon } from "@/components/ui/brand-icon";
 import { Button } from "@/components/ui/button";
+import { Carousel } from "@/components/ui/carousel";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Container } from "@/components/ui/container";
 import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
@@ -21,6 +34,7 @@ import { Field } from "@/components/ui/field";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/link";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,13 +42,16 @@ import { Spinner } from "@/components/ui/spinner";
 import { Inline, Stack } from "@/components/ui/stack";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow, TableScroll } from "@/components/ui/table";
 import { Surface } from "@/components/ui/surface";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { Tooltip } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Logo } from "@/components/layout/logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { squircle } from "@/lib/corners";
 import { createMetadata } from "@/lib/metadata";
 import styles from "./componentes.module.css";
+import { ListboxDemo, PaginationDemo, ToastDemo, ToastPreview } from "./demos";
 
 export const metadata = createMetadata({
   title: "Componentes",
@@ -66,6 +83,12 @@ function Sample({ label, children }: { label: string; children: ReactNode }) {
     </div>
   );
 }
+
+const carouselSlides = [1, 2, 3].map((index) => ({
+  desktop: `/banners/login-${index}-desktop.png`,
+  mobile: `/banners/login-${index}-mobile.png`,
+  alt: `Banner de exemplo ${index}`,
+}));
 
 const groups: Group[] = [
   {
@@ -406,6 +429,58 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Checkbox",
+        note: "Caixa nativa por baixo, invisível sobre o quadrado desenhado. Marcado e indeterminado em --color-brand com o traço na cor do fundo, como o botão primário. Squircle no raio sm: no xs a superelipse parecia quadrada em 20px.",
+        layout: "stack",
+        example: (
+          <Stack gap={3}>
+            <Checkbox name="copia">Enviar cópia para o cliente</Checkbox>
+            <Checkbox name="termos" defaultChecked>
+              Aceitar os termos de uso
+            </Checkbox>
+            <Checkbox name="todos" indeterminate>
+              Selecionar todos os orçamentos
+            </Checkbox>
+            <Checkbox name="bloqueada" disabled>
+              Desabilitada
+            </Checkbox>
+            <Checkbox name="bloqueada-marcada" disabled defaultChecked>
+              Marcada e desabilitada
+            </Checkbox>
+            <Inline gap={3}>
+              <Checkbox aria-label="Selecionar linha" />
+              <Checkbox aria-label="Selecionar linha" defaultChecked />
+              <Checkbox aria-label="Selecionar todas" indeterminate />
+            </Inline>
+          </Stack>
+        ),
+      },
+      {
+        name: "Switch",
+        note: "Interruptor com input nativo por baixo, em role switch. Trilho em pílula, polegar largo que desliza, verde do sistema quando ligado. Estado todo por :has(), sem JS.",
+        layout: "stack",
+        example: (
+          <Stack gap={3}>
+            <Switch name="notificacoes" defaultChecked>
+              Receber notificações por e-mail
+            </Switch>
+            <Switch name="lembretes">Lembretes automáticos de cobrança</Switch>
+            <Switch name="bloqueado" disabled>
+              Desabilitado
+            </Switch>
+            <Switch name="bloqueado-ligado" disabled defaultChecked>
+              Ligado e desabilitado
+            </Switch>
+            <Inline gap={3}>
+              <Switch aria-label="Ativar" size="sm" defaultChecked />
+              <Switch aria-label="Ativar" size="sm" />
+              <Switch aria-label="Ativar" size="md" defaultChecked />
+              <Switch aria-label="Ativar" size="md" />
+            </Inline>
+          </Stack>
+        ),
+      },
+      {
         name: "Input",
         note: "Máscaras de CPF, CNPJ, telefone, CEP, dinheiro e percentual pela prop mask. R$ e % ficam fora do valor, em semibold, e o campo guarda só o número. Sem anel de foco, sem marcação de preenchimento automático e fonte com piso de 16px contra o zoom do iOS.",
         wide: true,
@@ -470,6 +545,20 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "PasswordInput",
+        note: "Input de senha com o botão de mostrar e ocultar na ponta. Convive com o ícone de erro do Field, que entra antes do olho.",
+        layout: "stack",
+        example: (
+          <Stack gap={3}>
+            <PasswordInput placeholder="Digite sua senha" />
+            <PasswordInput defaultValue="senha-secreta" />
+            <Field label="Senha" error="A senha precisa de 8 caracteres" revealError>
+              <PasswordInput defaultValue="123" />
+            </Field>
+          </Stack>
+        ),
+      },
+      {
         name: "Field",
         note: "Rótulo em cima, campo embaixo, tudo alinhado à esquerda. O erro só aparece depois que o campo é preenchido e perde o foco: ícone na ponta do campo com a bolha fixa acima, seta no centro do ícone.",
         layout: "stack",
@@ -488,6 +577,24 @@ const groups: Group[] = [
               <DatePicker name="vencimento" />
             </Field>
           </Stack>
+        ),
+      },
+      {
+        name: "Listbox",
+        note: "Lista de opções de verdade, no lugar do select nativo: setas, Home, End, Enter e Escape, com a opção atual marcada e rolada para a vista ao abrir. Saiu do calendário no segundo uso e é a base do Select.",
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="placement below">
+              <ListboxDemo />
+            </Sample>
+            <Sample label="prefix e placement above">
+              <ListboxDemo prefix="Ordenar" placement="above" />
+            </Sample>
+            <Sample label="disabled">
+              <ListboxDemo disabled />
+            </Sample>
+          </div>
         ),
       },
     ],
@@ -537,6 +644,20 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Toast",
+        note: "Sempre com ícone, título, descrição e um botão de ação. Raio xl com padding 12, então o botão cai no raio md concêntrico. Entra com mola por transform e opacidade, pausa no hover e no foco, fecha com Escape. Erro fica até a ação. Máximo de três na tela, o resto espera na fila.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <Stack gap={4}>
+            <Stack gap={2}>
+              <ToastPreview />
+            </Stack>
+            <ToastDemo />
+          </Stack>
+        ),
+      },
+      {
         name: "Spinner",
         note: "Dois arcos opostos girando em rotação contínua. Portado do dual arc do loading-ui para CSS Module com tokens.",
         example: (
@@ -575,6 +696,177 @@ const groups: Group[] = [
     title: "Dados",
     entries: [
       {
+        name: "Avatar",
+        note: "Iniciais sobre preenchimento neutro, ou imagem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="size">
+              <Avatar name="Aleph Ramos" size="xs" />
+              <Avatar name="Aleph Ramos" size="sm" />
+              <Avatar name="Aleph Ramos" size="md" />
+              <Avatar name="Aleph Ramos" size="lg" />
+            </Sample>
+            <Sample label="shape">
+              <Avatar name="Marina Costa" shape="circle" />
+              <Avatar name="Marina Costa" shape="squircle" />
+              <Avatar name="Marina Costa" shape="squircle" size="lg" />
+            </Sample>
+            <Sample label="AvatarGroup com 2">
+              <AvatarGroup>
+                <Avatar name="Aleph Ramos" />
+                <Avatar name="Marina Costa" />
+              </AvatarGroup>
+            </Sample>
+            <Sample label="AvatarGroup com 3">
+              <AvatarGroup>
+                <Avatar name="Aleph Ramos" />
+                <Avatar name="Marina Costa" />
+                <Avatar name="João Pedro" />
+              </AvatarGroup>
+            </Sample>
+            <Sample label="grupo pequeno e squircle">
+              <AvatarGroup>
+                <Avatar name="Aleph Ramos" size="sm" />
+                <Avatar name="Marina Costa" size="sm" />
+                <Avatar name="João Pedro" size="sm" />
+              </AvatarGroup>
+              <AvatarGroup>
+                <Avatar name="Aleph Ramos" shape="squircle" />
+                <Avatar name="Marina Costa" shape="squircle" />
+              </AvatarGroup>
+            </Sample>
+          </div>
+        ),
+      },
+      {
+        name: "Badge",
+        note: "Etiqueta de situação, categoria ou contagem. Um só matiz por tom gera tinta, fundo e borda com contraste AA nos dois temas. Canto squircle por tamanho, ou pílula.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="tone, papéis do produto">
+              <Badge tone="neutral">Rascunho</Badge>
+              <Badge tone="brand">Studio</Badge>
+              <Badge tone="accent">Enviado</Badge>
+              <Badge tone="success">Aprovado</Badge>
+              <Badge tone="warning">Pendente</Badge>
+              <Badge tone="danger">Recusado</Badge>
+              <Badge tone="info">Em revisão</Badge>
+            </Sample>
+            <Sample label="tone, paleta para categorias">
+              <Badge tone="red">Vermelho</Badge>
+              <Badge tone="orange">Laranja</Badge>
+              <Badge tone="yellow">Amarelo</Badge>
+              <Badge tone="green">Verde</Badge>
+              <Badge tone="mint">Menta</Badge>
+              <Badge tone="teal">Petróleo</Badge>
+              <Badge tone="cyan">Ciano</Badge>
+              <Badge tone="blue">Azul</Badge>
+              <Badge tone="indigo">Índigo</Badge>
+              <Badge tone="purple">Roxo</Badge>
+              <Badge tone="pink">Rosa</Badge>
+              <Badge tone="brown">Marrom</Badge>
+            </Sample>
+            <Sample label="variant">
+              <Badge tone="success" variant="soft">
+                Suave
+              </Badge>
+              <Badge tone="success" variant="solid">
+                Sólida
+              </Badge>
+              <Badge tone="success" variant="outline">
+                Contorno
+              </Badge>
+              <Badge variant="solid">Sólida neutra</Badge>
+              <Badge variant="outline">Contorno neutro</Badge>
+            </Sample>
+            <Sample label="size, raio 8 em sm e md, 12 em lg">
+              <Badge tone="accent" size="sm">
+                Pequena
+              </Badge>
+              <Badge tone="accent" size="md">
+                Média
+              </Badge>
+              <Badge tone="accent" size="lg">
+                Grande
+              </Badge>
+            </Sample>
+            <Sample label="shape">
+              <Badge tone="purple" shape="rounded">
+                Squircle
+              </Badge>
+              <Badge tone="purple" shape="pill">
+                Pílula
+              </Badge>
+              <Badge tone="purple" shape="pill" variant="outline">
+                Pílula contorno
+              </Badge>
+            </Sample>
+            <Sample label="icon, fluxo de situação">
+              <Badge tone="neutral" icon={<CircleDashedIcon />}>
+                Rascunho
+              </Badge>
+              <Badge tone="warning" icon={<CircleHalfIcon />}>
+                Em andamento
+              </Badge>
+              <Badge tone="accent" icon={<EyeIcon />}>
+                Em revisão
+              </Badge>
+              <Badge tone="success" icon={<CheckCircleIcon />}>
+                Concluído
+              </Badge>
+            </Sample>
+            <Sample label="icon, resultado de cobrança">
+              <Badge tone="warning" icon={<WarningIcon />}>
+                Pendente
+              </Badge>
+              <Badge tone="info" icon={<PaperPlaneTiltIcon />}>
+                Enviada
+              </Badge>
+              <Badge tone="success" icon={<CheckCircleIcon />}>
+                Paga
+              </Badge>
+              <Badge tone="danger" icon={<XCircleIcon />}>
+                Falhou
+              </Badge>
+              <Badge tone="neutral" icon={<ClockIcon />}>
+                Expirada
+              </Badge>
+            </Sample>
+            <Sample label="só ícone, o label vira texto para leitor de tela">
+              <Badge tone="neutral" icon={<CircleDashedIcon />} label="Rascunho" />
+              <Badge tone="warning" icon={<CircleHalfIcon />} label="Em andamento" />
+              <Badge tone="accent" icon={<EyeIcon />} label="Em revisão" />
+              <Badge tone="success" icon={<CheckCircleIcon />} label="Concluído" />
+              <Badge tone="brand" icon={<SparkleIcon />} label="Novo" size="lg" />
+            </Sample>
+            <Sample label="contagem em pílula">
+              <Badge tone="danger" variant="solid" shape="pill" size="sm">
+                3
+              </Badge>
+              <Badge tone="accent" variant="solid" shape="pill">
+                12
+              </Badge>
+              <Badge tone="neutral" shape="pill">
+                99+
+              </Badge>
+            </Sample>
+            <Sample label="hue sob medida, para cor escolhida pelo usuário">
+              <Badge hue="var(--sys-indigo)">Etiqueta da conta</Badge>
+              <Badge hue="var(--sys-indigo)" variant="solid">
+                Etiqueta da conta
+              </Badge>
+              <Badge hue="var(--sys-indigo)" variant="outline">
+                Etiqueta da conta
+              </Badge>
+            </Sample>
+          </div>
+        ),
+      },
+      {
         name: "Table",
         note: "Tabela rolando dentro do próprio container, com cabeçalho fixo.",
         wide: true,
@@ -592,17 +884,43 @@ const groups: Group[] = [
               <TableBody>
                 <TableRow>
                   <TableCell>Estúdio Bravo</TableCell>
-                  <TableCell>Aprovado</TableCell>
+                  <TableCell>
+                    <Badge tone="success">Aprovado</Badge>
+                  </TableCell>
                   <TableCell align="end">R$ 18.400,00</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Padaria Aurora</TableCell>
-                  <TableCell>Enviado</TableCell>
+                  <TableCell>
+                    <Badge tone="accent">Enviado</Badge>
+                  </TableCell>
                   <TableCell align="end">R$ 6.250,00</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
           </TableScroll>
+        ),
+      },
+      {
+        name: "Pagination",
+        note: "Barra em uma linha só: quantidade por página em dropup, faixa de itens e grupo com página atual, anterior e próxima. No mobile fica só o grupo. Raios na escala do botão de ícone: 22 em 44 fora e 18 em 36 dentro, então o encaixe com padding 4 é concêntrico.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <Stack gap={5}>
+            <Sample label="completa, 720 itens">
+              <PaginationDemo total={720} />
+            </Sample>
+            <Sample label="sem escolha de quantidade">
+              <PaginationDemo total={135} withPageSize={false} />
+            </Sample>
+            <Sample label="página única">
+              <PaginationDemo total={8} />
+            </Sample>
+            <Sample label="vazia">
+              <PaginationDemo total={0} />
+            </Sample>
+          </Stack>
         ),
       },
     ],
@@ -665,6 +983,33 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Carousel",
+        note: "Banners em fusão automática, sem seta nem bolinha. Imagem desktop e mobile por direção de arte com getImageProps do next/image; pausa com a aba oculta e fica parado em prefers-reduced-motion.",
+        layout: "stack",
+        example: <Carousel slides={carouselSlides} label="Destaques" interval={3000} className={styles.carouselDemo} />,
+      },
+      {
+        name: "BrandIcon",
+        note: "Marca de terceiros a partir dos SVGs de public/brands. Por padrão é máscara em currentColor; com color mostra o SVG como está, para marcas coloridas como o Google. Entra em Button como qualquer ícone.",
+        example: (
+          <>
+            <BrandIcon name="google" label="Google" color />
+            <BrandIcon name="google" label="Google" />
+            <BrandIcon name="github" label="GitHub" />
+            <BrandIcon name="apple" label="Apple" />
+            <BrandIcon name="figma" label="Figma" />
+            <Button variant="outline" size="sm" iconStart={<BrandIcon name="github" />}>
+              GitHub
+            </Button>
+          </>
+        ),
+      },
+      {
+        name: "ThemeToggle",
+        note: "Seletor de tema por Listbox: Sistema, Claro ou Escuro. Grava o cookie theme e troca data-theme no html na hora. Flutua no canto inferior esquerdo só em homologação, para conferir as telas nos dois temas.",
+        example: <ThemeToggle initial="system" floating={false} />,
+      },
+      {
         name: "Logo",
         note: "Marca por máscara CSS, acompanha o tema.",
         example: (
@@ -683,36 +1028,28 @@ const pending = [
   {
     area: "ui",
     names: [
-      "Avatar",
-      "Badge",
       "Card",
-      "Checkbox",
       "Dialog",
       "DropdownMenu",
       "EmptyState",
       "Radio",
       "Select",
-      "Switch",
       "Tabs",
       "Textarea",
-      "Toast",
     ],
   },
   {
     area: "layout",
     names: [
       "AppShell",
-      "AuthCard",
       "CommandPalette",
       "PageHeader",
       "Sidebar",
       "SiteFooter",
       "SiteHeader",
-      "ThemeToggle",
       "Topbar",
     ],
   },
-  { area: "providers", names: ["ToastProvider"] },
 ];
 
 const readyCount = groups.reduce((total, group) => total + group.entries.length, 0);
@@ -734,7 +1071,7 @@ export default function ComponentesPage() {
         </header>
 
         <div className={styles.stats}>
-          <div className={styles.stat} {...squircle("lg", { color: "var(--color-separator)" })}>
+          <div className={styles.stat} {...squircle("lg")}>
             <Text as="p" variant="title2" numeric>
               {readyCount}
             </Text>
@@ -778,7 +1115,7 @@ export default function ComponentesPage() {
                     key={entry.name}
                     className={styles.box}
                     data-wide={entry.wide || undefined}
-                    {...squircle("2xl", { color: "var(--color-separator)" })}
+                    {...squircle("2xl")}
                   >
                     <div className={styles.boxHead}>
                       <Text as="h3" variant="headline">
@@ -791,7 +1128,11 @@ export default function ComponentesPage() {
                     <Text variant="footnote" tone="secondary">
                       {entry.note}
                     </Text>
-                    <div className={styles.demo} data-layout={entry.layout ?? "row"} {...squircle("md")}>
+                    <div
+                      className={styles.demo}
+                      data-layout={entry.layout ?? "row"}
+                      {...squircle("md")}
+                    >
                       {entry.example}
                     </div>
                   </article>
@@ -820,7 +1161,7 @@ export default function ComponentesPage() {
                     <div
                       key={name}
                       className={styles.pendingItem}
-                      {...squircle("md", { color: "var(--color-separator)" })}
+                      {...squircle("md")}
                     >
                       <span>{name}</span>
                       <span className={styles.chip} data-state="pending">

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
+  devIndicators: false,
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
   },

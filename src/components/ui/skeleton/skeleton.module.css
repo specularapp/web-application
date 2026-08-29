@@ -3,7 +3,6 @@
   width: 100%;
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  --ck-background: var(--color-fill-tertiary);
   animation: pulse 1.6s var(--ease-standard) infinite;
 }
 

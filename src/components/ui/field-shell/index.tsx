@@ -11,7 +11,7 @@ const Surface = styled.span`
   width: 100%;
   min-width: 0;
   color: var(--color-label);
-  background-color: var(--color-bg-grouped-secondary);
+  background-color: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--field-radius);
   corner-shape: squircle;

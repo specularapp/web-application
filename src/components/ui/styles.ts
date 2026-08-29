@@ -1,6 +1,13 @@
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 
 export type ControlSize = "sm" | "md" | "lg";
+
+export const popIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(var(--slide)) scale(0.97);
+  }
+`;
 
 const controlFontSize: Record<ControlSize, string> = {
   sm: "var(--text-footnote)",

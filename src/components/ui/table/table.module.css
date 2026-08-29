@@ -4,8 +4,6 @@
   border: 1px solid var(--color-separator);
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-grouped-secondary);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-separator);
 }
 
 .table {

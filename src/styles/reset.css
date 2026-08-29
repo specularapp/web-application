@@ -175,10 +175,6 @@ input:autofill {
   outline-offset: -2px;
 }
 
-:where([data-squircle]):focus-visible {
-  --ck-border-color: var(--color-focus);
-}
-
 :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus-visible {
   outline: none;
 }

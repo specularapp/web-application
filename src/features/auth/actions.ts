@@ -1,22 +1,30 @@
 "use server";
 
 import type { Route } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { hasTurnstile } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
+import { verifyTurnstile } from "@/lib/security/turnstile";
+import { TURNSTILE_FIELD_NAME } from "@/lib/security/turnstile-field";
+import { REMEMBER_COOKIE, rememberCookie } from "@/lib/supabase/cookies";
 import { createClient } from "@/lib/supabase/server";
 import {
   factorIdSchema,
   friendlyNameSchema,
   nextPathSchema,
   oauthProviderSchema,
+  signInSchema,
   totpCodeSchema,
 } from "./schemas";
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
+export type SignInState = { error?: string };
+
 const TOO_MANY = "Muitas tentativas. Aguarde um instante e tente de novo.";
+const NOT_HUMAN = "Não conseguimos confirmar que você não é um robô. Recarregue a página e tente de novo.";
 
 async function withinAuthLimit(operation: string) {
   const headerStore = await headers();
@@ -42,6 +50,33 @@ export async function signInWithOAuth(provider: unknown, next?: unknown): Promis
 
   if (error || !data.url) redirect(`/login?erro=${parsedProvider.data}`);
   redirect(data.url as Route);
+}
+
+export async function signInWithPassword(_state: SignInState, formData: FormData): Promise<SignInState> {
+  if (!(await withinAuthLimit("password"))) return { error: TOO_MANY };
+
+  const parsed = signInSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    remember: formData.get("remember") === "on",
+  });
+  if (!parsed.success) return { error: "Confira o e-mail e a senha informados." };
+
+  if (hasTurnstile()) {
+    const headerStore = await headers();
+    const human = await verifyTurnstile(formData.get(TURNSTILE_FIELD_NAME), clientIp(headerStore));
+    if (!human) return { error: NOT_HUMAN };
+  }
+
+  const { email, password, remember } = parsed.data;
+  const cookieStore = await cookies();
+  cookieStore.set(REMEMBER_COOKIE, remember ? "1" : "0", rememberCookie(remember));
+
+  const supabase = await createClient({ remember });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: "E-mail ou senha incorretos." };
+
+  redirect(nextPathSchema.parse(formData.get("next")) as Route);
 }
 
 export async function signOut(): Promise<never> {

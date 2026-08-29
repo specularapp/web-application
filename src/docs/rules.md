@@ -16,7 +16,7 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 - Nenhuma regra de negócio dentro de `src/app`. Páginas apenas compõem `features` e `components`.
 - Toda regra de negócio precisa servir web e mobile: no banco (RLS, funções, triggers) ou em `features/<dominio>/service.ts` exposto por Server Action e por Route Handler em `api/v1`. Nunca só em Server Action.
 - Estilo com tokens de `src/styles/tokens.css` (paleta Apple, claro e escuro). Nunca valores soltos de cor, espaçamento ou tipografia. Todo componente funciona nos dois temas. Primitivo sem interação: Server Component com CSS Module e variantes `data-*`. Interativo: Emotion com `"use client"`.
-- Canto arredondado é sempre cornerKit, nunca `border-radius` sozinho. O raio sai de `src/lib/corners.ts` com `squircle(token)`, que emite `data-squircle`. O `border-radius` acompanha como fallback. Pílula e círculo ficam de fora e não declaram nada, porque `round` já é o padrão. Contrato completo em `src/docs/libs.md`.
+- Canto arredondado é sempre pelo sistema de cantos da casa, nunca `border-radius` sozinho. O raio sai de `src/lib/corners.ts` com `squircle(token)`, que emite `data-squircle`: `corner-shape: squircle` nativo onde existe, e o motor de `src/lib/squircle/` no fallback. O `border-radius` acompanha sempre. Pílula e círculo ficam de fora e não declaram nada, porque `round` já é o padrão. Nenhuma lib de canto. Contrato completo na seção Cantos de `src/docs/structure.md`.
 
 ## 3. Interface: obrigatório em literalmente todo código de UI
 

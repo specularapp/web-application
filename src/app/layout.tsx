@@ -2,7 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SquircleProvider } from "@/components/providers/squircle-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
+import { isAuthPath } from "@/lib/auth-paths";
+import { isHomologation } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
 import { readThemeCookie } from "@/lib/theme";
 import "@/styles/globals.css";
@@ -61,7 +65,8 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
   const nonce = headerStore.get("x-nonce") ?? undefined;
-  const theme = readThemeCookie(cookieStore.get("theme")?.value);
+  const preference = readThemeCookie(cookieStore.get("theme")?.value);
+  const theme = isAuthPath(headerStore.get("x-pathname")) ? "dark" : preference;
 
   return (
     <html
@@ -70,7 +75,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       data-theme={theme}
     >
       <body>
-        <EmotionRegistry nonce={nonce}>{children}</EmotionRegistry>
+        <EmotionRegistry nonce={nonce}>
+          <ToastProvider>{children}</ToastProvider>
+          {isHomologation() && <ThemeToggle initial={preference ?? "system"} />}
+        </EmotionRegistry>
         <SquircleProvider />
       </body>
     </html>

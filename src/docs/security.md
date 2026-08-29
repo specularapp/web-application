@@ -74,7 +74,7 @@ Rate limit não é defesa contra DDoS volumétrico: o tráfego chega ao runtime 
 
 ## Plano de evolução, em ordem
 
-1. Plugar os escopos `action`, `ai` e `publicLink` conforme cada feature entrar (o motor e os limites já existem; só `auth` está em uso). Montar o `TurnstileWidget` nas telas de login, cadastro e recuperação de senha assim que os formulários existirem, chamando `verifyTurnstile` na action antes de qualquer efeito.
+1. Plugar os escopos `action`, `ai` e `publicLink` conforme cada feature entrar (o motor e os limites já existem; só `auth` está em uso). O `TurnstileWidget` já está no login, ligado por `hasTurnstile()` (só monta e só verifica quando as duas chaves existem); falta montar em cadastro e recuperação de senha quando esses formulários existirem.
 2. Tabela `audit_logs` (quem, o quê, quando, organização) alimentada por triggers nas tabelas sensíveis.
 3. Storage: buckets privados, upload por URL assinada gerada no servidor, validação de tipo e tamanho, RLS em `storage.objects` por `organization_id` no caminho.
 4. CSP com `report-to` para observar violações antes de endurecer mais; remover `style-src-attr` quando viável.
@@ -82,3 +82,9 @@ Rate limit não é defesa contra DDoS volumétrico: o tráfego chega ao runtime 
 6. Dependências: `npm audit` no CI, lockfile commitado, Dependabot.
 7. Sessões: tela de segurança lista e revoga sessões; ações críticas (excluir organização, trocar e-mail) exigem `mfa_satisfied()`.
 8. Mobile: PKCE com deep link, secure store, revisão de certificado.
+
+## Sessão e cookie de lembrar
+
+- O login com senha grava o cookie `sp-remember` (`1` um ano, `0` sessão). Quando é `0`, `scopeToSession` em `src/lib/supabase/cookies.ts` remove `maxAge` e `expires` de todo cookie que o Supabase grava, tanto em `createClient` do servidor quanto no `updateSession` do proxy. Assim a sessão acaba ao fechar o navegador e o refresh de token não a torna persistente de novo.
+- `/auth/callback` é prefixo aberto no proxy (`openPrefixes`). Sem isso o callback do OAuth caía no redirect para `/login` antes de trocar o código.
+- Turnstile em desenvolvimento usa as chaves de teste da Cloudflare (site `1x00000000000000000000BB`, a invisível, e secret `1x0000000000000000000000000000000AA`), que sempre aprovam; o widget real está em modo Invisible no painel; as reais estão comentadas no `.env`. Antes de publicar, trocar de volta e conferir o domínio cadastrado no painel da Cloudflare.

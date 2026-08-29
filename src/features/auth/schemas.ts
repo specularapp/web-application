@@ -6,6 +6,13 @@ export type OAuthProvider = z.infer<typeof oauthProviderSchema>;
 
 export const nextPathSchema = z.unknown().refine(isSafePath).catch("/dashboard");
 
+export const signInSchema = z.object({
+  email: z.email().trim().toLowerCase().max(254),
+  password: z.string().min(1).max(128),
+  remember: z.boolean(),
+});
+export type SignInInput = z.infer<typeof signInSchema>;
+
 export const totpCodeSchema = z.string().regex(/^\d{6}$/);
 export const factorIdSchema = z.uuid();
 export const friendlyNameSchema = z.string().trim().min(1).max(60);

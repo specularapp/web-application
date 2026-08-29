@@ -2,14 +2,7 @@
 
 import styled from "@emotion/styled";
 import { LockIcon } from "@phosphor-icons/react";
-import {
-  cloneElement,
-  isValidElement,
-  type ComponentPropsWithoutRef,
-  type CSSProperties,
-  type ReactNode,
-  type Ref,
-} from "react";
+import type { ComponentPropsWithoutRef, CSSProperties, ReactNode, Ref } from "react";
 import {
   concentric,
   cornerRadius,
@@ -18,6 +11,7 @@ import {
   squircle,
   squirclePx,
 } from "@/lib/corners";
+import { matchIconWeight } from "../icons";
 import { controlGlyph, controlMetrics, controlSquare, disabledState, focusRing, type ControlSize } from "../styles";
 import { VisuallyHidden } from "../visually-hidden";
 
@@ -44,8 +38,7 @@ export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
 const iconWeight = "bold";
 
 function matchTextWeight(node: ReactNode) {
-  if (!isValidElement<{ weight?: unknown }>(node) || node.props.weight) return node;
-  return cloneElement(node, { weight: iconWeight });
+  return matchIconWeight(node, iconWeight);
 }
 
 function autoCorner(size: ControlSize, iconOnly: boolean) {
@@ -57,12 +50,10 @@ function planCorner(radius: ButtonRadius, size: ControlSize) {
   return concentric(outer, 2);
 }
 
-const buttonBorder = { color: "var(--button-border)" };
-
 function cornerAttributes(radius: ButtonRadius, size: ControlSize, iconOnly: boolean) {
   if (radius === "full") return {};
-  if (radius !== "auto") return squircle(radius, buttonBorder);
-  return squirclePx(autoCorner(size, iconOnly), buttonBorder);
+  if (radius !== "auto") return squircle(radius);
+  return squirclePx(autoCorner(size, iconOnly));
 }
 
 const Root = styled.button`
@@ -82,8 +73,6 @@ const Root = styled.button`
   border: 1px solid var(--button-border);
   border-radius: var(--button-radius);
   transition: background-color var(--duration-fast) var(--ease-standard);
-  --ck-background: var(--button-background);
-  --ck-border-color: var(--button-border);
 
   ${focusRing};
   ${disabledState};
@@ -184,7 +173,6 @@ const Root = styled.button`
   }
 
   &:hover:not(:disabled) {
-    --ck-background: var(--button-background-hover);
     background-color: var(--button-background-hover);
   }
 
@@ -245,7 +233,6 @@ const Plan = styled.span`
   color: inherit;
   background-color: var(--color-fill-tertiary);
   border-radius: var(--plan-radius);
-  --ck-background: var(--color-fill-tertiary);
 
   & svg {
     width: 1em;

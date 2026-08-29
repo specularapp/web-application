@@ -24,8 +24,6 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-separator);
   border-radius: var(--radius-lg);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-separator);
 }
 
 .groups {
@@ -67,8 +65,6 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-separator);
   border-radius: var(--corner);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-separator);
 }
 
 .box[data-wide] {
@@ -92,7 +88,6 @@
   padding: var(--space-4);
   background-color: var(--color-bg-grouped);
   border-radius: max(var(--radius-xs), calc(var(--corner) - var(--pad)));
-  --ck-background: var(--color-bg-grouped);
 }
 
 .demo[data-layout="stack"] {
@@ -174,6 +169,10 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-separator);
   border-radius: var(--radius-md);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-separator);
+}
+
+.carouselDemo {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-radius: var(--radius-lg);
 }

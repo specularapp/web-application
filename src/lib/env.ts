@@ -16,6 +16,14 @@ function define<T extends z.ZodObject>(service: string, schema: T, read: Reader)
   };
 }
 
+export function isHomologation() {
+  return process.env.NODE_ENV !== "production" || process.env.VERCEL_ENV === "preview";
+}
+
+export function hasTurnstile() {
+  return Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+}
+
 export const env = {
   supabase: define(
     "Supabase",

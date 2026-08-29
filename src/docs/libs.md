@@ -9,7 +9,6 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | next, react, react-dom | base |
 | @emotion/react, @emotion/styled, @emotion/cache | estilo dos componentes interativos (client), SSR com nonce. Primitivos estáticos usam CSS Modules |
 | @phosphor-icons/react | ícones (importar por nome) |
-| @cornerkit/core | **obrigatória em todo border-radius**: cantos squircle no padrão Apple. Ver a seção Cantos |
 | cmdk | paleta de comandos |
 | zod | validação no servidor e no cliente |
 | @supabase/ssr, @supabase/supabase-js | auth, banco, storage, realtime |
@@ -67,35 +66,17 @@ Aprovadas na tabela, sem `npm install` até a feature entrar.
 | --- | --- |
 | @t3-oss/env-nextjs | `lib/env.ts` já valida com zod e é lazy por serviço: só exige as variáveis da integração em uso. O t3 valida tudo no boot, o que obrigaria toda variável a existir em todo ambiente. Seria regressão |
 
-## Cantos: @cornerkit/core é obrigatória
+## Cantos: sem lib
 
-Todo canto arredondado do produto passa pelo cornerKit. Não existe canto redondo "na mão".
+O canto squircle é do sistema de cantos da casa (`src/lib/corners.ts` e `src/lib/squircle/`), documentado na seção Cantos de `structure.md`. Nativo por `corner-shape` onde existe, recorte próprio por `clip-path` no fallback, sem dependência.
 
-Como usar:
+`@cornerkit/core` foi usada de 2026-08-28 a 2026-08-29 e saiu. O que aprendemos com ela e vale para qualquer lib de canto que apareça:
 
-- O raio vem de `src/lib/corners.ts`, nunca um número solto. `squircle("lg")` devolve `data-squircle` e `data-squircle-radius` já convertidos de token para pixel.
-- `squircleAuto()` emite só `data-squircle`, sem raio. O provider lê o `border-radius` computado e preenche o atributo antes de chamar `auto()`. É o que permite raio decidido no CSS (escada do `Surface`, media query) sem repetir número em TS. Atributo declarado sempre vence a leitura.
-- `SquircleProvider` fica montado no layout raiz e roda `auto()`, que varre `[data-squircle]` e reaplica a cada navegação. Por isso primitivo estático continua Server Component e sem JS próprio: ele só emite os atributos.
-- `border-radius` continua no CSS junto com os atributos. Ele é o que aparece antes do JS rodar e onde o cornerKit cai no fallback.
-- Pílula e círculo (`--radius-full`) **não** recebem `data-squircle`. Capsule da Apple é arco de circunferência; superelipse no raio máximo distorce.
-- Decorativo minúsculo e repetido em massa fica de fora: os traços do `Progress`, dezenas por barra com 2 a 12px de raio, usam `border-radius` puro. Nesse tamanho a superelipse é invisível e um clip por traço custaria observers às dezenas por barra. Máscara não serve aqui: gradiente não tem canto, e o traço precisa ser arredondado. As 42 células do calendário do `DatePicker` ficam de fora pelo mesmo motivo; o popover que as envolve é squircle.
-- `CORNER_SMOOTHING` é 0.6, o valor iOS. Fica num lugar só.
-
-O que saber antes de mexer:
-
-- **Elemento com borda precisa da cor, não só da largura.** O cornerKit só entra no caminho de SVG se `border.color` existir: a checagem é `width > 0 && (color || gradient)`. Passar só a largura cai no caminho de `clip-path`, e aí a borda CSS segue o arco circular enquanto o recorte segue a superelipse, então ela aparece quebrada no canto. Por isso `squircle("lg", { color: "var(--color-separator)" })`. A cor pode ser `var(...)`: o atributo aceita qualquer string e vira `style.stroke` no path, que resolve porque o SVG é filho do elemento.
-- **Com borda não existe recorte.** Nesse caminho o cornerKit insere um `<svg class="cornerkit-border">` como primeiro filho e limpa o `clip-path`. Some o problema de `outline` cortado. Sem borda ele usa `clip-path: path(...)`, e só aí o anel de foco precisa ser interno.
-- **A CSP bloqueia o estilo que o cornerKit injeta.** Ele faz `document.head.appendChild` de um `<style id="cornerkit-svg-border-styles">` que posiciona `.cornerkit-border` em `position: absolute` com `z-index: -1`. Sem nonce isso não passa no nosso `style-src`, e o SVG entraria no fluxo empurrando o conteúdo. Por isso a regra `.cornerkit-border` está no nosso `globals.css`. Se atualizar a lib, confira se essa regra mudou.
-- No caminho com borda ele força `background-color: transparent !important` e `box-shadow: none !important` no elemento e repinta pelo SVG lendo `--ck-background`. Todo elemento squircle declara `--ck-background` e `--ck-border-color`.
-- O `globals.css` zera a borda CSS quando o SVG existe (`:has(> .cornerkit-border)`) ou quando há recorte, com `!important`. Antes do JS rodar a borda CSS aparece normal, como fallback. O `!important` não é preguiça: sem ele, qualquer regra de componente com dois seletores (`.classe[data-invalid]`, por exemplo) empata em especificidade e vence pela ordem, porque o Emotion injeta depois da folha global. O resultado é borda CSS e borda SVG desenhadas juntas, uma sobre a outra.
-- `INPUT`, `SELECT`, `TEXTAREA`, `IMG`, `VIDEO`, `CANVAS` e outros elementos vazios ou substituídos não aceitam o SVG filho: neles o cornerKit cai no `clip-path` mesmo com borda, e a borda quebra no canto. **Solução da casa: o campo mora dentro de um `<span>` que leva a borda e o squircle, e o controle fica transparente e sem borda por dentro.** É o que o `Input` faz. O foco vai para o invólucro por `:focus-within`, e sobra espaço para ícone quando precisar.
-- Ícone dentro de botão é `currentColor` por padrão no Phosphor, então herda a cor do texto sozinho. Não pinte ícone à mão.
-- O `auto()` **não** observa mutação de DOM: ele varre `[data-squircle]` uma vez e registra um IntersectionObserver só para o que está fora da tela. Elemento criado depois (diálogo, item de lista, badge condicional) nunca seria desenhado. Por isso o `SquircleProvider` mantém um `MutationObserver` próprio, com `requestAnimationFrame` para agrupar e ignorando inserção do próprio `.cornerkit-border`, senão o desenho realimentaria a varredura.
-- O provider destrói e recria a instância a cada navegação. O registro do cornerKit não poda elemento removido do DOM, então sem isso os observers acumulariam a cada rota.
-- O React **não** apaga o que o cornerKit escreve em `style`: no diff ele só limpa chave que ele mesmo tinha posto antes. Convivem sem briga.
-- **Campo de formulário não usa cornerKit.** O invólucro do campo é um container cujos filhos mudam o tempo todo: afixo, ícone de erro entrando e saindo, input com máscara re-renderizando a cada tecla. O modo borda do cornerKit força o fundo transparente e pinta por um `<svg>` injetado nesse mesmo container, redesenhado por `ResizeObserver`. Quando o SVG atrasa ou some, o campo fica sem fundo, o que apareceu como fundo piscando e tamanho mudando. O `FieldShell` usa `corner-shape: squircle` nativo com a borda CSS: o Chromium desenha a superelipse no motor, sem JS e sem sincronização; Safari e Firefox recebem canto redondo até implementarem. O `Tooltip` segue a mesma regra pelo mesmo motivo: monta e desmonta a cada abertura, e o quadro de atraso do cornerKit aparecia como bolha trocando de forma.
-- Toda variante de botão passa borda, inclusive as de borda transparente. Sem borda o cornerKit usaria `clip-path`, que corta o `outline` do foco, e o anel ficaria por dentro em umas variantes e por fora em outras. Uniformidade vale o SVG a mais.
-- `@cornerkit/react` foi avaliada e não ficou: expõe `useSquircle`, e hook não pode ser condicional. O Button tem variante pílula que não pode ser squircle, então precisaria chamar o hook sempre e desligar por dentro. Atributo resolve nos dois casos, e serve a Server Component, que o hook não serve.
+- Injetar `<style>` em runtime não passa na nossa CSP por nonce.
+- Repintar fundo por SVG filho atrasa um quadro e pisca em elemento que re-renderiza (campo com máscara, tooltip, toast).
+- Recorte por `clip-path` corta anel de foco e popover; borda desenhada por SVG cobra layout e quebra conta concêntrica.
+- Um observer por elemento não escala para tabela e kanban.
+- `@cornerkit/react` expõe hook que não pode ser condicional, e temos variante pílula que não pode ser squircle.
 
 ## Padrões trazidos de fora, sem dependência
 
@@ -103,6 +84,7 @@ O que saber antes de mexer:
 | --- | --- | --- |
 | [loading-ui dual arc](https://loading-ui.com/docs/components/dual-arc) | Técnica do `Spinner`: círculo com `border` transparente e só `border-block-color` pintado, girando. Dois arcos opostos sem SVG nem máscara | É registry shadcn com Tailwind, que é proibido aqui, e o componente injeta `<style>` inline em runtime, que a nossa CSP bloqueia. Copiar direto daria spinner parado. Portamos a técnica para CSS Module com tokens, tamanhos e rótulo de leitor de tela |
 | [shadcn tooltip](https://ui.shadcn.com/docs/components/base/tooltip) | Visual do `Tooltip`: fundo invertido, 12px, `px-3 py-1.5`, seta quadrada de 10px rotacionada com canto de 2px, entrada com fade, zoom de 95% e slide de 8px, sem borda nem sombra | Depende de Base UI ou Radix, com portal e posicionamento por JS. Não precisamos disso ainda: a bolha é absoluta em relação ao gatilho e a seta cai no centro dele por construção, sem medir nada |
+| [figma-squircle](https://github.com/phamfoo/figma-squircle) | A matemática do canto suavizado do Figma em `src/lib/squircle/path.ts`: parâmetros a, b, c, d e o arco por canto, com o orçamento de metade do lado menor | São 60 linhas; a lib traz raio por canto e opções que não usamos, e o motor em volta (observer, cache, fallback) é nosso de qualquer jeito |
 
 ## Proibidas
 
@@ -114,13 +96,14 @@ O que saber antes de mexer:
 
 ### Toast
 
-Contrato para implementar quando chegar a hora, já alinhado à identidade:
+Implementado em 2026-08-29. Componente visual em `components/ui/toast/`, fila e timers em `components/providers/toast-provider/`, montado no layout raiz.
 
-- API: `useToast()` devolve `toast({ title, description?, tone?, action?, duration? })` e `dismiss(id)`. Tones: `neutral`, `success`, `warning`, `danger`, `info` (cores dos tokens, ícone Phosphor por tone).
-- Estado em `ToastProvider` (context), montado uma vez no shell do app. Máximo de 3 visíveis, fila para o resto.
-- Posição: canto inferior direito no desktop; largura total na base no mobile, respeitando `safe-area-inset-bottom`.
-- Visual: superfície `--color-bg-grouped-secondary`, borda `--color-separator`, `--radius-xl`, `--shadow-lg`, tipografia `subheadline` para título e `footnote` para descrição, faixa ou ícone na cor do tone.
-- Acessibilidade: container `aria-live="polite"` para neutral/success/info e `role="alert"` para warning/danger; botão fechar com `aria-label`; pausa o timer em hover e foco; fecha com Escape quando focado; ação sempre acessível por teclado.
-- Movimento: entrada e saída com `--duration-base` e `--ease-standard`; sem animação em `prefers-reduced-motion`.
-- Duração padrão 5s; danger não fecha sozinho se tiver ação.
+- API: `useToast()` devolve `toast({ title, description, tone?, action?, duration? })`, que retorna o id, e `dismiss(id)`. Tones: `neutral`, `info`, `success`, `warning`, `danger`, cada um com ícone Phosphor em `fill` na cor do token.
+- Todo toast tem ícone, título, descrição e um botão de ação. Não existe botão de fechar: a ação fecha, e sem `action` o botão vira "Entendi". Decisão de produto de 2026-08-29.
+- Máximo de 3 visíveis, o resto espera na fila e só começa a contar ao aparecer.
+- Posição: canto superior direito no desktop; largura total no topo no mobile, com `safe-area-inset-top`.
+- Visual: superfície `--color-bg-grouped-secondary`, borda `--color-border`, `--radius-xl` com canto nativo, `--shadow-lg`, título em `subheadline` semibold e descrição em `footnote` secundária. Botão de ação `sm` com raio `md`, concêntrico ao toast. Erro usa o botão primário, os outros o secundário.
+- Acessibilidade: `role="alert"` para `warning` e `danger`, `role="status"` para o resto, com `aria-labelledby` e `aria-describedby`; pausa o timer em hover e foco; fecha com Escape quando focado; a ação é um `Button` comum, acessível por teclado.
+- Movimento: entrada com `--ease-spring` em `--duration-slow`, saída em `--duration-base`, só `transform` e `opacity`; nada em `prefers-reduced-motion`.
+- Duração padrão 5s; `danger` não fecha sozinho.
 - Server Actions devolvem `{ toast }` no resultado e o cliente dispara; nunca disparar toast a partir de dados do servidor sem passar pelo zod do resultado.

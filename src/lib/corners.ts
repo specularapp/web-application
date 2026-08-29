@@ -35,37 +35,26 @@ const spacing = {
 
 export type Spacing = keyof typeof spacing;
 
-export const CORNER_SMOOTHING = 0.8;
+export type SquircleOptions = { clip?: boolean };
 
-type CornerBorder = { width?: number; color: string };
-
-function attributes(px: number, border?: CornerBorder) {
+function attributes(px: number | undefined, options?: SquircleOptions) {
   return {
     "data-squircle": "",
-    "data-squircle-radius": String(px),
-    ...(border && {
-      "data-squircle-border-width": String(border.width ?? 1),
-      "data-squircle-border-color": border.color,
-    }),
+    ...(px !== undefined && { "data-squircle-radius": String(px) }),
+    ...(options?.clip && { "data-squircle-clip": "" }),
   };
 }
 
-export function squircle(radius: CornerRadius, border?: CornerBorder) {
-  return attributes(cornerRadius[radius], border);
+export function squircle(radius: CornerRadius, options?: SquircleOptions) {
+  return attributes(cornerRadius[radius], options);
 }
 
-export function squirclePx(px: number, border?: CornerBorder) {
-  return attributes(px, border);
+export function squirclePx(px: number, options?: SquircleOptions) {
+  return attributes(px, options);
 }
 
-export function squircleAuto(border?: CornerBorder) {
-  return {
-    "data-squircle": "",
-    ...(border && {
-      "data-squircle-border-width": String(border.width ?? 1),
-      "data-squircle-border-color": border.color,
-    }),
-  };
+export function squircleAuto(options?: SquircleOptions) {
+  return attributes(undefined, options);
 }
 
 export function concentric(outer: number, inset: Spacing) {

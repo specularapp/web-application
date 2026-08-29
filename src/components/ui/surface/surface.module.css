@@ -25,22 +25,16 @@
 .surface[data-tone="raised"] {
   background-color: var(--color-bg-grouped-secondary);
   border-color: var(--color-border);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-border);
 }
 
 .surface[data-tone="sunken"] {
   background-color: var(--color-bg-grouped);
   border-color: transparent;
-  --ck-background: var(--color-bg-grouped);
-  --ck-border-color: transparent;
 }
 
 .surface[data-tone="plain"] {
   background-color: transparent;
   border-color: transparent;
-  --ck-background: transparent;
-  --ck-border-color: transparent;
 }
 
 .surface[data-pad="none"] {

@@ -67,7 +67,7 @@ export function Field({
   const control = isValidElement<ControlProps>(children)
     ? cloneElement(children, {
         id,
-        required,
+        ...(required && { required }),
         "aria-describedby": describedBy,
         "aria-invalid": showError || undefined,
         iconEnd: showError ? (

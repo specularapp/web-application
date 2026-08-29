@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useId, useRef } from "react";
+import { TURNSTILE_FIELD_NAME } from "@/lib/security/turnstile-field";
 
 declare global {
   interface Window {
@@ -15,6 +16,8 @@ declare global {
           "error-callback": () => void;
           theme: "auto";
           language: "pt-BR";
+          size: "flexible";
+          appearance: "interaction-only";
         },
       ) => string;
       remove: (widgetId: string) => void;
@@ -24,13 +27,25 @@ declare global {
 
 const SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
-export const TURNSTILE_FIELD_NAME = "turnstileToken";
+export { TURNSTILE_FIELD_NAME };
 
-export function TurnstileWidget({ siteKey }: { siteKey: string }) {
+type TurnstileWidgetProps = {
+  siteKey: string;
+  onVerify?: (token: string) => void;
+  onExpire?: () => void;
+  className?: string;
+};
+
+export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const widgetIdRef = useRef<string>(undefined);
+  const callbacks = useRef({ onVerify, onExpire });
   const fieldId = useId();
+
+  useEffect(() => {
+    callbacks.current = { onVerify, onExpire };
+  }, [onVerify, onExpire]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -40,6 +55,8 @@ export function TurnstileWidget({ siteKey }: { siteKey: string }) {
 
     const setToken = (token: string) => {
       if (inputRef.current) inputRef.current.value = token;
+      if (token) callbacks.current.onVerify?.(token);
+      else callbacks.current.onExpire?.();
     };
 
     const render = () => {
@@ -51,6 +68,8 @@ export function TurnstileWidget({ siteKey }: { siteKey: string }) {
         "error-callback": () => setToken(""),
         theme: "auto",
         language: "pt-BR",
+        size: "flexible",
+        appearance: "interaction-only",
       });
     };
 
@@ -69,7 +88,7 @@ export function TurnstileWidget({ siteKey }: { siteKey: string }) {
   return (
     <>
       <Script src={SCRIPT_URL} strategy="afterInteractive" />
-      <div ref={containerRef} id={fieldId} />
+      <div ref={containerRef} id={fieldId} className={className} />
       <input ref={inputRef} type="hidden" name={TURNSTILE_FIELD_NAME} defaultValue="" />
     </>
   );
