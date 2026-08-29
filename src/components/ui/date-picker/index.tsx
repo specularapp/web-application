@@ -18,7 +18,7 @@ import {
 } from "react";
 import { DayPicker, useDayPicker } from "react-day-picker";
 import { createPortal } from "react-dom";
-import { squircle } from "@/lib/corners";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { FieldAdornment, FieldShell } from "../field-shell";
 import { thinScrollbar, type ControlSize } from "../styles";
 
@@ -49,6 +49,42 @@ const enter = keyframes`
   from {
     opacity: 0;
     transform: translateY(var(--slide)) scale(0.97);
+  }
+`;
+
+const rise = keyframes`
+  from {
+    transform: translateY(100%);
+  }
+`;
+
+const fade = keyframes`
+  from {
+    opacity: 0;
+  }
+`;
+
+const Backdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background-color: var(--color-scrim);
+  animation: ${fade} var(--duration-base) var(--ease-standard);
+`;
+
+const Handle = styled.span`
+  display: block;
+  width: 2.25rem;
+  height: 0.25rem;
+  margin: 0 auto var(--space-3);
+  background-color: var(--color-fill);
+  border-radius: var(--radius-full);
+`;
+
+const Calendar = styled.div`
+  [data-mode="sheet"] > & {
+    max-width: 24rem;
+    margin-inline: auto;
   }
 `;
 
@@ -98,11 +134,23 @@ const Popover = styled.div`
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   transform-origin: var(--origin);
   animation: ${enter} var(--duration-fast) var(--ease-standard);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-border);
+
+  &[data-mode="sheet"] {
+    inset-inline: 0;
+    top: auto;
+    bottom: 0;
+    z-index: var(--z-modal);
+    width: 100%;
+    padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-bottom: 0;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    transform-origin: bottom;
+    animation: ${rise} var(--duration-slow) var(--ease-standard);
+  }
 
   &[data-placement="below"] {
     --slide: calc(var(--space-2) * -1);
@@ -116,6 +164,10 @@ const Popover = styled.div`
 
   @media (pointer: coarse) {
     width: min(22rem, calc(100vw - 2rem));
+  }
+
+  &[data-mode="sheet"] {
+    width: 100%;
   }
 `;
 
@@ -170,12 +222,11 @@ const List = styled.div`
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  corner-shape: squircle;
   box-shadow: var(--shadow-md);
   transform-origin: top left;
   animation: ${enter} var(--duration-fast) var(--ease-standard);
   --slide: calc(var(--space-1) * -1);
-  --ck-background: var(--color-bg-grouped-secondary);
-  --ck-border-color: var(--color-border);
 `;
 
 const Scroll = styled.ul`
@@ -331,7 +382,7 @@ function CaptionDropdown({ label, options, value, onChange }: CaptionDropdownPro
         <CaretDownIcon weight="bold" aria-hidden="true" />
       </Pill>
       {open && (
-        <List {...squircle("md", { color: "var(--color-border)" })}>
+        <List>
           <Scroll
             ref={listRef}
             id={listId}
@@ -446,6 +497,7 @@ export function DatePicker({
   const popoverRef = useRef<HTMLDivElement>(null);
   const dialogId = useId();
 
+  const sheet = useMediaQuery(MOBILE_QUERY);
   const date = value ?? inner;
   const flagged = invalid || aria["aria-invalid"] === true;
 
@@ -457,7 +509,7 @@ export function DatePicker({
   };
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || sheet) return;
     const update = () => {
       const anchor = shellRef.current?.getBoundingClientRect();
       const popover = popoverRef.current;
@@ -471,7 +523,18 @@ export function DatePicker({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [open]);
+  }, [open, sheet]);
+
+  useEffect(() => {
+    if (!open || !sheet) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    popoverRef.current?.querySelector<HTMLElement>('.rdp-day_button[tabindex="0"]')?.focus({ preventScroll: true });
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [open, sheet]);
 
   useEffect(() => {
     if (!open) return;
@@ -520,28 +583,37 @@ export function DatePicker({
       {name && <input type="hidden" name={name} value={date ? format(date, "yyyy-MM-dd") : ""} readOnly />}
       {open &&
         createPortal(
-          <Popover
-            ref={popoverRef}
-            id={dialogId}
-            role="dialog"
-            aria-label="Escolher data"
-            data-placement={position?.placement ?? "below"}
-            style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
-            {...squircle("lg", { color: "var(--color-border)" })}
-          >
-            <DayPicker
-              mode="single"
-              locale={ptBR}
-              selected={date}
-              onSelect={select}
-              defaultMonth={date}
-              components={components}
-              startMonth={min ?? new Date(1900, 0)}
-              endMonth={max ?? new Date(currentYear + 10, 11)}
-              disabled={[...(min ? [{ before: min }] : []), ...(max ? [{ after: max }] : [])]}
-              showOutsideDays
-            />
-          </Popover>,
+          <>
+            {sheet && <Backdrop onClick={() => setOpen(false)} />}
+            <Popover
+              ref={popoverRef}
+              id={dialogId}
+              role="dialog"
+              aria-modal={sheet || undefined}
+              aria-label="Escolher data"
+              data-mode={sheet ? "sheet" : "floating"}
+              data-placement={sheet ? undefined : (position?.placement ?? "below")}
+              style={
+                sheet ? undefined : position ? { top: position.top, left: position.left } : { visibility: "hidden" }
+              }
+            >
+              {sheet && <Handle aria-hidden="true" />}
+              <Calendar>
+                <DayPicker
+                  mode="single"
+                  locale={ptBR}
+                  selected={date}
+                  onSelect={select}
+                  defaultMonth={date}
+                  components={components}
+                  startMonth={min ?? new Date(1900, 0)}
+                  endMonth={max ?? new Date(currentYear + 10, 11)}
+                  disabled={[...(min ? [{ before: min }] : []), ...(max ? [{ after: max }] : [])]}
+                  showOutsideDays
+                />
+              </Calendar>
+            </Popover>
+          </>,
           document.body,
         )}
     </FieldShell>
