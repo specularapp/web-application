@@ -1,6 +1,43 @@
 .field {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: var(--space-2);
   min-width: 0;
+  text-align: start;
+}
+
+.label,
+.hint {
+  padding-inline-start: var(--field-inset);
+}
+
+.errorTrigger {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-danger);
+  border-radius: var(--radius-full);
+}
+
+.errorTrigger::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--touch-target) - 1rem) / -2);
+}
+
+.errorTrigger svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
+.errorTrigger:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }

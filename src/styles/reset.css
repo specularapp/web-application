@@ -108,9 +108,14 @@
   text-align: inherit;
 }
 
-:where(input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus) {
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill {
   -webkit-text-fill-color: var(--color-label);
-  box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  -webkit-background-clip: text;
+  background-clip: text;
   caret-color: var(--color-label);
 }
 
@@ -172,6 +177,10 @@
 
 :where([data-squircle]):focus-visible {
   --ck-border-color: var(--color-focus);
+}
+
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
