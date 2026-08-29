@@ -14,7 +14,9 @@ import {
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
+import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
@@ -25,7 +27,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Inline, Stack } from "@/components/ui/stack";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow, TableScroll } from "@/components/ui/table";
+import { Surface } from "@/components/ui/surface";
 import { Text } from "@/components/ui/text";
+import { Tooltip } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Logo } from "@/components/layout/logo";
 import { squircle } from "@/lib/corners";
@@ -221,7 +225,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Text",
-        note: "Escala da Apple, tons semânticos, fonte de corpo, display ou código.",
+        note: "Escala da Apple com tracking por faixa de tamanho: -0.06em nos títulos, -0.04em no corpo e -0.02em nos textos pequenos.",
         wide: true,
         layout: "stack",
         example: (
@@ -262,16 +266,20 @@ const groups: Group[] = [
                 <Text tone="danger">Erro</Text>
               </Stack>
             </Sample>
-            <Sample label="font, weight e numeric">
+            <Sample label="font e weight">
               <Stack gap={2}>
                 <Text as="p" font="display" variant="title3">
                   Playfair editorial
                 </Text>
-                <Text font="code">Geist Mono</Text>
+                <Text font="code">Geist Mono, só para código</Text>
                 <Text weight="semibold">Inter semibold</Text>
-                <Text font="code" numeric>
-                  R$ 12.480,00
-                </Text>
+              </Stack>
+            </Sample>
+            <Sample label="numeric mantém a Inter com algarismo tabular">
+              <Stack gap={2}>
+                <Text numeric>R$ 12.480,00</Text>
+                <Text numeric>R$ 111.999,00</Text>
+                <Text>R$ 12.480,00 sem numeric</Text>
               </Stack>
             </Sample>
           </div>
@@ -303,6 +311,40 @@ const groups: Group[] = [
               </Inline>
             </Stack>
           </Stack>
+        ),
+      },
+      {
+        name: "Surface",
+        note: "Container aninhável. A profundidade sozinha define raio e padding: 40/16, depois 24/12, 12/8 e 4/8. Cada raio interno é o externo menos o padding, e sempre cai num token.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <Surface>
+            <Stack gap={3}>
+              <Text variant="footnote" tone="secondary">
+                nível 1, raio 40 e padding 16
+              </Text>
+              <Surface tone="sunken">
+                <Stack gap={3}>
+                  <Text variant="footnote" tone="secondary">
+                    nível 2, raio 24 e padding 12
+                  </Text>
+                  <Surface tone="raised">
+                    <Stack gap={3}>
+                      <Text variant="footnote" tone="secondary">
+                        nível 3, raio 12 e padding 8
+                      </Text>
+                      <Surface tone="sunken">
+                        <Text variant="caption1" tone="tertiary">
+                          nível 4, raio 4
+                        </Text>
+                      </Surface>
+                    </Stack>
+                  </Surface>
+                </Stack>
+              </Surface>
+            </Stack>
+          </Surface>
         ),
       },
       {
@@ -364,16 +406,86 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Input",
+        note: "Máscaras de CPF, CNPJ, telefone, CEP, dinheiro e percentual pela prop mask. R$ e % ficam fora do valor, em semibold, e o campo guarda só o número. Sem anel de foco, sem marcação de preenchimento automático e fonte com piso de 16px contra o zoom do iOS.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="size">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Input size="sm" placeholder="Pequeno" />
+                <Input size="md" placeholder="Médio" />
+                <Input size="lg" placeholder="Grande" />
+              </Stack>
+            </Sample>
+            <Sample label="estado">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Input defaultValue="Com dado preenchido" />
+                <Input invalid defaultValue="Valor recusado" />
+                <Input disabled placeholder="Desabilitado" />
+              </Stack>
+            </Sample>
+            <Sample label="mask de documento e contato">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Input mask="cpf" placeholder="000.000.000-00" />
+                <Input mask="cnpj" placeholder="00.000.000/0000-00" />
+                <Input mask="document" placeholder="CPF ou CNPJ, troca sozinho" />
+                <Input mask="phone" placeholder="(00) 00000-0000" />
+                <Input mask="cep" placeholder="00000-000" />
+              </Stack>
+            </Sample>
+            <Sample label="mask de número">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Input mask="currency" placeholder="0,00" />
+                <Input mask="percent" placeholder="0,00" />
+                <Input mask="integer" placeholder="0" />
+              </Stack>
+            </Sample>
+          </div>
+        ),
+      },
+      {
+        name: "DatePicker",
+        note: "Data por seleção, não por digitação. Calendário em pt-BR com mês e ano em listas próprias, no lugar do select nativo. Abre em portal para nunca ficar atrás de outro campo e entrega o valor ISO num campo oculto para o formulário.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="size">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <DatePicker size="sm" />
+                <DatePicker size="md" />
+                <DatePicker size="lg" />
+              </Stack>
+            </Sample>
+            <Sample label="estado">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <DatePicker defaultValue={new Date(2026, 8, 15)} />
+                <DatePicker invalid />
+                <DatePicker disabled />
+              </Stack>
+            </Sample>
+          </div>
+        ),
+      },
+      {
         name: "Field",
-        note: "Junta rótulo, dica e erro ao controle, ligando id, aria-describedby e aria-invalid.",
+        note: "Rótulo em cima, campo embaixo, tudo alinhado à esquerda. O erro só aparece depois que o campo é preenchido e perde o foco: ícone na ponta do campo com a bolha fixa acima, seta no centro do ícone.",
         layout: "stack",
         example: (
           <Stack gap={5}>
             <Field label="E-mail" hint="Usamos para enviar o orçamento ao cliente" required>
-              <input type="email" name="email" placeholder="cliente@empresa.com.br" />
+              <Input type="email" name="email" placeholder="cliente@empresa.com.br" autoComplete="email" />
             </Field>
             <Field label="CNPJ" error="Informe um CNPJ válido">
-              <input type="text" name="cnpj" placeholder="00.000.000/0000-00" />
+              <Input mask="cnpj" name="cnpj" placeholder="00.000.000/0000-00" />
+            </Field>
+            <Field label="Telefone" error="Informe um telefone com DDD" revealError>
+              <Input mask="phone" name="telefone" placeholder="(00) 00000-0000" />
+            </Field>
+            <Field label="Vencimento" hint="Primeira cobrança do contrato" required>
+              <DatePicker name="vencimento" />
             </Field>
           </Stack>
         ),
@@ -385,19 +497,48 @@ const groups: Group[] = [
     entries: [
       {
         name: "Progress",
-        note: "Barra determinada ou indeterminada, com tons semânticos.",
+        note: "Sempre tracejada, com canto suave no traço. size controla a altura e segments a densidade, que é o que define a largura de cada traço.",
+        wide: true,
         layout: "stack",
         example: (
-          <Stack gap={4}>
-            <Progress value={64} />
-            <Progress value={82} tone="success" size="sm" />
-            <Progress tone="warning" />
-          </Stack>
+          <div className={styles.samples}>
+            <Sample label="size, variação de altura">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Progress value={89} size="xs" tone="success" />
+                <Progress value={89} size="sm" tone="success" />
+                <Progress value={89} size="md" tone="success" />
+                <Progress value={89} size="lg" tone="success" />
+                <Progress value={89} size="xl" tone="success" />
+              </Stack>
+            </Sample>
+            <Sample label="segments, variação de largura">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Progress value={67} segments={64} />
+                <Progress value={67} segments={32} />
+                <Progress value={67} segments={16} />
+                <Progress value={67} segments={4} />
+              </Stack>
+            </Sample>
+            <Sample label="tone">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Progress value={40} tone="accent" />
+                <Progress value={40} tone="success" />
+                <Progress value={40} tone="warning" />
+                <Progress value={40} tone="danger" />
+              </Stack>
+            </Sample>
+            <Sample label="indeterminada">
+              <Stack gap={3} style={{ width: "100%" }}>
+                <Progress />
+                <Progress size="lg" tone="warning" segments={16} />
+              </Stack>
+            </Sample>
+          </div>
         ),
       },
       {
         name: "Spinner",
-        note: "Indicador de carregamento com rótulo para leitor de tela.",
+        note: "Dois arcos opostos girando em rotação contínua. Portado do dual arc do loading-ui para CSS Module com tokens.",
         example: (
           <>
             <Spinner size="sm" />
@@ -411,9 +552,19 @@ const groups: Group[] = [
         note: "Espaço reservado enquanto o conteúdo carrega.",
         layout: "stack",
         example: (
-          <Stack gap={2}>
-            <Skeleton width="60%" />
-            <Skeleton width="85%" />
+          <Stack gap={3}>
+            <Inline gap={3}>
+              <Skeleton shape="circle" />
+              <Stack gap={2} style={{ flex: 1 }}>
+                <Skeleton width="60%" />
+                <Skeleton width="85%" />
+              </Stack>
+            </Inline>
+            <Inline gap={3}>
+              <Skeleton shape="circle" height="1.5rem" />
+              <Skeleton shape="circle" height="2rem" />
+              <Skeleton shape="circle" height="3rem" />
+            </Inline>
             <Skeleton shape="rect" height="3rem" />
           </Stack>
         ),
@@ -475,6 +626,34 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Tooltip",
+        note: "Bolha invertida com seta, no padrão do shadcn. Entra com fade e zoom, fecha com Escape, e a seta cai sempre no centro do gatilho, seja qual for o alinhamento.",
+        example: (
+          <>
+            <Tooltip content="Centralizado no gatilho">
+              <Button variant="outline" size="sm">
+                Centro
+              </Button>
+            </Tooltip>
+            <Tooltip content="Bolha para a esquerda, seta no centro" align="end">
+              <Button variant="outline" size="sm">
+                Fim
+              </Button>
+            </Tooltip>
+            <Tooltip content="Bolha para a direita, seta no centro" align="start">
+              <Button variant="outline" size="sm">
+                Início
+              </Button>
+            </Tooltip>
+            <Tooltip content="Abaixo, quando houver espaço" side="bottom">
+              <Button variant="outline" size="sm">
+                Abaixo
+              </Button>
+            </Tooltip>
+          </>
+        ),
+      },
+      {
         name: "Kbd",
         note: "Tecla ou atalho de teclado.",
         example: (
@@ -511,14 +690,12 @@ const pending = [
       "Dialog",
       "DropdownMenu",
       "EmptyState",
-      "Input",
       "Radio",
       "Select",
       "Switch",
       "Tabs",
       "Textarea",
       "Toast",
-      "Tooltip",
     ],
   },
   {
