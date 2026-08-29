@@ -56,11 +56,12 @@ export function EmotionRegistry({ children, nonce }: { children: React.ReactNode
         {globals.map(({ name, style }) => (
           <style
             key={name}
+            nonce={nonce}
             data-emotion={`${registry.cache.key}-global ${name}`}
             dangerouslySetInnerHTML={{ __html: style }}
           />
         ))}
-        {styles && <style data-emotion={dataEmotion} dangerouslySetInnerHTML={{ __html: styles }} />}
+        {styles && <style nonce={nonce} data-emotion={dataEmotion} dangerouslySetInnerHTML={{ __html: styles }} />}
       </>
     );
   });
