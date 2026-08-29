@@ -269,10 +269,17 @@ function CaptionDropdown({ label, options, value, onChange }: CaptionDropdownPro
   useEffect(() => {
     if (!open) return;
     const list = listRef.current;
-    const option = document.getElementById(`${listId}-${active}`);
-    if (!list || !option) return;
+    const selected = document.getElementById(`${listId}-${value}`);
+    if (!list || !selected) return;
     list.focus({ preventScroll: true });
-    revealOption(list, option);
+    list.scrollTop = selected.offsetTop;
+  }, [open, value, listId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const list = listRef.current;
+    const option = document.getElementById(`${listId}-${active}`);
+    if (list && option) revealOption(list, option);
   }, [open, active, listId]);
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLUListElement>) => {
