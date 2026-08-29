@@ -5,6 +5,7 @@ export const cornerRadius = {
   lg: 20,
   xl: 24,
   "2xl": 32,
+  "3xl": 40,
 } as const;
 
 export type CornerRadius = keyof typeof cornerRadius;
@@ -55,6 +56,16 @@ export function squircle(radius: CornerRadius, border?: CornerBorder) {
 
 export function squirclePx(px: number, border?: CornerBorder) {
   return attributes(px, border);
+}
+
+export function squircleAuto(border?: CornerBorder) {
+  return {
+    "data-squircle": "",
+    ...(border && {
+      "data-squircle-border-width": String(border.width ?? 1),
+      "data-squircle-border-color": border.color,
+    }),
+  };
 }
 
 export function concentric(outer: number, inset: Spacing) {

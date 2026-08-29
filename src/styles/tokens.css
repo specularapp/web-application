@@ -73,6 +73,7 @@
   --leading-tight: 1.2;
   --leading-normal: 1.45;
   --leading-relaxed: 1.6;
+  --tracking-tightest: -0.06em;
   --tracking-tighter: -0.04em;
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
@@ -82,6 +83,7 @@
   --weight-semibold: 600;
   --weight-bold: 700;
 
+  --space-half: 0.125rem;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -99,6 +101,7 @@
   --radius-lg: 1.25rem;
   --radius-xl: 1.5rem;
   --radius-2xl: 2rem;
+  --radius-3xl: 2.5rem;
   --radius-full: 9999px;
 
   --shadow-sm: 0 1px 2px light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));

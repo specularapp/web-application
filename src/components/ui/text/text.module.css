@@ -8,62 +8,71 @@
   font-size: var(--text-large-title);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tightest);
 }
 
 .text[data-variant="title1"] {
   font-size: var(--text-title-1);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tightest);
 }
 
 .text[data-variant="title2"] {
   font-size: var(--text-title-2);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tightest);
 }
 
 .text[data-variant="title3"] {
   font-size: var(--text-title-3);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
 }
 
 .text[data-variant="headline"] {
   font-size: var(--text-headline);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tighter);
 }
 
 .text[data-variant="body"] {
   font-size: var(--text-body);
   line-height: var(--leading-relaxed);
+  letter-spacing: var(--tracking-tighter);
 }
 
 .text[data-variant="callout"] {
   font-size: var(--text-callout);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tighter);
 }
 
 .text[data-variant="subheadline"] {
   font-size: var(--text-subheadline);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
 }
 
 .text[data-variant="footnote"] {
   font-size: var(--text-footnote);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
 }
 
 .text[data-variant="caption1"] {
   font-size: var(--text-caption-1);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
 }
 
 .text[data-variant="caption2"] {
   font-size: var(--text-caption-2);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
 }
 
 .text[data-tone="secondary"] { color: var(--color-label-secondary); }
@@ -86,7 +95,10 @@
 .text[data-align="center"] { text-align: center; }
 .text[data-align="end"] { text-align: end; }
 
-.text[data-numeric] { font-variant-numeric: tabular-nums; }
+.text[data-numeric] {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
 
 .text[data-truncate] {
   overflow: hidden;

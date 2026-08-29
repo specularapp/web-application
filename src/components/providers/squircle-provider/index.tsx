@@ -15,6 +15,14 @@ function addsOnlyOverlays(record: MutationRecord) {
   return record.addedNodes.length > 0 && Array.from(record.addedNodes).every(isOverlay);
 }
 
+function adoptDeclaredRadius() {
+  const pending = document.querySelectorAll<HTMLElement>("[data-squircle]:not([data-squircle-radius])");
+  for (const element of pending) {
+    const radius = Number.parseFloat(getComputedStyle(element).borderTopLeftRadius);
+    if (Number.isFinite(radius) && radius > 0) element.dataset.squircleRadius = String(Math.round(radius));
+  }
+}
+
 export function SquircleProvider() {
   const pathname = usePathname();
 
@@ -24,6 +32,7 @@ export function SquircleProvider() {
 
     const scan = () => {
       frame = 0;
+      adoptDeclaredRadius();
       kit.auto();
     };
 

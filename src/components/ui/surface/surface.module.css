@@ -1,0 +1,56 @@
+.surface {
+  --corner: var(--radius-3xl);
+  --pad: var(--space-4);
+  min-width: 0;
+  padding: var(--pad);
+  border-radius: var(--corner);
+  border: 1px solid transparent;
+}
+
+.surface .surface {
+  --corner: var(--radius-xl);
+  --pad: var(--space-3);
+}
+
+.surface .surface .surface {
+  --corner: var(--radius-md);
+  --pad: var(--space-2);
+}
+
+.surface .surface .surface .surface {
+  --corner: var(--radius-xs);
+  --pad: var(--space-2);
+}
+
+.surface[data-tone="raised"] {
+  background-color: var(--color-bg-grouped-secondary);
+  border-color: var(--color-border);
+  --ck-background: var(--color-bg-grouped-secondary);
+  --ck-border-color: var(--color-border);
+}
+
+.surface[data-tone="sunken"] {
+  background-color: var(--color-bg-grouped);
+  border-color: transparent;
+  --ck-background: var(--color-bg-grouped);
+  --ck-border-color: transparent;
+}
+
+.surface[data-tone="plain"] {
+  background-color: transparent;
+  border-color: transparent;
+  --ck-background: transparent;
+  --ck-border-color: transparent;
+}
+
+.surface[data-pad="none"] {
+  --pad: 0;
+}
+
+.surface[data-pad="tight"] {
+  --pad: var(--space-3);
+}
+
+.surface[data-pad="loose"] {
+  --pad: var(--space-6);
+}
