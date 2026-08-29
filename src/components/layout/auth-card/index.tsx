@@ -52,7 +52,9 @@ export function AuthCard({ hero, children }: AuthCardProps) {
         <header className={styles.brand}>
           <Logo variant="logotipo" height={32} />
         </header>
-        <main className={styles.panel}>{children}</main>
+        <main className={styles.panel} {...squircle("3xl")}>
+          {children}
+        </main>
       </div>
     </div>
   );

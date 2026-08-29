@@ -98,3 +98,5 @@ Pendências:
 - Login sem carrossel: imagem fixa nos dois layouts, texto do hero sobre a imagem no desktop, logo no topo no mobile.
 - Autenticação sempre no tema escuro (`color-scheme: dark` no shell); hero com título medium e tracking -0.02em; rótulo Specular em mono.
 - Tema escuro forçado nas rotas de auth pelo layout raiz via header `x-pathname` do proxy (color-scheme no shell não resolvia light-dark).
+- Login mobile: cartão com blur no lugar do gradiente, botões de opção em lg, `html` com fundo do tema para não sobrar faixa clara no overscroll.
+- Login mobile: cartão quase translúcido (28%) e scrim na base da imagem.

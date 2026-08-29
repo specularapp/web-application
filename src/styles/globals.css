@@ -6,6 +6,10 @@
   corner-shape: squircle;
 }
 
+html {
+  background-color: var(--color-bg);
+}
+
 body {
   font-family: var(--font-body);
   font-size: var(--text-callout);
