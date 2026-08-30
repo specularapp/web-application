@@ -12,6 +12,7 @@ export * from "./dropdown-menu";
 export * from "./empty-state";
 export * from "./field";
 export * from "./field-shell";
+export * from "./gradient-blinds";
 export * from "./icon-button";
 export * from "./input";
 export * from "./kbd";

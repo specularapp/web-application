@@ -66,13 +66,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
   const nonce = headerStore.get("x-nonce") ?? undefined;
   const preference = readThemeCookie(cookieStore.get("theme")?.value);
-  const theme = isAuthPath(headerStore.get("x-pathname")) ? "dark" : preference;
+  const authScreen = isAuthPath(headerStore.get("x-pathname"));
+  const theme = authScreen ? "dark" : preference;
 
   return (
     <html
       lang="pt-BR"
       className={`${inter.variable} ${geistMono.variable} ${playfair.variable}`}
       data-theme={theme}
+      data-scroll={authScreen ? "locked" : undefined}
     >
       <body>
         <EmotionRegistry nonce={nonce}>

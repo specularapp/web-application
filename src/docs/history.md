@@ -101,3 +101,6 @@ Pendências:
 - Login mobile: cartão com blur no lugar do gradiente, botões de opção em lg, `html` com fundo do tema para não sobrar faixa clara no overscroll.
 - Login mobile: cartão quase translúcido (28%) e scrim na base da imagem.
 - Login mobile: raio 20 em botões e campos (Safari sem corner-shape virava pílula), tela sem rolagem, lateral menor, logo centrado no espaço acima do cartão.
+- Login com fundo WebGL `GradientBlinds` (ogl) no lugar da imagem; componente na vitrine.
+- Login: fundo WebGL visível inteiro com órbita automática, cartão mobile em raio xl, rolagem travada por data-scroll no html.
+- Login: fundo em P&B e blend normal para o vidro do cartão mobile voltar.

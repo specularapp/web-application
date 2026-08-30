@@ -9,6 +9,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | next, react, react-dom | base |
 | @emotion/react, @emotion/styled, @emotion/cache | estilo dos componentes interativos (client), SSR com nonce. Primitivos estáticos usam CSS Modules |
 | @phosphor-icons/react | ícones (importar por nome) |
+| ogl | WebGL mínimo (renderer, programa, malha) para o fundo animado `GradientBlinds` do login. Sem Three.js: 30KB contra 600KB para um único shader |
 | cmdk | paleta de comandos |
 | zod | validação no servidor e no cliente |
 | @supabase/ssr, @supabase/supabase-js | auth, banco, storage, realtime |
@@ -85,6 +86,7 @@ O canto squircle é do sistema de cantos da casa (`src/lib/corners.ts` e `src/li
 | [loading-ui dual arc](https://loading-ui.com/docs/components/dual-arc) | Técnica do `Spinner`: círculo com `border` transparente e só `border-block-color` pintado, girando. Dois arcos opostos sem SVG nem máscara | É registry shadcn com Tailwind, que é proibido aqui, e o componente injeta `<style>` inline em runtime, que a nossa CSP bloqueia. Copiar direto daria spinner parado. Portamos a técnica para CSS Module com tokens, tamanhos e rótulo de leitor de tela |
 | [shadcn tooltip](https://ui.shadcn.com/docs/components/base/tooltip) | Visual do `Tooltip`: fundo invertido, 12px, `px-3 py-1.5`, seta quadrada de 10px rotacionada com canto de 2px, entrada com fade, zoom de 95% e slide de 8px, sem borda nem sombra | Depende de Base UI ou Radix, com portal e posicionamento por JS. Não precisamos disso ainda: a bolha é absoluta em relação ao gatilho e a seta cai no centro dele por construção, sem medir nada |
 | [figma-squircle](https://github.com/phamfoo/figma-squircle) | A matemática do canto suavizado do Figma em `src/lib/squircle/path.ts`: parâmetros a, b, c, d e o arco por canto, com o orçamento de metade do lado menor | São 60 linhas; a lib traz raio por canto e opções que não usamos, e o motor em volta (observer, cache, fallback) é nosso de qualquer jeito |
+| [React Bits GradientBlinds](https://reactbits.dev) | O shader das persianas com gradiente e holofote, em `components/ui/gradient-blinds/`. Portado para TypeScript estrito e Emotion, com cores vindas de tokens resolvidos em runtime, pausa em `prefers-reduced-motion` e aba oculta, e `dpr` limitado a 1.5 | React Bits é biblioteca de copiar e colar, não pacote; o código é nosso e segue as regras da casa |
 
 ## Proibidas
 

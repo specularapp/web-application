@@ -31,6 +31,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
+import { GradientBlinds } from "@/components/ui/gradient-blinds";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/link";
@@ -986,7 +987,7 @@ const groups: Group[] = [
         name: "Carousel",
         note: "Banners em fusão automática, sem seta nem bolinha. Imagem desktop e mobile por direção de arte com getImageProps do next/image; pausa com a aba oculta e fica parado em prefers-reduced-motion.",
         layout: "stack",
-        example: <Carousel slides={carouselSlides} label="Destaques" interval={3000} className={styles.carouselDemo} />,
+        example: <Carousel slides={carouselSlides} label="Destaques" interval={3000} className={styles.mediaDemo} />,
       },
       {
         name: "BrandIcon",
@@ -1008,6 +1009,16 @@ const groups: Group[] = [
         name: "ThemeToggle",
         note: "Seletor de tema por Listbox: Sistema, Claro ou Escuro. Grava o cookie theme e troca data-theme no html na hora. Flutua no canto inferior esquerdo só em homologação, para conferir as telas nos dois temas.",
         example: <ThemeToggle initial="system" floating={false} />,
+      },
+      {
+        name: "GradientBlinds",
+        note: "Fundo animado em WebGL (ogl): persianas com gradiente e holofote que segue o ponteiro. Cores por token, resolvidas em runtime. Para em prefers-reduced-motion e com a aba oculta; dpr limitado a 1.5. Portado do React Bits.",
+        layout: "stack",
+        example: (
+          <div className={styles.mediaDemo}>
+            <GradientBlinds colors={["var(--sys-pink)", "var(--sys-purple)", "var(--sys-indigo)"]} angle={12} />
+          </div>
+        ),
       },
       {
         name: "Logo",
