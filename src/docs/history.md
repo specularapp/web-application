@@ -6,7 +6,7 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | --- | --- | --- |
 | 2026-08-27 (qua) | ~3h (19:30 a 22:40) | Fundação completa: estrutura, auth, banco multi-tenant, segurança, tema, libs e primitivos |
 | 2026-08-28 (qui) | ~5h (noite, até ~01:00 de 29) | Design system: cantos squircle com cornerKit, Button, Text, Surface, Progress, Spinner, campos com máscara, DatePicker, Tooltip e vitrine em /componentes |
-| 2026-08-29 (sex) | em andamento | DatePicker em bottom sheet no mobile, canto nativo em campo e tooltip, Badge com modelo de cor por matiz, Listbox extraído e Pagination |
+| 2026-08-29 (sex) | ~8h30 (13:00 a 21:30) | Design system (Badge, Listbox, Pagination, Checkbox, Switch, Avatar, Toast, Carousel, PasswordInput, BrandIcon, GradientBlinds), motor de cantos próprio no lugar do cornerKit, tela de login completa nos dois layouts com fundo WebGL, tema escuro forçado em auth |
 
 ## 2026-08-27
 
@@ -60,7 +60,7 @@ Pendências:
 
 ## 2026-08-29
 
-Tempo: em andamento. Commits até agora: `7bb9fbe`, `985620c`, `1a948e6`, `bdd98eb`, `8d0c779` e o do Badge.
+Tempo: ~8h30 (13:00 a 21:30, com pausas). 14 commits, de `7bb9fbe` a este.
 
 Feito:
 
@@ -76,13 +76,6 @@ Feito:
 - Checkbox subiu do raio xs para sm: a superelipse em 20px parecia quadrada.
 - cornerKit removido. Sistema de cantos próprio em `src/lib/squircle/`: `path.ts` com a matemática do Figma (suavização 0,6), `engine.ts` com um ResizeObserver, rAF, cache e MutationObserver, `use-squircle.ts` com o hook. Nativo por `corner-shape` no Chromium, `clip-path` só em quem recorta ou pede `clip` no fallback, borda sempre CSS. `corners.ts` perdeu o argumento de borda; `--ck-*` e as regras do cornerkit em `globals.css` saíram. Toast com ícone no topo e descrição em `--leading-tight`.
 - Vitrine: o caixote de demo passa borda transparente ao cornerKit para cair no modo SVG e não recortar dropups.
-
-Pendências:
-
-- Card, Dialog, DropdownMenu, EmptyState, Radio, Select (nasce do Listbox), Tabs, Textarea e o layout inteiro continuam stub.
-- Conferir os componentes novos nos dois temas assim que o ThemeToggle existir. Hoje a conferência foi por captura headless forçando `prefers-color-scheme`, e por `CSS.supports` falso para exercitar o fallback do motor de cantos.
-- CSP: o console da vitrine mostra ~100 avisos de "Applying inline style" por carga, pré-existentes, todos de atributos `style` vindos do SSR (o hash mais frequente é o de string vazia). `style-src` por nonce bloqueia atributo inline até a hidratação. Avaliar `'unsafe-hashes'` ou tirar os valores dinâmicos do atributo.
-- Chip removível (etiqueta com ×) quando a seleção múltipla entrar.
 - Login: tela em `/login` com `AuthCard` (duas colunas no desktop, carrossel de fundo no mobile), `Carousel` com direção de arte por `getImageProps`, `PasswordInput`, `signInWithPassword` com rate limit, Turnstile opcional e "Relembrar senha" real por cookie `sp-remember`. Bug do proxy corrigido: `/auth/callback` era redirecionado para `/login` antes de trocar o código. Banners placeholder em `public/banners/` gerados por script.
 - Proxy: `banners` e `brands` excluídos do matcher; sem isso o `next/image` recebia redirect para `/login` ao buscar o PNG.
 - Login revisado: BrandIcon por máscara sobre public/brands, Turnstile flexível com chaves de teste e botão travado até verificar, logotipo 32, título title1, sem scroll no desktop, banner fixo no mobile, devIndicators desligado. Otimizador de imagem exige quality 75 no Next 16 (80 dava 400).
@@ -104,3 +97,14 @@ Pendências:
 - Login com fundo WebGL `GradientBlinds` (ogl) no lugar da imagem; componente na vitrine.
 - Login: fundo WebGL visível inteiro com órbita automática, cartão mobile em raio xl, rolagem travada por data-scroll no html.
 - Login: fundo em P&B e blend normal para o vidro do cartão mobile voltar.
+- Cartão mobile do login: fundo a 15% e blur de 12px.
+
+Pendências:
+
+- Próximas telas de auth no mesmo `AuthCard`: cadastro, recuperar senha, redefinir senha e MFA.
+- Turnstile: `.env` está com as chaves de teste da Cloudflare (as reais comentadas na linha acima). Trocar de volta antes de publicar.
+- Stubs: Card (nascer sobre Surface), Dialog, DropdownMenu, EmptyState, Radio, Select (nasce do Listbox), Tabs, Textarea e o layout (AppShell, Sidebar, Topbar). ThemeToggle vai para configurações em produção.
+- Listbox dentro de container que recorta (Safari, sem `corner-shape`) pode cortar o dropup; a saída é portal, como o DatePicker.
+- CSP: ~100 avisos de "Applying inline style" por carga da vitrine, pré-existentes, de atributos `style` do SSR. Avaliar `'unsafe-hashes'` ou tirar os valores dinâmicos do atributo.
+- Chip removível (etiqueta com ×) quando a seleção múltipla entrar.
+- Conferir o fluxo real de OAuth e de senha com um usuário de teste no Supabase; hoje só a UI e as actions foram exercitadas.
