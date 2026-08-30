@@ -1,7 +1,8 @@
 .shell {
   position: relative;
   display: grid;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   background-color: var(--color-bg);
 }
 
@@ -27,16 +28,15 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr auto;
   width: 100%;
-  min-height: 100dvh;
-  padding: 0 var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  height: 100%;
+  padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
 .brand {
-  display: flex;
-  justify-content: center;
-  padding: calc(var(--space-6) + env(safe-area-inset-top)) 0 var(--space-6);
+  display: grid;
+  place-items: center;
 }
 
 @media (max-width: 63.9375rem) {
@@ -48,7 +48,7 @@
 .panel {
   position: relative;
   align-self: end;
-  padding: var(--space-5);
+  padding: var(--space-5) var(--space-4);
   background-color: color-mix(in oklab, var(--color-bg) 28%, transparent);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);
@@ -86,9 +86,6 @@
 @media (min-width: 64rem) {
   .shell {
     grid-template-columns: 3fr 2fr;
-    height: 100dvh;
-    min-height: auto;
-    overflow: hidden;
   }
 
   .shell::before,
@@ -122,8 +119,6 @@
     gap: var(--space-6);
     align-content: center;
     max-width: 32rem;
-    height: 100%;
-    min-height: auto;
     margin-inline: auto;
     padding: var(--space-8);
     overflow-y: auto;
@@ -131,7 +126,8 @@
   }
 
   .brand {
-    padding: 0;
+    display: flex;
+    justify-content: center;
   }
 
   .panel {

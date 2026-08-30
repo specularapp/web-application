@@ -100,3 +100,4 @@ Pendências:
 - Tema escuro forçado nas rotas de auth pelo layout raiz via header `x-pathname` do proxy (color-scheme no shell não resolvia light-dark).
 - Login mobile: cartão com blur no lugar do gradiente, botões de opção em lg, `html` com fundo do tema para não sobrar faixa clara no overscroll.
 - Login mobile: cartão quase translúcido (28%) e scrim na base da imagem.
+- Login mobile: raio 20 em botões e campos (Safari sem corner-shape virava pílula), tela sem rolagem, lateral menor, logo centrado no espaço acima do cartão.

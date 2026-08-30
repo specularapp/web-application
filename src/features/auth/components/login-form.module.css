@@ -109,9 +109,17 @@
   }
 
   .root .choices button[data-size] {
-    --button-radius: var(--control-radius-lg);
     min-height: var(--control-height-lg);
     padding-inline: var(--control-padding-lg);
+  }
+
+  .root .choices button[data-size],
+  .root .form button[data-size] {
+    --button-radius: var(--radius-lg);
+  }
+
+  .root .form span[data-size] {
+    --field-radius: var(--radius-lg);
   }
 
   .root[data-step="choose"] .form {
