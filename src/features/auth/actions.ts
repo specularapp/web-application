@@ -16,8 +16,10 @@ import {
   nextPathSchema,
   emailSchema,
   oauthProviderSchema,
+  otpTypeSchema,
   signInSchema,
   signUpSchema,
+  tokenHashSchema,
   totpCodeSchema,
 } from "./schemas";
 
@@ -147,6 +149,26 @@ export async function resendConfirmation(email: unknown): Promise<ActionResult> 
   if (error) return { ok: false, error: "Não deu para reenviar agora. Aguarde um minuto e tente de novo." };
 
   return { ok: true, data: undefined };
+}
+
+export type ConfirmEmailState = { error?: string };
+
+export async function confirmEmailWithToken(_state: ConfirmEmailState, formData: FormData): Promise<ConfirmEmailState> {
+  if (!(await withinAuthLimit("confirm"))) return { error: TOO_MANY };
+
+  const tokenHash = tokenHashSchema.safeParse(formData.get("token_hash"));
+  const type = otpTypeSchema.safeParse(formData.get("type"));
+  if (!tokenHash.success || !type.success) {
+    return { error: "Este link está incompleto. Abra de novo pelo botão do e-mail." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ type: type.data, token_hash: tokenHash.data });
+  if (error) {
+    return { error: "O link expirou ou já foi usado. Peça um e-mail novo e abra o mais recente." };
+  }
+
+  redirect(nextPathSchema.parse(formData.get("next")) as Route);
 }
 
 export async function signOut(): Promise<never> {

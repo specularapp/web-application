@@ -118,6 +118,8 @@ Feito:
 
 - Criar conta em `/cadastro`: `SignUpForm` com nome, e-mail e senha (zod com piso de 8), provedores compartilhados via `OAuthButtons`, CSS comum em `auth-form.module.css`, action `signUpWithPassword` com rate limit, Turnstile e erros por `error.code`, estado "Confirme seu e-mail" quando a confirmação está ligada, consentimento de Termos e Privacidade.
 - MFA em `/mfa` com dois estados: cadastro do autenticador (QR do Supabase, chave manual com cópia e toast, CodeInput de 6 dígitos em caixas 3 e 3) e verificação de step-up. Gate novo no proxy: `mfaMissing` força o cadastro no primeiro login; `enrollTotp` purga fatores não verificados. Conteúdo do AuthCard rola por dentro no mobile.
+- Link de confirmação à prova de scanner: página `/confirmar-email` no grupo `(auth)` que só chama `verifyOtp` no clique (action `confirmEmailWithToken`), porque o `{{ .ConfirmationURL }}` direto no `/verify` era consumido por scanner corporativo antes do clique e dava `otp_expired` na primeira tentativa. Templates trocados para `token_hash`, proxy não expulsa logado dessa rota.
+- E-mails redesenhados no padrão minimalista: sem cartão, fundo branco, logo no topo, textos sem ponto final e sem travessão, botão preto só quando há ação. 13 templates gerados de um esqueleto único (6 de ação e 7 avisos de segurança do painel), tabela de slots e assuntos no setup.md.
 
 Pendências:
 
@@ -125,3 +127,4 @@ Pendências:
 - As pendências de 2026-08-29 continuam.
 - E2E do MFA montado (usuário de teste via admin API, login pela UI, TOTP calculado em Node): revelou token do Turnstile perdido no input imperativo (virou input controlado pelos formulários) e enroll de TOTP desligado no projeto hospedado (config.toml não vale lá; instrução no setup.md).
 - E-mails de autenticação próprios: 6 templates com marca em db/supabase/templates ligados no config.toml, logos em PNG gerados por headless, instruções de SMTP do Resend e URLs de redirect no setup.md, reenvio de confirmação na tela de cadastro e aviso de link expirado no /login.
+- Recolar os 13 templates no painel do Supabase depois do deploy do /confirmar-email e ligar os toggles da seção Security.

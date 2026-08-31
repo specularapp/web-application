@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { MFA_PATH, publicAuthPaths } from "@/lib/auth-paths";
+import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths } from "@/lib/auth-paths";
 import { siteConfig } from "@/lib/metadata";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
   }
 
-  if (isAuthPath || pathname === MFA_PATH) {
+  if ((isAuthPath && pathname !== CONFIRM_EMAIL_PATH) || pathname === MFA_PATH) {
     return redirectWithCookies(new URL("/dashboard", request.url), response);
   }
 
@@ -86,7 +86,7 @@ export const config = {
   matcher: [
     {
       source:
-        "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|logotipo|banners|bg|brands|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image).*)",
+        "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|logotipo|banners|bg|brands|3d-icons|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

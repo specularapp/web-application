@@ -24,3 +24,8 @@ export const signUpSchema = z.object({
 });
 
 export const emailSchema = z.email().max(254);
+
+export const otpTypeSchema = z.enum(["signup", "invite", "magiclink", "recovery", "email_change", "email"]);
+export type OtpType = z.infer<typeof otpTypeSchema>;
+
+export const tokenHashSchema = z.string().trim().min(16).max(512);

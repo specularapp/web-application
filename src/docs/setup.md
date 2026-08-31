@@ -118,8 +118,26 @@ Os templates com a nossa marca estão em `db/supabase/templates/` e já apontado
 
 1. Resend > Domains > verificar o domínio do remetente (`RESEND_FROM_EMAIL`).
 2. Supabase > Project Settings > Authentication > SMTP Settings > Enable custom SMTP: host `smtp.resend.com`, porta `465`, usuário `resend`, senha = `RESEND_API_KEY`, sender = `RESEND_FROM_EMAIL`. Sem SMTP próprio o Supabase limita a ~2 e-mails por hora, o que derruba qualquer teste de cadastro.
-3. Supabase > Authentication > Email Templates > colar o HTML de cada arquivo de `db/supabase/templates/` no slot correspondente (Confirm signup, Invite user, Magic Link, Change Email Address, Reset Password, Reauthentication), com os assuntos do `config.toml`.
-4. Supabase > Authentication > URL Configuration: Site URL `https://app.specular.com.br`; Additional Redirect URLs com `http://localhost:3000/auth/callback` e `https://app.specular.com.br/auth/callback`, senão o retorno do e-mail cai no domínio errado.
+3. Supabase > Authentication > Emails > colar o HTML de cada arquivo de `db/supabase/templates/` no slot correspondente, com os assuntos da tabela abaixo. Os avisos da seção Security têm um toggle cada: ligar ao colar. Recolar sempre que os arquivos mudarem, porque o painel não lê o repositório.
+
+| Arquivo | Slot no painel | Assunto |
+| --- | --- | --- |
+| `confirmation.html` | Confirm sign up | Confirme seu e-mail no Specular |
+| `invite.html` | Invite user | Você foi convidado para o Specular |
+| `magic-link.html` | Magic link or OTP | Seu link de acesso ao Specular |
+| `email-change.html` | Change email address | Confirme a troca de e-mail no Specular |a
+| `recovery.html` | Reset password | Redefina sua senha do Specular |
+| `reauthentication.html` | Reauthentication | Seu código de confirmação do Specular |
+| `security-password-changed.html` | Password changed | Sua senha foi alterada |
+| `security-email-changed.html` | Email address changed | O e-mail da sua conta foi alterado |
+| `security-phone-changed.html` | Phone number changed | O telefone da sua conta foi alterado |
+| `security-identity-linked.html` | Sign-in method linked | Nova forma de login na sua conta |
+| `security-identity-unlinked.html` | Sign-in method removed | Uma forma de login foi removida |
+| `security-mfa-added.html` | MFA method added | Novo fator de verificação na sua conta |
+| `security-mfa-removed.html` | MFA method removed | Um fator de verificação foi removido |
+
+O visual é minimalista por decisão de 2026-08-30: fundo branco sem cartão, logo no topo, título e texto soltos, botão preto pequeno quando há ação, rodapé com linha fina, e nenhum texto usa ponto final. Os avisos de Security não têm botão, só texto e um link para revisar a segurança da conta.
+4. Supabase > Authentication > URL Configuration: Site URL `https://app.specular.com.br`; Additional Redirect URLs com `http://localhost:3000/auth/callback` e `https://app.specular.com.br/auth/callback`, senão o retorno do OAuth cai no domínio errado.
 5. O logo dos e-mails é `public/logotipo/specular-logotipo-black.png` (gerado do SVG; e-mail não renderiza SVG), servido em `https://app.specular.com.br/logotipo/...`. Publicar antes de testar o e-mail em produção.
 
-Link "expirado ou inválido" (`otp_expired`) tem três causas comuns: rate limit do SMTP embutido, um cadastro novo invalidando o link anterior, e scanner de e-mail corporativo consumindo o link. Com SMTP próprio e o botão de reenvio da tela de confirmação, os três ficam administráveis.
+Os templates de link NÃO usam `{{ .ConfirmationURL }}`: esse endereço aponta direto ao `/verify` do Supabase e o token é de uso único, então scanners de e-mail corporativos (Gmail Workspace, Outlook Safe Links) consomem o link antes do clique da pessoa e o resultado é `otp_expired` na primeira tentativa. Os templates apontam para `{{ .SiteURL }}/confirmar-email?token_hash={{ .TokenHash }}&type=...`, uma página nossa que só chama `verifyOtp` no clique do botão (POST via server action); scanner faz GET e não consome nada. A página precisa estar publicada ANTES de colar os templates no painel. Outras causas de `otp_expired` que continuam valendo: rate limit do SMTP embutido (~2 e-mails/h) e um cadastro novo invalidando o link anterior.
