@@ -1,6 +1,14 @@
+@keyframes authEnter {
+  from {
+    opacity: 0;
+    translate: 0 -0.375rem;
+  }
+}
+
 .root {
   display: grid;
   gap: var(--space-6);
+  animation: authEnter var(--duration-base) var(--ease-standard);
 }
 
 .choices {
@@ -24,7 +32,7 @@
 }
 
 .dividerLabel {
-  color: var(--color-separator);
+  color: var(--color-label-secondary);
 }
 
 .form {
@@ -126,6 +134,11 @@
     display: none;
   }
 
+  .root[data-step="email"] .form,
+  .root[data-step="choose"] .choices {
+    animation: authEnter var(--duration-base) var(--ease-standard);
+  }
+
   .root[data-step="email"] .choices,
   .root[data-step="email"] .create,
   .root[data-step="choose"] .back {
@@ -135,6 +148,7 @@
 
 .confirmation {
   padding-block: var(--space-4);
+  animation: authEnter var(--duration-base) var(--ease-standard);
 }
 
 .confirmationImage {

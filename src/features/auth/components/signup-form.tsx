@@ -5,7 +5,6 @@ import type { Route } from "next";
 import Image from "next/image";
 import { useActionState, useEffect, useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
-import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -18,6 +17,7 @@ import { cx } from "@/lib/utils/cx";
 import { resendConfirmation, sessionEstablished, signUpWithPassword, type SignUpState } from "../actions";
 import styles from "./auth-form.module.css";
 import { OAuthButtons } from "./oauth-buttons";
+import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
 type SignUpFormProps = {
   next: string;
@@ -28,45 +28,67 @@ type Step = "choose" | "email";
 
 const initialState: SignUpState = {};
 
+const RESEND_COOLDOWN_MS = 30000;
+const MAX_SESSION_CHECKS = 60;
+
 export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
   const [state, formAction, pending] = useActionState(signUpWithPassword, initialState);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const verified = !turnstileSiteKey || turnstileToken !== "";
+  const turnstile = useTurnstile(turnstileSiteKey, state);
   const [step, setStep] = useState<Step>("choose");
   const { toast } = useToast();
   const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(false);
 
   useEffect(() => {
     if (!state.sentTo) return;
     const goNext = () => window.location.assign(next);
-    const channel = new BroadcastChannel("sp-auth");
-    channel.addEventListener("message", (event) => {
-      if (event.data === "confirmed") goNext();
-    });
+
+    // A aba do link só avisa por canal; a consulta de sessão é a rede de segurança para
+    // quando o canal não existe no navegador. Ela para sozinha para não bater no servidor a noite toda.
+    let checks = 0;
     const interval = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (++checks > MAX_SESSION_CHECKS) {
+        window.clearInterval(interval);
+        return;
+      }
       void sessionEstablished().then((ok) => {
         if (ok) goNext();
       });
     }, 5000);
+
+    let channel: BroadcastChannel | undefined;
+    try {
+      channel = new BroadcastChannel("sp-auth");
+      channel.addEventListener("message", (event) => {
+        if (event.data === "confirmed") goNext();
+      });
+    } catch {
+      channel = undefined;
+    }
+
     return () => {
-      channel.close();
+      channel?.close();
       window.clearInterval(interval);
     };
   }, [state.sentTo, next]);
 
+  useEffect(() => {
+    if (!cooldown) return;
+    const timeout = window.setTimeout(() => setCooldown(false), RESEND_COOLDOWN_MS);
+    return () => window.clearTimeout(timeout);
+  }, [cooldown]);
+
   const resend = async (email: string) => {
     setResending(true);
-    const result = await resendConfirmation(email);
-    if (result.ok) {
-      toast({ title: "E-mail reenviado", description: `Confira a caixa de entrada de ${email}`, tone: "success" });
-      window.setTimeout(() => setResending(false), 30000);
-      return;
-    }
-    toast({ title: "Não deu para reenviar", description: result.error, tone: "danger" });
+    await resendConfirmation(email);
+    toast({ title: "E-mail reenviado", description: `Confira a caixa de entrada de ${email}`, tone: "success" });
     setResending(false);
+    setCooldown(true);
   };
 
-  if (state.sentTo) {
+  const sentTo = state.sentTo;
+  if (sentTo) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
         <Image src="/3d-icons/check.png" alt="" width={174} height={178} className={styles.confirmationImage} />
@@ -74,10 +96,17 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
           Confirme seu e-mail
         </Text>
         <Text variant="subheadline" tone="secondary" align="center">
-          Enviamos um link de confirmação para {state.sentTo}. Assim que você confirmar, esta aba continua sozinha.
+          Enviamos um link de confirmação para {sentTo}. Assim que você confirmar, esta aba continua sozinha.
         </Text>
-        <Button variant="secondary" size="sm" radius="md" disabled={resending} onClick={() => void resend(state.sentTo as string)}>
-          {resending ? "Reenviado, aguarde um instante" : "Reenviar e-mail"}
+        <Button
+          variant="secondary"
+          size="sm"
+          radius="md"
+          loading={resending}
+          disabled={cooldown}
+          onClick={() => void resend(sentTo)}
+        >
+          {cooldown ? "Reenviado, aguarde um instante" : "Reenviar e-mail"}
         </Button>
         <Text variant="footnote" tone="secondary" align="center">
           Não chegou? Veja o spam ou{" "}
@@ -142,18 +171,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
           <PasswordInput name="password" placeholder="Crie uma senha" autoComplete="new-password" required />
         </Field>
 
-        {turnstileSiteKey && (
-          <>
-            <TurnstileWidget
-              siteKey={turnstileSiteKey}
-              onVerify={setTurnstileToken}
-              onExpire={() => setTurnstileToken("")}
-              resetOn={state}
-              className={styles.turnstile}
-            />
-            <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
-          </>
-        )}
+        {turnstile.field}
 
         {state.error && (
           <Text role="alert" variant="footnote" tone="danger">
@@ -169,11 +187,17 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
           </Text>
         )}
 
-        <Button type="submit" size="lg" fullWidth disabled={pending || !verified}>
+        {turnstile.unavailable && (
+          <Text role="alert" variant="footnote" tone="danger">
+            {TURNSTILE_UNAVAILABLE}
+          </Text>
+        )}
+
+        <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>
           {pending ? "Criando conta" : "Criar conta"}
         </Button>
 
-        <Text variant="caption1" tone="tertiary" align="center">
+        <Text variant="caption1" tone="secondary" align="center">
           Ao criar a conta, você concorda com os{" "}
           <TextLink href="/termos" tone="inherit" underline="always">
             Termos de uso

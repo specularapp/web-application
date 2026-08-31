@@ -34,19 +34,29 @@ type TurnstileWidgetProps = {
   siteKey: string;
   onVerify?: (token: string) => void;
   onExpire?: () => void;
+  onUnavailable?: () => void;
   resetOn?: unknown;
   className?: string;
 };
 
-export function TurnstileWidget({ siteKey, onVerify, onExpire, resetOn, className }: TurnstileWidgetProps) {
+const LOAD_TIMEOUT_MS = 10000;
+
+export function TurnstileWidget({
+  siteKey,
+  onVerify,
+  onExpire,
+  onUnavailable,
+  resetOn,
+  className,
+}: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string>(undefined);
-  const callbacks = useRef({ onVerify, onExpire });
+  const callbacks = useRef({ onVerify, onExpire, onUnavailable });
   const fieldId = useId();
 
   useEffect(() => {
-    callbacks.current = { onVerify, onExpire };
-  }, [onVerify, onExpire]);
+    callbacks.current = { onVerify, onExpire, onUnavailable };
+  }, [onVerify, onExpire, onUnavailable]);
 
   const lastReset = useRef(resetOn);
 
@@ -86,10 +96,16 @@ export function TurnstileWidget({ siteKey, onVerify, onExpire, resetOn, classNam
 
     render();
     const interval = window.setInterval(render, 200);
+    // Bloqueador de anúncio ou rede corporativa derruba o script: sem este aviso o botão
+    // de enviar fica desabilitado para sempre, sem explicação nenhuma na tela.
+    const timeout = window.setTimeout(() => {
+      if (!widgetIdRef.current) callbacks.current.onUnavailable?.();
+    }, LOAD_TIMEOUT_MS);
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      window.clearTimeout(timeout);
       const widgetId = widgetIdRef.current;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
       widgetIdRef.current = undefined;

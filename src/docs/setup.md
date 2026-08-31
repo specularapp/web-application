@@ -14,6 +14,10 @@ Ordem: Supabase → OpenAI → Resend → Stripe. Redis e n8n ficam para depois.
 3. Authentication > URL Configuration:
    - Site URL: `https://app.specular.com.br`
    - Redirect URLs: `https://app.specular.com.br/auth/callback` e `http://localhost:3000/auth/callback`
+4. Authentication > Sign In / Providers > Email: **Confirm email ligado**. O `enable_confirmations` do `config.toml` vale só no local, e com a confirmação desligada no painel o `signUp` devolve sessão na hora: some a detecção de conta existente e abre sequestro por conta pré-criada, já que o Supabase vincula OAuth do mesmo e-mail à conta que existir.
+5. Authentication > Attack Protection: **Captcha ligado** com o mesmo par de chaves do Turnstile e **Leaked password protection ligada**. A publishable key é pública por design, então o endpoint do gotrue aceita chamada direta e pula o Turnstile e o rate limit das nossas Server Actions. Sem o captcha do lado do Supabase, essa camada não cobre quem chama a API na mão.
+6. Authentication > Policies: **Minimum password length 8**, para o piso valer também no app mobile, que fala direto com o Supabase. O zod só protege a web.
+7. Authentication > Security: **Secure password change ligado**, para exigir reautenticação antes de trocar senha com sessão já ativa.
 
 ## 2. OpenAI
 

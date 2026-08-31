@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import type { Database } from "@/types/database";
-import { REMEMBER_COOKIE, isPersistent, scopeToSession } from "./cookies";
+import { REMEMBER_COOKIE, isPersistent, scopeToSession, sessionCookieOptions } from "./cookies";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -10,6 +10,7 @@ export async function updateSession(request: NextRequest) {
   const persistent = isPersistent(request.cookies.get(REMEMBER_COOKIE)?.value);
 
   const supabase = createServerClient<Database>(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+    cookieOptions: sessionCookieOptions,
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet) => {

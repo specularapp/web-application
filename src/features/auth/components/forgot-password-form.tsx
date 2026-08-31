@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useState } from "react";
-import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
+import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { requestPasswordReset, type RecoverState } from "../actions";
 import styles from "./auth-form.module.css";
+import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
 type ForgotPasswordFormProps = {
   turnstileSiteKey?: string;
@@ -20,8 +20,7 @@ const initialState: RecoverState = {};
 
 export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps) {
   const [state, formAction, pending] = useActionState(requestPasswordReset, initialState);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const verified = !turnstileSiteKey || turnstileToken !== "";
+  const turnstile = useTurnstile(turnstileSiteKey, state);
 
   if (state.sentTo) {
     return (
@@ -62,18 +61,7 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
           />
         </Field>
 
-        {turnstileSiteKey && (
-          <>
-            <TurnstileWidget
-              siteKey={turnstileSiteKey}
-              onVerify={setTurnstileToken}
-              onExpire={() => setTurnstileToken("")}
-              resetOn={state}
-              className={styles.turnstile}
-            />
-            <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
-          </>
-        )}
+        {turnstile.field}
 
         {state.error && (
           <Text role="alert" variant="footnote" tone="danger">
@@ -81,7 +69,13 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
           </Text>
         )}
 
-        <Button type="submit" size="lg" fullWidth disabled={pending || !verified}>
+        {turnstile.unavailable && (
+          <Text role="alert" variant="footnote" tone="danger">
+            {TURNSTILE_UNAVAILABLE}
+          </Text>
+        )}
+
+        <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>
           {pending ? "Enviando" : "Enviar link"}
         </Button>
       </form>

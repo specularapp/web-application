@@ -2,7 +2,7 @@
 
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react";
 import { useActionState, useState, useSyncExternalStore } from "react";
-import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
+import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
@@ -12,9 +12,10 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
-import { signInWithPassword, type SignInState } from "../actions";
+import { resendConfirmation, signInWithPassword, type SignInState } from "../actions";
 import styles from "./auth-form.module.css";
 import { OAuthButtons } from "./oauth-buttons";
+import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
 type LoginFormProps = {
   next: string;
@@ -45,17 +46,31 @@ function hashNoticeFrom(hash: string) {
 
 export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(signInWithPassword, initialState);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const verified = !turnstileSiteKey || turnstileToken !== "";
+  const turnstile = useTurnstile(turnstileSiteKey, state);
   const [step, setStep] = useState<Step>("choose");
+  const { toast } = useToast();
+  const [resending, setResending] = useState(false);
   const hashNotice = hashNoticeFrom(useLocationHash());
-  const message = state.error ?? notice ?? hashNotice;
+  const arrivalNotice = state.error ? undefined : (notice ?? hashNotice);
+
+  const resend = async (email: string) => {
+    setResending(true);
+    await resendConfirmation(email);
+    toast({ title: "E-mail reenviado", description: `Confira a caixa de entrada de ${email}`, tone: "success" });
+    setResending(false);
+  };
 
   return (
     <div className={styles.root} data-step={step}>
       <Text as="h1" variant="title1" weight="medium" align="center" className={styles.title}>
         É ótimo ter você com a gente, faça seu login e vamos trabalhar.
       </Text>
+
+      {arrivalNotice && (
+        <Text role="alert" variant="footnote" tone="danger" align="center">
+          {arrivalNotice}
+        </Text>
+      )}
 
       <div className={styles.choices}>
         <div className={styles.mobileOnly}>
@@ -110,26 +125,34 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
           </Text>
         </div>
 
-        {turnstileSiteKey && (
-          <>
-            <TurnstileWidget
-              siteKey={turnstileSiteKey}
-              onVerify={setTurnstileToken}
-              onExpire={() => setTurnstileToken("")}
-              resetOn={state}
-              className={styles.turnstile}
-            />
-            <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
-          </>
-        )}
+        {turnstile.field}
 
-        {message && (
+        {state.error && (
           <Text role="alert" variant="footnote" tone="danger">
-            {message}
+            {state.error}
           </Text>
         )}
 
-        <Button type="submit" size="lg" fullWidth disabled={pending || !verified}>
+        {state.unconfirmed && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            radius="md"
+            loading={resending}
+            onClick={() => void resend(state.unconfirmed as string)}
+          >
+            Reenviar e-mail de confirmação
+          </Button>
+        )}
+
+        {turnstile.unavailable && (
+          <Text role="alert" variant="footnote" tone="danger">
+            {TURNSTILE_UNAVAILABLE}
+          </Text>
+        )}
+
+        <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>
           {pending ? "Entrando" : "Entrar"}
         </Button>
       </form>

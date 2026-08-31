@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import type { Database } from "@/types/database";
-import { REMEMBER_COOKIE, isPersistent, scopeToSession } from "./cookies";
+import { REMEMBER_COOKIE, isPersistent, scopeToSession, sessionCookieOptions } from "./cookies";
 
 type ClientOptions = { remember?: boolean };
 
@@ -14,6 +14,7 @@ export async function createClient(options: ClientOptions = {}) {
   const persistent = options.remember ?? isPersistent(cookieStore.get(REMEMBER_COOKIE)?.value);
 
   return createServerClient<Database>(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+    cookieOptions: sessionCookieOptions,
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {

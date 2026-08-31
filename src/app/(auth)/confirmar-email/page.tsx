@@ -2,6 +2,7 @@ import { ConfirmEmailCard } from "@/features/auth/components/confirm-email-card"
 import { otpTypeSchema, tokenHashSchema } from "@/features/auth/schemas";
 import { createMetadata } from "@/lib/metadata";
 import { safePath } from "@/lib/security/safe-path";
+import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Confirmar e-mail",
@@ -9,9 +10,6 @@ export const metadata = createMetadata({
   path: "/confirmar-email",
 });
 
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function ConfirmEmailPage({ searchParams }: PageProps<"/confirmar-email">) {
   const params = await searchParams;

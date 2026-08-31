@@ -25,6 +25,11 @@ const Toggle = styled.button`
 
   ${focusRing};
 
+  @media (pointer: coarse) {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
   &:hover {
     color: var(--color-label);
   }

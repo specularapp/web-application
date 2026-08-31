@@ -12,8 +12,15 @@ export function isPersistent(value: string | undefined) {
   return value !== "0";
 }
 
+// maxAge zero é como o @supabase/ssr apaga cookie: tirar junto com a persistência deixaria
+// o cookie vazio no navegador em vez de removido ao sair.
 export function scopeToSession(options: CookieOptions, persistent: boolean): CookieOptions {
-  if (persistent) return options;
+  if (persistent || options.maxAge === 0) return options;
   const { maxAge: _maxAge, expires: _expires, ...session } = options;
   return session;
 }
+
+export const sessionCookieOptions: CookieOptions = {
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+};

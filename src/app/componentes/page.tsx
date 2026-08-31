@@ -100,7 +100,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Button",
-        note: "Emotion e client. Texto ao centro, borda discreta, cantos squircle e peso do ícone acompanhando o do texto.",
+        note: "Emotion e client. Texto ao centro, borda discreta, cantos squircle e peso do ícone acompanhando o do texto. Com loading, o Spinner ocupa o lugar do ícone, o botão trava e ganha aria-busy.",
         wide: true,
         layout: "stack",
         example: (
@@ -152,6 +152,15 @@ const groups: Group[] = [
               </Button>
               <Button variant="secondary" iconEnd={<PaperPlaneTiltIcon />}>
                 Enviar orçamento
+              </Button>
+            </Sample>
+            <Sample label="loading troca o ícone pelo Spinner e trava o clique">
+              <Button loading>Entrando</Button>
+              <Button variant="secondary" loading>
+                Salvando
+              </Button>
+              <Button variant="outline" loading iconStart={<PlusIcon />}>
+                Criando
               </Button>
             </Sample>
             <Sample label="locked e plan">

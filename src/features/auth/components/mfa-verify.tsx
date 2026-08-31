@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CodeInput } from "@/components/ui/code-input";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { signOut, verifyTotp } from "../actions";
 import authStyles from "./auth-form.module.css";
@@ -16,6 +17,7 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [verifying, setVerifying] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   const verify = async (value = code) => {
     if (value.length < 6 || verifying) return;
@@ -25,6 +27,7 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
     if (!result.ok) {
       setError(result.error);
       setVerifying(false);
+      setAttempt((value) => value + 1);
       return;
     }
     window.location.assign(next);
@@ -45,6 +48,7 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
         fullWidth
         disabled={verifying}
         invalid={Boolean(error)}
+        resetKey={attempt}
         onChange={(value) => {
           setCode(value);
           setError(undefined);
@@ -53,9 +57,12 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
       />
 
       {verifying && (
-        <Text variant="footnote" tone="secondary" align="center">
-          Verificando o código
-        </Text>
+        <div className={styles.verifying}>
+          <Spinner size="sm" label="" />
+          <Text variant="footnote" tone="secondary">
+            Verificando o código
+          </Text>
+        </div>
       )}
 
       {error && !verifying && (

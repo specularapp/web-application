@@ -7,6 +7,7 @@ import { BrandIcon } from "@/components/ui/brand-icon";
 import { Button } from "@/components/ui/button";
 import { CodeInput } from "@/components/ui/code-input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
@@ -37,16 +38,35 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [verifying, setVerifying] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [enrollFailed, setEnrollFailed] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
     if (started.current || preview) return;
     started.current = true;
     enrollTotp("Aplicativo autenticador").then((result) => {
-      if (result.ok) setFactor(result.data);
-      else setError(result.error);
+      if (result.ok) {
+        setFactor(result.data);
+        return;
+      }
+      setError(result.error);
+      setEnrollFailed(true);
     });
   }, [preview]);
+
+  const retryEnroll = () => {
+    setError(undefined);
+    setEnrollFailed(false);
+    enrollTotp("Aplicativo autenticador").then((result) => {
+      if (result.ok) {
+        setFactor(result.data);
+        return;
+      }
+      setError(result.error);
+      setEnrollFailed(true);
+    });
+  };
 
   const copySecret = async () => {
     if (!factor) return;
@@ -74,6 +94,7 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
     if (!result.ok) {
       setError(result.error);
       setVerifying(false);
+      setAttempt((current) => current + 1);
       return;
     }
     window.location.assign(next);
@@ -106,13 +127,11 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
         <Skeleton shape="rect" width="11rem" height="11rem" />
       )}
 
-      <div className={styles.secretBox}>
+      <div className={styles.secretBox} {...squircle("md")}>
         {factor ? (
-          <code className={styles.secret} {...squircle("md")}>
-            {factor.secret}
-          </code>
+          <code className={styles.secret}>{factor.secret}</code>
         ) : (
-          <Skeleton shape="rect" width="100%" height="2.75rem" />
+          <Skeleton shape="rect" width="100%" height="2.25rem" />
         )}
         <Button
           className={styles.copy}
@@ -135,7 +154,8 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
         label="Código de verificação de 6 dígitos"
         fullWidth
         disabled={!factor || verifying}
-        invalid={Boolean(error)}
+        invalid={Boolean(error) && !enrollFailed}
+        resetKey={attempt}
         onChange={(value) => {
           setCode(value);
           setError(undefined);
@@ -144,15 +164,24 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
       />
 
       {verifying && (
-        <Text variant="footnote" tone="secondary" align="center">
-          Verificando o código
-        </Text>
+        <div className={styles.verifying}>
+          <Spinner size="sm" label="" />
+          <Text variant="footnote" tone="secondary">
+            Verificando o código
+          </Text>
+        </div>
       )}
 
       {error && !verifying && (
         <Text role="alert" variant="footnote" tone="danger" align="center">
           {error}
         </Text>
+      )}
+
+      {enrollFailed && (
+        <Button variant="secondary" size="sm" radius="md" onClick={retryEnroll}>
+          Tentar de novo
+        </Button>
       )}
 
       <form action={signOut}>

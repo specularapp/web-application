@@ -2,6 +2,7 @@ import { SignUpForm } from "@/features/auth/components/signup-form";
 import { env, hasTurnstile } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
 import { safePath } from "@/lib/security/safe-path";
+import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Criar conta",
@@ -9,9 +10,6 @@ export const metadata = createMetadata({
   path: "/cadastro",
 });
 
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function SignUpPage({ searchParams }: PageProps<"/cadastro">) {
   const params = await searchParams;

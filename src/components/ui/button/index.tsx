@@ -12,6 +12,7 @@ import {
   squirclePx,
 } from "@/lib/corners";
 import { matchIconWeight } from "../icons";
+import { Spinner } from "../spinner";
 import { controlGlyph, controlMetrics, controlSquare, disabledState, focusRing, type ControlSize } from "../styles";
 import { VisuallyHidden } from "../visually-hidden";
 
@@ -27,6 +28,7 @@ export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;
   iconOnly?: boolean;
+  loading?: boolean;
   locked?: boolean;
   plan?: string;
   background?: string;
@@ -77,11 +79,21 @@ const Root = styled.button`
   ${focusRing};
   ${disabledState};
 
+  &[data-loading]:disabled {
+    opacity: 0.75;
+    cursor: progress;
+  }
+
   & [data-button-icon] {
     display: inline-flex;
     flex-shrink: 0;
     line-height: 0;
     color: inherit;
+  }
+
+  & [data-button-icon] [role="status"] {
+    --diameter: 1.2em;
+    color: currentColor;
   }
 
   & [data-button-icon] svg {
@@ -249,12 +261,14 @@ export function Button({
   iconStart,
   iconEnd,
   iconOnly = false,
+  loading = false,
   locked = false,
   plan,
   background,
   foreground,
   border,
   type = "button",
+  disabled,
   style,
   children,
   ...props
@@ -275,13 +289,21 @@ export function Button({
       data-size={size}
       data-radius={radius}
       data-icon-only={iconOnly || undefined}
+      data-loading={loading || undefined}
       data-locked={locked || undefined}
       data-full-width={fullWidth || undefined}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       style={colors}
       {...cornerAttributes(radius, size, iconOnly)}
       {...props}
     >
-      {iconStart && <span data-button-icon>{matchTextWeight(iconStart)}</span>}
+      {loading && (
+        <span data-button-icon>
+          <Spinner size="sm" label="" />
+        </span>
+      )}
+      {iconStart && !loading && <span data-button-icon>{matchTextWeight(iconStart)}</span>}
       {iconOnly ? <span data-button-icon>{matchTextWeight(children)}</span> : children}
       {iconEnd && <span data-button-icon>{matchTextWeight(iconEnd)}</span>}
       {locked && (

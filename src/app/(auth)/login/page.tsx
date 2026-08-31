@@ -3,6 +3,7 @@ import { loginNotice } from "@/features/auth/messages";
 import { env, hasTurnstile } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
 import { safePath } from "@/lib/security/safe-path";
+import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Entrar",
@@ -10,9 +11,6 @@ export const metadata = createMetadata({
   path: "/login",
 });
 
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;

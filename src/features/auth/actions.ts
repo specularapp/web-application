@@ -26,10 +26,20 @@ import {
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
-export type SignInState = { error?: string };
+export type SignInState = { error?: string; unconfirmed?: string };
 
 const TOO_MANY = "Muitas tentativas. Aguarde um instante e tente de novo.";
 const NOT_HUMAN = "Não conseguimos confirmar que você não é um robô. Recarregue a página e tente de novo.";
+const PASSWORD_RULE = "A senha precisa ter entre 8 e 72 caracteres, e acentos contam como dois.";
+const WEAK_PASSWORD = "Essa senha é fácil demais. Use pelo menos 8 caracteres, misturando letras e números.";
+const LEAKED_PASSWORD = "Essa senha aparece em vazamentos conhecidos. Escolha outra.";
+
+// O SDK só expõe `reasons` na subclasse AuthWeakPasswordError, e "pwned" pede outro conselho:
+// mandar misturar letras e números não ajuda quem escolheu uma senha longa e já vazada.
+function weakPasswordMessage(error: unknown) {
+  const reasons = error && typeof error === "object" && "reasons" in error ? error.reasons : undefined;
+  return Array.isArray(reasons) && reasons.includes("pwned") ? LEAKED_PASSWORD : WEAK_PASSWORD;
+}
 
 async function withinAuthLimit(operation: string) {
   const headerStore = await headers();
@@ -98,6 +108,9 @@ export async function signInWithPassword(_state: SignInState, formData: FormData
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     await checkRateLimit("authEmail", failureKey, crypto.randomUUID());
+    if (error.code === "email_not_confirmed") {
+      return { error: "Falta confirmar seu e-mail para entrar.", unconfirmed: email };
+    }
     return { error: "E-mail ou senha incorretos." };
   }
 
@@ -116,8 +129,10 @@ export async function signUpWithPassword(_state: SignUpState, formData: FormData
   });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    if (issue?.path[0] === "password") return { error: "A senha precisa ter entre 8 e 72 caracteres." };
-    if (issue?.path[0] === "name") return { error: "Diga como devemos te chamar." };
+    if (issue?.path[0] === "password") return { error: PASSWORD_RULE };
+    if (issue?.path[0] === "name") {
+      return { error: issue.code === "too_big" ? "O nome pode ter no máximo 120 caracteres." : "Diga como devemos te chamar." };
+    }
     return { error: "Confira o e-mail informado." };
   }
 
@@ -144,9 +159,7 @@ export async function signUpWithPassword(_state: SignUpState, formData: FormData
     if (error.code === "user_already_exists" || error.code === "email_exists") {
       return { error: "Já existe uma conta com esse e-mail.", exists: true };
     }
-    if (error.code === "weak_password") {
-      return { error: "Essa senha é fácil demais. Use pelo menos 8 caracteres, misturando letras e números." };
-    }
+    if (error.code === "weak_password") return { error: weakPasswordMessage(error) };
     return { error: "Não foi possível criar a conta. Tente de novo em instantes." };
   }
 
@@ -174,7 +187,9 @@ export async function resendConfirmation(email: unknown): Promise<ActionResult> 
     email: parsed.data,
     options: { emailRedirectTo: redirectTo.toString() },
   });
-  if (error) return { ok: false, error: "Não deu para reenviar agora. Aguarde um minuto e tente de novo." };
+  // Devolver o erro do gotrue aqui diria se a conta existe e se já está confirmada,
+  // o mesmo oráculo que a recuperação de senha evita.
+  if (error) console.error("resend falhou:", error.code ?? error.message);
 
   return { ok: true, data: undefined };
 }
@@ -212,16 +227,14 @@ export async function updatePassword(_state: UpdatePasswordState, formData: Form
   if (!(await withinAuthLimit("password-update"))) return { error: TOO_MANY };
 
   const parsed = passwordSchema.safeParse(formData.get("password"));
-  if (!parsed.success) return { error: "A senha precisa ter entre 8 e 72 caracteres." };
+  if (!parsed.success) return { error: PASSWORD_RULE };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password: parsed.data });
 
   if (error) {
     if (error.code === "same_password") return { error: "A nova senha precisa ser diferente da atual." };
-    if (error.code === "weak_password") {
-      return { error: "Essa senha é fácil demais. Use pelo menos 8 caracteres, misturando letras e números." };
-    }
+    if (error.code === "weak_password") return { error: weakPasswordMessage(error) };
     if (error.code === "insufficient_aal") redirect("/mfa?next=/redefinir-senha");
     return { error: "Não foi possível salvar a nova senha. Peça um link novo e tente de novo." };
   }
@@ -243,6 +256,10 @@ export async function confirmEmailWithToken(_state: ConfirmEmailState, formData:
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ type: type.data, token_hash: tokenHash.data });
   if (error) {
+    const status = error.status ?? 0;
+    if (status === 0 || status >= 500) {
+      return { error: "Não conseguimos confirmar agora. Tente de novo em instantes." };
+    }
     return { error: "O link expirou ou já foi usado. Peça um e-mail novo e abra o mais recente." };
   }
 
@@ -265,7 +282,8 @@ export async function signOut(): Promise<never> {
 
 export async function listTotpFactors() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.mfa.listFactors();
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) console.error("listFactors falhou:", error.code ?? error.message);
   return data?.totp ?? [];
 }
 
@@ -284,7 +302,11 @@ export async function enrollTotp(
     await supabase.auth.mfa.unenroll({ factorId: factor.id });
   }
 
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: name.data });
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: "totp",
+    friendlyName: name.data,
+    issuer: siteConfig.name,
+  });
   if (error) {
     if (error.code === "mfa_totp_enroll_not_enabled") {
       return { ok: false, error: "O cadastro de autenticador está desligado no projeto. Ative o TOTP no painel do Supabase." };
@@ -301,6 +323,10 @@ export async function verifyTotp(factorId: unknown, code: unknown): Promise<Acti
   const id = factorIdSchema.safeParse(factorId);
   const totp = totpCodeSchema.safeParse(code);
   if (!id.success || !totp.success) return { ok: false, error: "Código inválido" };
+
+  // Teto por fator: só o limite por IP deixaria força bruta distribuída rodar sem parar contra a mesma conta.
+  const perFactor = await checkRateLimit("auth", `totp:${id.data}`, crypto.randomUUID());
+  if (!perFactor.allowed) return { ok: false, error: TOO_MANY };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: id.data, code: totp.data });

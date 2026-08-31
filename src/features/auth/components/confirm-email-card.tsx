@@ -121,7 +121,7 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
             {state.error}
           </Text>
         )}
-        <Button type="submit" size="lg" fullWidth disabled={pending}>
+        <Button type="submit" size="lg" fullWidth loading={pending}>
           {pending ? "Confirmando" : cta}
         </Button>
       </form>

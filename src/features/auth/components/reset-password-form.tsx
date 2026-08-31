@@ -56,10 +56,17 @@ export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
           </Text>
         )}
 
-        <Button type="submit" size="lg" fullWidth disabled={pending}>
+        <Button type="submit" size="lg" fullWidth loading={pending}>
           {pending ? "Salvando" : "Salvar nova senha"}
         </Button>
       </form>
+
+      <Text variant="footnote" tone="secondary" align="center" className={styles.create}>
+        O link não funcionou?{" "}
+        <TextLink href="/recuperar-senha" tone="inherit" underline="always" className={styles.emphasis}>
+          Pedir outro
+        </TextLink>
+      </Text>
     </div>
   );
 }

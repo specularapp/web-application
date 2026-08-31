@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { Fragment, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from "react";
 import { squircle } from "@/lib/corners";
 
 export type CodeInputProps = {
@@ -12,6 +12,7 @@ export type CodeInputProps = {
   disabled?: boolean;
   invalid?: boolean;
   fullWidth?: boolean;
+  resetKey?: unknown;
   onChange?: (code: string) => void;
   onComplete?: (code: string) => void;
 };
@@ -86,23 +87,47 @@ export function CodeInput({
   disabled = false,
   invalid = false,
   fullWidth = false,
+  resetKey,
   onChange,
   onComplete,
 }: CodeInputProps) {
   const [digits, setDigits] = useState<string[]>(() => Array.from({ length }, () => ""));
   const boxes = useRef<(HTMLInputElement | null)[]>([]);
+  const lastReset = useRef(resetKey);
+
+  const focusBox = (index: number) => boxes.current[Math.max(0, Math.min(length - 1, index))]?.focus();
+
+  useEffect(() => {
+    if (Object.is(lastReset.current, resetKey)) return;
+    lastReset.current = resetKey;
+    setDigits(Array.from({ length }, () => ""));
+    boxes.current[0]?.focus();
+  }, [resetKey, length]);
 
   const emit = (next: string[]) => {
     setDigits(next);
     const code = next.join("");
     onChange?.(code);
-    if (code.length === length) onComplete?.(code);
+    // Só na virada para completo: com as seis caixas cheias, cada tecla nova dispararia
+    // outra verificação e queimaria o rate limit antes do usuário terminar de reescrever.
+    if (code.length === length && !digits.every(Boolean)) onComplete?.(code);
   };
 
-  const focusBox = (index: number) => boxes.current[Math.max(0, Math.min(length - 1, index))]?.focus();
+  const spread = (value: string) => {
+    const next = Array.from({ length }, (_, position) => value[position] ?? "");
+    emit(next);
+    focusBox(value.length);
+  };
 
   const handleChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
-    const digit = event.target.value.replace(/\D/g, "").slice(-1);
+    const typed = event.target.value.replace(/\D/g, "");
+    // Gerenciador de senhas escreve o código inteiro numa caixa só, por input e não por colagem.
+    if (typed.length >= length) {
+      spread(typed.slice(0, length));
+      return;
+    }
+
+    const digit = typed.slice(-1);
     const next = [...digits];
     next[index] = digit;
     emit(next);
@@ -117,17 +142,21 @@ export function CodeInput({
       emit(next);
       focusBox(index - 1);
     }
-    if (event.key === "ArrowLeft") focusBox(index - 1);
-    if (event.key === "ArrowRight") focusBox(index + 1);
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusBox(index - 1);
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusBox(index + 1);
+    }
   };
 
   const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
     const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
     if (!pasted) return;
     event.preventDefault();
-    const next = Array.from({ length }, (_, index) => pasted[index] ?? "");
-    emit(next);
-    focusBox(pasted.length);
+    spread(pasted);
   };
 
   return (
@@ -148,6 +177,7 @@ export function CodeInput({
             value={digit}
             disabled={disabled}
             data-invalid={invalid || undefined}
+            aria-invalid={invalid || undefined}
             aria-label={`Dígito ${index + 1} de ${length}`}
             onChange={(event) => handleChange(index, event)}
             onKeyDown={(event) => handleKeyDown(index, event)}

@@ -4,6 +4,7 @@ const notices: Record<string, string> = {
   limite: "Muitas tentativas. Aguarde um instante e tente de novo.",
   provedor: "Esse provedor de login não está disponível.",
   callback: "Não foi possível concluir o login. Tente de novo.",
+  sessao: "Sua sessão expirou. Entre de novo para continuar.",
 };
 
 export function loginNotice(code: string | undefined) {
