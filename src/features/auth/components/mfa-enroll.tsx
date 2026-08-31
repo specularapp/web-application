@@ -8,37 +8,45 @@ import { Button } from "@/components/ui/button";
 import { CodeInput } from "@/components/ui/code-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { squircle } from "@/lib/corners";
+import { cx } from "@/lib/utils/cx";
 import { enrollTotp, signOut, verifyTotp } from "../actions";
 import authStyles from "./auth-form.module.css";
 import styles from "./mfa.module.css";
 
 type MfaEnrollProps = {
   next: string;
+  preview?: { qrCode: string; secret: string };
 };
 
 type Factor = { factorId: string; qrCode: string; secret: string };
 
-const authenticatorApps = [
+type AuthenticatorApp = { name: string; label: string; filled?: boolean };
+
+const authenticatorApps: AuthenticatorApp[] = [
   { name: "google-authenticator", label: "Google Authenticator" },
-  { name: "microsoft-authenticator", label: "Microsoft Authenticator" },
+  { name: "twilio", label: "Twilio Authy" },
+  { name: "microsoft-authenticator", label: "Microsoft Authenticator", filled: true },
 ];
 
-export function MfaEnroll({ next }: MfaEnrollProps) {
+export function MfaEnroll({ next, preview }: MfaEnrollProps) {
   const { toast } = useToast();
-  const [factor, setFactor] = useState<Factor | null>(null);
+  const [factor, setFactor] = useState<Factor | null>(
+    preview ? { factorId: "", qrCode: preview.qrCode, secret: preview.secret } : null,
+  );
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [verifying, setVerifying] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
-    if (started.current) return;
+    if (started.current || preview) return;
     started.current = true;
     enrollTotp("Aplicativo autenticador").then((result) => {
       if (result.ok) setFactor(result.data);
       else setError(result.error);
     });
-  }, []);
+  }, [preview]);
 
   const copySecret = async () => {
     if (!factor) return;
@@ -58,11 +66,11 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
     }
   };
 
-  const verify = async () => {
-    if (!factor || code.length < 6) return;
+  const verify = async (value = code) => {
+    if (!factor || value.length < 6 || verifying) return;
     setVerifying(true);
     setError(undefined);
-    const result = await verifyTotp(factor.factorId, code);
+    const result = await verifyTotp(factor.factorId, value);
     if (!result.ok) {
       setError(result.error);
       setVerifying(false);
@@ -75,7 +83,7 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
     <section aria-label="Autenticação de 2 fatores" className={styles.root}>
       <span className={styles.apps}>
         {authenticatorApps.map((app) => (
-          <span key={app.name} className={styles.app}>
+          <span key={app.name} className={cx(styles.app, app.filled && styles.appFilled)}>
             <BrandIcon name={app.name} label={app.label} color />
           </span>
         ))}
@@ -90,7 +98,7 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
       </Text>
 
       {factor ? (
-        <div className={styles.qrBox}>
+        <div className={styles.qrBox} {...squircle("xl")}>
           {/* eslint-disable-next-line @next/next/no-img-element -- o QR do Supabase é um data URL de SVG, que o next/image não aceita */}
           <img src={factor.qrCode} alt="QR Code para cadastrar o autenticador" />
         </div>
@@ -100,7 +108,9 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
 
       <div className={styles.manualRow}>
         {factor ? (
-          <code className={styles.secret}>{factor.secret}</code>
+          <code className={styles.secret} {...squircle("md")}>
+            {factor.secret}
+          </code>
         ) : (
           <Skeleton shape="rect" height="2.75rem" />
         )}
@@ -117,7 +127,7 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
       </div>
 
       <Text variant="footnote" tone="secondary" align="center">
-        Depois, informe o código temporário de 6 dígitos gerado no aplicativo.
+        Depois, informe o código temporário de 6 dígitos gerado no aplicativo. A verificação é automática.
       </Text>
 
       <CodeInput
@@ -129,17 +139,20 @@ export function MfaEnroll({ next }: MfaEnrollProps) {
           setCode(value);
           setError(undefined);
         }}
+        onComplete={(value) => void verify(value)}
       />
 
-      {error && (
+      {verifying && (
+        <Text variant="footnote" tone="secondary" align="center">
+          Verificando o código
+        </Text>
+      )}
+
+      {error && !verifying && (
         <Text role="alert" variant="footnote" tone="danger" align="center">
           {error}
         </Text>
       )}
-
-      <Button size="lg" fullWidth disabled={!factor || code.length < 6 || verifying} onClick={verify}>
-        {verifying ? "Verificando" : "Verificar"}
-      </Button>
 
       <form action={signOut}>
         <Text variant="footnote" tone="secondary" align="center">

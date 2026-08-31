@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
+import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
+import { MfaVerify } from "@/features/auth/components/mfa-verify";
 import { Container } from "@/components/ui/container";
 import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
@@ -583,13 +585,14 @@ const groups: Group[] = [
       },
       {
         name: "CodeInput",
-        note: "Código de verificação em caixas, 3 e 3 com traço no meio. Digitar avança, apagar volta, colar distribui os 6 dígitos, setas navegam. one-time-code no primeiro dígito para o teclado sugerir o SMS ou autenticador.",
+        note: "Código de verificação em caixas, 3 e 3 com traço no meio. Digitar avança, apagar volta, colar distribui os 6 dígitos, setas navegam. one-time-code no primeiro dígito para o teclado sugerir o SMS ou autenticador. Com fullWidth as caixas crescem para preencher a linha.",
         layout: "stack",
         example: (
           <Stack gap={4}>
             <CodeInput label="Código de exemplo" />
             <CodeInput label="Código com erro" invalid />
             <CodeInput label="Código desabilitado" disabled />
+            <CodeInput label="Código em largura cheia" fullWidth />
           </Stack>
         ),
       },
@@ -1043,6 +1046,30 @@ const groups: Group[] = [
             <Logo variant="logotipo" height={22} />
           </>
         ),
+      },
+    ],
+  },
+  {
+    title: "Telas de autenticação",
+    entries: [
+      {
+        name: "MFA cadastro (prévia)",
+        note: "MfaEnroll com dados falsos para ver o layout sem sessão: QR de modelo, chave estática e verificação que falha de propósito ao completar. A tela real vive em /mfa, atrás do login.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <MfaEnroll
+            next="/dashboard"
+            preview={{ qrCode: "/brands/qr-model.svg", secret: "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP" }}
+          />
+        ),
+      },
+      {
+        name: "MFA verificação (prévia)",
+        note: "MfaVerify de step-up com factorId falso: preencher os 6 dígitos dispara a verificação automática e mostra o erro. Sair da conta redireciona para o login de verdade.",
+        wide: true,
+        layout: "stack",
+        example: <MfaVerify next="/dashboard" factorId="00000000-0000-4000-8000-000000000000" />,
       },
     ],
   },

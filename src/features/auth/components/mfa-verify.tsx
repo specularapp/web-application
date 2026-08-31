@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { CodeInput } from "@/components/ui/code-input";
 import { Text } from "@/components/ui/text";
 import { signOut, verifyTotp } from "../actions";
@@ -53,15 +52,17 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
         onComplete={(value) => void verify(value)}
       />
 
-      {error && (
+      {verifying && (
+        <Text variant="footnote" tone="secondary" align="center">
+          Verificando o código
+        </Text>
+      )}
+
+      {error && !verifying && (
         <Text role="alert" variant="footnote" tone="danger" align="center">
           {error}
         </Text>
       )}
-
-      <Button size="lg" fullWidth disabled={code.length < 6 || verifying} onClick={() => void verify()}>
-        {verifying ? "Verificando" : "Verificar"}
-      </Button>
 
       <form action={signOut}>
         <Text variant="footnote" tone="secondary" align="center">

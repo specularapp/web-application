@@ -122,6 +122,8 @@ Feito:
 - E-mails redesenhados no padrão minimalista: sem cartão, fundo branco, só o ícone da marca no topo (specular-icon-black.png novo), textos sem ponto final e sem travessão, botão preto só quando há ação. 13 templates gerados de um esqueleto único (6 de ação e 7 avisos de segurança do painel), tabela de slots e assuntos no setup.md.
 - Tela de MFA reconstruída solta no AuthCard, sem Surface: QR em caixa branca, chave com "Copiar" ao lado, CodeInput com fullWidth novo (caixas crescem por flex mantendo a base) e Verificar lg de largura total. Dois bugs achados com o E2E completo (que agora fecha login, enroll, TOTP e /dashboard): o data URL do QR tem aspas sem encode e quebrava o background CSS (virou img), e o basis 0 nos inputs estourava a trilha do grid para ~70rem.
 - Ícones 3D de public/3d-icons (check e error) nos estados de confirmação do cadastro e do /confirmar-email, no lugar dos ícones Phosphor genéricos.
+- Logo dos e-mails à prova de modo escuro: specular-icon-email.png com o ícone dentro de um chip branco com borda no próprio PNG, porque clientes de e-mail invertem fundo e texto sem tocar em imagem e o ícone preto solto sumia. Validado com preview simulando a inversão do Gmail.
+- MFA refinada: três avatares de autenticadores (Google, Twilio, Microsoft com círculo preenchido no azul da marca), QR sem padding, caixas do código em 3rem por 4rem com raio lg pelo squircle(), sem botão de verificar (auto ao completar) e prévias das duas telas na vitrine /componentes para ver em localhost sem sessão. E2E rerodado verde com a verificação automática.
 
 Pendências:
 

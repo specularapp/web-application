@@ -2,6 +2,7 @@
 
 import styled from "@emotion/styled";
 import { Fragment, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from "react";
+import { squircle } from "@/lib/corners";
 
 export type CodeInputProps = {
   label: string;
@@ -33,19 +34,18 @@ const Root = styled.div`
 `;
 
 const Box = styled.input`
-  width: 2.75rem;
-  height: 3.25rem;
+  width: 3rem;
+  height: 4rem;
   padding: 0;
   font: inherit;
-  font-size: var(--text-title-3);
+  font-size: var(--text-title-2);
   font-variant-numeric: tabular-nums;
   text-align: center;
   color: var(--color-label);
   caret-color: var(--color-label);
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
+  border-radius: var(--radius-lg);
   transition: border-color var(--duration-fast) var(--ease-standard);
 
   &::placeholder {
@@ -133,6 +133,7 @@ export function CodeInput({
         <Fragment key={index}>
           {index > 0 && groupSize > 0 && index % groupSize === 0 && <Dash aria-hidden="true" />}
           <Box
+            {...squircle("lg")}
             ref={(node) => {
               boxes.current[index] = node;
             }}
