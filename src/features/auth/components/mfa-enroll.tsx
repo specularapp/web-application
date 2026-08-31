@@ -98,7 +98,7 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
       </Text>
 
       {factor ? (
-        <div className={styles.qrBox} {...squircle("xl")}>
+        <div className={styles.qrBox}>
           {/* eslint-disable-next-line @next/next/no-img-element -- o QR do Supabase é um data URL de SVG, que o next/image não aceita */}
           <img src={factor.qrCode} alt="QR Code para cadastrar o autenticador" />
         </div>
@@ -106,15 +106,16 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
         <Skeleton shape="rect" width="11rem" height="11rem" />
       )}
 
-      <div className={styles.manualRow}>
+      <div className={styles.secretBox}>
         {factor ? (
           <code className={styles.secret} {...squircle("md")}>
             {factor.secret}
           </code>
         ) : (
-          <Skeleton shape="rect" height="2.75rem" />
+          <Skeleton shape="rect" width="100%" height="2.75rem" />
         )}
         <Button
+          className={styles.copy}
           variant="secondary"
           size="sm"
           radius="md"

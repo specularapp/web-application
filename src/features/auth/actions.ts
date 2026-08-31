@@ -229,7 +229,7 @@ export async function updatePassword(_state: UpdatePasswordState, formData: Form
   redirect("/dashboard");
 }
 
-export type ConfirmEmailState = { error?: string };
+export type ConfirmEmailState = { error?: string; done?: boolean };
 
 export async function confirmEmailWithToken(_state: ConfirmEmailState, formData: FormData): Promise<ConfirmEmailState> {
   if (!(await withinAuthLimit("confirm"))) return { error: TOO_MANY };
@@ -246,7 +246,15 @@ export async function confirmEmailWithToken(_state: ConfirmEmailState, formData:
     return { error: "O link expirou ou já foi usado. Peça um e-mail novo e abra o mais recente." };
   }
 
+  if (type.data === "signup" || type.data === "email") return { done: true };
+
   redirect(nextPathSchema.parse(formData.get("next")) as Route);
+}
+
+export async function sessionEstablished(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return Boolean(data?.claims);
 }
 
 export async function signOut(): Promise<never> {

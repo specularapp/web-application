@@ -1,7 +1,8 @@
 "use client";
 
+import type { Route } from "next";
 import Image from "next/image";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/link";
 import { Stack } from "@/components/ui/stack";
@@ -53,6 +54,33 @@ const initialState: ConfirmEmailState = {};
 
 export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProps) {
   const [state, formAction, pending] = useActionState(confirmEmailWithToken, initialState);
+
+  useEffect(() => {
+    if (!state.done) return;
+    const channel = new BroadcastChannel("sp-auth");
+    channel.postMessage("confirmed");
+    channel.close();
+  }, [state.done]);
+
+  if (state.done) {
+    return (
+      <Stack gap={4} align="center" className={styles.confirmation}>
+        <Image src="/3d-icons/check.png" alt="" width={174} height={178} className={styles.confirmationImage} />
+        <Text as="h1" variant="title3" weight="medium" align="center">
+          E-mail confirmado
+        </Text>
+        <Text variant="subheadline" tone="secondary" align="center">
+          Volte para a aba onde você criou a conta, ela continua sozinha. Esta aba pode ser fechada.
+        </Text>
+        <Text variant="footnote" tone="secondary" align="center">
+          Abriu o link em outro aparelho?{" "}
+          <TextLink href={next as Route} tone="inherit" underline="always" className={styles.emphasis}>
+            Continuar por aqui
+          </TextLink>
+        </Text>
+      </Stack>
+    );
+  }
 
   if (!tokenHash) {
     return (

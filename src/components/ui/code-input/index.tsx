@@ -24,11 +24,14 @@ const Root = styled.div`
 
   &[data-full-width] {
     flex-wrap: nowrap;
+    gap: var(--space-1);
     width: 100%;
   }
 
   &[data-full-width] input:not([type="hidden"]) {
     flex: 1 1 auto;
+    aspect-ratio: 1;
+    height: auto;
     min-width: 0;
   }
 `;

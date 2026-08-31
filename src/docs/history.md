@@ -129,6 +129,8 @@ Feito:
 - Contas unificadas entre provedores confirmadas por pesquisa no código do gotrue: linking automático por e-mail verificado é padrão e sem toggle; documentado com as exceções (e-mail noreply do GitHub, e-mail divergente).
 - Rate limit de auth em três camadas: por operação e IP, total por IP (30/min) e por e-mail alvo (5 por 15 min) no login, cadastro, reenvio e recuperação.
 - Recuperar e redefinir senha funcionais no mesmo AuthCard: resetPasswordForEmail com sucesso sempre (sem vazar existência), redefinição exigindo a sessão do link com step-up de MFA preservando o destino no proxy. E2E cobrindo cadastro duplicado, recuperação e redefinir sem sessão.
+- MFA mobile sem scroll lateral (grid com minmax(0,1fr); a trilha crescia pelo max-content da chave), QR cru sem padding e sem raio, chave em uma linha com Copiar absoluto dentro do box, caixas do código quadradas com gap de 4px.
+- Confirmação de e-mail entre abas: a aba do link só confirma e avisa por BroadcastChannel + polling de sessão; a aba do cadastro segue sozinha para o próximo passo.
 - Revisão adversarial (workflow com 17 agentes) confirmou e corrigiu 7 defeitos da primeira versão: lockout de login por terceiros no limite por e-mail (virou IP+e-mail só em falha, com peekRateLimit novo), oráculo de existência no aviso de cooldown do reset (virou sucesso silencioso com log), next=/confirmar-email sem token nos gates de MFA (voltou a /dashboard), token do Turnstile morto após erro re-tentável (widget ganhou resetOn), link de login do cadastro duplicado sem next, mensagem errada para senha acima de 72 caracteres. Refutados: spoof de x-forwarded-for (Vercel sobrescreve), redefinir quebrado com mfaMissing e troca de senha por logado direto.
 
 Pendências:

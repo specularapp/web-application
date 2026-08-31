@@ -3,7 +3,7 @@
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Image from "next/image";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
-import { resendConfirmation, signUpWithPassword, type SignUpState } from "../actions";
+import { resendConfirmation, sessionEstablished, signUpWithPassword, type SignUpState } from "../actions";
 import styles from "./auth-form.module.css";
 import { OAuthButtons } from "./oauth-buttons";
 
@@ -35,6 +35,24 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
   const [step, setStep] = useState<Step>("choose");
   const { toast } = useToast();
   const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (!state.sentTo) return;
+    const goNext = () => window.location.assign(next);
+    const channel = new BroadcastChannel("sp-auth");
+    channel.addEventListener("message", (event) => {
+      if (event.data === "confirmed") goNext();
+    });
+    const interval = window.setInterval(() => {
+      void sessionEstablished().then((ok) => {
+        if (ok) goNext();
+      });
+    }, 5000);
+    return () => {
+      channel.close();
+      window.clearInterval(interval);
+    };
+  }, [state.sentTo, next]);
 
   const resend = async (email: string) => {
     setResending(true);
@@ -56,7 +74,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
           Confirme seu e-mail
         </Text>
         <Text variant="subheadline" tone="secondary" align="center">
-          Enviamos um link de confirmação para {state.sentTo}. Abra para ativar a conta e entrar.
+          Enviamos um link de confirmação para {state.sentTo}. Assim que você confirmar, esta aba continua sozinha.
         </Text>
         <Button variant="secondary" size="sm" radius="md" disabled={resending} onClick={() => void resend(state.sentTo as string)}>
           {resending ? "Reenviado, aguarde um instante" : "Reenviar e-mail"}
