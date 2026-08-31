@@ -67,3 +67,18 @@
   border: 1px dashed var(--color-separator);
   border-radius: var(--radius-md);
 }
+
+@media (max-width: 63.9375rem) {
+  .root {
+    gap: var(--space-4);
+  }
+
+  .apps,
+  .hint {
+    display: none;
+  }
+
+  .qrBox {
+    width: 8.5rem;
+  }
+}

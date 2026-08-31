@@ -124,6 +124,7 @@ Feito:
 - Ícones 3D de public/3d-icons (check e error) nos estados de confirmação do cadastro e do /confirmar-email, no lugar dos ícones Phosphor genéricos.
 - Logo dos e-mails à prova de modo escuro: specular-icon-email.png com o ícone dentro de um chip branco com borda no próprio PNG, porque clientes de e-mail invertem fundo e texto sem tocar em imagem e o ícone preto solto sumia. Validado com preview simulando a inversão do Gmail.
 - MFA refinada: três avatares de autenticadores (Google, Twilio, Microsoft com círculo preenchido no azul da marca), QR sem padding, caixas do código em 3rem por 4rem com raio lg pelo squircle(), sem botão de verificar (auto ao completar) e prévias das duas telas na vitrine /componentes para ver em localhost sem sessão. E2E rerodado verde com a verificação automática.
+- MFA compacta no mobile: avatares e linha de dica escondidos, QR em 8.5rem, gap menor.
 
 Pendências:
 

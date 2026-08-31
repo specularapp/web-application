@@ -126,7 +126,7 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
         </Button>
       </div>
 
-      <Text variant="footnote" tone="secondary" align="center">
+      <Text variant="footnote" tone="secondary" align="center" className={styles.hint}>
         Depois, informe o código temporário de 6 dígitos gerado no aplicativo. A verificação é automática.
       </Text>
 
