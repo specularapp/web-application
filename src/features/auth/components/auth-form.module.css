@@ -137,15 +137,9 @@
   padding-block: var(--space-4);
 }
 
-.confirmationIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--color-success);
-  fill: currentColor;
-}
-
-.confirmationIconWarning {
-  color: var(--color-warning);
+.confirmationImage {
+  width: auto;
+  height: 4rem;
 }
 
 .confirmAction {

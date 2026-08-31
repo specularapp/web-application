@@ -1,14 +1,7 @@
-.card {
+.root {
   display: grid;
   gap: var(--space-5);
-}
-
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-items: center;
 }
 
 .apps {
@@ -18,80 +11,57 @@
 .app {
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   font-size: var(--text-title-3);
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-full);
-  box-shadow: 0 0 0 2px var(--color-bg-grouped-secondary);
+  box-shadow: 0 0 0 2px var(--color-bg);
 }
 
 .apps .app + .app {
   margin-inline-start: calc(var(--space-2) * -1);
 }
 
-.section {
+.qrBox {
   display: grid;
-  gap: var(--space-2);
-}
-
-.sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.sectionTitle svg {
-  width: 1.1em;
-  height: 1.1em;
-  flex-shrink: 0;
-  color: var(--color-label-secondary);
-  fill: currentColor;
-}
-
-.qrRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.qr {
-  flex-shrink: 0;
-  width: 10rem;
+  width: 11rem;
   aspect-ratio: 1;
-  padding: var(--space-2);
-  background: var(--qr-image) center / contain no-repeat var(--color-on-accent);
-  background-origin: content-box;
-  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background-color: var(--color-on-accent);
+  border-radius: var(--radius-lg);
   corner-shape: squircle;
 }
 
-.manual {
-  display: grid;
+.qrBox img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.manualRow {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
-  justify-items: start;
+  width: 100%;
+}
+
+.manualRow > :first-child {
   flex: 1;
-  min-width: 13rem;
+  min-width: 0;
 }
 
 .secret {
-  width: 100%;
+  display: block;
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-code);
-  font-size: var(--text-subheadline);
-  letter-spacing: 0.12em;
+  font-size: var(--text-footnote);
+  letter-spacing: 0.08em;
+  text-align: center;
   text-transform: uppercase;
   overflow-wrap: anywhere;
   color: var(--color-label);
   border: 1px dashed var(--color-separator);
   border-radius: var(--radius-sm);
   corner-shape: squircle;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
 }

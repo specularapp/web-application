@@ -1,6 +1,7 @@
 "use client";
 
-import { EnvelopeSimpleIcon, SealCheckIcon } from "@phosphor-icons/react";
+import { EnvelopeSimpleIcon } from "@phosphor-icons/react";
+import Image from "next/image";
 import { useActionState, useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
@@ -49,7 +50,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
   if (state.sentTo) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
-        <SealCheckIcon weight="fill" className={styles.confirmationIcon} aria-hidden="true" />
+        <Image src="/3d-icons/check.png" alt="" width={174} height={178} className={styles.confirmationImage} />
         <Text as="h1" variant="title3" weight="medium" align="center">
           Confirme seu e-mail
         </Text>

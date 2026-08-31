@@ -10,6 +10,7 @@ export type CodeInputProps = {
   name?: string;
   disabled?: boolean;
   invalid?: boolean;
+  fullWidth?: boolean;
   onChange?: (code: string) => void;
   onComplete?: (code: string) => void;
 };
@@ -19,6 +20,16 @@ const Root = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+
+  &[data-full-width] {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  &[data-full-width] input:not([type="hidden"]) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 `;
 
 const Box = styled.input`
@@ -71,6 +82,7 @@ export function CodeInput({
   name,
   disabled = false,
   invalid = false,
+  fullWidth = false,
   onChange,
   onComplete,
 }: CodeInputProps) {
@@ -116,7 +128,7 @@ export function CodeInput({
   };
 
   return (
-    <Root role="group" aria-label={label}>
+    <Root role="group" aria-label={label} data-full-width={fullWidth || undefined}>
       {digits.map((digit, index) => (
         <Fragment key={index}>
           {index > 0 && groupSize > 0 && index % groupSize === 0 && <Dash aria-hidden="true" />}

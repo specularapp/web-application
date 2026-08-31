@@ -1,12 +1,11 @@
 "use client";
 
-import { SealCheckIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import Image from "next/image";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/link";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
-import { cx } from "@/lib/utils/cx";
 import { confirmEmailWithToken, type ConfirmEmailState } from "../actions";
 import type { OtpType } from "../schemas";
 import styles from "./auth-form.module.css";
@@ -58,11 +57,7 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
   if (!tokenHash) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
-        <WarningCircleIcon
-          weight="fill"
-          className={cx(styles.confirmationIcon, styles.confirmationIconWarning)}
-          aria-hidden="true"
-        />
+        <Image src="/3d-icons/error.png" alt="" width={61} height={178} className={styles.confirmationImage} />
         <Text as="h1" variant="title3" weight="medium" align="center">
           Este link não está completo
         </Text>
@@ -82,7 +77,7 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
 
   return (
     <Stack gap={4} align="center" className={styles.confirmation}>
-      <SealCheckIcon weight="fill" className={styles.confirmationIcon} aria-hidden="true" />
+      <Image src="/3d-icons/check.png" alt="" width={174} height={178} className={styles.confirmationImage} />
       <Text as="h1" variant="title3" weight="medium" align="center">
         {title}
       </Text>

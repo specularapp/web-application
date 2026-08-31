@@ -1,12 +1,11 @@
 "use client";
 
-import { PasswordIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CodeInput } from "@/components/ui/code-input";
-import { Surface } from "@/components/ui/surface";
 import { Text } from "@/components/ui/text";
 import { signOut, verifyTotp } from "../actions";
+import authStyles from "./auth-form.module.css";
 import styles from "./mfa.module.css";
 
 type MfaVerifyProps = {
@@ -33,27 +32,18 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
   };
 
   return (
-    <Surface as="section" aria-label="Verificação em duas etapas" className={styles.card}>
-      <header className={styles.header}>
-        <Text as="h1" variant="title3">
-          Verificação em duas etapas
-        </Text>
-      </header>
+    <section aria-label="Verificação em duas etapas" className={styles.root}>
+      <Text as="h1" variant="title2" weight="medium" align="center">
+        Verificação em duas etapas
+      </Text>
 
-      <div className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PasswordIcon aria-hidden="true" />
-          <Text as="h2" variant="subheadline" weight="medium">
-            Verifique o código
-          </Text>
-        </div>
-        <Text variant="footnote" tone="secondary">
-          Informe o código de 6 dígitos do seu aplicativo autenticador para continuar.
-        </Text>
-      </div>
+      <Text variant="subheadline" tone="secondary" align="center">
+        Informe o código de 6 dígitos do seu aplicativo autenticador para continuar.
+      </Text>
 
       <CodeInput
         label="Código de verificação de 6 dígitos"
+        fullWidth
         disabled={verifying}
         invalid={Boolean(error)}
         onChange={(value) => {
@@ -64,21 +54,23 @@ export function MfaVerify({ next, factorId }: MfaVerifyProps) {
       />
 
       {error && (
-        <Text role="alert" variant="footnote" tone="danger">
+        <Text role="alert" variant="footnote" tone="danger" align="center">
           {error}
         </Text>
       )}
 
-      <footer className={styles.actions}>
-        <form action={signOut}>
-          <Button type="submit" variant="ghost">
+      <Button size="lg" fullWidth disabled={code.length < 6 || verifying} onClick={() => void verify()}>
+        {verifying ? "Verificando" : "Verificar"}
+      </Button>
+
+      <form action={signOut}>
+        <Text variant="footnote" tone="secondary" align="center">
+          Entrou na conta errada?{" "}
+          <button type="submit" className={authStyles.linkButton}>
             Sair da conta
-          </Button>
-        </form>
-        <Button disabled={code.length < 6 || verifying} onClick={() => void verify()}>
-          {verifying ? "Verificando" : "Verificar"}
-        </Button>
-      </footer>
-    </Surface>
+          </button>
+        </Text>
+      </form>
+    </section>
   );
 }
