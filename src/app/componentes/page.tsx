@@ -26,6 +26,7 @@ import { BrandIcon } from "@/components/ui/brand-icon";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CodeInput } from "@/components/ui/code-input";
 import { Container } from "@/components/ui/container";
 import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
@@ -577,6 +578,18 @@ const groups: Group[] = [
             <Field label="Vencimento" hint="Primeira cobrança do contrato" required>
               <DatePicker name="vencimento" />
             </Field>
+          </Stack>
+        ),
+      },
+      {
+        name: "CodeInput",
+        note: "Código de verificação em caixas, 3 e 3 com traço no meio. Digitar avança, apagar volta, colar distribui os 6 dígitos, setas navegam. one-time-code no primeiro dígito para o teclado sugerir o SMS ou autenticador.",
+        layout: "stack",
+        example: (
+          <Stack gap={4}>
+            <CodeInput label="Código de exemplo" />
+            <CodeInput label="Código com erro" invalid />
+            <CodeInput label="Código desabilitado" disabled />
           </Stack>
         ),
       },

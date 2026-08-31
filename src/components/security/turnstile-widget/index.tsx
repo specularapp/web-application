@@ -38,7 +38,6 @@ type TurnstileWidgetProps = {
 
 export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const widgetIdRef = useRef<string>(undefined);
   const callbacks = useRef({ onVerify, onExpire });
   const fieldId = useId();
@@ -54,7 +53,6 @@ export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: Turn
     let cancelled = false;
 
     const setToken = (token: string) => {
-      if (inputRef.current) inputRef.current.value = token;
       if (token) callbacks.current.onVerify?.(token);
       else callbacks.current.onExpire?.();
     };
@@ -89,7 +87,6 @@ export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: Turn
     <>
       <Script src={SCRIPT_URL} strategy="afterInteractive" />
       <div ref={containerRef} id={fieldId} className={className} />
-      <input ref={inputRef} type="hidden" name={TURNSTILE_FIELD_NAME} defaultValue="" />
     </>
   );
 }

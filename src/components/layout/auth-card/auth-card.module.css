@@ -32,6 +32,9 @@
   width: 100%;
   height: 100%;
   padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .brand {

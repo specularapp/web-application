@@ -1,0 +1,97 @@
+.card {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.apps {
+  display: inline-flex;
+}
+
+.app {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: var(--text-title-3);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 2px var(--color-bg-grouped-secondary);
+}
+
+.apps .app + .app {
+  margin-inline-start: calc(var(--space-2) * -1);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionTitle svg {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+  color: var(--color-label-secondary);
+  fill: currentColor;
+}
+
+.qrRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.qr {
+  flex-shrink: 0;
+  width: 10rem;
+  aspect-ratio: 1;
+  padding: var(--space-2);
+  background: var(--qr-image) center / contain no-repeat var(--color-on-accent);
+  background-origin: content-box;
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.manual {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  flex: 1;
+  min-width: 13rem;
+}
+
+.secret {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-code);
+  font-size: var(--text-subheadline);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  color: var(--color-label);
+  border: 1px dashed var(--color-separator);
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

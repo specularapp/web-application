@@ -5,6 +5,7 @@ export * from "./button";
 export * from "./card";
 export * from "./carousel";
 export * from "./checkbox";
+export * from "./code-input";
 export * from "./container";
 export * from "./date-picker";
 export * from "./dialog";

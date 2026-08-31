@@ -28,10 +28,12 @@ export async function updateSession(request: NextRequest) {
   const claims = data?.claims ?? null;
 
   let mfaPending = false;
+  let mfaMissing = false;
   if (claims) {
     const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     mfaPending = level?.currentLevel === "aal1" && level.nextLevel === "aal2";
+    mfaMissing = level?.currentLevel === "aal1" && level.nextLevel === "aal1";
   }
 
-  return { response, claims, mfaPending };
+  return { response, claims, mfaPending, mfaMissing };
 }

@@ -14,8 +14,10 @@ import {
   factorIdSchema,
   friendlyNameSchema,
   nextPathSchema,
+  emailSchema,
   oauthProviderSchema,
   signInSchema,
+  signUpSchema,
   totpCodeSchema,
 } from "./schemas";
 
@@ -79,6 +81,74 @@ export async function signInWithPassword(_state: SignInState, formData: FormData
   redirect(nextPathSchema.parse(formData.get("next")) as Route);
 }
 
+export type SignUpState = { error?: string; sentTo?: string };
+
+export async function signUpWithPassword(_state: SignUpState, formData: FormData): Promise<SignUpState> {
+  if (!(await withinAuthLimit("signup"))) return { error: TOO_MANY };
+
+  const parsed = signUpSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    if (issue?.path[0] === "password") return { error: "A senha precisa ter pelo menos 8 caracteres." };
+    if (issue?.path[0] === "name") return { error: "Diga como devemos te chamar." };
+    return { error: "Confira o e-mail informado." };
+  }
+
+  if (hasTurnstile()) {
+    const headerStore = await headers();
+    const human = await verifyTurnstile(formData.get(TURNSTILE_FIELD_NAME), clientIp(headerStore));
+    if (!human) return { error: NOT_HUMAN };
+  }
+
+  const { name, email, password } = parsed.data;
+  const redirectTo = new URL("/auth/callback", siteConfig.url);
+  redirectTo.searchParams.set("next", nextPathSchema.parse(formData.get("next")));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name }, emailRedirectTo: redirectTo.toString() },
+  });
+
+  if (error) {
+    if (error.code === "user_already_exists" || error.code === "email_exists") {
+      return { error: "Já existe uma conta com esse e-mail. Entre ou recupere a senha." };
+    }
+    if (error.code === "weak_password") {
+      return { error: "Essa senha é fácil demais. Use pelo menos 8 caracteres, misturando letras e números." };
+    }
+    return { error: "Não foi possível criar a conta. Tente de novo em instantes." };
+  }
+
+  if (data.session) redirect(nextPathSchema.parse(formData.get("next")) as Route);
+  return { sentTo: email };
+}
+
+export async function resendConfirmation(email: unknown): Promise<ActionResult> {
+  if (!(await withinAuthLimit("resend"))) return { ok: false, error: TOO_MANY };
+
+  const parsed = emailSchema.safeParse(email);
+  if (!parsed.success) return { ok: false, error: "E-mail inválido" };
+
+  const redirectTo = new URL("/auth/callback", siteConfig.url);
+  redirectTo.searchParams.set("next", "/dashboard");
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: parsed.data,
+    options: { emailRedirectTo: redirectTo.toString() },
+  });
+  if (error) return { ok: false, error: "Não deu para reenviar agora. Aguarde um minuto e tente de novo." };
+
+  return { ok: true, data: undefined };
+}
+
 export async function signOut(): Promise<never> {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -100,8 +170,19 @@ export async function enrollTotp(
   if (!name.success) return { ok: false, error: "Nome do autenticador inválido" };
 
   const supabase = await createClient();
+  const { data: existing } = await supabase.auth.mfa.listFactors();
+  const stale = (existing?.all ?? []).filter((factor) => factor.factor_type === "totp" && factor.status === "unverified");
+  for (const factor of stale) {
+    await supabase.auth.mfa.unenroll({ factorId: factor.id });
+  }
+
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: name.data });
-  if (error) return { ok: false, error: "Não foi possível iniciar o cadastro do autenticador" };
+  if (error) {
+    if (error.code === "mfa_totp_enroll_not_enabled") {
+      return { ok: false, error: "O cadastro de autenticador está desligado no projeto. Ative o TOTP no painel do Supabase." };
+    }
+    return { ok: false, error: "Não foi possível iniciar o cadastro do autenticador" };
+  }
 
   return { ok: true, data: { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret } };
 }

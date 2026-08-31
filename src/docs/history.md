@@ -7,6 +7,7 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-08-27 (qua) | ~3h (19:30 a 22:40) | Fundação completa: estrutura, auth, banco multi-tenant, segurança, tema, libs e primitivos |
 | 2026-08-28 (qui) | ~5h (noite, até ~01:00 de 29) | Design system: cantos squircle com cornerKit, Button, Text, Surface, Progress, Spinner, campos com máscara, DatePicker, Tooltip e vitrine em /componentes |
 | 2026-08-29 (sex) | ~8h30 (13:00 a 21:30) | Design system (Badge, Listbox, Pagination, Checkbox, Switch, Avatar, Toast, Carousel, PasswordInput, BrandIcon, GradientBlinds), motor de cantos próprio no lugar do cornerKit, tela de login completa nos dois layouts com fundo WebGL, tema escuro forçado em auth |
+| 2026-08-30 (sáb) | em andamento | Tela de criar conta no mesmo AuthCard, com signUp por e-mail e confirmação |
 
 ## 2026-08-27
 
@@ -108,3 +109,19 @@ Pendências:
 - CSP: ~100 avisos de "Applying inline style" por carga da vitrine, pré-existentes, de atributos `style` do SSR. Avaliar `'unsafe-hashes'` ou tirar os valores dinâmicos do atributo.
 - Chip removível (etiqueta com ×) quando a seleção múltipla entrar.
 - Conferir o fluxo real de OAuth e de senha com um usuário de teste no Supabase; hoje só a UI e as actions foram exercitadas.
+
+## 2026-08-30
+
+Tempo: em andamento.
+
+Feito:
+
+- Criar conta em `/cadastro`: `SignUpForm` com nome, e-mail e senha (zod com piso de 8), provedores compartilhados via `OAuthButtons`, CSS comum em `auth-form.module.css`, action `signUpWithPassword` com rate limit, Turnstile e erros por `error.code`, estado "Confirme seu e-mail" quando a confirmação está ligada, consentimento de Termos e Privacidade.
+- MFA em `/mfa` com dois estados: cadastro do autenticador (QR do Supabase, chave manual com cópia e toast, CodeInput de 6 dígitos em caixas 3 e 3) e verificação de step-up. Gate novo no proxy: `mfaMissing` força o cadastro no primeiro login; `enrollTotp` purga fatores não verificados. Conteúdo do AuthCard rola por dentro no mobile.
+
+Pendências:
+
+- Recuperar senha e redefinir senha no mesmo AuthCard.
+- As pendências de 2026-08-29 continuam.
+- E2E do MFA montado (usuário de teste via admin API, login pela UI, TOTP calculado em Node): revelou token do Turnstile perdido no input imperativo (virou input controlado pelos formulários) e enroll de TOTP desligado no projeto hospedado (config.toml não vale lá; instrução no setup.md).
+- E-mails de autenticação próprios: 6 templates com marca em db/supabase/templates ligados no config.toml, logos em PNG gerados por headless, instruções de SMTP do Resend e URLs de redirect no setup.md, reenvio de confirmação na tela de cadastro e aviso de link expirado no /login.

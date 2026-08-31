@@ -92,6 +92,8 @@ Exige Apple Developer Program (US$ 99/ano). O segredo expira a cada 6 meses e pr
 
 ### MFA (autenticador TOTP: Google Authenticator, Microsoft Authenticator, 1Password)
 
+Atenção: o `enroll_enabled = true` do `config.toml` vale só para o ambiente local; o projeto hospedado é configurado no painel. Em 2026-08-30 o enroll estava desligado lá (`mfa_totp_enroll_not_enabled` no /mfa). Caminho: Dashboard > Authentication > Multi-Factor Auth (Advanced) > TOTP > habilitar **Enroll** e **Verify** > Save.
+
 1. Supabase > Authentication > Multi-Factor Auth > TOTP: habilitar Enroll e Verify
 2. O código já cobre: cadastro (`enrollTotp`), confirmação (`verifyTotp`), remoção (`unenrollTotp`) em `src/features/auth/actions.ts`
 3. O proxy exige o segundo fator em toda rota privada quando o usuário tem autenticador cadastrado (redireciona para `/mfa`)
@@ -109,3 +111,15 @@ npm run db:types
 ```
 
 Alternativa sem CLI: Supabase > SQL Editor > colar o arquivo da migração > Run (depois rode `npm run db:pull` para manter o histórico).
+
+## E-mail de autenticação (SMTP do Resend + templates próprios)
+
+Os templates com a nossa marca estão em `db/supabase/templates/` e já apontados no `config.toml` (vale para o ambiente local). No projeto hospedado é manual:
+
+1. Resend > Domains > verificar o domínio do remetente (`RESEND_FROM_EMAIL`).
+2. Supabase > Project Settings > Authentication > SMTP Settings > Enable custom SMTP: host `smtp.resend.com`, porta `465`, usuário `resend`, senha = `RESEND_API_KEY`, sender = `RESEND_FROM_EMAIL`. Sem SMTP próprio o Supabase limita a ~2 e-mails por hora, o que derruba qualquer teste de cadastro.
+3. Supabase > Authentication > Email Templates > colar o HTML de cada arquivo de `db/supabase/templates/` no slot correspondente (Confirm signup, Invite user, Magic Link, Change Email Address, Reset Password, Reauthentication), com os assuntos do `config.toml`.
+4. Supabase > Authentication > URL Configuration: Site URL `https://app.specular.com.br`; Additional Redirect URLs com `http://localhost:3000/auth/callback` e `https://app.specular.com.br/auth/callback`, senão o retorno do e-mail cai no domínio errado.
+5. O logo dos e-mails é `public/logotipo/specular-logotipo-black.png` (gerado do SVG; e-mail não renderiza SVG), servido em `https://app.specular.com.br/logotipo/...`. Publicar antes de testar o e-mail em produção.
+
+Link "expirado ou inválido" (`otp_expired`) tem três causas comuns: rate limit do SMTP embutido, um cadastro novo invalidando o link anterior, e scanner de e-mail corporativo consumindo o link. Com SMTP próprio e o botão de reenvio da tela de confirmação, os três ficam administráveis.

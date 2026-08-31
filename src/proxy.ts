@@ -57,7 +57,7 @@ export async function proxy(request: NextRequest) {
   request.headers.set("x-pathname", pathname);
   request.headers.set("Content-Security-Policy", csp);
 
-  const { response, claims, mfaPending } = await updateSession(request);
+  const { response, claims, mfaPending, mfaMissing } = await updateSession(request);
   const isAuthPath = authPaths.has(pathname);
 
   if (!claims) {
@@ -66,6 +66,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (mfaPending) {
+    if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
+    return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
+  }
+
+  if (mfaMissing) {
     if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
     return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
   }

@@ -1,9 +1,8 @@
 "use client";
 
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react";
-import { useActionState, useState } from "react";
-import { TurnstileWidget } from "@/components/security/turnstile-widget";
-import { BrandIcon } from "@/components/ui/brand-icon";
+import { useActionState, useState, useSyncExternalStore } from "react";
+import { TURNSTILE_FIELD_NAME, TurnstileWidget } from "@/components/security/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
@@ -13,9 +12,9 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
-import { signInWithOAuth, signInWithPassword, type SignInState } from "../actions";
-import type { OAuthProvider } from "../schemas";
-import styles from "./login-form.module.css";
+import { signInWithPassword, type SignInState } from "../actions";
+import styles from "./auth-form.module.css";
+import { OAuthButtons } from "./oauth-buttons";
 
 type LoginFormProps = {
   next: string;
@@ -25,18 +24,32 @@ type LoginFormProps = {
 
 type Step = "choose" | "email";
 
-const providers: { id: OAuthProvider; label: string; color?: boolean }[] = [
-  { id: "google", label: "Google", color: true },
-  { id: "github", label: "GitHub" },
-];
-
 const initialState: SignInState = {};
+
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
+function useLocationHash() {
+  return useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
+}
+
+function hashNoticeFrom(hash: string) {
+  const params = new URLSearchParams(hash.slice(1));
+  if (!params.get("error")) return undefined;
+  return params.get("error_code") === "otp_expired"
+    ? "O link do e-mail expirou ou já foi usado. Entre com sua senha ou peça um e-mail novo no cadastro."
+    : "Não foi possível concluir pelo link do e-mail. Entre com sua senha para continuar.";
+}
 
 export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(signInWithPassword, initialState);
-  const [verified, setVerified] = useState(!turnstileSiteKey);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const verified = !turnstileSiteKey || turnstileToken !== "";
   const [step, setStep] = useState<Step>("choose");
-  const message = state.error ?? notice;
+  const hashNotice = hashNoticeFrom(useLocationHash());
+  const message = state.error ?? notice ?? hashNotice;
 
   return (
     <div className={styles.root} data-step={step}>
@@ -57,21 +70,7 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
           </Button>
         </div>
 
-        <div className={styles.providers}>
-          {providers.map(({ id, label, color }) => (
-            <form key={id} action={signInWithOAuth.bind(null, id, next)}>
-              <Button
-                type="submit"
-                variant="outline"
-                fullWidth
-                iconStart={<BrandIcon name={id} color={color} />}
-              >
-                <span className={styles.mobileOnly}>Continuar com </span>
-                {label}
-              </Button>
-            </form>
-          ))}
-        </div>
+        <OAuthButtons next={next} />
       </div>
 
       <div className={styles.divider} role="presentation">
@@ -112,12 +111,15 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
         </div>
 
         {turnstileSiteKey && (
-          <TurnstileWidget
-            siteKey={turnstileSiteKey}
-            onVerify={() => setVerified(true)}
-            onExpire={() => setVerified(false)}
-            className={styles.turnstile}
-          />
+          <>
+            <TurnstileWidget
+              siteKey={turnstileSiteKey}
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+              className={styles.turnstile}
+            />
+            <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
+          </>
         )}
 
         {message && (
