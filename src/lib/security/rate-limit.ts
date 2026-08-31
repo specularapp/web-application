@@ -12,6 +12,8 @@ export type RateLimitResult = {
 
 export const rateLimitRules = {
   auth: { limit: 10, windowSeconds: 60 },
+  authTotal: { limit: 30, windowSeconds: 60 },
+  authEmail: { limit: 5, windowSeconds: 900 },
   action: { limit: 120, windowSeconds: 60 },
   ai: { limit: 20, windowSeconds: 60 },
   publicLink: { limit: 30, windowSeconds: 60 },
@@ -45,8 +47,32 @@ redis.call('PEXPIRE', key, window)
 return { 1, limit - used - 1, 0 }
 `;
 
+const windowCount = `
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+redis.call('ZREMRANGEBYSCORE', key, '-inf', now - window)
+return redis.call('ZCARD', key)
+`;
+
 function allow(rule: RateLimitRule): RateLimitResult {
   return { allowed: true, limit: rule.limit, remaining: rule.limit - 1, retryAfterSeconds: 0 };
+}
+
+export async function peekRateLimit(scope: RateLimitScope, identifier: string): Promise<boolean> {
+  const rule = rateLimitRules[scope];
+  try {
+    const used = await getRedis().eval(
+      windowCount,
+      1,
+      `ratelimit:${scope}:${identifier}`,
+      Date.now().toString(),
+      (rule.windowSeconds * 1000).toString(),
+    );
+    return Number(used) < rule.limit;
+  } catch {
+    return true;
+  }
 }
 
 export async function checkRateLimit(

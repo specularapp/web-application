@@ -20,6 +20,7 @@ declare global {
           appearance: "interaction-only";
         },
       ) => string;
+      reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
   }
@@ -33,10 +34,11 @@ type TurnstileWidgetProps = {
   siteKey: string;
   onVerify?: (token: string) => void;
   onExpire?: () => void;
+  resetOn?: unknown;
   className?: string;
 };
 
-export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: TurnstileWidgetProps) {
+export function TurnstileWidget({ siteKey, onVerify, onExpire, resetOn, className }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string>(undefined);
   const callbacks = useRef({ onVerify, onExpire });
@@ -45,6 +47,17 @@ export function TurnstileWidget({ siteKey, onVerify, onExpire, className }: Turn
   useEffect(() => {
     callbacks.current = { onVerify, onExpire };
   }, [onVerify, onExpire]);
+
+  const lastReset = useRef(resetOn);
+
+  useEffect(() => {
+    if (Object.is(lastReset.current, resetOn)) return;
+    lastReset.current = resetOn;
+    const widgetId = widgetIdRef.current;
+    if (!widgetId || !window.turnstile) return;
+    callbacks.current.onExpire?.();
+    window.turnstile.reset(widgetId);
+  }, [resetOn]);
 
   useEffect(() => {
     const container = containerRef.current;

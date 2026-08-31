@@ -63,6 +63,8 @@ Alternativa local: `docker run -p 6379:6379 redis` e `REDIS_URL=redis://localhos
 
 Callback do Supabase para todos os provedores: `https://bwwgwczwwojkboobwxyo.supabase.co/auth/v1/callback`
 
+O Supabase vincula automaticamente logins OAuth com o mesmo e-mail verificado ao mesmo usuário (não há toggle; é o padrão). Não é preciso configurar nada para Google e GitHub compartilharem a conta; só nasce conta duplicada se o provedor reportar e-mail diferente ou não verificado.
+
 ### GitHub
 
 1. [github.com/settings/developers](https://github.com/settings/developers) > OAuth Apps > New OAuth App

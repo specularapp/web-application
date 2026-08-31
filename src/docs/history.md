@@ -125,10 +125,14 @@ Feito:
 - Logo dos e-mails à prova de modo escuro: specular-icon-email.png com o ícone dentro de um chip branco com borda no próprio PNG, porque clientes de e-mail invertem fundo e texto sem tocar em imagem e o ícone preto solto sumia. Validado com preview simulando a inversão do Gmail.
 - MFA refinada: três avatares de autenticadores (Google, Twilio, Microsoft com círculo preenchido no azul da marca), QR sem padding, caixas do código em 3rem por 4rem com raio lg pelo squircle(), sem botão de verificar (auto ao completar) e prévias das duas telas na vitrine /componentes para ver em localhost sem sessão. E2E rerodado verde com a verificação automática.
 - MFA compacta no mobile: avatares e linha de dica escondidos, QR em 8.5rem, gap menor.
+- Cadastro duplicado bloqueado: detecção do usuário falso com identities vazio que o Supabase devolve sob proteção de enumeração, mensagem com link para o login. Validado por E2E contra o projeto hospedado.
+- Contas unificadas entre provedores confirmadas por pesquisa no código do gotrue: linking automático por e-mail verificado é padrão e sem toggle; documentado com as exceções (e-mail noreply do GitHub, e-mail divergente).
+- Rate limit de auth em três camadas: por operação e IP, total por IP (30/min) e por e-mail alvo (5 por 15 min) no login, cadastro, reenvio e recuperação.
+- Recuperar e redefinir senha funcionais no mesmo AuthCard: resetPasswordForEmail com sucesso sempre (sem vazar existência), redefinição exigindo a sessão do link com step-up de MFA preservando o destino no proxy. E2E cobrindo cadastro duplicado, recuperação e redefinir sem sessão.
+- Revisão adversarial (workflow com 17 agentes) confirmou e corrigiu 7 defeitos da primeira versão: lockout de login por terceiros no limite por e-mail (virou IP+e-mail só em falha, com peekRateLimit novo), oráculo de existência no aviso de cooldown do reset (virou sucesso silencioso com log), next=/confirmar-email sem token nos gates de MFA (voltou a /dashboard), token do Turnstile morto após erro re-tentável (widget ganhou resetOn), link de login do cadastro duplicado sem next, mensagem errada para senha acima de 72 caracteres. Refutados: spoof de x-forwarded-for (Vercel sobrescreve), redefinir quebrado com mfaMissing e troca de senha por logado direto.
 
 Pendências:
 
-- Recuperar senha e redefinir senha no mesmo AuthCard.
 - As pendências de 2026-08-29 continuam.
 - E2E do MFA montado (usuário de teste via admin API, login pela UI, TOTP calculado em Node): revelou token do Turnstile perdido no input imperativo (virou input controlado pelos formulários) e enroll de TOTP desligado no projeto hospedado (config.toml não vale lá; instrução no setup.md).
 - E-mails de autenticação próprios: 6 templates com marca em db/supabase/templates ligados no config.toml, logos em PNG gerados por headless, instruções de SMTP do Resend e URLs de redirect no setup.md, reenvio de confirmação na tela de cadastro e aviso de link expirado no /login.

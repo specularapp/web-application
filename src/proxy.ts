@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths } from "@/lib/auth-paths";
+import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths, RESET_PASSWORD_PATH } from "@/lib/auth-paths";
 import { siteConfig } from "@/lib/metadata";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
@@ -65,17 +65,20 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies(withNext(request, "/login", pathname), response);
   }
 
+  const bounceToDashboard = isAuthPath && pathname !== CONFIRM_EMAIL_PATH && pathname !== RESET_PASSWORD_PATH;
+  const mfaNext = isAuthPath && pathname !== RESET_PASSWORD_PATH ? "/dashboard" : pathname;
+
   if (mfaPending) {
     if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
-    return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
+    return redirectWithCookies(withNext(request, MFA_PATH, mfaNext), response);
   }
 
   if (mfaMissing) {
     if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
-    return redirectWithCookies(withNext(request, MFA_PATH, isAuthPath ? "/dashboard" : pathname), response);
+    return redirectWithCookies(withNext(request, MFA_PATH, mfaNext), response);
   }
 
-  if ((isAuthPath && pathname !== CONFIRM_EMAIL_PATH) || pathname === MFA_PATH) {
+  if (bounceToDashboard || pathname === MFA_PATH) {
     return redirectWithCookies(new URL("/dashboard", request.url), response);
   }
 

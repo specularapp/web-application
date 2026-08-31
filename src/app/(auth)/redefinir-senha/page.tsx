@@ -1,3 +1,5 @@
+import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
+import { getCurrentUser } from "@/features/auth/session";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
@@ -6,6 +8,8 @@ export const metadata = createMetadata({
   path: "/redefinir-senha",
 });
 
-export default function ResetPasswordPage() {
-  return null;
+export default async function ResetPasswordPage() {
+  const user = await getCurrentUser();
+
+  return <ResetPasswordForm email={user?.email ?? undefined} />;
 }

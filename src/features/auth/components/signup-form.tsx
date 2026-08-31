@@ -1,6 +1,7 @@
 "use client";
 
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react";
+import type { Route } from "next";
 import Image from "next/image";
 import { useActionState, useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -129,6 +130,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
+              resetOn={state}
               className={styles.turnstile}
             />
             <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
@@ -138,6 +140,14 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
         {state.error && (
           <Text role="alert" variant="footnote" tone="danger">
             {state.error}
+            {state.exists && (
+              <>
+                {" "}
+                <TextLink href={`/login?next=${encodeURIComponent(next)}` as Route} tone="inherit" underline="always">
+                  Entre para continuar
+                </TextLink>
+              </>
+            )}
           </Text>
         )}
 

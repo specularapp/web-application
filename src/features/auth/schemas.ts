@@ -17,10 +17,12 @@ export const totpCodeSchema = z.string().regex(/^\d{6}$/);
 export const factorIdSchema = z.uuid();
 export const friendlyNameSchema = z.string().trim().min(1).max(60);
 
+export const passwordSchema = z.string().min(8).max(72);
+
 export const signUpSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.email().max(254),
-  password: z.string().min(8).max(72),
+  password: passwordSchema,
 });
 
 export const emailSchema = z.email().max(254);

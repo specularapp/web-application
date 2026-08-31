@@ -1,3 +1,5 @@
+import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
+import { env, hasTurnstile } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
@@ -7,5 +9,7 @@ export const metadata = createMetadata({
 });
 
 export default function ForgotPasswordPage() {
-  return null;
+  const turnstileSiteKey = hasTurnstile() ? env.turnstilePublic().NEXT_PUBLIC_TURNSTILE_SITE_KEY : undefined;
+
+  return <ForgotPasswordForm turnstileSiteKey={turnstileSiteKey} />;
 }

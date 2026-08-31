@@ -116,6 +116,7 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
+              resetOn={state}
               className={styles.turnstile}
             />
             <input type="hidden" name={TURNSTILE_FIELD_NAME} value={turnstileToken} readOnly />
