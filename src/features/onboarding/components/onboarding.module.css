@@ -5,54 +5,47 @@
   }
 }
 
-.page {
+/* Camada sobre a aplicação: o véu segue o tema (preto puro escureceria o claro inteiro) e o
+   desfoque pega o que estiver atrás, então o painel já nasce pronto para o dashboard com conteúdo. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: var(--space-8);
-  min-height: 100dvh;
-  padding: var(--space-6) var(--space-4) var(--space-10);
-  background-color: var(--color-bg-grouped);
+  align-content: safe center;
+  justify-items: center;
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+  background-color: color-mix(in srgb, var(--color-bg-grouped) 72%, transparent);
+  backdrop-filter: blur(28px) saturate(140%);
 }
 
-.top,
+.overlay[data-demo] {
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  min-height: 34rem;
+  border-radius: var(--radius-md);
+}
+
 .shell {
+  display: grid;
+  gap: var(--space-3);
   width: 100%;
-  max-width: 36rem;
-  margin-inline: auto;
+  max-width: 34rem;
 }
 
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.shell {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-}
-
-.card {
-  display: grid;
-  gap: var(--space-6);
-}
-
-.progress {
-  display: grid;
-  gap: var(--space-2);
-}
-
+/* Mesmo recuo lateral do padding do painel, para as barras nascerem alinhadas ao conteúdo de baixo. */
 .bars {
   display: flex;
   gap: var(--space-1);
+  padding-inline: var(--space-4);
 }
 
 .bar {
   flex: 1;
-  height: 0.25rem;
-  background-color: var(--color-fill-quaternary);
+  height: 0.1875rem;
+  background-color: var(--color-fill);
   border-radius: var(--radius-full);
   transition: background-color var(--duration-base) var(--ease-standard);
 }
@@ -60,6 +53,18 @@
 .bar[data-state="done"],
 .bar[data-state="current"] {
   background-color: var(--color-brand);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-4);
+  background-color: color-mix(in srgb, var(--color-bg-grouped-secondary) 76%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-3xl);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px) saturate(160%);
 }
 
 .head {
@@ -94,25 +99,12 @@
   align-items: end;
 }
 
-.identity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.identityText {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
 .dropzone {
   position: relative;
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 4.5rem;
-  height: 4.5rem;
+  display: block;
+  justify-self: center;
+  width: 5rem;
+  height: 5rem;
   overflow: hidden;
   color: var(--color-label-secondary);
   background-color: var(--color-fill-quaternary);
@@ -120,11 +112,14 @@
   border-radius: var(--radius-xl);
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .dropzone:hover,
 .dropzone[data-active] {
+  color: var(--color-label);
   background-color: var(--color-fill-tertiary);
 }
 
@@ -138,20 +133,25 @@
   outline-offset: 2px;
 }
 
-.dropzone svg {
-  width: 1.25rem;
-  height: 1.25rem;
+/* O input de arquivo do dropzone é filho real do alvo, então centralizar pelo grid do pai deslocaria
+   o ícone. A camada própria ignora qualquer outro filho e fica no centro exato. */
+.dropzoneInner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.dropzoneInner svg {
+  width: 1.5rem;
+  height: 1.5rem;
   fill: currentColor;
 }
 
-.dropzone img {
+.dropzoneInner img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.address {
-  overflow-wrap: anywhere;
 }
 
 .list {
@@ -202,9 +202,8 @@
 }
 
 @media (max-width: 40rem) {
-  .page {
-    gap: var(--space-6);
-    padding: var(--space-4) var(--space-3) var(--space-8);
+  .overlay {
+    padding: var(--space-4) var(--space-3);
   }
 
   .card,

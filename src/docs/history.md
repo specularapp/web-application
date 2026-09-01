@@ -167,10 +167,15 @@ Feito:
 - `Select` do design system, nascido do `Listbox` como a doc mandava: gatilho com as medidas do campo por variáveis locais, valor num input escondido para funcionar dentro de `form`, placeholder e `id` no gatilho para o `Label` do `Field`. Saiu da lista de stubs e entrou na vitrine junto com a prévia do fluxo de primeiros passos.
 - Bug de largura achado na prévia: `Select` apertado por classe de CSS Module ignorava o tamanho, porque a folha do Emotion entra depois com a mesma especificidade. A linha de membro passou a envolver o componente num `span` próprio, e o espaço do × é reservado mesmo sem botão para os selects não desalinharem.
 - `requireUser` saiu do papel: `requireOnboarding` no painel manda quem ainda não configurou de volta para o fluxo, e só desvia owner e admin, para quem entrou por convite não cair na configuração do time dos outros.
+- Segunda passada na tela, por pedido do usuário: a página virou camada sobre a aplicação (fixa, véu no tema com desfoque e painel de vidro por cima), o cabeçalho com logo e sair saiu inteiro, as barras de etapa saíram do painel e perderam o rótulo "Etapa 1 de 3", e o alvo da logo ficou só com o ícone de nuvem centralizado, sem texto ao lado.
+- Campos da etapa 1 reorganizados: nome e site lado a lado em duas colunas, uma no mobile. O endereço público saiu da tela e passou a nascer do nome no servidor, com sufixo automático quando o nome repete; "domínio" virou "site", opcional, com `https://` de afixo fixo como no `R$`. Área de atuação passou a listar só desenvolvimento e design, em seis opções.
+- `Listbox` ganhou `placement="auto"`, usado pelo `Select`: perto da base da tela a lista sobe em vez de vazar. A decisão é por estimativa de altura, porque medir depois de montar faria a lista pular no mesmo quadro.
+- Dois defeitos de alinhamento achados na prévia e corrigidos: o ícone da nuvem saía do centro porque o `input` do dropzone conta como filho no grid do alvo (virou camada absoluta própria), e as barras de etapa ficavam desalinhadas do conteúdo do painel (ganharam o mesmo recuo lateral).
+- `(app)/error.tsx` deixou de renderizar `null`: tela de erro com o ícone 3D, texto e "Tentar de novo", com o digest quando existe. Um dos achados abertos da auditoria, que ia aparecer no primeiro teste como tela branca.
 
 Pendências:
 
 - Rodar `npm run db:push` e `npm run db:types` no projeto hospedado: as duas migrações novas ainda não foram aplicadas, e `src/types/database.ts` está escrito à mão com o que elas criam.
 - Etapa do plano, que é a próxima conversa: Stripe, catálogo e a tela em si.
 - Fluxo de convite ponta a ponta com dois usuários de verdade (e-mail entregue, `/convite/<token>`, aceite e troca de papel).
-- As pendências de 2026-08-29 e 2026-08-30 continuam, tirando `requireUser` sem uso e a falta de `service.ts` com `api/v1`, que passam a valer só para o domínio `auth`.
+- As pendências de 2026-08-29 e 2026-08-30 continuam, tirando `requireUser` sem uso, a falta de `service.ts` com `api/v1` (que passam a valer só para o domínio `auth`) e os boundaries de erro em `null`, que agora só falta cobrir a raiz.

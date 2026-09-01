@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import {
   LOGO_BUCKET,
+  slugFromName,
   type CreateInviteInput,
   type LogoContentType,
   type MemberRole,
@@ -20,6 +21,7 @@ export type Team = {
   name: string;
   slug: string;
   industry: OrganizationIndustry | null;
+  website: string | null;
   logoUrl: string | null;
   completed: boolean;
 };
@@ -52,9 +54,9 @@ const logoExtensions: Record<LogoContentType, string> = {
   "image/webp": "webp",
 };
 
-const teamColumns = "id, name, slug, industry, logo_url, onboarding_completed_at";
+const teamColumns = "id, name, slug, industry, website, logo_url, onboarding_completed_at";
 
-const SLUG_TAKEN = "Esse domínio já está em uso. Escolha outro.";
+const SLUG_TAKEN = "Já existe um time com esse endereço. Mude o nome do time.";
 const SAVE_FAILED = "Não foi possível salvar os dados do time. Tente de novo em instantes.";
 
 type TeamRow = {
@@ -62,6 +64,7 @@ type TeamRow = {
   name: string;
   slug: string;
   industry: OrganizationIndustry | null;
+  website: string | null;
   logo_url: string | null;
   onboarding_completed_at: string | null;
 };
@@ -72,6 +75,7 @@ function toTeam(row: TeamRow): Team {
     name: row.name,
     slug: row.slug,
     industry: row.industry,
+    website: row.website,
     logoUrl: row.logo_url,
     completed: Boolean(row.onboarding_completed_at),
   };
@@ -150,18 +154,33 @@ export async function getTeamState(client: TeamClient, userId: string): Promise<
   };
 }
 
+// O endereço saiu do formulário e vem do nome, então colisão não é erro de quem preencheu:
+// tenta sufixo antes de devolver mensagem. O aleatório fecha a corrida entre dois cadastros iguais.
+const SLUG_ATTEMPTS = 5;
+
+function slugAttempts(name: string) {
+  const base = slugFromName(name);
+  const variants = [base];
+  for (let position = 2; position <= SLUG_ATTEMPTS; position += 1) variants.push(`${base}-${position}`);
+  variants.push(`${base}-${Math.random().toString(36).slice(2, 6)}`);
+  return variants;
+}
+
 export async function saveTeam(client: TeamClient, input: SaveTeamInput): Promise<ServiceResult<Team>> {
-  const values = { name: input.name, slug: input.slug, industry: input.industry };
+  const values = { name: input.name, industry: input.industry, website: input.website };
 
-  const query = input.organizationId
-    ? client.from("organizations").update(values).eq("id", input.organizationId)
-    : client.from("organizations").insert(values);
+  for (const slug of slugAttempts(input.name)) {
+    const query = input.organizationId
+      ? client.from("organizations").update({ ...values, slug }).eq("id", input.organizationId)
+      : client.from("organizations").insert({ ...values, slug });
 
-  const { data, error } = await query.select(teamColumns).maybeSingle();
-  if (error) return { ok: false, error: messageOf(error, SAVE_FAILED) };
-  if (!data) return { ok: false, error: SAVE_FAILED };
+    const { data, error } = await query.select(teamColumns).maybeSingle();
+    if (!error && data) return { ok: true, data: toTeam(data) };
+    if (error && error.code !== "23505") return { ok: false, error: messageOf(error, SAVE_FAILED) };
+    if (!error && !data) return { ok: false, error: SAVE_FAILED };
+  }
 
-  return { ok: true, data: toTeam(data) };
+  return { ok: false, error: SLUG_TAKEN };
 }
 
 export async function inviteMember(

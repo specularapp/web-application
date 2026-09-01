@@ -1,0 +1,16 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4);
+  background-color: var(--color-bg-grouped);
+}
+
+.block {
+  max-width: 24rem;
+}
+
+.icon {
+  width: auto;
+  height: 4rem;
+}

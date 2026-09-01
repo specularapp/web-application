@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { Logo } from "@/components/layout/logo";
-import { Surface } from "@/components/ui/surface";
 import { Text } from "@/components/ui/text";
-import { signOut } from "@/features/auth/actions";
 import type { Team, TeamInvite, TeamMember } from "@/features/organizations/service";
-import authStyles from "@/features/auth/components/auth-form.module.css";
 import { MembersStep } from "./members-step";
 import styles from "./onboarding.module.css";
 import { TeamStep } from "./team-step";
@@ -44,37 +41,19 @@ export function OnboardingFlow({ team, members, invites, currentUser, demo = fal
   const Frame = demo ? "div" : "main";
 
   return (
-    <Frame className={styles.page}>
-      <div className={styles.top}>
-        <Logo variant="logotipo" height={20} />
-        {!demo && (
-          <form action={signOut}>
-            <Text variant="footnote" tone="secondary">
-              <button type="submit" className={authStyles.linkButton}>
-                Sair da conta
-              </button>
-            </Text>
-          </form>
-        )}
-      </div>
-
+    <Frame className={styles.overlay} data-demo={demo || undefined}>
       <div className={styles.shell}>
-        <Surface as="section" className={styles.card}>
-          <div className={styles.progress}>
-            <div className={styles.bars}>
-              {steps.map((item, position) => (
-                <span
-                  key={item.name}
-                  className={styles.bar}
-                  data-state={position < index ? "done" : position === index ? "current" : "next"}
-                />
-              ))}
-            </div>
-            <Text variant="caption1" tone="tertiary" numeric>
-              Etapa {index + 1} de {steps.length}
-            </Text>
-          </div>
+        <div className={styles.bars}>
+          {steps.map((item, position) => (
+            <span
+              key={item.name}
+              className={styles.bar}
+              data-state={position < index ? "done" : position === index ? "current" : "next"}
+            />
+          ))}
+        </div>
 
+        <section className={styles.card}>
           <div className={styles.head}>
             <div className={styles.headText}>
               <Text as={demo ? "h3" : "h1"} variant="title2" weight="medium">
@@ -108,7 +87,7 @@ export function OnboardingFlow({ team, members, invites, currentUser, demo = fal
               onBack={() => setStep("time")}
             />
           )}
-        </Surface>
+        </section>
       </div>
     </Frame>
   );

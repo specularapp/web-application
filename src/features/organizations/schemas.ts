@@ -4,12 +4,11 @@ export const organizationKindSchema = z.enum(["freelancer", "agency"]);
 export const memberRoleSchema = z.enum(["owner", "admin", "member"]);
 export const invitableRoleSchema = z.enum(["admin", "member"]);
 export const organizationIndustrySchema = z.enum([
-  "design",
-  "development",
-  "marketing",
-  "audiovisual",
-  "architecture",
-  "consulting",
+  "web_development",
+  "mobile_development",
+  "product_design",
+  "brand_design",
+  "design_and_development",
   "other",
 ]);
 
@@ -41,12 +40,25 @@ export const createOrganizationSchema = z.object({
   kind: organizationKindSchema,
 });
 
-export const saveTeamSchema = z.object({
-  organizationId: z.uuid().optional(),
-  name: organizationNameSchema,
-  slug: organizationSlugSchema,
-  industry: organizationIndustrySchema,
-});
+// Quem digita "meusite.com" quer https://meusite.com, e exigir o protocolo só rende erro bobo.
+export function normalizeWebsite(value: string | undefined | null) {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+export const saveTeamSchema = z
+  .object({
+    organizationId: z.uuid().optional(),
+    name: organizationNameSchema,
+    industry: organizationIndustrySchema,
+    website: z.string().trim().max(200).optional(),
+  })
+  .transform((value) => ({ ...value, website: normalizeWebsite(value.website) }))
+  .refine((value) => value.website === null || z.url().max(200).safeParse(value.website).success, {
+    message: "Confira o endereço do site",
+    path: ["website"],
+  });
 export type SaveTeamInput = z.infer<typeof saveTeamSchema>;
 
 export const createInviteSchema = z.object({
@@ -86,13 +98,22 @@ export const logoAttachSchema = z.object({
 export const organizationIdSchema = z.object({ organizationId: z.uuid() });
 
 // Acento vira letra simples antes do corte para "Ateliê Três" virar "atelie-tres", e não "atelie-tr-s".
-export function slugify(value: string) {
+export function slugify(value: string, limit = 40) {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 40)
+    .slice(0, limit)
     .replace(/-+$/g, "");
+}
+
+// O endereço deixou de ser campo e sai do nome, então precisa nascer válido mesmo com nome curto
+// ou só de símbolo. Sobra espaço para o sufixo que resolve nome repetido.
+export function slugFromName(name: string) {
+  const base = slugify(name, 34);
+  if (base.length >= 3) return base;
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return base ? `${base}-${suffix}` : `time-${suffix}`;
 }

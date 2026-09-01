@@ -127,6 +127,7 @@ export type Database = {
           onboarding_completed_at: string | null
           slug: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           created_at?: string
@@ -139,6 +140,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           slug: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           created_at?: string
@@ -151,6 +153,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           slug?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -239,12 +242,11 @@ export type Database = {
     Enums: {
       member_role: "owner" | "admin" | "member"
       organization_industry:
-        | "design"
-        | "development"
-        | "marketing"
-        | "audiovisual"
-        | "architecture"
-        | "consulting"
+        | "web_development"
+        | "mobile_development"
+        | "product_design"
+        | "brand_design"
+        | "design_and_development"
         | "other"
       organization_kind: "freelancer" | "agency"
     }
@@ -379,12 +381,11 @@ export const Constants = {
     Enums: {
       member_role: ["owner", "admin", "member"],
       organization_industry: [
-        "design",
-        "development",
-        "marketing",
-        "audiovisual",
-        "architecture",
-        "consulting",
+        "web_development",
+        "mobile_development",
+        "product_design",
+        "brand_design",
+        "design_and_development",
         "other",
       ],
       organization_kind: ["freelancer", "agency"],

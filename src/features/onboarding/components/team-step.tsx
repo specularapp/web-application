@@ -5,14 +5,13 @@ import { useState, type FormEvent } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { FieldAffix } from "@/components/ui/field-shell";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Text } from "@/components/ui/text";
 import { saveTeamAction } from "@/features/organizations/actions";
-import { slugify, type OrganizationIndustry } from "@/features/organizations/schemas";
+import { normalizeWebsite, slugFromName, type OrganizationIndustry } from "@/features/organizations/schemas";
 import type { Team } from "@/features/organizations/service";
 import { uploadLogo } from "@/features/organizations/upload";
-import { siteConfig } from "@/lib/metadata";
 import { industryOptions } from "../labels";
 import { LogoPicker } from "./logo-picker";
 import styles from "./onboarding.module.css";
@@ -26,8 +25,8 @@ type TeamStepProps = {
 export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
   const { toast } = useToast();
   const [name, setName] = useState(team?.name ?? "");
-  const [slug, setSlug] = useState(team?.slug ?? "");
-  const [slugEdited, setSlugEdited] = useState(Boolean(team?.slug));
+  // O prefixo https:// é afixo fixo do campo, então o valor guardado entra aqui sem ele.
+  const [website, setWebsite] = useState((team?.website ?? "").replace(/^https?:\/\//i, ""));
   const [industry, setIndustry] = useState<OrganizationIndustry | undefined>(team?.industry ?? undefined);
   const [file, setFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(team?.logoUrl ?? null);
@@ -41,7 +40,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
     setLogoPreview(URL.createObjectURL(next));
   };
 
-  const filled = name.trim().length >= 2 && slug.trim().length >= 3 && Boolean(industry);
+  const filled = name.trim().length >= 2 && Boolean(industry);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -50,11 +49,19 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
 
     if (demo) {
       setSaving(false);
-      onDone({ id: "demo", name, slug, industry, logoUrl: logoPreview, completed: false });
+      onDone({
+        id: "demo",
+        name,
+        slug: slugFromName(name),
+        industry,
+        website: normalizeWebsite(website),
+        logoUrl: logoPreview,
+        completed: false,
+      });
       return;
     }
 
-    const result = await saveTeamAction({ organizationId: team?.id, name, slug, industry });
+    const result = await saveTeamAction({ organizationId: team?.id, name, industry, website });
     if (!result.ok) {
       toast({ title: "Não foi possível salvar", description: result.error, tone: "danger" });
       setSaving(false);
@@ -74,61 +81,41 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
 
   return (
     <form className={styles.step} onSubmit={submit} noValidate>
-      <div className={styles.identity}>
-        <LogoPicker
-          preview={logoPreview}
-          disabled={saving}
-          onSelect={chooseFile}
-          onReject={(message) => toast({ title: "Arquivo recusado", description: message, tone: "danger" })}
-        />
-        <div className={styles.identityText}>
-          <Text variant="subheadline" weight="medium">
-            Logo do time
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            PNG, JPG ou WEBP quadrado, até 2 MB
-          </Text>
-        </div>
-      </div>
+      <LogoPicker
+        preview={logoPreview}
+        disabled={saving}
+        onSelect={chooseFile}
+        onReject={(message) => toast({ title: "Arquivo recusado", description: message, tone: "danger" })}
+      />
 
       <div className={styles.form}>
-        <Field label="Nome do time">
-          <Input
-            type="text"
-            name="name"
-            value={name}
-            placeholder="Como seu time se chama"
-            autoComplete="organization"
-            required
-            onChange={(event) => {
-              setName(event.target.value);
-              if (!slugEdited) setSlug(slugify(event.target.value));
-            }}
-          />
-        </Field>
+        <div className={styles.pair}>
+          <Field label="Nome do time">
+            <Input
+              type="text"
+              name="name"
+              value={name}
+              placeholder="Como seu time se chama"
+              autoComplete="organization"
+              required
+              onChange={(event) => setName(event.target.value)}
+            />
+          </Field>
 
-        <Field
-          label="Domínio"
-          hint={
-            <span className={styles.address}>
-              Endereço público do time: {siteConfig.hosts.app}/p/{slug || "seu-time"}
-            </span>
-          }
-        >
-          <Input
-            type="text"
-            name="slug"
-            value={slug}
-            placeholder="seu-time"
-            autoComplete="off"
-            spellCheck={false}
-            required
-            onChange={(event) => {
-              setSlugEdited(true);
-              setSlug(slugify(event.target.value));
-            }}
-          />
-        </Field>
+          <Field label="Site">
+            <Input
+              type="text"
+              name="website"
+              value={website}
+              placeholder="seusite.com.br"
+              autoComplete="url"
+              inputMode="url"
+              spellCheck={false}
+              iconStart={<FieldAffix>https://</FieldAffix>}
+              onChange={(event) => setWebsite(event.target.value.replace(/^https?:\/\//i, ""))}
+            />
+          </Field>
+        </div>
 
         <Field label="Área de atuação">
           <Select

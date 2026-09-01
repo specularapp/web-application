@@ -108,6 +108,7 @@ export function Select<T extends ListboxValue>({
         }}
         id={id}
         fullWidth
+        placement="auto"
         placeholder={placeholder}
         disabled={disabled}
         required={required}

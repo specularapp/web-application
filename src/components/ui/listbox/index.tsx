@@ -9,7 +9,7 @@ export type ListboxValue = string | number;
 
 export type ListboxOption<T extends ListboxValue> = { value: T; label: string };
 
-export type ListboxPlacement = "below" | "above";
+export type ListboxPlacement = "below" | "above" | "auto";
 
 export type ListboxProps<T extends ListboxValue> = {
   label: string;
@@ -176,6 +176,22 @@ const Option = styled.li`
   }
 `;
 
+const OPTION_HEIGHT = 36;
+const LIST_MAX_HEIGHT = 224;
+const VIEWPORT_MARGIN = 16;
+
+// Estimativa em vez de medição: medir só depois de montar faria a lista aparecer embaixo e pular
+// para cima no mesmo quadro. A altura da opção é fixa no CSS, então a conta erra pouco.
+function resolvePlacement(placement: ListboxPlacement, trigger: HTMLElement | null, count: number) {
+  if (placement !== "auto") return placement;
+  if (!trigger) return "below";
+
+  const rect = trigger.getBoundingClientRect();
+  const needed = Math.min(count * OPTION_HEIGHT + VIEWPORT_MARGIN, LIST_MAX_HEIGHT) + VIEWPORT_MARGIN;
+  const below = window.innerHeight - rect.bottom;
+  return below < needed && rect.top > below ? "above" : "below";
+}
+
 function revealOption(list: HTMLElement, option: HTMLElement) {
   const top = option.offsetTop;
   const bottom = top + option.offsetHeight;
@@ -200,6 +216,7 @@ export function Listbox<T extends ListboxValue>({
   describedBy,
 }: ListboxProps<T>) {
   const [open, setOpen] = useState(false);
+  const [side, setSide] = useState<Exclude<ListboxPlacement, "auto">>(placement === "above" ? "above" : "below");
   const [active, setActive] = useState(value);
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -208,7 +225,7 @@ export function Listbox<T extends ListboxValue>({
   const selected = options.find((option) => option.value === value);
   const valueIndex = options.findIndex((option) => option.value === value);
   const activeIndex = options.findIndex((option) => option.value === active);
-  const Caret = placement === "above" ? CaretUpIcon : CaretDownIcon;
+  const Caret = side === "above" ? CaretUpIcon : CaretDownIcon;
 
   const close = (restoreFocus = true) => {
     setOpen(false);
@@ -293,6 +310,7 @@ export function Listbox<T extends ListboxValue>({
         aria-describedby={describedBy}
         onClick={() => {
           setActive(value);
+          setSide(resolvePlacement(placement, triggerRef.current, options.length));
           setOpen((state) => !state);
         }}
       >
@@ -301,7 +319,7 @@ export function Listbox<T extends ListboxValue>({
         <Caret weight="bold" aria-hidden="true" />
       </Trigger>
       {open && (
-        <List data-placement={placement}>
+        <List data-placement={side}>
           <Scroll
             ref={listRef}
             id={listId}

@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Logo } from "@/components/layout/logo";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
-import { Surface } from "@/components/ui/surface";
 import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/link";
 import { acceptInviteAction } from "@/features/organizations/actions";
@@ -37,13 +36,9 @@ export function AcceptInviteCard({ token, email }: AcceptInviteCardProps) {
   };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.top}>
-        <Logo variant="logotipo" height={20} />
-      </div>
-
+    <main className={styles.overlay}>
       <div className={styles.shell}>
-        <Surface as="section" className={styles.card}>
+        <section className={styles.card}>
           <div className={styles.head}>
             <div className={styles.headText}>
               <Text as="h1" variant="title2" weight="medium">
@@ -68,7 +63,7 @@ export function AcceptInviteCard({ token, email }: AcceptInviteCardProps) {
               {accepting ? "Entrando no time" : "Aceitar convite"}
             </Button>
           </div>
-        </Surface>
+        </section>
       </div>
     </main>
   );

@@ -49,7 +49,7 @@ export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team
   const parsed = saveTeamSchema.safeParse(input);
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0];
-    if (field === "slug") return { ok: false, error: "O domínio aceita letras, números e hífen, com 3 a 40 caracteres." };
+    if (field === "website") return { ok: false, error: "Confira o endereço do site, algo como specular.com.br" };
     if (field === "name") return { ok: false, error: "O nome do time precisa ter entre 2 e 80 caracteres." };
     if (field === "industry") return { ok: false, error: "Escolha a área de atuação do time." };
     return { ok: false, error: INVALID };

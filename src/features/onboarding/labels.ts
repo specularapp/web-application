@@ -13,12 +13,11 @@ export const roleHints: Record<MemberRole, string> = {
 };
 
 export const industryLabels: Record<OrganizationIndustry, string> = {
-  design: "Design",
-  development: "Desenvolvimento",
-  marketing: "Marketing",
-  audiovisual: "Audiovisual",
-  architecture: "Arquitetura",
-  consulting: "Consultoria",
+  web_development: "Desenvolvimento web",
+  mobile_development: "Desenvolvimento mobile",
+  product_design: "Design de produto",
+  brand_design: "Design de marca",
+  design_and_development: "Design e desenvolvimento",
   other: "Outra área",
 };
 

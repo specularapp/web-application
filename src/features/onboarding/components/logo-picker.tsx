@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageSquareIcon } from "@phosphor-icons/react";
+import { CloudArrowUpIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 import { LOGO_MAX_BYTES } from "@/features/organizations/schemas";
@@ -48,11 +48,13 @@ export function LogoPicker({ preview, disabled = false, onSelect, onReject }: Lo
       data-filled={preview ? "" : undefined}
     >
       <input {...getInputProps()} />
-      {preview ? (
-        <Image src={preview} alt="" width={72} height={72} unoptimized />
-      ) : (
-        <ImageSquareIcon weight="bold" aria-hidden="true" />
-      )}
+      <span className={styles.dropzoneInner}>
+        {preview ? (
+          <Image src={preview} alt="" width={80} height={80} unoptimized />
+        ) : (
+          <CloudArrowUpIcon weight="bold" aria-hidden="true" />
+        )}
+      </span>
     </div>
   );
 }
