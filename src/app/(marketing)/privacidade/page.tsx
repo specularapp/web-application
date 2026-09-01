@@ -1,12 +1,6 @@
-import { createMetadata } from "@/lib/metadata";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = createMetadata({
-  title: "Política de privacidade",
-  description: "Como a Specular coleta, usa e protege seus dados, em conformidade com a LGPD",
-  path: "/privacidade",
-  origin: "site",
-});
-
-export default function PrivacyPage() {
-  return null;
+// Endereço antigo: o Google Console e os links do produto apontam para /politica-de-privacidade.
+export default function PrivacidadeRedirect() {
+  permanentRedirect("/politica-de-privacidade");
 }

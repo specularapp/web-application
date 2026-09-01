@@ -30,6 +30,7 @@ export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   iconOnly?: boolean;
   loading?: boolean;
   locked?: boolean;
+  href?: string;
   plan?: string;
   background?: string;
   foreground?: string;
@@ -229,6 +230,9 @@ const Root = styled.button`
   }
 `;
 
+// Mesmo estilo do botão num âncora, para chamada que navega (site de divulgação) sem duplicar CSS.
+const Anchor = Root.withComponent("a");
+
 const Plan = styled.span`
   display: inline-flex;
   flex-shrink: 0;
@@ -263,6 +267,7 @@ export function Button({
   iconOnly = false,
   loading = false,
   locked = false,
+  href,
   plan,
   background,
   foreground,
@@ -282,22 +287,21 @@ export function Button({
     "--button-border": border,
   } as CSSProperties;
 
-  return (
-    <Root
-      type={type}
-      data-variant={variant}
-      data-size={size}
-      data-radius={radius}
-      data-icon-only={iconOnly || undefined}
-      data-loading={loading || undefined}
-      data-locked={locked || undefined}
-      data-full-width={fullWidth || undefined}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      style={colors}
-      {...cornerAttributes(radius, size, iconOnly)}
-      {...props}
-    >
+  const shared = {
+    "data-variant": variant,
+    "data-size": size,
+    "data-radius": radius,
+    "data-icon-only": iconOnly || undefined,
+    "data-loading": loading || undefined,
+    "data-locked": locked || undefined,
+    "data-full-width": fullWidth || undefined,
+    "aria-busy": loading || undefined,
+    style: colors,
+    ...cornerAttributes(radius, size, iconOnly),
+  };
+
+  const content = (
+    <>
       {loading && (
         <span data-button-icon>
           <Spinner size="sm" label="" />
@@ -313,6 +317,20 @@ export function Button({
           {plan}
         </Plan>
       )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Anchor href={href} {...shared} {...(props as ComponentPropsWithoutRef<"a">)}>
+        {content}
+      </Anchor>
+    );
+  }
+
+  return (
+    <Root type={type} disabled={disabled || loading} {...shared} {...props}>
+      {content}
     </Root>
   );
 }

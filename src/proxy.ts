@@ -5,7 +5,8 @@ import { siteConfig } from "@/lib/metadata";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const marketingPaths = new Set(["/", "/precos", "/termos", "/privacidade"]);
+const marketingPaths = new Set(["/", "/precos", "/termos", "/privacidade", "/politica-de-privacidade"]);
+const siteHosts = new Set([siteConfig.hosts.site, `www.${siteConfig.hosts.site}`]);
 // A vitrine monta as telas de MFA de verdade, que chamam as actions: fora de homologação ela fica atrás do login.
 const openPaths = isHomologation() ? new Set(["/componentes"]) : new Set<string>();
 const authPaths = new Set<string>(publicAuthPaths);
@@ -49,11 +50,9 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
 
-  if (host === `www.${siteConfig.hosts.site}`) {
-    return NextResponse.redirect(new URL(`${siteConfig.siteUrl}${pathname}${search}`), 308);
-  }
-
-  if (host === siteConfig.hosts.site && !marketingPaths.has(pathname)) {
+  // A Vercel já redireciona o domínio nu para o www. Redirecionar de volta aqui criava
+  // loop infinito, e era por isso que o www aparecia como fora do ar na verificação do Google.
+  if (siteHosts.has(host) && !marketingPaths.has(pathname)) {
     return NextResponse.redirect(new URL(`${siteConfig.url}${pathname}${search}`), 308);
   }
 

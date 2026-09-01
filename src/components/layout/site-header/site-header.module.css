@@ -1,0 +1,34 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: color-mix(in oklab, var(--color-bg) 82%, transparent);
+  border-bottom: 1px solid var(--color-separator);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--control-height-lg);
+  padding-block: var(--space-3);
+}
+
+.brand {
+  display: inline-flex;
+  border-radius: var(--radius-xs);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}

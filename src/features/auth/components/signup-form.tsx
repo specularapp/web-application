@@ -203,8 +203,8 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
             Termos de uso
           </TextLink>{" "}
           e a{" "}
-          <TextLink href="/privacidade" tone="inherit" underline="always">
-            Política de privacidade
+          <TextLink href="/politica-de-privacidade" tone="inherit" underline="always">
+            Política de Privacidade
           </TextLink>
           .
         </Text>

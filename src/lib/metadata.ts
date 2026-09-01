@@ -10,7 +10,8 @@ export const siteConfig = {
   locale: "pt_BR",
   hosts: { app: "app.specular.com.br", site: "specular.com.br" },
   url: process.env.NEXT_PUBLIC_APP_URL ?? (isProduction ? "https://app.specular.com.br" : localUrl),
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? (isProduction ? "https://specular.com.br" : localUrl),
+  // O www é o canônico do site, porque é para ele que a Vercel redireciona o domínio nu.
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? (isProduction ? "https://www.specular.com.br" : localUrl),
   themeColor: { light: "#ffffff", dark: "#000000", brand: "#007aff" },
 } as const;
 
