@@ -9,8 +9,8 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { updatePassword, type UpdatePasswordState } from "../actions";
-import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
+import { useAuthToast } from "./use-auth-toast";
 
 type ResetPasswordFormProps = {
   email?: string;
@@ -21,6 +21,7 @@ const initialState: UpdatePasswordState = {};
 export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
   const [state, formAction, pending] = useActionState(updatePassword, initialState);
 
+  useAuthToast("Não foi possível salvar a senha", state.error, state);
   if (!email) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
@@ -50,10 +51,6 @@ export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
         <Field label="Nova senha" hint={`No mínimo 8 caracteres, para a conta ${email}`}>
           <PasswordInput name="password" placeholder="Crie uma senha nova" autoComplete="new-password" required />
         </Field>
-
-        {state.error && (
-          <AuthNotice message={state.error} />
-        )}
 
         <Button type="submit" size="lg" fullWidth loading={pending}>
           {pending ? "Salvando" : "Salvar nova senha"}

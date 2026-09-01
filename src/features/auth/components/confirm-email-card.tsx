@@ -9,8 +9,8 @@ import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { confirmEmailWithToken, type ConfirmEmailState } from "../actions";
 import type { OtpType } from "../schemas";
-import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
+import { useAuthToast } from "./use-auth-toast";
 
 type ConfirmEmailCardProps = {
   tokenHash?: string;
@@ -63,6 +63,7 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
     channel.close();
   }, [state.done]);
 
+  useAuthToast("Não foi possível confirmar", state.error, state);
   if (state.done) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
@@ -117,9 +118,6 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
         <input type="hidden" name="token_hash" value={tokenHash} />
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="next" value={next} />
-        {state.error && (
-          <AuthNotice message={state.error} />
-        )}
         <Button type="submit" size="lg" fullWidth loading={pending}>
           {pending ? "Confirmando" : cta}
         </Button>

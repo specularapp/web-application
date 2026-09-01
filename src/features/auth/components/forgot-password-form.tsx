@@ -9,8 +9,8 @@ import { TextLink } from "@/components/ui/link";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { requestPasswordReset, type RecoverState } from "../actions";
-import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
+import { useAuthToast } from "./use-auth-toast";
 import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
 type ForgotPasswordFormProps = {
@@ -23,6 +23,8 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
   const [state, formAction, pending] = useActionState(requestPasswordReset, initialState);
   const turnstile = useTurnstile(turnstileSiteKey, state);
 
+  useAuthToast("Não foi possível enviar o link", state.error, state);
+  useAuthToast("Verificação de segurança", turnstile.unavailable ? TURNSTILE_UNAVAILABLE : undefined);
   if (state.sentTo) {
     return (
       <Stack gap={4} align="center" className={styles.confirmation}>
@@ -63,14 +65,6 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
         </Field>
 
         {turnstile.field}
-
-        {state.error && (
-          <AuthNotice message={state.error} />
-        )}
-
-        {turnstile.unavailable && (
-          <AuthNotice message={TURNSTILE_UNAVAILABLE} />
-        )}
 
         <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>
           {pending ? "Enviando" : "Enviar link"}

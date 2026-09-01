@@ -13,8 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
 import { resendConfirmation, signInWithPassword, type SignInState } from "../actions";
-import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
+import { useAuthToast } from "./use-auth-toast";
 import { OAuthButtons } from "./oauth-buttons";
 import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
@@ -54,6 +54,10 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
   const hashNotice = hashNoticeFrom(useLocationHash());
   const arrivalNotice = state.error ? undefined : (notice ?? hashNotice);
 
+  useAuthToast("Não foi possível entrar", state.error, state);
+  useAuthToast("Não foi possível entrar", arrivalNotice);
+  useAuthToast("Verificação de segurança", turnstile.unavailable ? TURNSTILE_UNAVAILABLE : undefined);
+
   const resend = async (email: string) => {
     setResending(true);
     await resendConfirmation(email);
@@ -66,10 +70,6 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
       <Text as="h1" variant="title1" weight="medium" align="center" className={styles.title}>
         É ótimo ter você com a gente, faça seu login e vamos trabalhar.
       </Text>
-
-      {arrivalNotice && (
-        <AuthNotice message={arrivalNotice} />
-      )}
 
       <div className={styles.choices}>
         <div className={styles.mobileOnly}>
@@ -126,10 +126,6 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
 
         {turnstile.field}
 
-        {state.error && (
-          <AuthNotice message={state.error} />
-        )}
-
         {state.unconfirmed && (
           <Button
             type="button"
@@ -141,10 +137,6 @@ export function LoginForm({ next, notice, turnstileSiteKey }: LoginFormProps) {
           >
             Reenviar e-mail de confirmação
           </Button>
-        )}
-
-        {turnstile.unavailable && (
-          <AuthNotice message={TURNSTILE_UNAVAILABLE} />
         )}
 
         <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>

@@ -15,8 +15,8 @@ import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
 import { resendConfirmation, sessionEstablished, signUpWithPassword, type SignUpState } from "../actions";
-import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
+import { useAuthToast } from "./use-auth-toast";
 import { OAuthButtons } from "./oauth-buttons";
 import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
@@ -88,6 +88,8 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
     setCooldown(true);
   };
 
+  useAuthToast("Não foi possível criar a conta", state.error, state);
+  useAuthToast("Verificação de segurança", turnstile.unavailable ? TURNSTILE_UNAVAILABLE : undefined);
   const sentTo = state.sentTo;
   if (sentTo) {
     return (
@@ -174,18 +176,12 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
 
         {turnstile.field}
 
-        {state.error && <AuthNotice message={state.error} />}
-
         {state.exists && (
           <Text variant="footnote" tone="secondary" align="center">
             <TextLink href={`/login?next=${encodeURIComponent(next)}` as Route} tone="inherit" underline="always">
               Entre para continuar
             </TextLink>
           </Text>
-        )}
-
-        {turnstile.unavailable && (
-          <AuthNotice message={TURNSTILE_UNAVAILABLE} />
         )}
 
         <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>

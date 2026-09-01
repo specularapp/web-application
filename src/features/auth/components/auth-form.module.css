@@ -55,53 +55,6 @@
   overflow: hidden;
 }
 
-.notice {
-  display: flex;
-  justify-content: center;
-  min-width: 0;
-}
-
-/* O invólucro do Tooltip é um span sem limite de largura: sem prender aqui, o aviso longo
-   escapa do cartão em vez de virar reticências. */
-.notice > * {
-  max-width: 100%;
-  min-width: 0;
-}
-
-.noticeTrigger {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  max-width: 100%;
-  min-width: 0;
-  padding: 0;
-  font: inherit;
-  font-size: var(--text-footnote);
-  color: var(--color-danger);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-xs);
-  cursor: help;
-}
-
-.noticeTrigger:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-.noticeTrigger svg {
-  width: 1.1em;
-  height: 1.1em;
-  flex-shrink: 0;
-  fill: currentColor;
-}
-
-.noticeText {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .emphasis {
   font-weight: var(--weight-medium);
   color: var(--color-label);
