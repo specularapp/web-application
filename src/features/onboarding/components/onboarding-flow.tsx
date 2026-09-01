@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/text";
 import type { Team, TeamInvite, TeamMember } from "@/features/organizations/service";
 import { MembersStep } from "./members-step";
 import styles from "./onboarding.module.css";
+import { PlanStep } from "./plan-step";
 import { StepRing } from "./step-ring";
 import { TeamStep } from "./team-step";
 
@@ -47,21 +48,25 @@ export function OnboardingFlow({ team, members, invites, currentUser, demo = fal
       aria-modal={demo ? undefined : true}
       aria-labelledby={titleId}
     >
-      <div className={styles.shell}>
-        <section className={styles.card}>
-          <div className={styles.head}>
-            <div className={styles.headText}>
-              <Text as="h2" id={titleId} variant="title2" weight="medium">
-                {current.title}
-              </Text>
-              <Text variant="subheadline" tone="secondary">
-                {current.description}
-              </Text>
+      <div className={styles.shell} data-step={step}>
+        <section className={styles.card} data-step={step}>
+          {step !== "plano" && (
+            <div className={styles.head}>
+              <div className={styles.headText}>
+                <Text as="h2" id={titleId} variant="title2" weight="medium">
+                  {current.title}
+                </Text>
+                <Text variant="subheadline" tone="secondary">
+                  {current.description}
+                </Text>
+              </div>
+              <StepRing total={steps.length} current={index + 1} />
             </div>
-            <StepRing total={steps.length} current={index + 1} />
-          </div>
+          )}
 
-          {step === "time" || !saved ? (
+          {step === "plano" && saved ? (
+            <PlanStep key="plano" team={saved} demo={demo} />
+          ) : step === "time" || !saved ? (
             <TeamStep
               key="time"
               team={saved}
@@ -80,6 +85,7 @@ export function OnboardingFlow({ team, members, invites, currentUser, demo = fal
               currentUser={currentUser}
               demo={demo}
               onBack={() => setStep("time")}
+              onNext={() => setStep("plano")}
             />
           )}
         </section>

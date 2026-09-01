@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -17,7 +16,6 @@ import {
   cancelInviteAction,
   changeInviteRoleAction,
   changeMemberRoleAction,
-  finishOnboardingAction,
   inviteMemberAction,
   removeMemberAction,
 } from "@/features/organizations/actions";
@@ -33,20 +31,19 @@ type MembersStepProps = {
   currentUser: TeamMember;
   demo?: boolean;
   onBack: () => void;
+  onNext: () => void;
 };
 
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function MembersStep({ team, members, invites, currentUser, demo = false, onBack }: MembersStepProps) {
+export function MembersStep({ team, members, invites, currentUser, demo = false, onBack, onNext }: MembersStepProps) {
   const { toast } = useToast();
-  const router = useRouter();
   // O time recém criado ainda não veio do servidor com a lista pronta, e a pessoa precisa se ver ali.
   const [people, setPeople] = useState(() => (members.length > 0 ? members : [currentUser]));
   const [pending, setPending] = useState(invites);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [inviting, setInviting] = useState(false);
-  const [finishing, setFinishing] = useState(false);
 
   const canInvite = emailPattern.test(email.trim()) && name.trim().length >= 2;
 
@@ -124,26 +121,6 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
       setPending(previous);
       toast({ title: "Não foi possível cancelar", description: result.error, tone: "danger" });
     }
-  };
-
-  const finish = async () => {
-    if (finishing) return;
-    setFinishing(true);
-
-    if (demo) {
-      setFinishing(false);
-      toast({ title: "Prévia", description: "Aqui entra a escolha do plano", tone: "info" });
-      return;
-    }
-
-    const result = await finishOnboardingAction({ organizationId: team.id });
-    if (!result.ok) {
-      toast({ title: "Não foi possível concluir", description: result.error, tone: "danger" });
-      setFinishing(false);
-      return;
-    }
-
-    router.push("/dashboard");
   };
 
   return (
@@ -274,8 +251,8 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
         <IconButton label="Voltar para os dados do time" variant="secondary" className={styles.back} onClick={onBack}>
           <ArrowLeftIcon />
         </IconButton>
-        <Button size="lg" loading={finishing} iconEnd={<ArrowRightIcon />} onClick={() => void finish()}>
-          {finishing ? "Concluindo" : "Avançar"}
+        <Button size="lg" iconEnd={<ArrowRightIcon />} onClick={onNext}>
+          Avançar
         </Button>
       </div>
     </div>

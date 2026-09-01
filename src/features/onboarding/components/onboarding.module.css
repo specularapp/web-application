@@ -34,6 +34,12 @@
 .shell {
   width: 100%;
   max-width: 34rem;
+  transition: max-width var(--duration-slow) var(--ease-standard);
+}
+
+/* A etapa do plano é uma tabela de três colunas com cabeçalho próprio, então o painel abre. */
+.shell[data-step="plano"] {
+  max-width: 66rem;
 }
 
 .card {
@@ -47,6 +53,12 @@
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* As bolas de cor da etapa do plano sangram pelas bordas, então quem recorta é o painel. */
+.card[data-step="plano"] {
+  padding: var(--space-8);
+  overflow: hidden;
 }
 
 .head {
@@ -224,6 +236,10 @@
   .card,
   .step {
     gap: var(--space-5);
+  }
+
+  .card[data-step="plano"] {
+    padding: var(--space-4);
   }
 
   .pair {
