@@ -45,6 +45,16 @@ function withNext(request: NextRequest, pathname: string, next: string) {
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // O Supabase cai no Site URL quando o redirect_to não bate com a lista de permitidos, e o
+  // código do OAuth aterrissa na raiz. Sem repassar para o callback, o código morre aqui: a
+  // conta é criada no provedor, a sessão nunca existe e a pessoa volta para o login.
+  const params = request.nextUrl.searchParams;
+  if (pathname === "/" && (params.has("code") || params.has("error"))) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = "/auth/callback";
+    return NextResponse.redirect(callback);
+  }
+
   // Só existe o aplicativo: a raiz não tem página e vai direto para o painel, que por sua vez
   // manda para o login quando não há sessão.
   if (pathname === "/") {
