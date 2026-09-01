@@ -2,7 +2,7 @@
 
 import { CheckIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Logo } from "@/components/layout/logo";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +27,50 @@ const cycles: { value: BillingCycle; label: string }[] = [
 
 const CURRENT_PLAN: PlanId = "free";
 
+const COUNT_DURATION_MS = 380;
+
+// O número corre do valor antigo para o novo ao trocar o ciclo, sempre em reais fechados para não
+// pingar centavo no meio do caminho. Escreve direto no texto do nó em vez de estado: re-render por
+// quadro só para animar um dígito não se justifica. Com movimento reduzido, troca seca.
+function AnimatedAmount({ cents }: { cents: number }) {
+  const node = useRef<HTMLSpanElement>(null);
+  const shown = useRef(cents);
+
+  useLayoutEffect(() => {
+    const element = node.current;
+    const from = shown.current;
+    if (!element || from === cents) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      shown.current = cents;
+      return;
+    }
+
+    const start = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      const progress = Math.min(1, (now - start) / COUNT_DURATION_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      const current = Math.round((from + (cents - from) * eased) / 100) * 100;
+      shown.current = current;
+      element.textContent = `R$${formatPrice(current)}`;
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    });
+
+    element.textContent = `R$${formatPrice(from)}`;
+    return () => cancelAnimationFrame(frame);
+  }, [cents]);
+
+  return (
+    <span ref={node} className={styles.amount}>
+      R${formatPrice(cents)}
+    </span>
+  );
+}
+
 function Price({ plan, cycle }: { plan: Plan; cycle: BillingCycle }) {
   return (
     <p className={styles.price}>
-      <span className={styles.amount}>R${formatPrice(plan.price[cycle])}</span>
+      <AnimatedAmount cents={plan.price[cycle]} />
       <span className={styles.period}>/mês</span>
     </p>
   );
@@ -78,7 +118,7 @@ export function PlanStep({ team, demo = false }: PlanStepProps) {
       <div className={styles.glow} aria-hidden="true" />
 
       <header className={styles.header}>
-        <Logo variant="logotipo" height={34} />
+        <Logo variant="logotipo" height={compact ? 24 : 34} />
 
         <Text as="h2" variant="largeTitle" weight="bold" align="center" className={styles.title}>
           Desbloqueie todos os benefícios
@@ -122,7 +162,7 @@ export function PlanStep({ team, demo = false }: PlanStepProps) {
               className={styles.row}
               data-selected={selected === plan.id || undefined}
               onClick={() => setSelected(plan.id)}
-              {...squircle("xl")}
+              {...squircle("lg")}
             >
               <span className={styles.rowText}>
                 <span className={styles.rowName}>
@@ -199,7 +239,7 @@ export function PlanStep({ team, demo = false }: PlanStepProps) {
         <Button
           size="lg"
           fullWidth
-          radius="md"
+          radius="lg"
           loading={working !== null}
           onClick={() => void choose(selected)}
         >

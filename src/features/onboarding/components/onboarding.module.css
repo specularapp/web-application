@@ -238,6 +238,12 @@
     gap: var(--space-5);
   }
 
+  /* Mesma lição do cartão de login: raio 40 numa tela estreita pesa, e no Safari, sem corner-shape,
+     raio alto demais vira pílula. No mobile o painel desce para 24. */
+  .card {
+    border-radius: var(--radius-xl);
+  }
+
   .card[data-step="plano"] {
     padding: var(--space-4);
   }

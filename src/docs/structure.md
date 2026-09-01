@@ -76,7 +76,7 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - Primitivos `--sys-*`: red, orange, yellow, green, mint, teal, cyan, blue, indigo, purple, pink, brown e gray 1 a 6.
 - Semânticos `--color-*` seguindo os nomes da Apple: label (4 níveis), placeholder, link, separator, bg (system e grouped, 3 níveis cada) e fill (4 níveis).
 - Papéis do produto: `--color-brand` (preto no claro, branco no escuro, igual ao logo), `--color-accent` (system blue), success, warning, danger, info e focus.
-- Claro e escuro com `light-dark()`: o tema segue o sistema por padrão e é forçado com `data-theme="light"` ou `data-theme="dark"` no `html`.
+- Claro e escuro com `light-dark()`, forçados com `data-theme="light"` ou `data-theme="dark"` no `html`. **Escuro é o padrão do produto**: sem cookie de preferência, o layout raiz põe `data-theme="dark"` em vez de seguir o sistema (decisão de 2026-09-01). Todo componente continua obrigado a funcionar nos dois temas, porque o claro segue disponível por preferência.
 
 ### Tipografia
 

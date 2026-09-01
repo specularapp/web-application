@@ -68,7 +68,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const nonce = headerStore.get("x-nonce") ?? undefined;
   const preference = readThemeCookie(cookieStore.get("theme")?.value);
   const authScreen = isAuthPath(headerStore.get("x-pathname"));
-  const theme = authScreen ? "dark" : preference;
+  // Escuro é o padrão do produto: sem preferência salva, nada de seguir o sistema.
+  const theme = authScreen ? "dark" : (preference ?? "dark");
 
   return (
     <html
@@ -81,7 +82,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <GooberNonce nonce={nonce} />
         <EmotionRegistry nonce={nonce}>
           <ToastProvider>{children}</ToastProvider>
-          {isHomologation() && <ThemeToggle initial={preference ?? "system"} />}
+          {isHomologation() && <ThemeToggle initial={preference ?? "dark"} />}
         </EmotionRegistry>
         <SquircleProvider />
       </body>

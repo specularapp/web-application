@@ -95,17 +95,18 @@
   font-size: var(--text-caption-2);
 }
 
+/* Sem align-items: os três cartões esticam para a altura da linha e terminam juntos embaixo. */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
-  align-items: start;
 }
 
 /* O plano atual fica raso, sem caixa, e as opções de subida ganham superfície e borda. O recuo é o
    mesmo nos três para o conteúdo alinhar, então o vão entre eles não pesa mais de um lado. */
 .card {
   display: grid;
+  align-content: start;
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid transparent;
@@ -186,14 +187,15 @@
     padding-top: 0;
   }
 
-  .title {
+  /* Três classes de propósito: o Text define o tamanho com .text[data-variant], e uma classe só perderia. */
+  .step .header .title {
     max-width: none;
-    font-size: var(--text-title-1);
+    font-size: var(--text-title-2);
   }
 
-  .subtitle {
+  .step .header .subtitle {
     max-width: none;
-    font-size: var(--text-subheadline);
+    font-size: var(--text-footnote);
   }
 
   .grid {
@@ -211,7 +213,7 @@
     text-align: start;
     background-color: transparent;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     transition:
       background-color var(--duration-fast) var(--ease-standard),
@@ -250,12 +252,13 @@
     text-overflow: ellipsis;
   }
 
-  /* Duas linhas de descrição bastam na linha compacta: mais que isso e o preço fica solto no meio. */
+  /* Uma linha de descrição na lista compacta: o resto está no desktop, e aqui ela só situa o plano. */
   .rowDescription {
     display: -webkit-box;
+    max-width: 24ch;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
   }
 
   /* Preço empilhado à direita: o "/mês" na mesma linha custava largura que o nome do plano precisa

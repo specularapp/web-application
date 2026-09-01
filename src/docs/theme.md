@@ -3,7 +3,7 @@
 ## Fonte da verdade
 
 - `src/styles/tokens.css`: primitivos `--sys-*` e semânticos `--color-*` com `light-dark()`; `color-scheme: light dark` no `:root`.
-- Preferência: cookie `theme` com `light` ou `dark`; ausente significa seguir o sistema. O layout raiz lê o cookie e coloca `data-theme` no `html`, que só troca o `color-scheme`. Sem flash, sem script inline, compatível com a CSP.
+- Preferência: cookie `theme` com `light` ou `dark`; ausente significa **escuro**, o padrão do produto (decisão de 2026-09-01, antes seguia o sistema). O layout raiz lê o cookie e coloca `data-theme` no `html`, que só troca o `color-scheme`. Sem flash, sem script inline, compatível com a CSP. No `ThemeToggle` de homologação, "Sistema" ainda apaga o cookie e segue o sistema até recarregar, quando o padrão escuro volta; é ferramenta de teste, não estado final.
 - Helper: `src/lib/theme.ts` (`readThemeCookie`, `themeCookieString`).
 - `ThemeToggle` (`components/layout/theme-toggle/`): `Listbox` com Sistema, Claro e Escuro. Escreve o cookie por `themeCookieString` e troca `document.documentElement.dataset.theme` na hora (remove o atributo em Sistema). Recebe o valor inicial do layout raiz, que já leu o cookie, então não há salto na hidratação. Montado flutuando no canto inferior esquerdo, numa doca arrastável pela alça (ponteiro com captura, setas do teclado em passos de 16px, sempre dentro da viewport), só em homologação (`isHomologation()` em `lib/env.ts`: `NODE_ENV` diferente de produção ou `VERCEL_ENV` preview). Em produção o seletor vai para a tela de configurações.
 
