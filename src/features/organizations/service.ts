@@ -170,21 +170,51 @@ function slugAttempts(name: string) {
   return variants;
 }
 
-export async function saveTeam(client: TeamClient, input: SaveTeamInput): Promise<ServiceResult<Team>> {
-  const values = { name: input.name, industry: input.industry, website: input.website };
+type TeamValues = { name: string; industry: OrganizationIndustry; website: string | null };
 
-  for (const slug of slugAttempts(input.name)) {
-    const query = input.organizationId
-      ? client.from("organizations").update({ ...values, slug }).eq("id", input.organizationId)
-      : client.from("organizations").insert({ ...values, slug });
+async function updateTeam(client: TeamClient, id: string, values: TeamValues, slugs: string[]) {
+  for (const slug of slugs) {
+    const { data, error } = await client
+      .from("organizations")
+      .update({ ...values, slug })
+      .eq("id", id)
+      .select(teamColumns)
+      .maybeSingle();
 
-    const { data, error } = await query.select(teamColumns).maybeSingle();
-    if (!error && data) return { ok: true, data: toTeam(data) };
-    if (error && error.code !== "23505") return { ok: false, error: messageOf(error, SAVE_FAILED) };
-    if (!error && !data) return { ok: false, error: SAVE_FAILED };
+    if (!error && data) return { ok: true, data: toTeam(data) } as const;
+    if (error && error.code !== "23505") return { ok: false, error: messageOf(error, SAVE_FAILED) } as const;
+    if (!error && !data) return { ok: false, error: SAVE_FAILED } as const;
   }
 
-  return { ok: false, error: SLUG_TAKEN };
+  return { ok: false, error: SLUG_TAKEN } as const;
+}
+
+// O id sai daqui e a leitura é separada de propósito: o RETURNING de um insert passa pela policy de
+// select, e a associação que torna a linha visível só nasce no trigger AFTER INSERT, que roda depois.
+async function createTeam(client: TeamClient, values: TeamValues, slugs: string[]) {
+  const id = crypto.randomUUID();
+
+  for (const slug of slugs) {
+    const { error } = await client.from("organizations").insert({ id, ...values, slug });
+    if (error) {
+      if (error.code !== "23505") return { ok: false, error: messageOf(error, SAVE_FAILED) } as const;
+      continue;
+    }
+
+    const { data } = await client.from("organizations").select(teamColumns).eq("id", id).maybeSingle();
+    return data ? ({ ok: true, data: toTeam(data) } as const) : ({ ok: false, error: SAVE_FAILED } as const);
+  }
+
+  return { ok: false, error: SLUG_TAKEN } as const;
+}
+
+export async function saveTeam(client: TeamClient, input: SaveTeamInput): Promise<ServiceResult<Team>> {
+  const values = { name: input.name, industry: input.industry, website: input.website };
+  const slugs = slugAttempts(input.name);
+
+  return input.organizationId
+    ? updateTeam(client, input.organizationId, values, slugs)
+    : createTeam(client, values, slugs);
 }
 
 export async function inviteMember(

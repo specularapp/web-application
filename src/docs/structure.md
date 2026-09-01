@@ -234,6 +234,7 @@ O primeiro domínio montado nesse formato é `organizations`: `service.ts` receb
 - Etapa 2: convite por e-mail e nome com papel, e a lista com quem já está no time. Convite pendente mostra a etiqueta "Pendente", papel travado (não existe policy de update em convite) e × para cancelar; o dono também tem o papel travado, porque o banco protege o último owner. Cada linha reserva o espaço do × mesmo quando ele não aparece, senão os selects de papel desalinham entre as linhas.
 - O convite grava a linha, gera o token (hash no banco) e dispara o e-mail pelo Resend com link para `/convite/<token>`, que chama `accept_invite`. Falha de entrega não derruba a ação: o convite continua pendente e pode ser refeito.
 - Quem entrou por convite não passa pelo fluxo: `getOnboardingGate` só pede configuração de quem é owner ou admin.
+- **`insert ... returning` passa pela policy de select.** Criar o time quebrava com 42501 por isso: a associação em `organization_members` que torna a linha visível nasce no trigger AFTER INSERT, que roda depois do RETURNING ser materializado. A policy de select da organização passou a aceitar também `created_by = auth.uid()`, o que protege qualquer cliente que fale direto com a API, e o serviço gera o id e lê a linha num passo separado. Vale para toda tabela cuja visibilidade dependa de algo criado por trigger no mesmo insert.
 - A etapa do plano ainda não existe; ao concluir a etapa 2, `complete_onboarding` marca `organizations.onboarding_completed_at` e a pessoa vai para o painel.
 
 ### Login
