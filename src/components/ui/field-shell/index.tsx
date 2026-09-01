@@ -55,8 +55,11 @@ export const FieldAffix = styled.span`
   color: inherit;
   user-select: none;
 
-  /* Unidade (R$, %) pesa igual ao valor; prefixo de endereço é contexto e não pode competir com o que foi digitado. */
+  /* Unidade (R$, %) pesa igual ao valor e fica solta do número; prefixo de endereço é contexto, não
+     compete com o que foi digitado e encosta no texto, porque as duas partes formam um endereço só.
+     O recuo negativo come o gap do FieldShell, que separa o afixo do controle. */
   &[data-tone="muted"] {
+    margin-inline-end: calc(var(--space-half) - var(--space-2));
     font-weight: var(--weight-regular);
     color: var(--color-label-tertiary);
   }
