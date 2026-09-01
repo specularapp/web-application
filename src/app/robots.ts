@@ -30,6 +30,6 @@ export default function robots(): MetadataRoute.Robots {
         "/cobranca/",
       ],
     },
-    sitemap: `${siteConfig.siteUrl}/sitemap.xml`,
+    sitemap: `${siteConfig.url}/sitemap.xml`,
   };
 }

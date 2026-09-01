@@ -959,12 +959,12 @@ const groups: Group[] = [
         note: "Link de texto com sublinhado no hover ou sempre.",
         example: (
           <>
-            <TextLink href="/precos">Ver preços</TextLink>
-            <TextLink href="/termos" underline="always">
-              Termos de uso
+            <TextLink href="/login">Ir para o login</TextLink>
+            <TextLink href="/cadastro" underline="always">
+              Criar conta
             </TextLink>
-            <TextLink href="/privacidade" tone="inherit">
-              Privacidade
+            <TextLink href="/componentes" tone="inherit">
+              Vitrine
             </TextLink>
           </>
         ),
@@ -1105,8 +1105,6 @@ const pending = [
       "CommandPalette",
       "PageHeader",
       "Sidebar",
-      "SiteFooter",
-      "SiteHeader",
       "Topbar",
     ],
   },

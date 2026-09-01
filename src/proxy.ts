@@ -1,12 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths, RESET_PASSWORD_PATH } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
-import { siteConfig } from "@/lib/metadata";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const marketingPaths = new Set(["/", "/precos", "/termos", "/privacidade", "/politica-de-privacidade"]);
-const siteHosts = new Set([siteConfig.hosts.site, `www.${siteConfig.hosts.site}`]);
 // A vitrine monta as telas de MFA de verdade, que chamam as actions: fora de homologação ela fica atrás do login.
 const openPaths = isHomologation() ? new Set(["/componentes"]) : new Set<string>();
 const authPaths = new Set<string>(publicAuthPaths);
@@ -15,7 +12,6 @@ const openPrefixes = ["/auth/"];
 
 function isPublic(pathname: string) {
   return (
-    marketingPaths.has(pathname) ||
     openPaths.has(pathname) ||
     openPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     sharedPrefixes.some((prefix) => pathname.startsWith(prefix))
@@ -48,15 +44,10 @@ function withNext(request: NextRequest, pathname: string, next: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const host = request.headers.get("host") ?? "";
 
-  // A Vercel já redireciona o domínio nu para o www. Redirecionar de volta aqui criava
-  // loop infinito, e era por isso que o www aparecia como fora do ar na verificação do Google.
-  if (siteHosts.has(host) && !marketingPaths.has(pathname)) {
-    return NextResponse.redirect(new URL(`${siteConfig.url}${pathname}${search}`), 308);
-  }
-
-  if (host === siteConfig.hosts.app && pathname === "/") {
+  // Só existe o aplicativo: a raiz não tem página e vai direto para o painel, que por sua vez
+  // manda para o login quando não há sessão.
+  if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

@@ -198,15 +198,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
         </Button>
 
         <Text variant="caption1" tone="secondary" align="center">
-          Ao criar a conta, você concorda com os{" "}
-          <TextLink href="/termos" tone="inherit" underline="always">
-            Termos de uso
-          </TextLink>{" "}
-          e a{" "}
-          <TextLink href="/politica-de-privacidade" tone="inherit" underline="always">
-            Política de Privacidade
-          </TextLink>
-          .
+          Ao criar a conta, você concorda com os Termos de uso e a Política de Privacidade do Specular.
         </Text>
       </form>
 

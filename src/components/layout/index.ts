@@ -4,7 +4,5 @@ export * from "./command-palette";
 export * from "./logo";
 export * from "./page-header";
 export * from "./sidebar";
-export * from "./site-footer";
-export * from "./site-header";
 export * from "./theme-toggle";
 export * from "./topbar";
