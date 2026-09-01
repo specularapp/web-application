@@ -11,6 +11,7 @@ import {
   imageAttachSchema,
   imageUploadSchema,
   inviteRemovalSchema,
+  inviteRoleChangeSchema,
   inviteTokenSchema,
   memberRemovalSchema,
   memberRoleChangeSchema,
@@ -21,6 +22,7 @@ import {
   acceptInvite,
   attachImage,
   cancelInvite,
+  changeInviteRole,
   changeMemberRole,
   completeOnboarding,
   createImageUpload,
@@ -114,6 +116,19 @@ export async function removeMemberAction(input: unknown): Promise<ServiceResult<
 
   const supabase = await createClient();
   const result = await removeMember(supabase, parsed.data);
+  if (result.ok) revalidatePath(DASHBOARD_PATH);
+  return result;
+}
+
+export async function changeInviteRoleAction(input: unknown): Promise<ServiceResult<undefined>> {
+  const user = await requireUser(DASHBOARD_PATH);
+  if (!(await withinActionLimit("invite-role", user.id))) return { ok: false, error: TOO_MANY };
+
+  const parsed = inviteRoleChangeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  const result = await changeInviteRole(supabase, parsed.data);
   if (result.ok) revalidatePath(DASHBOARD_PATH);
   return result;
 }

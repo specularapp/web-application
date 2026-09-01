@@ -2,11 +2,13 @@ import { siteConfig } from "@/lib/metadata";
 import {
   createInviteSchema,
   inviteRemovalSchema,
+  inviteRoleChangeSchema,
   memberRemovalSchema,
   memberRoleChangeSchema,
 } from "@/features/organizations/schemas";
 import {
   cancelInvite,
+  changeInviteRole,
   changeMemberRole,
   getTeamState,
   inviteMember,
@@ -40,10 +42,17 @@ export async function PATCH(request: Request) {
   const auth = await authorizeRequest(request, "role");
   if ("response" in auth) return auth.response;
 
-  const parsed = memberRoleChangeSchema.safeParse(await readJson(request));
-  if (!parsed.success) return invalidPayload();
+  const payload = await readJson(request);
+  const member = memberRoleChangeSchema.safeParse(payload);
+  const invite = inviteRoleChangeSchema.safeParse(payload);
 
-  const result = await changeMemberRole(auth.session.supabase, parsed.data);
+  const result = member.success
+    ? await changeMemberRole(auth.session.supabase, member.data)
+    : invite.success
+      ? await changeInviteRole(auth.session.supabase, invite.data)
+      : null;
+
+  if (!result) return invalidPayload();
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
 
   return new Response(null, { status: 204 });

@@ -5,8 +5,10 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Listbox, type ListboxPlacement } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
+import { Select } from "@/components/ui/select";
 import { Inline } from "@/components/ui/stack";
 import { Toast } from "@/components/ui/toast";
+import { memberRoleOptions } from "@/features/onboarding/labels";
 
 const orderOptions = [
   { value: "recentes", label: "Mais recentes" },
@@ -32,6 +34,28 @@ export function ListboxDemo({ placement, prefix, disabled }: ListboxDemoProps) {
       options={orderOptions}
       value={value}
       onChange={setValue}
+    />
+  );
+}
+
+export function SelectActionsDemo() {
+  const { toast } = useToast();
+  const [value, setValue] = useState<string>("member");
+
+  return (
+    <Select
+      label="Papel de Joaquim"
+      options={memberRoleOptions}
+      value={value}
+      size="sm"
+      onChange={setValue}
+      actions={[
+        {
+          label: "Remover do time",
+          tone: "danger",
+          onSelect: () => toast({ title: "Ação da lista", description: "Aqui entraria a remoção", tone: "info" }),
+        },
+      ]}
     />
   );
 }

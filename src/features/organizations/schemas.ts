@@ -85,6 +85,12 @@ export const inviteRemovalSchema = z.object({
   inviteId: z.uuid(),
 });
 
+export const inviteRoleChangeSchema = z.object({
+  organizationId: z.uuid(),
+  inviteId: z.uuid(),
+  role: invitableRoleSchema,
+});
+
 export const imageKindSchema = z.enum(["logo", "banner"]);
 export type ImageKind = z.infer<typeof imageKindSchema>;
 

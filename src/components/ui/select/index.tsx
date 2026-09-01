@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import { useState, type ReactNode } from "react";
-import { Listbox, type ListboxOption, type ListboxValue } from "../listbox";
+import { Listbox, type ListboxAction, type ListboxOption, type ListboxValue } from "../listbox";
 import type { ControlSize } from "../styles";
 
 export type SelectOption<T extends ListboxValue> = ListboxOption<T>;
@@ -22,6 +22,7 @@ export type SelectProps<T extends ListboxValue> = {
   invalid?: boolean;
   className?: string;
   iconEnd?: ReactNode;
+  actions?: ListboxAction[];
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 };
@@ -89,6 +90,7 @@ export function Select<T extends ListboxValue>({
   invalid = false,
   className,
   iconEnd,
+  actions,
   "aria-describedby": describedBy,
   "aria-invalid": ariaInvalid,
 }: SelectProps<T>) {
@@ -114,6 +116,7 @@ export function Select<T extends ListboxValue>({
         required={required}
         invalid={flagged}
         describedBy={describedBy}
+        actions={actions}
       />
       {iconEnd && <Adornment>{iconEnd}</Adornment>}
       {name && <input type="hidden" name={name} value={current === undefined ? "" : String(current)} />}

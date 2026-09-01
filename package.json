@@ -40,6 +40,7 @@
     "@tiptap/pm": "^3.30.5",
     "@tiptap/react": "^3.30.5",
     "@tiptap/starter-kit": "^3.30.5",
+    "avvvatars-react": "^0.4.2",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",

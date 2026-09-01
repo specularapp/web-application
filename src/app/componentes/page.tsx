@@ -58,7 +58,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { squircle } from "@/lib/corners";
 import { createMetadata } from "@/lib/metadata";
 import styles from "./componentes.module.css";
-import { ListboxDemo, PaginationDemo, ToastDemo, ToastPreview } from "./demos";
+import { ListboxDemo, PaginationDemo, SelectActionsDemo, ToastDemo, ToastPreview } from "./demos";
 
 export const metadata = createMetadata({
   title: "Componentes",
@@ -628,7 +628,7 @@ const groups: Group[] = [
       },
       {
         name: "Select",
-        note: "O Listbox vestido de campo: mesma altura, mesmo recuo e mesmo raio do Input, com piso de 16px na fonte para o iOS não dar zoom. Guarda a escolha num input escondido, então funciona dentro de form, e aceita placeholder enquanto ninguém escolheu.",
+        note: "O Listbox vestido de campo: mesma altura, mesmo recuo e mesmo raio do Input, com piso de 16px na fonte para o iOS não dar zoom. Guarda a escolha num input escondido, então funciona dentro de form, e aceita placeholder enquanto ninguém escolheu. Com actions, a lista ganha um divisor e itens que executam em vez de escolher, como remover.",
         layout: "stack",
         example: (
           <Stack gap={5}>
@@ -646,6 +646,9 @@ const groups: Group[] = [
                 <Select label="Papel" options={memberRoleOptions} defaultValue="owner" size="sm" disabled />
               </Sample>
             </div>
+            <Sample label="actions, separadas por divisor no fim da lista">
+              <SelectActionsDemo />
+            </Sample>
           </Stack>
         ),
       },

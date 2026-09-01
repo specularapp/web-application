@@ -38,6 +38,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | Editor de texto rico (contrato, proposta) | @tiptap/react, @tiptap/starter-kit | headless, extensível, JSON no banco, sanitizado no servidor | Quill |
 | Toasts | componente próprio (`components/ui/toast/` + `components/providers/toast-provider/`) | identidade completa, comportamento simples e sob controle | sonner, react-toastify |
 | Upload | react-dropzone + Supabase Storage com URL assinada | UI headless, servidor gera a URL | uppy |
+| Avatar sem foto | avvvatars-react | avatar determinístico por texto, com cor e iniciais. **Em uso** pelo `Avatar`, só quando não há `src`; entra por `components/ui/avatar/shape.tsx` e nunca direto em feature. Traz o goober junto, que injeta `<style>` em runtime: a CSP por nonce exige `window.__nonce__`, posto pelo `GooberNonce` no layout raiz | boring-avatars (sem iniciais), gerar no servidor (mais código para o mesmo resultado) |
 | Animação | motion, só onde CSS não resolve (kanban) | layout animations | |
 | E-mail | @react-email/components | templates em React para o Resend | |
 | Máscaras (CPF, CNPJ, telefone, moeda) | react-number-format | input controlado com máscara. **Em uso**: entra pelo `Input` com a prop `mask`, padrões em `src/lib/masks.ts`. Nunca importar direto em feature | |

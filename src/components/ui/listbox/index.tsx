@@ -9,6 +9,8 @@ export type ListboxValue = string | number;
 
 export type ListboxOption<T extends ListboxValue> = { value: T; label: string };
 
+export type ListboxAction = { label: string; onSelect: () => void; tone?: "danger" };
+
 export type ListboxPlacement = "below" | "above" | "auto";
 
 export type ListboxProps<T extends ListboxValue> = {
@@ -26,6 +28,7 @@ export type ListboxProps<T extends ListboxValue> = {
   required?: boolean;
   invalid?: boolean;
   describedBy?: string;
+  actions?: ListboxAction[];
 };
 
 const Menu = styled.div`
@@ -168,12 +171,27 @@ const Option = styled.li`
     background-color: var(--color-fill-tertiary);
   }
 
+  &[data-tone="danger"] {
+    color: var(--color-danger);
+  }
+
   & svg {
     width: 1rem;
     height: 1rem;
     color: var(--color-label);
     fill: currentColor;
   }
+
+  &[data-tone="danger"],
+  &[data-tone="danger"] svg {
+    color: var(--color-danger);
+  }
+`;
+
+const Divider = styled.li`
+  height: 1px;
+  margin-block: var(--space-1);
+  background-color: var(--color-separator);
 `;
 
 const OPTION_HEIGHT = 36;
@@ -214,17 +232,18 @@ export function Listbox<T extends ListboxValue>({
   required = false,
   invalid = false,
   describedBy,
+  actions = [],
 }: ListboxProps<T>) {
   const [open, setOpen] = useState(false);
   const [side, setSide] = useState<Exclude<ListboxPlacement, "auto">>(placement === "above" ? "above" : "below");
-  const [active, setActive] = useState(value);
+  const [activeIndex, setActiveIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listId = useId();
   const selected = options.find((option) => option.value === value);
   const valueIndex = options.findIndex((option) => option.value === value);
-  const activeIndex = options.findIndex((option) => option.value === active);
+  const total = options.length + actions.length;
   const Caret = side === "above" ? CaretUpIcon : CaretDownIcon;
 
   const close = (restoreFocus = true) => {
@@ -232,9 +251,19 @@ export function Listbox<T extends ListboxValue>({
     if (restoreFocus) triggerRef.current?.focus();
   };
 
-  const choose = (next: T) => {
-    onChange(next);
+  // Ação e opção dividem a mesma navegação, por isso o índice manda no lugar do valor: só assim a
+  // seta chega no item de remover, que não é um valor possível do campo.
+  const pick = (index: number) => {
+    const option = options[index];
+    if (option) {
+      onChange(option.value);
+      close();
+      return;
+    }
+    const action = actions[index - options.length];
+    if (!action) return;
     close();
+    action.onSelect();
   };
 
   useEffect(() => {
@@ -265,8 +294,7 @@ export function Listbox<T extends ListboxValue>({
   const onKeyDown = (event: ReactKeyboardEvent<HTMLUListElement>) => {
     const step = (delta: number) => {
       event.preventDefault();
-      const next = options[Math.min(options.length - 1, Math.max(0, activeIndex + delta))];
-      if (next) setActive(next.value);
+      setActiveIndex(Math.min(total - 1, Math.max(0, activeIndex + delta)));
     };
 
     switch (event.key) {
@@ -275,13 +303,13 @@ export function Listbox<T extends ListboxValue>({
       case "ArrowUp":
         return step(-1);
       case "Home":
-        return step(-options.length);
+        return step(-total);
       case "End":
-        return step(options.length);
+        return step(total);
       case "Enter":
       case " ":
         event.preventDefault();
-        return choose(active);
+        return pick(activeIndex);
       case "Escape":
         event.preventDefault();
         event.stopPropagation();
@@ -309,8 +337,8 @@ export function Listbox<T extends ListboxValue>({
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         onClick={() => {
-          setActive(value);
-          setSide(resolvePlacement(placement, triggerRef.current, options.length));
+          setActiveIndex(Math.max(0, valueIndex));
+          setSide(resolvePlacement(placement, triggerRef.current, total));
           setOpen((state) => !state);
         }}
       >
@@ -335,14 +363,34 @@ export function Listbox<T extends ListboxValue>({
                 id={`${listId}-${index}`}
                 role="option"
                 aria-selected={option.value === value}
-                data-active={option.value === active || undefined}
-                onPointerMove={() => setActive(option.value)}
-                onClick={() => choose(option.value)}
+                data-active={index === activeIndex || undefined}
+                onPointerMove={() => setActiveIndex(index)}
+                onClick={() => pick(index)}
               >
                 {option.label}
                 {option.value === value && <CheckIcon weight="bold" aria-hidden="true" />}
               </Option>
             ))}
+
+            {actions.length > 0 && <Divider role="presentation" />}
+
+            {actions.map((action, position) => {
+              const index = options.length + position;
+              return (
+                <Option
+                  key={action.label}
+                  id={`${listId}-${index}`}
+                  role="option"
+                  aria-selected={false}
+                  data-active={index === activeIndex || undefined}
+                  data-tone={action.tone}
+                  onPointerMove={() => setActiveIndex(index)}
+                  onClick={() => pick(index)}
+                >
+                  {action.label}
+                </Option>
+              );
+            })}
           </Scroll>
         </List>
       )}

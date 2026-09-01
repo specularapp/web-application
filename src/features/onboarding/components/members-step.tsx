@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, ArrowRightIcon, PaperPlaneTiltIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowRightIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -15,12 +15,13 @@ import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import {
   cancelInviteAction,
+  changeInviteRoleAction,
   changeMemberRoleAction,
   finishOnboardingAction,
   inviteMemberAction,
   removeMemberAction,
 } from "@/features/organizations/actions";
-import type { InvitableRole, MemberRole } from "@/features/organizations/schemas";
+import type { MemberRole } from "@/features/organizations/schemas";
 import type { Team, TeamInvite, TeamMember } from "@/features/organizations/service";
 import { invitableRoleOptions, memberRoleOptions } from "../labels";
 import styles from "./onboarding.module.css";
@@ -44,12 +45,12 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
   const [pending, setPending] = useState(invites);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<InvitableRole>("member");
   const [inviting, setInviting] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
   const canInvite = emailPattern.test(email.trim()) && name.trim().length >= 2;
 
+  // Convite sempre entra como membro; quem quiser dar mais acesso troca o papel na lista de baixo.
   const invite = async () => {
     if (!canInvite || inviting) return;
     setInviting(true);
@@ -57,10 +58,10 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     if (demo) {
       setPending((current) => [
         ...current.filter((item) => item.email !== email),
-        { id: crypto.randomUUID(), name, email, role },
+        { id: crypto.randomUUID(), name, email, role: "member" },
       ]);
     } else {
-      const result = await inviteMemberAction({ organizationId: team.id, email, name, role });
+      const result = await inviteMemberAction({ organizationId: team.id, email, name, role: "member" });
       if (!result.ok) {
         toast({ title: "Não foi possível convidar", description: result.error, tone: "danger" });
         setInviting(false);
@@ -73,7 +74,6 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
 
     setEmail("");
     setName("");
-    setRole("member");
     setInviting(false);
   };
 
@@ -98,6 +98,19 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     if (!result.ok) {
       setPeople(previous);
       toast({ title: "Não foi possível remover", description: result.error, tone: "danger" });
+    }
+  };
+
+  const updateInviteRole = async (inviteId: string, next: MemberRole) => {
+    if (next === "owner") return;
+    const previous = pending;
+    setPending((current) => current.map((item) => (item.id === inviteId ? { ...item, role: next } : item)));
+    if (demo) return;
+
+    const result = await changeInviteRoleAction({ organizationId: team.id, inviteId, role: next });
+    if (!result.ok) {
+      setPending(previous);
+      toast({ title: "Não foi possível trocar o papel", description: result.error, tone: "danger" });
     }
   };
 
@@ -161,28 +174,17 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
           </Field>
         </div>
 
-        <div className={styles.pair}>
-          <Field label="Papel no time">
-            <Select
-              label="Papel no time"
-              options={invitableRoleOptions}
-              value={role}
-              onChange={(next) => setRole(next)}
-            />
-          </Field>
-
-          <Button
-            variant="secondary"
-            size="md"
-            fullWidth
-            loading={inviting}
-            disabled={!canInvite}
-            iconStart={<PaperPlaneTiltIcon />}
-            onClick={() => void invite()}
-          >
-            {inviting ? "Enviando" : "Convidar"}
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          size="md"
+          fullWidth
+          loading={inviting}
+          disabled={!canInvite}
+          iconStart={<PaperPlaneTiltIcon />}
+          onClick={() => void invite()}
+        >
+          {inviting ? "Enviando" : "Convidar"}
+        </Button>
       </div>
 
       <Separator />
@@ -194,9 +196,10 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
 
         {people.map((person) => {
           const label = person.name ?? person.email ?? "Sem nome";
+          const removable = person.userId !== currentUser.userId && person.role !== "owner";
           return (
             <div key={person.userId} className={styles.member}>
-              <Avatar name={label} src={person.avatarUrl ?? undefined} size="md" />
+              <Avatar name={label} src={person.avatarUrl ?? undefined} seed={person.email ?? person.userId} size="md" />
               <div className={styles.memberText}>
                 <div className={styles.memberName}>
                   <Text variant="subheadline" weight="medium" truncate>
@@ -215,20 +218,19 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                   size="sm"
                   disabled={person.role === "owner"}
                   onChange={(next) => void updateRole(person.userId, next)}
+                  actions={
+                    removable
+                      ? [
+                          {
+                            label: "Remover do time",
+                            tone: "danger",
+                            onSelect: () => void dropMember(person.userId),
+                          },
+                        ]
+                      : undefined
+                  }
                 />
               </span>
-              {person.userId !== currentUser.userId && person.role !== "owner" ? (
-                <IconButton
-                  label={`Remover ${label}`}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void dropMember(person.userId)}
-                >
-                  <XIcon />
-                </IconButton>
-              ) : (
-                <span className={styles.slot} aria-hidden="true" />
-              )}
             </div>
           );
         })}
@@ -237,7 +239,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
           const label = item.name ?? item.email;
           return (
             <div key={item.id} className={styles.member}>
-              <Avatar name={label} size="md" />
+              <Avatar name={label} seed={item.email} size="md" />
               <div className={styles.memberText}>
                 <div className={styles.memberName}>
                   <Text variant="subheadline" weight="medium" truncate>
@@ -252,16 +254,17 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                 </Text>
               </div>
               <span className={styles.role}>
-                <Select label={`Papel de ${label}`} options={memberRoleOptions} value={item.role} size="sm" disabled />
+                <Select
+                  label={`Papel de ${label}`}
+                  options={invitableRoleOptions}
+                  value={item.role}
+                  size="sm"
+                  onChange={(next) => void updateInviteRole(item.id, next)}
+                  actions={[
+                    { label: "Cancelar convite", tone: "danger", onSelect: () => void dropInvite(item.id) },
+                  ]}
+                />
               </span>
-              <IconButton
-                label={`Cancelar o convite de ${label}`}
-                variant="ghost"
-                size="sm"
-                onClick={() => void dropInvite(item.id)}
-              >
-                <XIcon />
-              </IconButton>
             </div>
           );
         })}

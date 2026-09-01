@@ -3,16 +3,18 @@ import type { ComponentPropsWithoutRef } from "react";
 import { squircleAuto } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./avatar.module.css";
+import { AvatarShape } from "./shape";
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg";
 
-export type AvatarShape = "circle" | "squircle";
+export type AvatarShapeName = "circle" | "squircle";
 
 export type AvatarProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
   name: string;
   src?: string;
+  seed?: string;
   size?: AvatarSize;
-  shape?: AvatarShape;
+  shape?: AvatarShapeName;
 };
 
 const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44px", lg: "52px" };
@@ -24,7 +26,7 @@ function initialsOf(name: string) {
   return (first + last).toLocaleUpperCase("pt-BR");
 }
 
-export function Avatar({ name, src, size = "md", shape = "circle", className, ...props }: AvatarProps) {
+export function Avatar({ name, src, seed, size = "md", shape = "circle", className, ...props }: AvatarProps) {
   return (
     <span
       role="img"
@@ -35,7 +37,11 @@ export function Avatar({ name, src, size = "md", shape = "circle", className, ..
       {...(shape === "squircle" && squircleAuto())}
       {...props}
     >
-      {src ? <Image src={src} alt="" fill sizes={imageSizes[size]} className={styles.image} /> : initialsOf(name)}
+      {src ? (
+        <Image src={src} alt="" fill sizes={imageSizes[size]} className={styles.image} />
+      ) : (
+        <AvatarShape seed={seed ?? name} initials={initialsOf(name)} size={size} />
+      )}
     </span>
   );
 }

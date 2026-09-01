@@ -6,6 +6,7 @@ import {
   slugFromName,
   type CreateInviteInput,
   type ImageKind,
+  type InvitableRole,
   type LogoContentType,
   type MemberRole,
   type OrganizationIndustry,
@@ -278,6 +279,21 @@ export async function removeMember(
     .eq("user_id", input.userId);
 
   if (error) return { ok: false, error: messageOf(error, "Não foi possível remover essa pessoa.") };
+  return { ok: true, data: undefined };
+}
+
+export async function changeInviteRole(
+  client: TeamClient,
+  input: { organizationId: string; inviteId: string; role: InvitableRole },
+): Promise<ServiceResult<undefined>> {
+  const { error } = await client
+    .from("organization_invites")
+    .update({ role: input.role })
+    .eq("organization_id", input.organizationId)
+    .eq("id", input.inviteId)
+    .is("accepted_at", null);
+
+  if (error) return { ok: false, error: messageOf(error, "Não foi possível trocar o papel do convite.") };
   return { ok: true, data: undefined };
 }
 

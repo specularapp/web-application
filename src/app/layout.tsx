@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
+import { GooberNonce } from "@/components/providers/goober-nonce";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SquircleProvider } from "@/components/providers/squircle-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
@@ -77,6 +78,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       data-scroll={authScreen ? "locked" : undefined}
     >
       <body>
+        <GooberNonce nonce={nonce} />
         <EmotionRegistry nonce={nonce}>
           <ToastProvider>{children}</ToastProvider>
           {isHomologation() && <ThemeToggle initial={preference ?? "system"} />}
