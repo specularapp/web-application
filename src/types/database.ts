@@ -47,6 +47,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string | null
+          name: string | null
           organization_id: string
           role: Database["public"]["Enums"]["member_role"]
           token_hash: string
@@ -58,6 +59,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          name?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["member_role"]
           token_hash: string
@@ -69,6 +71,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          name?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["member_role"]
           token_hash?: string
@@ -117,9 +120,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          industry: Database["public"]["Enums"]["organization_industry"] | null
           kind: Database["public"]["Enums"]["organization_kind"]
           logo_url: string | null
           name: string
+          onboarding_completed_at: string | null
           slug: string
           updated_at: string
         }
@@ -127,9 +132,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          industry?: Database["public"]["Enums"]["organization_industry"] | null
           kind?: Database["public"]["Enums"]["organization_kind"]
           logo_url?: string | null
           name: string
+          onboarding_completed_at?: string | null
           slug: string
           updated_at?: string
         }
@@ -137,9 +144,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          industry?: Database["public"]["Enums"]["organization_industry"] | null
           kind?: Database["public"]["Enums"]["organization_kind"]
           logo_url?: string | null
           name?: string
+          onboarding_completed_at?: string | null
           slug?: string
           updated_at?: string
         }
@@ -189,9 +198,12 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      can_manage_logo: { Args: { p_name: string }; Returns: boolean }
+      complete_onboarding: { Args: { p_organization_id: string }; Returns: undefined }
       create_invite: {
         Args: {
           p_email: string
+          p_name?: string
           p_organization_id: string
           p_role?: Database["public"]["Enums"]["member_role"]
         }
@@ -212,9 +224,28 @@ export type Database = {
         Returns: undefined
       }
       shares_org_with: { Args: { p_user_id: string }; Returns: boolean }
+      team_members: {
+        Args: { p_organization_id: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          email: string
+          name: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       member_role: "owner" | "admin" | "member"
+      organization_industry:
+        | "design"
+        | "development"
+        | "marketing"
+        | "audiovisual"
+        | "architecture"
+        | "consulting"
+        | "other"
       organization_kind: "freelancer" | "agency"
     }
     CompositeTypes: {
@@ -347,6 +378,15 @@ export const Constants = {
   public: {
     Enums: {
       member_role: ["owner", "admin", "member"],
+      organization_industry: [
+        "design",
+        "development",
+        "marketing",
+        "audiovisual",
+        "architecture",
+        "consulting",
+        "other",
+      ],
       organization_kind: ["freelancer", "agency"],
     },
   },

@@ -7,7 +7,8 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-08-27 (qua) | ~3h (19:30 a 22:40) | Fundação completa: estrutura, auth, banco multi-tenant, segurança, tema, libs e primitivos |
 | 2026-08-28 (qui) | ~5h (noite, até ~01:00 de 29) | Design system: cantos squircle com cornerKit, Button, Text, Surface, Progress, Spinner, campos com máscara, DatePicker, Tooltip e vitrine em /componentes |
 | 2026-08-29 (sex) | ~8h30 (13:00 a 21:30) | Design system (Badge, Listbox, Pagination, Checkbox, Switch, Avatar, Toast, Carousel, PasswordInput, BrandIcon, GradientBlinds), motor de cantos próprio no lugar do cornerKit, tela de login completa nos dois layouts com fundo WebGL, tema escuro forçado em auth |
-| 2026-08-30 (sáb) | em andamento | Tela de criar conta no mesmo AuthCard, com signUp por e-mail e confirmação |
+| 2026-08-30 (sáb) | ~1h no dia (21:15 a 22:10) mais a continuação no dia 31 (19:59 a 21:47) | Cadastro, MFA, e-mails próprios, auditoria da autenticação e correções de produção |
+| 2026-08-31 (dom) | em andamento | Configuração inicial do time em duas etapas, domínio organizations com service e api/v1, Select do design system |
 
 ## 2026-08-27
 
@@ -149,4 +150,27 @@ Pendências:
 - E2E do MFA montado (usuário de teste via admin API, login pela UI, TOTP calculado em Node): revelou token do Turnstile perdido no input imperativo (virou input controlado pelos formulários) e enroll de TOTP desligado no projeto hospedado (config.toml não vale lá; instrução no setup.md).
 - E-mails de autenticação próprios: 6 templates com marca em db/supabase/templates ligados no config.toml, logos em PNG gerados por headless, instruções de SMTP do Resend e URLs de redirect no setup.md, reenvio de confirmação na tela de cadastro e aviso de link expirado no /login.
 - Recolar os 13 templates no painel do Supabase depois do deploy do /confirmar-email e ligar os toggles da seção Security.
-- Achados da auditoria que continuam abertos, por serem produto e não correção: perder o autenticador hoje é perda definitiva da conta (não existe código de recuperação, nem tela de gerenciar fatores, e `unenrollTotp` está sem uso), quem tem a senha de alguém sem MFA cadastra o próprio autenticador e assume a conta, `requireUser`/`requireMfaSatisfied` e `mfa_satisfied()` existem e não são chamados em lugar nenhum (precisam entrar nas páginas de `(app)` e nas policies antes de qualquer dado real aparecer), auth só vive em Server Action sem `service.ts` nem `api/v1` (regra 2), e os boundaries de erro renderizam `null`, então qualquer exceção vira tela branca.
+- Achados da auditoria que continuam abertos, por serem produto e não correção (parte deles caiu no dia 31, ver a seção seguinte): perder o autenticador hoje é perda definitiva da conta (não existe código de recuperação, nem tela de gerenciar fatores, e `unenrollTotp` está sem uso), quem tem a senha de alguém sem MFA cadastra o próprio autenticador e assume a conta, `requireUser`/`requireMfaSatisfied` e `mfa_satisfied()` existem e não são chamados em lugar nenhum (precisam entrar nas páginas de `(app)` e nas policies antes de qualquer dado real aparecer), auth só vive em Server Action sem `service.ts` nem `api/v1` (regra 2), e os boundaries de erro renderizam `null`, então qualquer exceção vira tela branca.
+
+## 2026-08-31
+
+Tempo: em andamento (primeiro commit do dia 19:59). A parte da manhã e do começo da noite está registrada na seção de 2026-08-30, que essa sessão continuou.
+
+Feito:
+
+- Configuração inicial do time em `/primeiros-passos`, no grupo `(app)`: tema normal, fundo agrupado, logotipo no topo e um `Surface` de nível 1 com barra de três etapas. É processo dentro do produto, não mais uma tela de login. A rota antiga `/onboarding` saiu (rota em português, feature continua `onboarding` em inglês).
+- Etapa 1 com logo, nome, domínio e área de atuação. O domínio é o `slug`, derivado do nome por `slugify` enquanto o campo não for editado, com o endereço público montado embaixo em tempo real. A logo vai por URL assinada: action prepara `path` e `token`, o navegador manda o arquivo direto ao Storage e uma segunda action grava a URL e apaga a anterior.
+- Etapa 2 com convite por e-mail e nome, papel por `Select` e a lista do time. Convite pendente leva etiqueta "Pendente" e × para cancelar; o dono tem o papel travado porque o banco protege o último owner. O convite dispara e-mail pelo Resend com link para `/convite/<token>`, que chama `accept_invite`. Falha de entrega não derruba o convite.
+- A etapa do plano entra na barra como terceira e ainda não existe: concluir a etapa 2 marca `onboarding_completed_at` e leva ao painel.
+- Domínio `organizations` montado no formato que a regra 2 pede, o primeiro do projeto: `service.ts` que recebe o cliente Supabase de fora, `actions.ts` como casca fina com sessão, zod, rate limit e revalidação, e `api/v1/organizacoes` mais `organizacoes/membros` para o aplicativo, com `authorizeRequest` novo em `lib/api/v1.ts` cuidando de Bearer, teto por pessoa e leitura do corpo com limite.
+- Banco: enum `organization_industry`, colunas `industry` e `onboarding_completed_at`, `name` no convite, `team_members` e `complete_onboarding` como RPC, `create_invite` recriada com nome e recusando convite para quem já é do time. Storage em migração separada, para uma recusa de policy em `storage.objects` não derrubar o resto: bucket público `organization-logos` (2 MB, PNG, JPG e WEBP, sem SVG) com as policies presas à pasta do id da organização por `can_manage_logo`.
+- `Select` do design system, nascido do `Listbox` como a doc mandava: gatilho com as medidas do campo por variáveis locais, valor num input escondido para funcionar dentro de `form`, placeholder e `id` no gatilho para o `Label` do `Field`. Saiu da lista de stubs e entrou na vitrine junto com a prévia do fluxo de primeiros passos.
+- Bug de largura achado na prévia: `Select` apertado por classe de CSS Module ignorava o tamanho, porque a folha do Emotion entra depois com a mesma especificidade. A linha de membro passou a envolver o componente num `span` próprio, e o espaço do × é reservado mesmo sem botão para os selects não desalinharem.
+- `requireUser` saiu do papel: `requireOnboarding` no painel manda quem ainda não configurou de volta para o fluxo, e só desvia owner e admin, para quem entrou por convite não cair na configuração do time dos outros.
+
+Pendências:
+
+- Rodar `npm run db:push` e `npm run db:types` no projeto hospedado: as duas migrações novas ainda não foram aplicadas, e `src/types/database.ts` está escrito à mão com o que elas criam.
+- Etapa do plano, que é a próxima conversa: Stripe, catálogo e a tela em si.
+- Fluxo de convite ponta a ponta com dois usuários de verdade (e-mail entregue, `/convite/<token>`, aceite e troca de papel).
+- As pendências de 2026-08-29 e 2026-08-30 continuam, tirando `requireUser` sem uso e a falta de `service.ts` com `api/v1`, que passam a valer só para o domínio `auth`.

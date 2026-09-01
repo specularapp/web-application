@@ -1,0 +1,233 @@
+@keyframes stepEnter {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-8);
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4) var(--space-10);
+  background-color: var(--color-bg-grouped);
+}
+
+.top,
+.shell {
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.shell {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.progress {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bars {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.bar {
+  flex: 1;
+  height: 0.25rem;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.bar[data-state="done"],
+.bar[data-state="current"] {
+  background-color: var(--color-brand);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headText {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.step {
+  display: grid;
+  gap: var(--space-6);
+  animation: stepEnter var(--duration-base) var(--ease-standard);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.identityText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.dropzone {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border: 1px dashed var(--color-separator);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.dropzone:hover,
+.dropzone[data-active] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.dropzone[data-filled] {
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.dropzone svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+.dropzone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.address {
+  overflow-wrap: anywhere;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.memberText {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.memberName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Envoltório em elemento próprio: o Select é Emotion, e classe de módulo perde da folha injetada em runtime. */
+.role {
+  flex-shrink: 0;
+  width: 11rem;
+}
+
+.slot {
+  flex-shrink: 0;
+  width: var(--control-height-sm);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.back {
+  margin-inline-end: auto;
+}
+
+@media (max-width: 40rem) {
+  .page {
+    gap: var(--space-6);
+    padding: var(--space-4) var(--space-3) var(--space-8);
+  }
+
+  .card,
+  .step {
+    gap: var(--space-5);
+  }
+
+  .pair {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+
+  .member {
+    flex-wrap: wrap;
+  }
+
+  .memberText {
+    flex-basis: 60%;
+  }
+
+  .role {
+    flex: 1;
+    width: auto;
+    min-width: 8rem;
+  }
+}

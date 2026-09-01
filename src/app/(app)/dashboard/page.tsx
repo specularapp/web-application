@@ -1,3 +1,4 @@
+import { requireOnboarding } from "@/features/onboarding/guard";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
@@ -6,6 +7,7 @@ export const metadata = createMetadata({
   path: "/dashboard",
 });
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  await requireOnboarding();
   return null;
 }

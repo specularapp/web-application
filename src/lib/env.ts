@@ -24,6 +24,10 @@ export function hasTurnstile() {
   return Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 }
 
+export function hasResend() {
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+}
+
 export const env = {
   supabase: define(
     "Supabase",

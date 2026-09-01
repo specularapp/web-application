@@ -29,6 +29,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
 import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
 import { MfaVerify } from "@/features/auth/components/mfa-verify";
+import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
+import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
 import { Container } from "@/components/ui/container";
 import { DatePicker } from "@/components/ui/date-picker";
 import { IconButton } from "@/components/ui/icon-button";
@@ -40,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/link";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Progress } from "@/components/ui/progress";
+import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -623,6 +626,29 @@ const groups: Group[] = [
           </div>
         ),
       },
+      {
+        name: "Select",
+        note: "O Listbox vestido de campo: mesma altura, mesmo recuo e mesmo raio do Input, com piso de 16px na fonte para o iOS não dar zoom. Guarda a escolha num input escondido, então funciona dentro de form, e aceita placeholder enquanto ninguém escolheu.",
+        layout: "stack",
+        example: (
+          <Stack gap={5}>
+            <Field label="Área de atuação">
+              <Select label="Área de atuação" options={industryOptions} placeholder="Escolha a área do time" />
+            </Field>
+            <Field label="Papel no time">
+              <Select label="Papel no time" options={memberRoleOptions} defaultValue="member" />
+            </Field>
+            <div className={styles.samples}>
+              <Sample label="size sm">
+                <Select label="Papel" options={memberRoleOptions} defaultValue="admin" size="sm" />
+              </Sample>
+              <Sample label="disabled">
+                <Select label="Papel" options={memberRoleOptions} defaultValue="owner" size="sm" disabled />
+              </Sample>
+            </div>
+          </Stack>
+        ),
+      },
     ],
   },
   {
@@ -1059,8 +1085,29 @@ const groups: Group[] = [
     ],
   },
   {
-    title: "Telas de autenticação",
+    title: "Telas",
     entries: [
+      {
+        name: "Primeiros passos (prévia)",
+        note: "Fluxo de configuração inicial em modo de demonstração: as etapas trocam de verdade, com animação de entrada, mas nada vai para o banco. A tela real vive em /primeiros-passos, logo depois do cadastro.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <OnboardingFlow
+            demo
+            team={null}
+            members={[]}
+            invites={[]}
+            currentUser={{
+              userId: "00000000-0000-4000-8000-000000000000",
+              name: "Aleph Ramos",
+              email: "aleph@specular.com.br",
+              avatarUrl: null,
+              role: "owner",
+            }}
+          />
+        ),
+      },
       {
         name: "MFA cadastro (prévia)",
         note: "MfaEnroll com dados falsos para ver o layout sem sessão: QR de modelo, chave estática e verificação que falha de propósito ao completar. A tela real vive em /mfa, atrás do login.",
@@ -1093,7 +1140,6 @@ const pending = [
       "DropdownMenu",
       "EmptyState",
       "Radio",
-      "Select",
       "Tabs",
       "Textarea",
     ],

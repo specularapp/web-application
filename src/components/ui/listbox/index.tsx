@@ -20,11 +20,22 @@ export type ListboxProps<T extends ListboxValue> = {
   prefix?: ReactNode;
   disabled?: boolean;
   className?: string;
+  id?: string;
+  fullWidth?: boolean;
+  placeholder?: string;
+  required?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
 };
 
 const Menu = styled.div`
   position: relative;
   display: inline-flex;
+
+  &[data-full-width] {
+    display: flex;
+    width: 100%;
+  }
 `;
 
 const Trigger = styled.button`
@@ -32,18 +43,35 @@ const Trigger = styled.button`
   align-items: center;
   gap: var(--space-1);
   min-height: var(--listbox-trigger-height, 2rem);
-  padding-inline: var(--space-3) var(--space-2);
+  padding-inline: var(--listbox-trigger-padding, var(--space-3)) var(--space-2);
   font: inherit;
-  font-weight: var(--weight-semibold);
+  font-size: var(--listbox-trigger-font-size, inherit);
+  font-weight: var(--listbox-trigger-weight, var(--weight-semibold));
   letter-spacing: var(--tracking-tight);
   white-space: nowrap;
   color: var(--color-label);
   background-color: var(--listbox-trigger-background, var(--color-fill-quaternary));
+  border: 1px solid var(--listbox-trigger-border, transparent);
   border-radius: var(--listbox-trigger-radius, var(--radius-sm));
   corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
 
   ${disabledState};
+
+  &[data-full-width] {
+    flex: 1;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  &[data-empty] {
+    font-weight: var(--weight-regular);
+    color: var(--color-placeholder);
+  }
+
+  &[data-invalid] {
+    border-color: var(--color-danger);
+  }
 
   &:hover:not(:disabled),
   &[aria-expanded="true"] {
@@ -56,8 +84,9 @@ const Trigger = styled.button`
   }
 
   & svg {
-    width: 0.875rem;
-    height: 0.875rem;
+    flex-shrink: 0;
+    width: var(--listbox-caret-size, 0.875rem);
+    height: var(--listbox-caret-size, 0.875rem);
     color: var(--color-label-secondary);
     fill: currentColor;
   }
@@ -67,6 +96,12 @@ const Prefix = styled.span`
   margin-inline-end: var(--space-1);
   font-weight: var(--weight-regular);
   color: var(--color-label-secondary);
+`;
+
+const Value = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const List = styled.div`
@@ -157,6 +192,12 @@ export function Listbox<T extends ListboxValue>({
   prefix,
   disabled = false,
   className,
+  id,
+  fullWidth = false,
+  placeholder,
+  required = false,
+  invalid = false,
+  describedBy,
 }: ListboxProps<T>) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(value);
@@ -234,22 +275,29 @@ export function Listbox<T extends ListboxValue>({
   };
 
   return (
-    <Menu ref={menuRef} className={className}>
+    <Menu ref={menuRef} className={className} data-full-width={fullWidth || undefined}>
       <Trigger
         ref={triggerRef}
+        id={id}
         type="button"
         disabled={disabled}
+        data-full-width={fullWidth || undefined}
+        data-empty={!selected && placeholder ? "" : undefined}
+        data-invalid={invalid || undefined}
         aria-label={prefix ? undefined : label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
+        aria-required={required || undefined}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         onClick={() => {
           setActive(value);
           setOpen((state) => !state);
         }}
       >
         {prefix && <Prefix>{prefix}</Prefix>}
-        {selected?.label}
+        <Value>{selected?.label ?? placeholder}</Value>
         <Caret weight="bold" aria-hidden="true" />
       </Trigger>
       {open && (

@@ -1,6 +1,6 @@
 # Setup de serviços e chaves
 
-Aplicação: Specular. Produto em `https://app.specular.com.br`, site de divulgação em `https://specular.com.br`. Chaves vão em `.env.local` (nunca commitado). Modelo em `.env.example`. Valide com `npm run env:check`.
+Aplicação: Specular. Produto em `https://app.specular.com.br`, único host do projeto. Chaves vão em `.env.local` (nunca commitado). Modelo em `.env.example`. Valide com `npm run env:check`.
 
 Ordem: Supabase → OpenAI → Resend → Stripe. Redis e n8n ficam para depois.
 
@@ -117,6 +117,12 @@ npm run db:types
 ```
 
 Alternativa sem CLI: Supabase > SQL Editor > colar o arquivo da migração > Run (depois rode `npm run db:pull` para manter o histórico).
+
+### Storage: logo do time
+
+A migração `organizations/…_add_logo_storage.sql` cria o bucket público `organization-logos` (2 MB, só PNG, JPG e WEBP) e as policies em `storage.objects`, que amarram cada arquivo à pasta com o id da organização por `public.can_manage_logo`. SVG fica de fora de propósito: é XSS armazenado servido pelo domínio do Storage.
+
+Se o `db:push` recusar as policies por dono da tabela (`must be owner of table objects`), crie as quatro pela interface: Storage > Policies > `organization-logos`, com as mesmas expressões do arquivo. O resto da migração não depende disso, e sem elas só a logo deixa de subir.
 
 ## E-mail de autenticação (SMTP do Resend + templates próprios)
 

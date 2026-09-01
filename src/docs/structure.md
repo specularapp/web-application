@@ -24,6 +24,7 @@ src/
     (marketing)/        site público: home, preços, termos, privacidade
     (auth)/             login, cadastro, recuperação de senha
     (app)/              área autenticada, protegida pelo proxy
+    api/v1/             mesma regra das actions exposta ao aplicativo, por Bearer token
     (public)/           páginas compartilháveis com clientes: portfólio, currículo, orçamento, contrato, cobrança
     api/                health e webhooks (stripe, n8n, resend)
     auth/callback/      troca de código do Supabase
@@ -107,7 +108,9 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - `FieldShell` é o invólucro comum de todo campo: borda, raio por tamanho, estado inválido e desabilitado. Fundo transparente, o mesmo do botão `outline`, para campo e botão lerem como a mesma família sobre qualquer superfície; no escuro o fundo elevado destoava do botão ao lado. `Input` e `DatePicker` só põem o controle dentro. O canto é `corner-shape: squircle` nativo, declarado direto, e fica fora do recorte do fallback por conter o controle e os afixos.
 - No mobile (abaixo de 48rem) o calendário vira **bottom sheet**: fixo na base, largura total, alça no topo, fundo em `--color-scrim`, página travada atrás, células maiores. O popover flutuante depende de medir o gatilho e reagir a rolagem e teclado virtual, o que no celular vira salto e recorte. `useMediaQuery` em `src/hooks` decide, com `useSyncExternalStore` para não divergir na hidratação.
 - A legenda do calendário (mês e ano) é nossa, via `components.MonthCaption` do `react-day-picker` com `useDayPicker().goToMonth`. O `captionLayout="dropdown"` da lib usa `<select>` nativo, e a lista de um select é desenhada pelo sistema: não aceita fonte, raio, sombra nem cor. O `CaptionDropdown` é um listbox de verdade (`role="listbox"`, `aria-activedescendant`, setas, Home, End, Enter, Escape), com a opção atual marcada e rolada para a vista ao abrir.
-- Esse listbox é o `Listbox` de `components/ui/listbox/`, genérico em `string | number`, com `placement` (`below` ou `above`, que vira dropup e troca o caret) e `prefix` (rótulo curto antes do valor, como "Mostrar 30"). Saiu do calendário no segundo uso, a `Pagination`. Quando o `Select` de formulário for construído, ele nasce desse `Listbox`, não de outro.
+- Esse listbox é o `Listbox` de `components/ui/listbox/`, genérico em `string | number`, com `placement` (`below` ou `above`, que vira dropup e troca o caret) e `prefix` (rótulo curto antes do valor, como "Mostrar 30"). Saiu do calendário no segundo uso, a `Pagination`.
+- `Select` é esse mesmo `Listbox` vestido de campo, não outro componente: o gatilho recebe altura, recuo, raio e fonte do tamanho de controle pelas variáveis locais (`--listbox-trigger-height`, `--listbox-trigger-padding`, `--listbox-trigger-radius`, `--listbox-trigger-font-size`, `--listbox-trigger-border`), com piso de 16px na fonte pelo mesmo motivo do `Input`. O valor sai num `input type="hidden"`, então funciona dentro de `form` sem JS de cola; `placeholder` aparece enquanto ninguém escolheu e o `id` vai para o gatilho, para o `Label` do `Field` apontar para ele. Não usa `select` nativo porque a lista do nativo é desenhada pelo sistema e não aceita fonte, raio nem cor.
+- Largura de componente Emotion nunca sai de classe de CSS Module: a folha do Emotion é injetada em runtime, depois da do módulo, e com a mesma especificidade ela vence. Quem precisa apertar um `Select` numa linha (a lista de membros) põe o componente dentro de um `span` próprio e dimensiona o `span`.
 - O gatilho do `Listbox` é estilizado por variáveis locais (`--listbox-trigger-height`, `--listbox-trigger-radius`, `--listbox-trigger-background`, `--listbox-trigger-background-hover`), com o visual do calendário como padrão. Quem o embute define as variáveis, sem `className` de fora.
 - Ids de opção saem do índice, não do valor: `aria-activedescendant` é um IDREF e valor com espaço quebraria.
 - As opções ficam em grid com 2px de respiro (`--space-half`), para o fundo da ativa e da selecionada não colarem uma na outra.
@@ -211,7 +214,20 @@ Haverá app Android/iOS usando literalmente o mesmo Supabase. Consequências que
 5. **Tipos e validação compartilháveis**: `src/types/database.ts` (gerado) e `src/features/*/schemas.ts` (zod) são o contrato. Se o app for Expo/React Native em TypeScript, esses arquivos migram para um pacote compartilhado em monorepo sem reescrever.
 6. **Multi-tenant desde o schema**: organizações e membros modelados no banco antes de qualquer feature, porque o app precisará do mesmo contexto de conta.
 
+O primeiro domínio montado nesse formato é `organizations`: `service.ts` recebe o cliente Supabase de fora e não sabe quem chamou, `actions.ts` é a casca com sessão, zod, rate limit e revalidação, e `api/v1/organizacoes` (mais `organizacoes/membros`) é a mesma casca para o aplicativo, com `authorizeRequest` de `lib/api/v1.ts` cuidando de token, teto de requisições e leitura do corpo com limite.
+
 ## Telas
+
+### Primeiros passos
+
+- Configuração inicial do time em `/(app)/primeiros-passos`, logo depois do cadastro e da MFA. Não é tela de autenticação: tema normal (claro ou escuro conforme a preferência), fundo `--color-bg-grouped`, logotipo no topo e o conteúdo dentro de um `Surface` de nível 1, que é o que dá a leitura de "processo dentro do produto" e não de "mais uma tela de login".
+- Três etapas na barra do topo (dados do time, membros, plano), com a etapa atual e as anteriores em `--color-brand`. A troca é estado do cliente com `key` por etapa, então cada bloco monta de novo e roda `stepEnter` (opacidade e 8px de deslize), no mesmo espírito do `authEnter`.
+- Etapa 1: logo por `react-dropzone` (PNG, JPG ou WEBP até 2 MB), nome, domínio e área de atuação. O domínio é o `slug` da organização, derivado do nome por `slugify` enquanto ninguém edita o campo, e o endereço público aparece embaixo em tempo real.
+- A logo sobe por URL assinada: a action devolve `path` e `token`, o navegador manda o arquivo direto para o Storage e uma segunda action grava a URL pública e apaga o arquivo anterior. Passar a imagem por dentro da Server Action esbarraria no limite de corpo e ocuparia o processo do servidor.
+- Etapa 2: convite por e-mail e nome com papel, e a lista com quem já está no time. Convite pendente mostra a etiqueta "Pendente", papel travado (não existe policy de update em convite) e × para cancelar; o dono também tem o papel travado, porque o banco protege o último owner. Cada linha reserva o espaço do × mesmo quando ele não aparece, senão os selects de papel desalinham entre as linhas.
+- O convite grava a linha, gera o token (hash no banco) e dispara o e-mail pelo Resend com link para `/convite/<token>`, que chama `accept_invite`. Falha de entrega não derruba a ação: o convite continua pendente e pode ser refeito.
+- Quem entrou por convite não passa pelo fluxo: `requireOnboarding` só desvia quem é owner ou admin, e a própria página manda membro comum para o painel.
+- A etapa do plano ainda não existe; ao concluir a etapa 2, `complete_onboarding` marca `organizations.onboarding_completed_at` e a pessoa vai para o painel.
 
 ### Login
 
