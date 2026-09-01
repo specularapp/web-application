@@ -9,6 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { updatePassword, type UpdatePasswordState } from "../actions";
+import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
 
 type ResetPasswordFormProps = {
@@ -51,9 +52,7 @@ export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
         </Field>
 
         {state.error && (
-          <Text role="alert" variant="footnote" tone="danger">
-            {state.error}
-          </Text>
+          <AuthNotice message={state.error} />
         )}
 
         <Button type="submit" size="lg" fullWidth loading={pending}>

@@ -15,6 +15,7 @@ import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
 import { resendConfirmation, sessionEstablished, signUpWithPassword, type SignUpState } from "../actions";
+import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
 import { OAuthButtons } from "./oauth-buttons";
 import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
@@ -173,24 +174,18 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
 
         {turnstile.field}
 
-        {state.error && (
-          <Text role="alert" variant="footnote" tone="danger">
-            {state.error}
-            {state.exists && (
-              <>
-                {" "}
-                <TextLink href={`/login?next=${encodeURIComponent(next)}` as Route} tone="inherit" underline="always">
-                  Entre para continuar
-                </TextLink>
-              </>
-            )}
+        {state.error && <AuthNotice message={state.error} />}
+
+        {state.exists && (
+          <Text variant="footnote" tone="secondary" align="center">
+            <TextLink href={`/login?next=${encodeURIComponent(next)}` as Route} tone="inherit" underline="always">
+              Entre para continuar
+            </TextLink>
           </Text>
         )}
 
         {turnstile.unavailable && (
-          <Text role="alert" variant="footnote" tone="danger">
-            {TURNSTILE_UNAVAILABLE}
-          </Text>
+          <AuthNotice message={TURNSTILE_UNAVAILABLE} />
         )}
 
         <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>

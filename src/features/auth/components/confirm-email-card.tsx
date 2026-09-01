@@ -9,6 +9,7 @@ import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { confirmEmailWithToken, type ConfirmEmailState } from "../actions";
 import type { OtpType } from "../schemas";
+import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
 
 type ConfirmEmailCardProps = {
@@ -117,9 +118,7 @@ export function ConfirmEmailCard({ tokenHash, type, next }: ConfirmEmailCardProp
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="next" value={next} />
         {state.error && (
-          <Text role="alert" variant="footnote" tone="danger" align="center">
-            {state.error}
-          </Text>
+          <AuthNotice message={state.error} />
         )}
         <Button type="submit" size="lg" fullWidth loading={pending}>
           {pending ? "Confirmando" : cta}

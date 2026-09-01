@@ -9,6 +9,7 @@ import { TextLink } from "@/components/ui/link";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
 import { requestPasswordReset, type RecoverState } from "../actions";
+import { AuthNotice } from "./auth-notice";
 import styles from "./auth-form.module.css";
 import { TURNSTILE_UNAVAILABLE, useTurnstile } from "./use-turnstile";
 
@@ -64,15 +65,11 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
         {turnstile.field}
 
         {state.error && (
-          <Text role="alert" variant="footnote" tone="danger">
-            {state.error}
-          </Text>
+          <AuthNotice message={state.error} />
         )}
 
         {turnstile.unavailable && (
-          <Text role="alert" variant="footnote" tone="danger">
-            {TURNSTILE_UNAVAILABLE}
-          </Text>
+          <AuthNotice message={TURNSTILE_UNAVAILABLE} />
         )}
 
         <Button type="submit" size="lg" fullWidth loading={pending} disabled={!turnstile.verified}>
