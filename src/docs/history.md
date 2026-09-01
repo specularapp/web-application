@@ -175,9 +175,10 @@ Feito:
 - Terceira passada, também por pedido: a configuração deixou de ter rota e virou modal sobre o painel, renderizado pelo próprio `/dashboard` quando falta configurar. As barras de etapa saíram e viraram um anel no lugar da marca, com um arco por etapa e o número no centro. A identidade do time virou banner mais logo, os dois enviáveis, no formato capa de perfil: banner 4:1 com canto squircle e logo em círculo puro à esquerda, montada sobre a borda de baixo, cada um com a dimensão ideal escrita no centro enquanto está vazio.
 - Bug do recorte da imagem: com `overflow` numa camada interna, a borda seguia a superelipse e o corte seguia o arco de círculo, e a diferença aparecia no canto. O recorte passou para o próprio alvo, que é quem tem a forma.
 
-Pendências:
+- Migrações aplicadas no projeto hospedado (`db:push` com autorização do usuário) e tipos regerados: o arquivo escrito à mão bateu com o gerado, coluna por coluna e assinatura por assinatura. As policies de `storage.objects` passaram sem recusa de dono da tabela.
+- Grant explícito de execute para `authenticated` em todas as funções de `public`, em migração própria de `security`. O revoke de `public` e `anon` das migrações anteriores dependia do default privilege do Supabase para manter `authenticated` executando, o que é suposição sobre configuração de fora do repositório: se ela mudasse, a lista de membros voltaria vazia e o convite falharia sem erro visível.
 
-- Rodar `npm run db:push` e `npm run db:types` no projeto hospedado: as duas migrações novas ainda não foram aplicadas, e `src/types/database.ts` está escrito à mão com o que elas criam.
+Pendências:
 - Etapa do plano, que é a próxima conversa: Stripe, catálogo e a tela em si.
 - Fluxo de convite ponta a ponta com dois usuários de verdade (e-mail entregue, `/convite/<token>`, aceite e troca de papel).
 - As pendências de 2026-08-29 e 2026-08-30 continuam, tirando `requireUser` sem uso, a falta de `service.ts` com `api/v1` (que passam a valer só para o domínio `auth`) e os boundaries de erro em `null`, que agora só falta cobrir a raiz.

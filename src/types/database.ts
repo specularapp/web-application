@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   graphql_public: {
     Tables: {
@@ -205,7 +205,10 @@ export type Database = {
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
       can_manage_logo: { Args: { p_name: string }; Returns: boolean }
-      complete_onboarding: { Args: { p_organization_id: string }; Returns: undefined }
+      complete_onboarding: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       create_invite: {
         Args: {
           p_email: string
