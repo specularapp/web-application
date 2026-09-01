@@ -117,6 +117,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          banner_url: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -130,6 +131,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          banner_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -143,6 +145,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          banner_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string

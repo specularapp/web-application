@@ -85,14 +85,19 @@ export const inviteRemovalSchema = z.object({
   inviteId: z.uuid(),
 });
 
-export const logoUploadSchema = z.object({
+export const imageKindSchema = z.enum(["logo", "banner"]);
+export type ImageKind = z.infer<typeof imageKindSchema>;
+
+export const imageUploadSchema = z.object({
   organizationId: z.uuid(),
   contentType: logoContentTypeSchema,
+  kind: imageKindSchema,
 });
 
-export const logoAttachSchema = z.object({
+export const imageAttachSchema = z.object({
   organizationId: z.uuid(),
   path: z.string().trim().min(3).max(200),
+  kind: imageKindSchema,
 });
 
 export const organizationIdSchema = z.object({ organizationId: z.uuid() });

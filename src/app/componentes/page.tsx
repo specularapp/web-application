@@ -1089,7 +1089,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Primeiros passos (prévia)",
-        note: "Fluxo de configuração inicial em modo de demonstração: as etapas trocam de verdade, com animação de entrada, mas nada vai para o banco. A tela real vive em /primeiros-passos, logo depois do cadastro.",
+        note: "Fluxo de configuração inicial em modo de demonstração: as etapas trocam de verdade, com animação de entrada, mas nada vai para o banco. O de verdade é um modal sobre o painel, no primeiro acesso, e aqui aparece preso na caixa em vez de cobrir a tela.",
         wide: true,
         layout: "stack",
         example: (

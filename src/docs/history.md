@@ -172,6 +172,8 @@ Feito:
 - `Listbox` ganhou `placement="auto"`, usado pelo `Select`: perto da base da tela a lista sobe em vez de vazar. A decisão é por estimativa de altura, porque medir depois de montar faria a lista pular no mesmo quadro.
 - Dois defeitos de alinhamento achados na prévia e corrigidos: o ícone da nuvem saía do centro porque o `input` do dropzone conta como filho no grid do alvo (virou camada absoluta própria), e as barras de etapa ficavam desalinhadas do conteúdo do painel (ganharam o mesmo recuo lateral).
 - `(app)/error.tsx` deixou de renderizar `null`: tela de erro com o ícone 3D, texto e "Tentar de novo", com o digest quando existe. Um dos achados abertos da auditoria, que ia aparecer no primeiro teste como tela branca.
+- Terceira passada, também por pedido: a configuração deixou de ter rota e virou modal sobre o painel, renderizado pelo próprio `/dashboard` quando falta configurar. As barras de etapa saíram e viraram um anel no lugar da marca, com um arco por etapa e o número no centro. A identidade do time virou banner mais logo, os dois enviáveis, no formato capa de perfil: banner 4:1 com canto squircle e logo em círculo puro à esquerda, montada sobre a borda de baixo, cada um com a dimensão ideal escrita no centro enquanto está vazio.
+- Bug do recorte da imagem: com `overflow` numa camada interna, a borda seguia a superelipse e o corte seguia o arco de círculo, e a diferença aparecia no canto. O recorte passou para o próprio alvo, que é quem tem a forma.
 
 Pendências:
 

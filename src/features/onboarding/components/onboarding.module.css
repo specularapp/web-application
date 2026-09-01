@@ -5,8 +5,9 @@
   }
 }
 
-/* Camada sobre a aplicação: o véu segue o tema (preto puro escureceria o claro inteiro) e o
-   desfoque pega o que estiver atrás, então o painel já nasce pronto para o dashboard com conteúdo. */
+/* Modal sobre o painel: o véu segue o tema (preto puro escureceria o claro inteiro) e desfoca o que
+   estiver atrás. O painel por cima é o mesmo vidro do cartão de login no mobile, só que com tinta
+   leve, senão sobre fundo liso ele sumiria e sobraria a borda. */
 .overlay {
   position: fixed;
   inset: 0;
@@ -16,8 +17,10 @@
   justify-items: center;
   padding: var(--space-6) var(--space-4);
   overflow-y: auto;
-  background-color: color-mix(in srgb, var(--color-bg-grouped) 72%, transparent);
-  backdrop-filter: blur(28px) saturate(140%);
+  overscroll-behavior: contain;
+  background-color: color-mix(in oklab, var(--color-bg-grouped) 62%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .overlay[data-demo] {
@@ -29,42 +32,21 @@
 }
 
 .shell {
-  display: grid;
-  gap: var(--space-3);
   width: 100%;
   max-width: 34rem;
-}
-
-/* Mesmo recuo lateral do padding do painel, para as barras nascerem alinhadas ao conteúdo de baixo. */
-.bars {
-  display: flex;
-  gap: var(--space-1);
-  padding-inline: var(--space-4);
-}
-
-.bar {
-  flex: 1;
-  height: 0.1875rem;
-  background-color: var(--color-fill);
-  border-radius: var(--radius-full);
-  transition: background-color var(--duration-base) var(--ease-standard);
-}
-
-.bar[data-state="done"],
-.bar[data-state="current"] {
-  background-color: var(--color-brand);
 }
 
 .card {
   display: grid;
   gap: var(--space-6);
   padding: var(--space-4);
-  background-color: color-mix(in srgb, var(--color-bg-grouped-secondary) 76%, transparent);
+  background-color: color-mix(in oklab, var(--color-bg-grouped-secondary) 55%, transparent);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 
 .head {
@@ -79,6 +61,20 @@
   flex: 1;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.ring {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.ring svg {
+  position: absolute;
+  inset: 0;
 }
 
 .step {
@@ -99,58 +95,77 @@
   align-items: end;
 }
 
-.dropzone {
+/* Banner com a logo montada por cima, como capa de perfil: a logo fica na esquerda e transborda
+   metade para baixo, então o bloco reserva essa metade na margem. */
+.identity {
+  position: relative;
+  margin-bottom: 3.25rem;
+}
+
+/* O recorte da imagem sai do próprio alvo, e não de uma camada interna: com o corte num filho, a
+   borda seguia a superelipse e o recorte seguia o arco de círculo, e a diferença aparecia no canto. */
+.target {
   position: relative;
   display: block;
-  justify-self: center;
-  width: 5rem;
-  height: 5rem;
   overflow: hidden;
   color: var(--color-label-secondary);
   background-color: var(--color-fill-quaternary);
   border: 1px dashed var(--color-separator);
-  border-radius: var(--radius-xl);
-  corner-shape: squircle;
   cursor: pointer;
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    border-color var(--duration-fast) var(--ease-standard);
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.dropzone:hover,
-.dropzone[data-active] {
-  color: var(--color-label);
-  background-color: var(--color-fill-tertiary);
+.target[data-active] {
+  border-color: var(--color-label-tertiary);
 }
 
-.dropzone[data-filled] {
+.target[data-filled] {
   border-style: solid;
   border-color: var(--color-border);
 }
 
-.dropzone:focus-visible {
+.target:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
-/* O input de arquivo do dropzone é filho real do alvo, então centralizar pelo grid do pai deslocaria
-   o ícone. A camada própria ignora qualquer outro filho e fica no centro exato. */
-.dropzoneInner {
+.banner {
+  width: 100%;
+  aspect-ratio: 4 / 1;
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+}
+
+/* Círculo puro fica fora do sistema de cantos, então nada de corner-shape aqui. */
+.logo {
+  position: absolute;
+  bottom: -2.75rem;
+  inset-inline-start: var(--space-4);
+  width: 6rem;
+  height: 6rem;
+  background-color: var(--color-bg-grouped-secondary);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 4px var(--color-bg-grouped-secondary);
+}
+
+/* O input de arquivo do dropzone é filho real do alvo, então centralizar pelo grid do pai
+   deslocaria o ícone. A camada própria ignora qualquer outro filho e fica no centro exato. */
+.targetInner {
   position: absolute;
   inset: 0;
   display: grid;
+  gap: var(--space-1);
+  place-content: center;
   place-items: center;
 }
 
-.dropzoneInner svg {
-  width: 1.5rem;
-  height: 1.5rem;
+.targetInner svg {
+  width: 1.25rem;
+  height: 1.25rem;
   fill: currentColor;
 }
 
-.dropzoneInner img {
-  width: 100%;
-  height: 100%;
+.targetInner img {
   object-fit: cover;
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Logo } from "@/components/layout/logo";
+import { useId, useState } from "react";
 import { Text } from "@/components/ui/text";
 import type { Team, TeamInvite, TeamMember } from "@/features/organizations/service";
 import { MembersStep } from "./members-step";
 import styles from "./onboarding.module.css";
+import { StepRing } from "./step-ring";
 import { TeamStep } from "./team-step";
 
 type OnboardingFlowProps = {
@@ -35,35 +35,30 @@ const steps: { name: StepName; title: string; description: string }[] = [
 export function OnboardingFlow({ team, members, invites, currentUser, demo = false }: OnboardingFlowProps) {
   const [saved, setSaved] = useState(team);
   const [step, setStep] = useState<StepName>(team ? "membros" : "time");
+  const titleId = useId();
   const index = steps.findIndex((item) => item.name === step);
   const current = steps[index] ?? steps[0];
-  // Na vitrine o fluxo entra dentro de outra página, então nem o main nem o h1 podem se repetir.
-  const Frame = demo ? "div" : "main";
 
   return (
-    <Frame className={styles.overlay} data-demo={demo || undefined}>
+    <div
+      className={styles.overlay}
+      data-demo={demo || undefined}
+      role="dialog"
+      aria-modal={demo ? undefined : true}
+      aria-labelledby={titleId}
+    >
       <div className={styles.shell}>
-        <div className={styles.bars}>
-          {steps.map((item, position) => (
-            <span
-              key={item.name}
-              className={styles.bar}
-              data-state={position < index ? "done" : position === index ? "current" : "next"}
-            />
-          ))}
-        </div>
-
         <section className={styles.card}>
           <div className={styles.head}>
             <div className={styles.headText}>
-              <Text as={demo ? "h3" : "h1"} variant="title2" weight="medium">
+              <Text as="h2" id={titleId} variant="title2" weight="medium">
                 {current.title}
               </Text>
               <Text variant="subheadline" tone="secondary">
                 {current.description}
               </Text>
             </div>
-            <Logo variant="icon" height={28} label="" aria-hidden="true" />
+            <StepRing total={steps.length} current={index + 1} />
           </div>
 
           {step === "time" || !saved ? (
@@ -89,6 +84,6 @@ export function OnboardingFlow({ team, members, invites, currentUser, demo = fal
           )}
         </section>
       </div>
-    </Frame>
+    </div>
   );
 }

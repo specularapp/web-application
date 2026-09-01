@@ -54,6 +54,12 @@ export const FieldAffix = styled.span`
   letter-spacing: var(--tracking-tight);
   color: inherit;
   user-select: none;
+
+  /* Unidade (R$, %) pesa igual ao valor; prefixo de endereço é contexto e não pode competir com o que foi digitado. */
+  &[data-tone="muted"] {
+    font-weight: var(--weight-regular);
+    color: var(--color-label-tertiary);
+  }
 `;
 
 export type FieldShellProps = ComponentPropsWithoutRef<"span"> & {

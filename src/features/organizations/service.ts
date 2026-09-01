@@ -1,10 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { Database, TablesUpdate } from "@/types/database";
 import {
   LOGO_BUCKET,
   slugFromName,
   type CreateInviteInput,
+  type ImageKind,
   type LogoContentType,
   type MemberRole,
   type OrganizationIndustry,
@@ -23,6 +24,7 @@ export type Team = {
   industry: OrganizationIndustry | null;
   website: string | null;
   logoUrl: string | null;
+  bannerUrl: string | null;
   completed: boolean;
 };
 
@@ -54,7 +56,7 @@ const logoExtensions: Record<LogoContentType, string> = {
   "image/webp": "webp",
 };
 
-const teamColumns = "id, name, slug, industry, website, logo_url, onboarding_completed_at";
+const teamColumns = "id, name, slug, industry, website, logo_url, banner_url, onboarding_completed_at";
 
 const SLUG_TAKEN = "Já existe um time com esse endereço. Mude o nome do time.";
 const SAVE_FAILED = "Não foi possível salvar os dados do time. Tente de novo em instantes.";
@@ -66,6 +68,7 @@ type TeamRow = {
   industry: OrganizationIndustry | null;
   website: string | null;
   logo_url: string | null;
+  banner_url: string | null;
   onboarding_completed_at: string | null;
 };
 
@@ -77,6 +80,7 @@ function toTeam(row: TeamRow): Team {
     industry: row.industry,
     website: row.website,
     logoUrl: row.logo_url,
+    bannerUrl: row.banner_url,
     completed: Boolean(row.onboarding_completed_at),
   };
 }
@@ -261,20 +265,20 @@ export async function cancelInvite(
   return { ok: true, data: undefined };
 }
 
-export async function createLogoUpload(
+export async function createImageUpload(
   client: TeamClient,
-  input: { organizationId: string; contentType: LogoContentType },
+  input: { organizationId: string; contentType: LogoContentType; kind: ImageKind },
 ): Promise<ServiceResult<{ path: string; token: string }>> {
-  const path = `${input.organizationId}/logo-${crypto.randomUUID()}.${logoExtensions[input.contentType]}`;
+  const path = `${input.organizationId}/${input.kind}-${crypto.randomUUID()}.${logoExtensions[input.contentType]}`;
   const { data, error } = await client.storage.from(LOGO_BUCKET).createSignedUploadUrl(path);
 
-  if (error || !data) return { ok: false, error: "Não foi possível preparar o envio da logo." };
+  if (error || !data) return { ok: false, error: "Não foi possível preparar o envio da imagem." };
   return { ok: true, data: { path: data.path, token: data.token } };
 }
 
-export async function attachLogo(
+export async function attachImage(
   client: TeamClient,
-  input: { organizationId: string; path: string },
+  input: { organizationId: string; path: string; kind: ImageKind },
 ): Promise<ServiceResult<string>> {
   if (!input.path.startsWith(`${input.organizationId}/`)) {
     return { ok: false, error: "Arquivo fora da pasta do time." };
@@ -282,7 +286,7 @@ export async function attachLogo(
 
   const { data: current } = await client
     .from("organizations")
-    .select("logo_url")
+    .select("logo_url, banner_url")
     .eq("id", input.organizationId)
     .maybeSingle();
 
@@ -290,14 +294,14 @@ export async function attachLogo(
     data: { publicUrl },
   } = client.storage.from(LOGO_BUCKET).getPublicUrl(input.path);
 
-  const { error } = await client
-    .from("organizations")
-    .update({ logo_url: publicUrl })
-    .eq("id", input.organizationId);
+  const values: TablesUpdate<"organizations"> =
+    input.kind === "logo" ? { logo_url: publicUrl } : { banner_url: publicUrl };
 
-  if (error) return { ok: false, error: "Não foi possível salvar a logo." };
+  const { error } = await client.from("organizations").update(values).eq("id", input.organizationId);
 
-  const previous = storagePathOf(current?.logo_url);
+  if (error) return { ok: false, error: "Não foi possível salvar a imagem." };
+
+  const previous = storagePathOf(input.kind === "logo" ? current?.logo_url : current?.banner_url);
   if (previous && previous !== input.path) {
     await client.storage.from(LOGO_BUCKET).remove([previous]);
   }

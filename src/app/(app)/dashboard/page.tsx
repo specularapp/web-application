@@ -1,4 +1,5 @@
-import { requireOnboarding } from "@/features/onboarding/guard";
+import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
+import { getOnboardingGate } from "@/features/onboarding/guard";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
@@ -8,6 +9,16 @@ export const metadata = createMetadata({
 });
 
 export default async function DashboardPage() {
-  await requireOnboarding();
-  return null;
+  const { state, needsSetup } = await getOnboardingGate();
+
+  if (!needsSetup) return null;
+
+  return (
+    <OnboardingFlow
+      team={state.team}
+      members={state.members}
+      invites={state.invites}
+      currentUser={state.viewer}
+    />
+  );
 }

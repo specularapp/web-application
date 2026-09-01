@@ -10,6 +10,7 @@ create type public.organization_industry as enum (
 alter table public.organizations
   add column industry public.organization_industry,
   add column website text check (website is null or char_length(website) between 4 and 200),
+  add column banner_url text,
   add column onboarding_completed_at timestamptz;
 
 alter table public.organization_invites

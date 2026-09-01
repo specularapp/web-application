@@ -1,15 +1,12 @@
 import "server-only";
-import { redirect } from "next/navigation";
 import { getCurrentTeamState } from "@/features/organizations/queries";
 
-export const ONBOARDING_PATH = "/primeiros-passos";
-
-// Toda página da área logada passa por aqui: quem ainda não configurou o time volta para o fluxo,
-// senão o painel abriria vazio e sem organização para consultar. Quem entrou por convite não
-// configura nada, então segue direto mesmo que o dono tenha largado a configuração pela metade.
-export async function requireOnboarding() {
+// A configuração inicial é um modal sobre o painel, não uma rota: quem ainda não configurou recebe
+// a camada por cima do próprio painel. Quem entrou por convite não configura nada e passa direto,
+// mesmo que o dono tenha largado a configuração pela metade.
+export async function getOnboardingGate() {
   const state = await getCurrentTeamState();
   const canSetup = state.viewer.role === "owner" || state.viewer.role === "admin";
-  if (!state.team?.completed && canSetup) redirect(ONBOARDING_PATH);
-  return state;
+
+  return { state, needsSetup: !state.team?.completed && canSetup };
 }

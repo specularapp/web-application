@@ -9,11 +9,16 @@ import { FieldAffix } from "@/components/ui/field-shell";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { saveTeamAction } from "@/features/organizations/actions";
-import { normalizeWebsite, slugFromName, type OrganizationIndustry } from "@/features/organizations/schemas";
+import {
+  normalizeWebsite,
+  slugFromName,
+  type ImageKind,
+  type OrganizationIndustry,
+} from "@/features/organizations/schemas";
 import type { Team } from "@/features/organizations/service";
-import { uploadLogo } from "@/features/organizations/upload";
+import { uploadTeamImage } from "@/features/organizations/upload";
 import { industryOptions } from "../labels";
-import { LogoPicker } from "./logo-picker";
+import { ImagePicker } from "./image-picker";
 import styles from "./onboarding.module.css";
 
 type TeamStepProps = {
@@ -22,25 +27,38 @@ type TeamStepProps = {
   onDone: (team: Team) => void;
 };
 
+type Picked = { file: File | null; preview: string | null };
+
+const empty: Picked = { file: null, preview: null };
+
 export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
   const { toast } = useToast();
   const [name, setName] = useState(team?.name ?? "");
   // O prefixo https:// é afixo fixo do campo, então o valor guardado entra aqui sem ele.
   const [website, setWebsite] = useState((team?.website ?? "").replace(/^https?:\/\//i, ""));
   const [industry, setIndustry] = useState<OrganizationIndustry | undefined>(team?.industry ?? undefined);
-  const [file, setFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(team?.logoUrl ?? null);
+  const [logo, setLogo] = useState<Picked>({ ...empty, preview: team?.logoUrl ?? null });
+  const [banner, setBanner] = useState<Picked>({ ...empty, preview: team?.bannerUrl ?? null });
   const [saving, setSaving] = useState(false);
 
   // Revogar em limpeza de efeito quebraria no modo estrito, que desmonta e remonta: o endereço
   // seria descartado com a imagem ainda na tela. Aqui o anterior sai no momento em que deixa de ser usado.
-  const chooseFile = (next: File) => {
-    if (logoPreview?.startsWith("blob:")) URL.revokeObjectURL(logoPreview);
-    setFile(next);
-    setLogoPreview(URL.createObjectURL(next));
+  const choose = (current: Picked, apply: (next: Picked) => void) => (file: File) => {
+    if (current.preview?.startsWith("blob:")) URL.revokeObjectURL(current.preview);
+    apply({ file, preview: URL.createObjectURL(file) });
   };
 
+  const reject = (message: string) => toast({ title: "Arquivo recusado", description: message, tone: "danger" });
+
   const filled = name.trim().length >= 2 && Boolean(industry);
+
+  const sendImage = async (organizationId: string, picked: Picked, kind: ImageKind) => {
+    if (!picked.file) return null;
+    const result = await uploadTeamImage(organizationId, picked.file, kind);
+    if (result.ok) return result.data;
+    toast({ title: "A imagem não subiu", description: result.error, tone: "warning" });
+    return null;
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -55,7 +73,8 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
         slug: slugFromName(name),
         industry,
         website: normalizeWebsite(website),
-        logoUrl: logoPreview,
+        logoUrl: logo.preview,
+        bannerUrl: banner.preview,
         completed: false,
       });
       return;
@@ -68,25 +87,38 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
       return;
     }
 
-    let saved = result.data;
-    if (file) {
-      const logo = await uploadLogo(saved.id, file);
-      if (logo.ok) saved = { ...saved, logoUrl: logo.data };
-      else toast({ title: "A logo não subiu", description: logo.error, tone: "warning" });
-    }
+    const saved = result.data;
+    const [logoUrl, bannerUrl] = [
+      await sendImage(saved.id, logo, "logo"),
+      await sendImage(saved.id, banner, "banner"),
+    ];
 
     setSaving(false);
-    onDone(saved);
+    onDone({ ...saved, logoUrl: logoUrl ?? saved.logoUrl, bannerUrl: bannerUrl ?? saved.bannerUrl });
   };
 
   return (
     <form className={styles.step} onSubmit={submit} noValidate>
-      <LogoPicker
-        preview={logoPreview}
-        disabled={saving}
-        onSelect={chooseFile}
-        onReject={(message) => toast({ title: "Arquivo recusado", description: message, tone: "danger" })}
-      />
+      <div className={styles.identity}>
+        <ImagePicker
+          variant="banner"
+          label="o banner do time"
+          hint="1200 × 300"
+          preview={banner.preview}
+          disabled={saving}
+          onSelect={choose(banner, setBanner)}
+          onReject={reject}
+        />
+        <ImagePicker
+          variant="logo"
+          label="a logo do time"
+          hint="512 × 512"
+          preview={logo.preview}
+          disabled={saving}
+          onSelect={choose(logo, setLogo)}
+          onReject={reject}
+        />
+      </div>
 
       <div className={styles.form}>
         <div className={styles.pair}>
@@ -111,7 +143,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
               autoComplete="url"
               inputMode="url"
               spellCheck={false}
-              iconStart={<FieldAffix>https://</FieldAffix>}
+              iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
               onChange={(event) => setWebsite(event.target.value.replace(/^https?:\/\//i, ""))}
             />
           </Field>

@@ -3,10 +3,15 @@
 import { CloudArrowUpIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
+import { Text } from "@/components/ui/text";
 import { LOGO_MAX_BYTES } from "@/features/organizations/schemas";
+import { cx } from "@/lib/utils/cx";
 import styles from "./onboarding.module.css";
 
-type LogoPickerProps = {
+type ImagePickerProps = {
+  variant: "banner" | "logo";
+  label: string;
+  hint: string;
   preview: string | null;
   disabled?: boolean;
   onSelect: (file: File) => void;
@@ -19,7 +24,9 @@ const accept = {
   "image/webp": [".webp"],
 };
 
-export function LogoPicker({ preview, disabled = false, onSelect, onReject }: LogoPickerProps) {
+const sizes = { banner: "(max-width: 40rem) 100vw, 32rem", logo: "6rem" };
+
+export function ImagePicker({ variant, label, hint, preview, disabled = false, onSelect, onReject }: ImagePickerProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept,
     maxSize: LOGO_MAX_BYTES,
@@ -32,27 +39,38 @@ export function LogoPicker({ preview, disabled = false, onSelect, onReject }: Lo
         return;
       }
       const code = rejected[0]?.errors[0]?.code;
-      if (code === "file-too-large") onReject("A logo precisa ter no máximo 2 MB");
-      else if (code) onReject("Envie a logo em PNG, JPG ou WEBP");
+      if (code === "file-too-large") onReject("A imagem precisa ter no máximo 2 MB");
+      else if (code) onReject("Envie a imagem em PNG, JPG ou WEBP");
     },
   });
 
   return (
     <div
       {...getRootProps({
-        className: styles.dropzone,
+        className: cx(styles.target, variant === "banner" ? styles.banner : styles.logo),
         role: "button",
-        "aria-label": preview ? "Trocar a logo do time" : "Enviar a logo do time",
+        "aria-label": preview ? `Trocar ${label}` : `Enviar ${label}`,
       })}
       data-active={isDragActive || undefined}
       data-filled={preview ? "" : undefined}
     >
       <input {...getInputProps()} />
-      <span className={styles.dropzoneInner}>
+      <span className={styles.targetInner}>
         {preview ? (
-          <Image src={preview} alt="" width={80} height={80} unoptimized />
+          <Image
+            src={preview}
+            alt=""
+            fill
+            sizes={sizes[variant]}
+            unoptimized={preview.startsWith("blob:")}
+          />
         ) : (
-          <CloudArrowUpIcon weight="bold" aria-hidden="true" />
+          <>
+            <CloudArrowUpIcon weight="bold" aria-hidden="true" />
+            <Text variant="caption2" tone="tertiary" numeric>
+              {hint}
+            </Text>
+          </>
         )}
       </span>
     </div>
