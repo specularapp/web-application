@@ -178,6 +178,13 @@ function Fields({ clientSecret, mode, submitLabel, pendingLabel, onConfirmed, fo
         {pending ? pendingLabel : submitLabel}
       </Button>
 
+      {preview && (
+        <Text variant="caption2" tone="tertiary" align="center">
+          Prévia de front: sem sessão e sem intenção no Stripe, então o botão fica desligado. Para
+          pagar de verdade, entre na conta e vá até a etapa de plano.
+        </Text>
+      )}
+
       {footer}
     </form>
   );

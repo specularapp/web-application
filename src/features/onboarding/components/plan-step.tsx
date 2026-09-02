@@ -44,8 +44,8 @@ const SETTLE_DURATION_MS = 520;
 // botão do cartão.
 const DRAG_THRESHOLD_PX = 8;
 
-// Na prévia o Stripe não monta, porque o iframe dele exige um segredo válido, mas a etapa de pagamento
-// precisa ser alcançável para ajuste visual: o `CheckoutPanel` reserva o espaço do formulário.
+// Na prévia os campos de cartão montam de verdade, porque elemento avulso não precisa de segredo, mas
+// o segredo daqui é de mentira: quem desliga a confirmação é a prop `preview` do `CheckoutPanel`.
 function previewIntent(plan: PlanId, cycle: BillingCycle, trialDays: number): CheckoutIntentInfo {
   return {
     mode: trialDays > 0 ? "setup" : "payment",
