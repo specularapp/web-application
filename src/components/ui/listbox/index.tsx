@@ -13,7 +13,7 @@ export type ListboxAction = {
   label: string;
   onSelect: () => void;
   tone?: "danger";
-  /** Ícone da ação, na mesma coluna da direita em que o check da opção escolhida aparece. */
+  /** Ícone da ação, antes do rótulo, com o respiro padrão da lista entre os dois. */
   icon?: ReactNode;
 };
 

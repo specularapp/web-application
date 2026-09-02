@@ -230,3 +230,22 @@ Pendências:
 - `plan_features` e `plan_entitlements` vazias, esperando as condições de cada tela. O contrato de como declarar está na seção Cobrança de `structure.md`.
 - E-mail de aviso de fim do teste: o webhook já recebe `customer.subscription.trial_will_end` e só reconcilia; falta o template no Resend.
 - A vitrine `/componentes` agora tem quatro `h1` na mesma página, contando os das prévias de tela. Já era assim antes (MFA), e continua sendo desvio conhecido só da vitrine.
+
+## 2026-09-02
+
+Tempo: em andamento.
+
+Feito:
+
+- Avatar sem foto trocou iniciais por forma: o `avvvatars` passou a `style="shape"`, uma das 60 formas vetoriais sobre uma das 20 cores, tudo determinístico pelo e-mail. A função de iniciais e as regras de texto do CSS saíram junto. Conferido no HTML do servidor: três pessoas, três formas e três cores.
+- Bug da etapa de membros: promover alguém a proprietário travava o select da pessoa, e o travamento era só da interface. O banco nunca proibiu (a policy exige ser proprietário para mexer, e o `protect_last_owner` só impede o time ficar sem nenhum). Agora o único bloqueio é o último proprietário do time, e transferir é promover a outra pessoa e depois baixar o próprio papel.
+- Toast de sucesso ao remover pessoa e ao cancelar convite, com o nome de quem saiu, e o aviso de convite enviado passou a valer também na prévia, que antes não dizia nada.
+- Payment Element aposentado. No lugar, os três elementos avulsos de cartão dentro do nosso `FieldShell`, com `Label` e mensagem de erro nossos: a identidade do checkout passou a ser inteira nossa e do Stripe ficou só o campo, um iframe por campo, que é o que mantém o PCI em SAQ A. Campo de cartão no nosso HTML exigiria certificação nível 1 e liberação do Stripe, então não é caminho.
+- Efeito colateral bom: elemento avulso monta sem `clientSecret`, então a prévia e a vitrine mostram o formulário de verdade e o retângulo tracejado sumiu. Prévia e produto passaram a ter um caminho de código só, com a prop `preview` desligando apenas a confirmação.
+- A fonte dentro do iframe vem do Google Fonts por `cssSrc`: o arquivo do `next/font` sai do nosso domínio sem CORS e o iframe, sendo outra origem, não consegue buscar.
+- Pendência de 2026-09-01 corrigida: cobrança imediata **funciona** em modo teste mesmo com `charges_enabled: false`. Confirmado direto na API, com `PaymentIntent` de R$ 1,00 e `pm_card_visa`, que voltou `succeeded` e `livemode: false`. O que depende de ativar a conta é cobrar de verdade, em modo real.
+
+Pendências:
+
+- O formulário de cartão novo ainda não passou por um teste de ponta a ponta no navegador. A confirmação mudou de `confirmSetup({elements})` para `confirmCardSetup(clientSecret, ...)`, e nenhum check automático cobre isso.
+- Mensagem de erro do campo de cartão é escrita pelo Stripe (em pt-BR). Se incomodar, dá para mapear os códigos para texto nosso.

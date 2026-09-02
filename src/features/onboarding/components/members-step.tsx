@@ -46,6 +46,9 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
   const [inviting, setInviting] = useState(false);
 
   const canInvite = emailPattern.test(email.trim()) && name.trim().length >= 2;
+  // Proprietário não é papel travado: o único limite é o time nunca ficar sem nenhum. Quem transfere
+  // promove a outra pessoa primeiro e só então muda o próprio papel.
+  const owners = people.filter((person) => person.role === "owner").length;
 
   // Convite sempre entra como membro; quem quiser dar mais acesso troca o papel na lista de baixo.
   const invite = async () => {
@@ -57,6 +60,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
         ...current.filter((item) => item.email !== email),
         { id: crypto.randomUUID(), name, email, role: "member" },
       ]);
+      toast({ title: "Convite enviado", description: `${name} entrou na lista de pendentes`, tone: "success" });
     } else {
       const result = await inviteMemberAction({ organizationId: team.id, email, name, role: "member" });
       if (!result.ok) {
@@ -86,16 +90,20 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     }
   };
 
-  const dropMember = async (userId: string) => {
+  const dropMember = async (userId: string, label: string) => {
     const previous = people;
     setPeople((current) => current.filter((person) => person.userId !== userId));
-    if (demo) return;
 
-    const result = await removeMemberAction({ organizationId: team.id, userId });
-    if (!result.ok) {
-      setPeople(previous);
-      toast({ title: "Não foi possível remover", description: result.error, tone: "danger" });
+    if (!demo) {
+      const result = await removeMemberAction({ organizationId: team.id, userId });
+      if (!result.ok) {
+        setPeople(previous);
+        toast({ title: "Não foi possível remover", description: result.error, tone: "danger" });
+        return;
+      }
     }
+
+    toast({ title: "Pessoa removida", description: `${label} saiu do time`, tone: "success" });
   };
 
   const updateInviteRole = async (inviteId: string, next: MemberRole) => {
@@ -111,16 +119,20 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     }
   };
 
-  const dropInvite = async (inviteId: string) => {
+  const dropInvite = async (inviteId: string, label: string) => {
     const previous = pending;
     setPending((current) => current.filter((item) => item.id !== inviteId));
-    if (demo) return;
 
-    const result = await cancelInviteAction({ organizationId: team.id, inviteId });
-    if (!result.ok) {
-      setPending(previous);
-      toast({ title: "Não foi possível cancelar", description: result.error, tone: "danger" });
+    if (!demo) {
+      const result = await cancelInviteAction({ organizationId: team.id, inviteId });
+      if (!result.ok) {
+        setPending(previous);
+        toast({ title: "Não foi possível cancelar", description: result.error, tone: "danger" });
+        return;
+      }
     }
+
+    toast({ title: "Convite cancelado", description: `${label} saiu da lista de pendentes`, tone: "success" });
   };
 
   return (
@@ -173,7 +185,8 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
 
         {people.map((person) => {
           const label = person.name ?? person.email ?? "Sem nome";
-          const removable = person.userId !== currentUser.userId && person.role !== "owner";
+          const lastOwner = person.role === "owner" && owners === 1;
+          const removable = person.userId !== currentUser.userId && !lastOwner;
           return (
             <div key={person.userId} className={styles.member}>
               <Avatar name={label} src={person.avatarUrl ?? undefined} seed={person.email ?? person.userId} size="md" />
@@ -193,7 +206,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                   options={memberRoleOptions}
                   value={person.role}
                   size="sm"
-                  disabled={person.role === "owner"}
+                  disabled={lastOwner}
                   onChange={(next) => void updateRole(person.userId, next)}
                   actions={
                     removable
@@ -202,7 +215,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                             label: "Remover do time",
                             tone: "danger",
                             icon: <TrashIcon weight="bold" aria-hidden="true" />,
-                            onSelect: () => void dropMember(person.userId),
+                            onSelect: () => void dropMember(person.userId, label),
                           },
                         ]
                       : undefined
@@ -243,7 +256,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                       label: "Cancelar convite",
                       tone: "danger",
                       icon: <TrashIcon weight="bold" aria-hidden="true" />,
-                      onSelect: () => void dropInvite(item.id),
+                      onSelect: () => void dropInvite(item.id, label),
                     },
                   ]}
                 />

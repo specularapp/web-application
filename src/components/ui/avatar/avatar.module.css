@@ -9,12 +9,6 @@
   width: var(--avatar-size);
   height: var(--avatar-size);
   overflow: hidden;
-  font-family: var(--font-body);
-  font-size: var(--text-subheadline);
-  font-weight: var(--weight-semibold);
-  line-height: 1;
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-full);
   user-select: none;
@@ -23,19 +17,16 @@
 .avatar[data-size="xs"] {
   --avatar-size: 1.5rem;
   --avatar-radius: var(--radius-md);
-  font-size: var(--text-caption-2);
 }
 
 .avatar[data-size="sm"] {
   --avatar-size: var(--control-height-sm);
   --avatar-radius: var(--icon-button-radius-sm);
-  font-size: var(--text-footnote);
 }
 
 .avatar[data-size="lg"] {
   --avatar-size: var(--control-height-lg);
   --avatar-radius: var(--icon-button-radius-lg);
-  font-size: var(--text-body);
 }
 
 .avatar[data-shape="squircle"] {

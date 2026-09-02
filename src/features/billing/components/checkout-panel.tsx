@@ -30,7 +30,7 @@ type CheckoutPanelProps = {
   backLabel: string;
   onBack: () => void;
   onDone: () => void | Promise<void>;
-  /** Vitrine: mostra o resumo com um lugar reservado no lugar do formulário do Stripe. */
+  /** Vitrine e prévia: monta os campos de verdade, sem intenção no servidor e sem confirmar nada. */
   preview?: boolean;
 };
 
@@ -137,55 +137,32 @@ export function CheckoutPanel({
           </div>
         </div>
 
-        {preview ? (
-          <div className={styles.form}>
-            <div className={styles.placeholder} {...squircle("lg")}>
-              <Text variant="footnote" tone="tertiary" align="center">
-                O formulário do Stripe monta aqui, com os campos de cartão dentro de um iframe do
-                provedor e as cores vindas dos nossos tokens
-              </Text>
-            </div>
-            <Button type="button" size="lg" radius="lg" fullWidth disabled>
-              {intent.trialDays > 0 ? `Começar teste de ${intent.trialDays} dias` : "Confirmar pagamento"}
-            </Button>
+        <PaymentForm
+          clientSecret={intent.clientSecret}
+          mode={intent.mode}
+          preview={preview}
+          submitLabel={intent.trialDays > 0 ? `Começar teste de ${intent.trialDays} dias` : "Confirmar pagamento"}
+          pendingLabel={confirming ? "Liberando o acesso" : "Confirmando"}
+          onConfirmed={confirm}
+          footer={
             <div className={styles.footer}>
               <Text variant="caption2" tone="tertiary" className={styles.secure}>
                 <LockSimpleIcon weight="fill" aria-hidden="true" />
                 Pagamento processado pelo Stripe. Os dados do cartão não passam pelos nossos servidores
               </Text>
+
+              {intent.trialDays > 0 && (
+                <Text variant="caption2" tone="tertiary" align="center">
+                  Cobramos só depois do teste, e você pode cancelar antes disso
+                </Text>
+              )}
+
               <Button type="button" variant="ghost" size="sm" onClick={onBack}>
                 {backLabel}
               </Button>
             </div>
-          </div>
-        ) : (
-          <PaymentForm
-            clientSecret={intent.clientSecret}
-            mode={intent.mode}
-            submitLabel={intent.trialDays > 0 ? `Começar teste de ${intent.trialDays} dias` : "Confirmar pagamento"}
-            pendingLabel={confirming ? "Liberando o acesso" : "Confirmando"}
-            onConfirmed={confirm}
-            footer={
-              <div className={styles.footer}>
-                <Text variant="caption2" tone="tertiary" className={styles.secure}>
-                  <LockSimpleIcon weight="fill" aria-hidden="true" />
-                  Pagamento processado pelo Stripe. Os dados do cartão não passam pelos nossos
-                  servidores
-                </Text>
-
-                {intent.trialDays > 0 && (
-                  <Text variant="caption2" tone="tertiary" align="center">
-                    Cobramos só depois do teste, e você pode cancelar antes disso
-                  </Text>
-                )}
-
-                <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-                  {backLabel}
-                </Button>
-              </div>
-            }
-          />
-        )}
+          }
+        />
       </div>
     </section>
   );

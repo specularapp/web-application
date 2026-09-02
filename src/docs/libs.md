@@ -16,7 +16,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | ioredis | cache e rate limit |
 | resend | e-mail |
 | stripe | pagamentos (servidor) |
-| @stripe/stripe-js, @stripe/react-stripe-js | formulário de pagamento dentro da nossa interface (Payment Element em iframe do Stripe). Entrou em 2026-09-01 com a assinatura: o cartão nunca toca o nosso DOM, então o PCI fica com o Stripe, e o visual sai da Appearance API alimentada pelos nossos tokens resolvidos em runtime. Descartadas: Checkout hospedado (leva a pessoa para fora e não aceita a nossa identidade) e campo de cartão próprio (viraria escopo PCI SAQ D) |
+| @stripe/stripe-js, @stripe/react-stripe-js | formulário de pagamento dentro da nossa interface. Entrou em 2026-09-01 com a assinatura e em 2026-09-02 trocou o Payment Element pelos elementos avulsos de cartão, cada um dentro do nosso `FieldShell`: rótulo, caixa, erro e botão são nossos, e do Stripe fica só o campo, um iframe por campo. O cartão nunca toca o nosso DOM, então o PCI fica com o Stripe (SAQ A), e as cores saem dos nossos tokens resolvidos em runtime pelo `use-card-style.ts`. Descartadas: Checkout hospedado (leva a pessoa para fora e não aceita a nossa identidade) e campo de cartão próprio no nosso HTML (viraria escopo PCI SAQ D, com certificação nível 1 e liberação do Stripe) |
 | openai | IA |
 | server-only | impede módulo de servidor no cliente |
 | eslint, eslint-config-next, eslint-plugin-jsx-a11y, supabase (dev) | qualidade e banco |
@@ -39,7 +39,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | Editor de texto rico (contrato, proposta) | @tiptap/react, @tiptap/starter-kit | headless, extensível, JSON no banco, sanitizado no servidor | Quill |
 | Toasts | componente próprio (`components/ui/toast/` + `components/providers/toast-provider/`) | identidade completa, comportamento simples e sob controle | sonner, react-toastify |
 | Upload | react-dropzone + Supabase Storage com URL assinada | UI headless, servidor gera a URL | uppy |
-| Avatar sem foto | avvvatars-react | avatar determinístico por texto, com cor e iniciais. **Em uso** pelo `Avatar`, só quando não há `src`; entra por `components/ui/avatar/shape.tsx` e nunca direto em feature. Traz o goober junto, que injeta `<style>` em runtime: a CSP por nonce exige `window.__nonce__`, posto pelo `GooberNonce` no layout raiz | boring-avatars (sem iniciais), gerar no servidor (mais código para o mesmo resultado) |
+| Avatar sem foto | avvvatars-react | avatar determinístico por texto: uma das 60 formas vetoriais sobre uma das 20 cores, sem iniciais (`style="shape"`). **Em uso** pelo `Avatar`, só quando não há `src`; entra por `components/ui/avatar/shape.tsx` e nunca direto em feature. Traz o goober junto, que injeta `<style>` em runtime: a CSP por nonce exige `window.__nonce__`, posto pelo `GooberNonce` no layout raiz | boring-avatars (menos variedade de forma), gerar no servidor (mais código para o mesmo resultado) |
 | Animação | motion, só onde CSS não resolve (kanban) | layout animations | |
 | E-mail | @react-email/components | templates em React para o Resend | |
 | Máscaras (CPF, CNPJ, telefone, moeda) | react-number-format | input controlado com máscara. **Em uso**: entra pelo `Input` com a prop `mask`, padrões em `src/lib/masks.ts`. Nunca importar direto em feature | |

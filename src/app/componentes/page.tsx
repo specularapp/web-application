@@ -754,7 +754,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Avatar",
-        note: "Iniciais sobre preenchimento neutro, ou imagem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        note: "Sem foto entra o avvvatars, que tira cor de fundo e forma vetorial do seed (o e-mail, para o avatar não mudar quando o nome muda); com src a foto vem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
         wide: true,
         layout: "stack",
         example: (
@@ -1124,7 +1124,7 @@ const groups: Group[] = [
       },
       {
         name: "Pagamento do plano (prévia)",
-        note: "Etapa de pagamento da assinatura: resumo do pedido à esquerda e o formulário do Stripe à direita. Na prévia o iframe do provedor não monta, porque ele exige um segredo de pagamento válido, então o espaço fica reservado. O de verdade aparece no primeiros passos e em /configuracoes/plano, com as cores saindo dos nossos tokens pela Appearance API.",
+        note: "Etapa de pagamento da assinatura: resumo do pedido à esquerda e os campos de cartão à direita, cada um num FieldShell com rótulo e erro nossos. Os campos são os de verdade, e não um espaço reservado: elemento de cartão avulso monta sem segredo, que só é usado na confirmação. Aqui a confirmação está desligada, então digitar não leva a lugar nenhum.",
         wide: true,
         layout: "stack",
         example: <CheckoutPreview />,

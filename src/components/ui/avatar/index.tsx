@@ -19,13 +19,6 @@ export type AvatarProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
 
 const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44px", lg: "52px" };
 
-function initialsOf(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const first = words[0]?.charAt(0) ?? "";
-  const last = words.length > 1 ? (words[words.length - 1]?.charAt(0) ?? "") : "";
-  return (first + last).toLocaleUpperCase("pt-BR");
-}
-
 export function Avatar({ name, src, seed, size = "md", shape = "circle", className, ...props }: AvatarProps) {
   return (
     <span
@@ -40,7 +33,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
       {src ? (
         <Image src={src} alt="" fill sizes={imageSizes[size]} className={styles.image} />
       ) : (
-        <AvatarShape seed={seed ?? name} initials={initialsOf(name)} size={size} />
+        <AvatarShape seed={seed ?? name} size={size} />
       )}
     </span>
   );

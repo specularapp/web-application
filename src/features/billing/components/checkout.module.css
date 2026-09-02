@@ -86,15 +86,29 @@
   gap: var(--space-3);
 }
 
-/* Só na vitrine: o Stripe precisa de um segredo de verdade para montar o iframe, então a prévia
-   reserva o espaço em vez de fingir os campos. */
-.placeholder {
+/* Os campos são nossos: rótulo, caixa e mensagem saem do design system, e dentro da caixa o Stripe
+   monta só o campo, num iframe do provedor. O `flex: 1` faz o iframe ocupar a linha inteira, então
+   quase todo clique cai dentro dele e não na borda. */
+.fields {
   display: grid;
-  place-items: center;
-  min-height: 9rem;
-  padding: var(--space-5);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: var(--space-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.element {
+  flex: 1;
+  min-width: 0;
 }
 
 .error {
