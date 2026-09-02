@@ -9,9 +9,9 @@ export const metadata = createMetadata({
 });
 
 export default async function DashboardPage() {
-  const { state, needsSetup } = await getOnboardingGate();
+  const { state, needsSetup, billing } = await getOnboardingGate();
 
-  if (!needsSetup) return null;
+  if (!needsSetup || !billing) return null;
 
   return (
     <OnboardingFlow
@@ -19,6 +19,7 @@ export default async function DashboardPage() {
       members={state.members}
       invites={state.invites}
       currentUser={state.viewer}
+      billing={billing}
     />
   );
 }

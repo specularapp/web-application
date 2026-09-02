@@ -9,7 +9,13 @@ export type ListboxValue = string | number;
 
 export type ListboxOption<T extends ListboxValue> = { value: T; label: string };
 
-export type ListboxAction = { label: string; onSelect: () => void; tone?: "danger" };
+export type ListboxAction = {
+  label: string;
+  onSelect: () => void;
+  tone?: "danger";
+  /** Ícone da ação, na mesma coluna da direita em que o check da opção escolhida aparece. */
+  icon?: ReactNode;
+};
 
 export type ListboxPlacement = "below" | "above" | "auto";
 
@@ -113,10 +119,10 @@ const List = styled.div`
   z-index: var(--z-dropdown);
   min-width: max(100%, 10rem);
   width: max-content;
-  padding: var(--space-1);
+  padding-block: var(--space-1);
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--listbox-trigger-radius, var(--radius-md));
   corner-shape: squircle;
   box-shadow: var(--shadow-md);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
@@ -137,28 +143,36 @@ const List = styled.div`
 const Scroll = styled.ul`
   position: relative;
   display: grid;
-  gap: var(--space-half);
+  gap: var(--space-1);
   max-height: 14rem;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   list-style: none;
   outline: none;
   ${thinScrollbar};
 `;
 
+// Respiro de 8px por item, nos quatro lados, e 8px entre o rótulo e o ícone. O recuo lateral do painel
+// mora aqui, na margem do item, e não no painel: assim o divisor nasce de ponta a ponta sem margem
+// negativa, que era o que abria rolagem horizontal dentro da lista. O raio é o do painel menos esse
+// recuo (12 menos 4), então o encaixe é concêntrico, e o canto é superelipse declarada direto, como no
+// painel: item de listbox não entra no recorte do motor de cantos, porque a lista sai do container.
 const Option = styled.li`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-height: 2.25rem;
-  padding-inline: var(--space-3) var(--space-2);
+  margin-inline: var(--space-1);
+  padding: var(--space-2);
   font-size: var(--text-subheadline);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--tracking-tight);
   white-space: nowrap;
-  border-radius: var(--radius-sm);
+  border-radius: max(var(--radius-xs), calc(var(--listbox-trigger-radius, var(--radius-md)) - var(--space-1)));
+  corner-shape: squircle;
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard);
 
@@ -171,8 +185,25 @@ const Option = styled.li`
     background-color: var(--color-fill-tertiary);
   }
 
+  /* Ação lê corrido, ícone e rótulo juntos: o space-between é das opções, que precisam do check na
+     outra ponta. */
+  &[data-kind="action"] {
+    justify-content: flex-start;
+  }
+
   &[data-tone="danger"] {
     color: var(--color-danger);
+  }
+
+  /* Hover da ação que destrói acende em vermelho, e não no cinza das opções. O atributo data-active é o
+     hover deste componente: o ponteiro passando por cima o move de item em item, e a seta do teclado usa
+     o mesmo estado. A tinta é a fórmula do Badge, o matiz em alfa baixo, mais forte no escuro, para
+     assentar sobre qualquer superfície em vez de virar bloco chapado. */
+  &[data-tone="danger"][data-active] {
+    background-color: light-dark(
+      color-mix(in oklab, var(--color-danger) 14%, transparent),
+      color-mix(in oklab, var(--color-danger) 20%, transparent)
+    );
   }
 
   & svg {
@@ -188,10 +219,14 @@ const Option = styled.li`
   }
 `;
 
+/* A linha vai de ponta a ponta: quem recua é o item, então ela não precisa de margem negativa para
+   escapar do painel, e sem margem negativa não há nada mais largo que a lista para criar rolagem. A cor é
+   a da borda do próprio painel, a mais discreta da paleta; a de separador é quase três vezes mais opaca e
+   pesava demais num painel deste tamanho. */
 const Divider = styled.li`
   height: 1px;
   margin-block: var(--space-1);
-  background-color: var(--color-separator);
+  background-color: var(--color-border);
 `;
 
 const OPTION_HEIGHT = 36;
@@ -385,8 +420,10 @@ export function Listbox<T extends ListboxValue>({
                   data-active={index === activeIndex || undefined}
                   data-tone={action.tone}
                   onPointerMove={() => setActiveIndex(index)}
+                  data-kind="action"
                   onClick={() => pick(index)}
                 >
+                  {action.icon}
                   {action.label}
                 </Option>
               );

@@ -23,7 +23,7 @@
   backdrop-filter: blur(6px);
 }
 
-.overlay[data-demo] {
+.overlay[data-boxed] {
   position: relative;
   inset: auto;
   z-index: 0;
@@ -42,10 +42,18 @@
   max-width: 66rem;
 }
 
+/* A despedida cabe numa coluna estreita, e o painel fechando faz parte da saída. */
+.shell[data-step="boas-vindas"] {
+  max-width: 24rem;
+}
+
+/* O recuo entra na transição junto com a largura do `shell`: a etapa do plano troca o padding de 16 para
+   32, e sem isso o painel crescia de lado e dava um pulo na altura no mesmo instante. */
 .card {
   display: grid;
   gap: var(--space-6);
   padding: var(--space-4);
+  transition: padding var(--duration-slow) var(--ease-standard);
   background-color: color-mix(in oklab, var(--color-bg-grouped-secondary) 55%, transparent);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);
@@ -55,10 +63,137 @@
   backdrop-filter: blur(24px) saturate(180%);
 }
 
-/* As bolas de cor da etapa do plano sangram pelas bordas, então quem recorta é o painel. */
+/* As bolas de cor da etapa do plano e da despedida sangram pelas bordas, então quem recorta é o painel. */
 .card[data-step="plano"] {
   padding: var(--space-8);
   overflow: hidden;
+}
+
+.card[data-step="boas-vindas"] {
+  padding: var(--space-8) var(--space-6);
+  overflow: hidden;
+}
+
+/* Boas-vindas: marca, uma linha de texto e nada mais. É despedida, não etapa, então o painel fecha para
+   a largura mínima e o anel de etapas nem aparece. */
+@keyframes welcomeEnter {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+@keyframes markEnter {
+  from {
+    opacity: 0;
+    scale: 0.82;
+  }
+}
+
+@keyframes ringFill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes markOut {
+  to {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+@keyframes markIn {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+.welcome {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-5);
+  padding-block: var(--space-4);
+  animation: welcomeEnter var(--duration-slow) var(--ease-standard);
+}
+
+/* Duas bolas de cor, uma em cada quina oposta, na mesma técnica da etapa de planos: gradiente radial em
+   vez de filtro de desfoque, que custaria uma camada do tamanho do painel. Quem recorta é o painel. */
+.welcomeGlow {
+  position: absolute;
+  inset: calc(var(--space-8) * -1);
+  background-image:
+    radial-gradient(16rem 12rem at 0% 0%, color-mix(in oklab, var(--sys-indigo) 85%, transparent), transparent 62%),
+    radial-gradient(16rem 12rem at 100% 100%, color-mix(in oklab, var(--sys-mint) 70%, transparent), transparent 62%);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: welcomeGlowEnter calc(var(--duration-slow) * 2) var(--ease-standard) backwards;
+}
+
+@keyframes welcomeGlowEnter {
+  from {
+    opacity: 0;
+  }
+}
+
+.mark,
+.welcomeText {
+  position: relative;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  animation: markEnter var(--duration-slow) var(--ease-spring) backwards;
+}
+
+.mark svg:first-child {
+  position: absolute;
+  inset: 0;
+}
+
+/* Marca e check ocupam a mesma célula: quando o anel fecha, uma sai e o outro entra no lugar exato. */
+.markLogo,
+.markCheck {
+  grid-area: 1 / 1;
+}
+
+.markLogo {
+  animation: markOut var(--duration-base) var(--ease-standard) var(--ring-duration) forwards;
+}
+
+/* `backwards` é o que segura o check invisível durante a espera do anel, sem precisar de `opacity: 0` no
+   estilo base: com o zero declarado aqui, o `to` implícito do quadro também seria zero e ele animaria de
+   invisível para invisível. */
+.markCheck {
+  width: 2.125rem;
+  height: 2.125rem;
+  color: var(--color-brand);
+  fill: currentColor;
+  animation: markIn var(--duration-slow) var(--ease-spring) var(--ring-duration) backwards;
+}
+
+.ringTrack {
+  stroke: var(--color-fill-quaternary);
+}
+
+/* O traço começa todo escondido e vai sendo revelado: `dashoffset` do tamanho do próprio traço some em
+   `--ring-duration`, que é o mesmo tempo da espera antes de fechar. */
+.ringFill {
+  stroke: var(--color-brand);
+  stroke-dasharray: var(--ring-length);
+  stroke-dashoffset: var(--ring-length);
+  animation: ringFill var(--ring-duration) var(--ease-standard) forwards;
+}
+
+.welcomeText {
+  display: grid;
+  gap: var(--space-1);
+  animation: welcomeEnter var(--duration-slow) var(--ease-standard) var(--duration-fast) backwards;
 }
 
 .head {
@@ -89,20 +224,24 @@
   inset: 0;
 }
 
+/* Coluna em `minmax(0, 1fr)` e não a trilha implícita: com `auto`, ela cresce pelo max-content dos
+   filhos e a camada inteira ganha rolagem lateral no mobile. Mesma lição das telas de MFA. */
 .step {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   animation: stepEnter var(--duration-base) var(--ease-standard);
 }
 
 .form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
 }
 
 .pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-3);
   align-items: end;
 }
@@ -111,6 +250,7 @@
    metade para baixo, então o bloco reserva essa metade na margem. */
 .identity {
   position: relative;
+  min-width: 0;
   margin-bottom: 3.25rem;
 }
 
@@ -183,6 +323,7 @@
 
 .list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -249,8 +390,26 @@
   }
 
   .pair {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-5);
+  }
+
+  /* Numa tela estreita o 4:1 dá uns 66px de altura, e a logo de 96px cobria o banner quase inteiro. O
+     banner engorda para 3:1 e a logo encolhe, então ela volta a sentar na borda de baixo em vez de
+     tomar a capa. O recuo da margem acompanha o quanto ela transborda. */
+  .banner {
+    aspect-ratio: 3 / 1;
+  }
+
+  .identity {
+    margin-bottom: 2.5rem;
+  }
+
+  .logo {
+    bottom: -2rem;
+    inset-inline-start: var(--space-3);
+    width: 4.5rem;
+    height: 4.5rem;
   }
 
   .member {

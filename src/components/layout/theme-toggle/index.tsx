@@ -26,7 +26,8 @@ const Dock = styled.div`
   position: fixed;
   inset-block-end: var(--space-4);
   inset-inline-start: var(--space-4);
-  z-index: var(--z-sticky);
+  /* Acima da camada do modal: em homologação a troca de tema precisa alcançar os primeiros passos. */
+  z-index: var(--z-toast);
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);

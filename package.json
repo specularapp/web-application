@@ -11,6 +11,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "audit": "npm audit --audit-level=high",
     "env:check": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/check-env.mjs",
+    "stripe:sync": "node --experimental-strip-types --no-warnings --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/stripe.mjs sync",
     "db:sync": "node scripts/db.mjs sync",
     "db:new": "node scripts/db.mjs new",
     "db:push": "node scripts/db.mjs push",
@@ -18,7 +19,8 @@
     "db:status": "node scripts/db.mjs status",
     "db:types": "node scripts/db.mjs types",
     "db:link": "node scripts/db.mjs link",
-    "db:config-push": "node scripts/db.mjs config-push"
+    "db:config-push": "node scripts/db.mjs config-push",
+    "billing:probe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-billing.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -33,6 +35,8 @@
     "@phosphor-icons/react": "^2.1.10",
     "@react-email/components": "^1.0.12",
     "@react-pdf/renderer": "^4.9.0",
+    "@stripe/react-stripe-js": "^6.8.2",
+    "@stripe/stripe-js": "^9.15.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "@tanstack/react-table": "^9.2.3",

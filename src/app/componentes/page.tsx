@@ -29,6 +29,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
 import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
 import { MfaVerify } from "@/features/auth/components/mfa-verify";
+import { PlanSettings } from "@/features/billing/components/plan-settings";
+import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
 import { Container } from "@/components/ui/container";
@@ -58,7 +60,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { squircle } from "@/lib/corners";
 import { createMetadata } from "@/lib/metadata";
 import styles from "./componentes.module.css";
-import { ListboxDemo, PaginationDemo, SelectActionsDemo, ToastDemo, ToastPreview } from "./demos";
+import { CheckoutPreview, ListboxDemo, PaginationDemo, SelectActionsDemo, ToastDemo, ToastPreview } from "./demos";
 
 export const metadata = createMetadata({
   title: "Componentes",
@@ -1098,9 +1100,11 @@ const groups: Group[] = [
         example: (
           <OnboardingFlow
             demo
+            boxed
             team={null}
             members={[]}
             invites={[]}
+            billing={previewBillingState}
             currentUser={{
               userId: "00000000-0000-4000-8000-000000000000",
               name: "Aleph Ramos",
@@ -1110,6 +1114,20 @@ const groups: Group[] = [
             }}
           />
         ),
+      },
+      {
+        name: "Plano e assinatura (prévia)",
+        note: "A tela de /configuracoes/plano com dados de exemplo: assinatura do Pro em teste gratuito, cartão guardado e duas faturas. As ações são as de verdade e falham de propósito aqui, porque o time do exemplo não existe. Serve para conferir o desenho nos dois temas sem precisar de assinatura.",
+        wide: true,
+        layout: "stack",
+        example: <PlanSettings state={previewSubscribedState} invoices={previewInvoices} />,
+      },
+      {
+        name: "Pagamento do plano (prévia)",
+        note: "Etapa de pagamento da assinatura: resumo do pedido à esquerda e o formulário do Stripe à direita. Na prévia o iframe do provedor não monta, porque ele exige um segredo de pagamento válido, então o espaço fica reservado. O de verdade aparece no primeiros passos e em /configuracoes/plano, com as cores saindo dos nossos tokens pela Appearance API.",
+        wide: true,
+        layout: "stack",
+        example: <CheckoutPreview />,
       },
       {
         name: "MFA cadastro (prévia)",

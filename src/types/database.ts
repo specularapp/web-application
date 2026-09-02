@@ -39,6 +39,145 @@ export type Database = {
   }
   public: {
     Tables: {
+      billing_events: {
+        Row: {
+          id: string
+          organization_id: string | null
+          payload: Json | null
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          organization_id?: string | null
+          payload?: Json | null
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          payload?: Json | null
+          received_at?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plans: {
+        Row: {
+          code: Database["public"]["Enums"]["billing_plan"]
+          created_at: string
+          is_paid: boolean
+          name: string
+          tier: number
+          trial_days: number
+          trial_requires_payment_method: boolean
+          updated_at: string
+        }
+        Insert: {
+          code: Database["public"]["Enums"]["billing_plan"]
+          created_at?: string
+          is_paid?: boolean
+          name: string
+          tier: number
+          trial_days?: number
+          trial_requires_payment_method?: boolean
+          updated_at?: string
+        }
+        Update: {
+          code?: Database["public"]["Enums"]["billing_plan"]
+          created_at?: string
+          is_paid?: boolean
+          name?: string
+          tier?: number
+          trial_days?: number
+          trial_requires_payment_method?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_prices: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          cycle: Database["public"]["Enums"]["billing_cycle"]
+          plan: Database["public"]["Enums"]["billing_plan"]
+          stripe_price_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          cycle: Database["public"]["Enums"]["billing_cycle"]
+          plan: Database["public"]["Enums"]["billing_plan"]
+          stripe_price_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          cycle?: Database["public"]["Enums"]["billing_cycle"]
+          plan?: Database["public"]["Enums"]["billing_plan"]
+          stripe_price_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_prices_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      billing_trials: {
+        Row: {
+          ends_at: string
+          organization_id: string
+          plan: Database["public"]["Enums"]["billing_plan"]
+          started_at: string
+        }
+        Insert: {
+          ends_at: string
+          organization_id: string
+          plan: Database["public"]["Enums"]["billing_plan"]
+          started_at?: string
+        }
+        Update: {
+          ends_at?: string
+          organization_id?: string
+          plan?: Database["public"]["Enums"]["billing_plan"]
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_trials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_trials_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -115,6 +254,87 @@ export type Database = {
           },
         ]
       }
+      organization_subscriptions: {
+        Row: {
+          amount_cents: number | null
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          currency: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          organization_id: string
+          payment_brand: string | null
+          payment_last4: string | null
+          plan: Database["public"]["Enums"]["billing_plan"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          trial_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          organization_id: string
+          payment_brand?: string | null
+          payment_last4?: string | null
+          plan?: Database["public"]["Enums"]["billing_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          trial_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          organization_id?: string
+          payment_brand?: string | null
+          payment_last4?: string | null
+          plan?: Database["public"]["Enums"]["billing_plan"]
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          trial_start?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           banner_url: string | null
@@ -157,6 +377,72 @@ export type Database = {
           slug?: string
           updated_at?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      plan_entitlements: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          limit_value: number | null
+          plan: Database["public"]["Enums"]["billing_plan"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          limit_value?: number | null
+          plan: Database["public"]["Enums"]["billing_plan"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          limit_value?: number | null
+          plan?: Database["public"]["Enums"]["billing_plan"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "plan_features"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "plan_entitlements_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      plan_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          kind: Database["public"]["Enums"]["plan_feature_kind"]
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          kind: Database["public"]["Enums"]["plan_feature_kind"]
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          kind?: Database["public"]["Enums"]["plan_feature_kind"]
+          name?: string
         }
         Relationships: []
       }
@@ -204,6 +490,14 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      attach_billing_customer: {
+        Args: { p_organization_id: string; p_stripe_customer_id: string }
+        Returns: string
+      }
+      can_manage_billing: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       can_manage_logo: { Args: { p_name: string }; Returns: boolean }
       complete_onboarding: {
         Args: { p_organization_id: string }
@@ -219,6 +513,10 @@ export type Database = {
         Returns: string
       }
       current_org: { Args: never; Returns: string }
+      current_plan: {
+        Args: never
+        Returns: Database["public"]["Enums"]["billing_plan"]
+      }
       has_role: {
         Args: {
           p_organization_id: string
@@ -228,11 +526,68 @@ export type Database = {
       }
       is_member: { Args: { p_organization_id: string }; Returns: boolean }
       mfa_satisfied: { Args: never; Returns: boolean }
+      organization_plan: {
+        Args: { p_organization_id: string }
+        Returns: Database["public"]["Enums"]["billing_plan"]
+      }
+      plan_allows: {
+        Args: { p_feature_key: string; p_organization_id: string }
+        Returns: boolean
+      }
+      plan_at_least: {
+        Args: {
+          p_organization_id: string
+          p_plan: Database["public"]["Enums"]["billing_plan"]
+        }
+        Returns: boolean
+      }
+      plan_feature_kind_of: {
+        Args: { p_feature_key: string }
+        Returns: Database["public"]["Enums"]["plan_feature_kind"]
+      }
+      plan_limit: {
+        Args: { p_feature_key: string; p_organization_id: string }
+        Returns: number
+      }
+      plan_tier: {
+        Args: { p_plan: Database["public"]["Enums"]["billing_plan"] }
+        Returns: number
+      }
+      plan_within_limit: {
+        Args: {
+          p_count: number
+          p_feature_key: string
+          p_organization_id: string
+        }
+        Returns: boolean
+      }
       set_current_org: {
         Args: { p_organization_id: string }
         Returns: undefined
       }
       shares_org_with: { Args: { p_user_id: string }; Returns: boolean }
+      sync_subscription: {
+        Args: {
+          p_amount_cents?: number
+          p_cancel_at_period_end: boolean
+          p_canceled_at: string
+          p_currency?: string
+          p_current_period_end: string
+          p_current_period_start: string
+          p_cycle: Database["public"]["Enums"]["billing_cycle"]
+          p_organization_id: string
+          p_payment_brand?: string
+          p_payment_last4?: string
+          p_plan: Database["public"]["Enums"]["billing_plan"]
+          p_status: Database["public"]["Enums"]["subscription_status"]
+          p_stripe_customer_id: string
+          p_stripe_price_id: string
+          p_stripe_subscription_id: string
+          p_trial_end: string
+          p_trial_start: string
+        }
+        Returns: undefined
+      }
       team_members: {
         Args: { p_organization_id: string }
         Returns: {
@@ -244,8 +599,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      trial_available: {
+        Args: {
+          p_organization_id: string
+          p_plan: Database["public"]["Enums"]["billing_plan"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      billing_cycle: "monthly" | "yearly"
+      billing_plan: "free" | "pro" | "alliance"
       member_role: "owner" | "admin" | "member"
       organization_industry:
         | "web_development"
@@ -255,6 +619,16 @@ export type Database = {
         | "design_and_development"
         | "other"
       organization_kind: "freelancer" | "agency"
+      plan_feature_kind: "flag" | "limit"
+      subscription_status:
+        | "incomplete"
+        | "incomplete_expired"
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "unpaid"
+        | "paused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -385,6 +759,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      billing_cycle: ["monthly", "yearly"],
+      billing_plan: ["free", "pro", "alliance"],
       member_role: ["owner", "admin", "member"],
       organization_industry: [
         "web_development",
@@ -395,6 +771,17 @@ export const Constants = {
         "other",
       ],
       organization_kind: ["freelancer", "agency"],
+      plan_feature_kind: ["flag", "limit"],
+      subscription_status: [
+        "incomplete",
+        "incomplete_expired",
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "unpaid",
+        "paused",
+      ],
     },
   },
 } as const

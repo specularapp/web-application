@@ -93,7 +93,7 @@ function messageOf(error: { code?: string; message: string }, fallback: string) 
   return error.message || fallback;
 }
 
-async function organizationOf(client: TeamClient, userId: string, current: string | null) {
+export async function organizationOf(client: TeamClient, userId: string, current: string | null) {
   if (current) return current;
 
   const { data: membership } = await client

@@ -1,8 +1,10 @@
 "use client";
 
+import { TrashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { CheckoutPanel } from "@/features/billing/components/checkout-panel";
 import { Listbox, type ListboxPlacement } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
@@ -53,6 +55,7 @@ export function SelectActionsDemo() {
         {
           label: "Remover do time",
           tone: "danger",
+          icon: <TrashIcon weight="bold" aria-hidden="true" />,
           onSelect: () => toast({ title: "Ação da lista", description: "Aqui entraria a remoção", tone: "info" }),
         },
       ]}
@@ -169,5 +172,41 @@ export function ToastPreview() {
         onDismiss={() => undefined}
       />
     </>
+  );
+}
+
+// A etapa de pagamento com o resumo de verdade e um lugar reservado no lugar do iframe do Stripe,
+// que só monta com um segredo válido. Mesma porta de prévia do MfaEnroll.
+export function CheckoutPreview() {
+  const [visible, setVisible] = useState(true);
+
+  if (!visible) {
+    return (
+      <Button variant="secondary" onClick={() => setVisible(true)}>
+        Ver a etapa de pagamento
+      </Button>
+    );
+  }
+
+  return (
+    <CheckoutPanel
+      preview
+      organizationId="00000000-0000-4000-8000-000000000001"
+      intent={{
+        mode: "setup",
+        clientSecret: "seti_preview_secret_preview",
+        plan: "pro",
+        cycle: "monthly",
+        subscriptionId: null,
+        setupIntentId: "seti_preview",
+        amountCents: 0,
+        trialDays: 7,
+      }}
+      title="Guarde um cartão para começar"
+      description="Nada é cobrado agora. Guardamos o cartão para a assinatura seguir sozinha quando o teste terminar."
+      backLabel="Escolher outro plano"
+      onBack={() => setVisible(false)}
+      onDone={() => setVisible(false)}
+    />
   );
 }

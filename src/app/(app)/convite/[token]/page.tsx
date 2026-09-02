@@ -12,5 +12,5 @@ export default async function ConvitePage({ params }: PageProps<"/convite/[token
   const { token } = await params;
   const user = await requireUser(`/convite/${token}`);
 
-  return <AcceptInviteCard token={token} email={user.email ?? null} />;
+  return <AcceptInviteCard token={token} email={user.email} />;
 }

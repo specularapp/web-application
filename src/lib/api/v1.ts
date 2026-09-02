@@ -1,6 +1,6 @@
 import "server-only";
 import { readTextWithLimit } from "@/lib/security/payload";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+import { checkRateLimit, rateLimitHeaders, type RateLimitScope } from "@/lib/security/rate-limit";
 import { createClientFromRequest } from "@/lib/supabase/api";
 
 const MAX_BODY_BYTES = 8192;
@@ -14,12 +14,13 @@ export type ApiSession = NonNullable<Authorized> & { userId: string };
 export async function authorizeRequest(
   request: Request,
   operation: string,
+  scope: RateLimitScope = "action",
 ): Promise<{ session: ApiSession } | { response: Response }> {
   const authorized = await createClientFromRequest(request);
   if (!authorized) return { response: Response.json({ error: "Não autenticado" }, { status: 401 }) };
 
   const userId = String(authorized.claims.sub);
-  const limit = await checkRateLimit("action", `${operation}:${userId}`, crypto.randomUUID());
+  const limit = await checkRateLimit(scope, `${operation}:${userId}`, crypto.randomUUID());
   if (!limit.allowed) {
     return {
       response: Response.json({ error: "Muitas requisições" }, { status: 429, headers: rateLimitHeaders(limit) }),

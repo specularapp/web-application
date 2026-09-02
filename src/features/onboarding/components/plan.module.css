@@ -1,7 +1,23 @@
-@keyframes stepEnter {
+/* Abertura do mapa de planos, em três tempos que se sobrepõem: o painel cresce, o brilho chega e os
+   cartões sobem em fila. A largura e o recuo do painel já estão em transição no `onboarding.module.css`,
+   então o conjunto lê como um movimento só. Movimento reduzido é zerado no `reset.css`. */
+@keyframes planEnter {
   from {
     opacity: 0;
-    translate: 0 0.5rem;
+    scale: 0.99;
+  }
+}
+
+@keyframes planGlowEnter {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes planPartEnter {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
   }
 }
 
@@ -9,26 +25,32 @@
   position: relative;
   display: grid;
   gap: var(--space-8);
-  animation: stepEnter var(--duration-base) var(--ease-standard);
+  animation: planEnter var(--duration-slow) var(--ease-standard);
 }
 
 /* Quatro bolas de cor sangrando pelas quatro quinas, duas de cada lado. Gradiente radial no lugar de
-   filtro de desfoque: mesmo resultado, sem custo de composição numa camada do tamanho do painel. */
+   filtro de desfoque: mesmo resultado, sem custo de composição numa camada do tamanho do painel.
+   O tamanho sai de duas variáveis porque no mobile ele encolhe: a mesma medida num painel estreito
+   cobria a tela inteira e virava mancha de cor, em vez de brilho vindo das quinas. */
 .glow {
+  --glow-wide: 34rem 22rem;
+  --glow-short: 28rem 20rem;
+
   position: absolute;
   inset: calc(var(--space-8) * -1);
   background-image:
-    radial-gradient(34rem 22rem at 0% 0%, color-mix(in oklab, var(--sys-indigo) 90%, transparent), transparent 62%),
-    radial-gradient(28rem 20rem at 0% 100%, color-mix(in oklab, var(--sys-mint) 60%, transparent), transparent 62%),
-    radial-gradient(34rem 22rem at 100% 0%, color-mix(in oklab, var(--sys-red) 85%, transparent), transparent 62%),
-    radial-gradient(28rem 20rem at 100% 100%, color-mix(in oklab, var(--sys-yellow) 60%, transparent), transparent 62%);
+    radial-gradient(var(--glow-wide) at 0% 0%, color-mix(in oklab, var(--sys-indigo) 90%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 0% 100%, color-mix(in oklab, var(--sys-mint) 60%, transparent), transparent 62%),
+    radial-gradient(var(--glow-wide) at 100% 0%, color-mix(in oklab, var(--sys-red) 85%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 100% 100%, color-mix(in oklab, var(--sys-yellow) 60%, transparent), transparent 62%);
   opacity: 0.5;
   pointer-events: none;
+  animation: planGlowEnter calc(var(--duration-slow) * 2) var(--ease-standard) backwards;
 }
 
 .header,
-.grid,
-.step > button {
+.dots,
+.grid {
   position: relative;
 }
 
@@ -37,6 +59,7 @@
   justify-items: center;
   gap: var(--space-4);
   padding-top: var(--space-4);
+  animation: planPartEnter var(--duration-slow) var(--ease-standard) backwards;
 }
 
 .title {
@@ -48,51 +71,11 @@
   max-width: 34ch;
 }
 
-.cycles {
-  display: inline-flex;
-  gap: var(--space-1);
+/* O alternador de ciclo é o `CycleToggle` de `features/billing/components`, compartilhado com a tela de
+   plano. Aqui só o respiro extra: três classes de propósito, para vencer a folha do componente
+   independentemente da ordem em que os módulos entram no pacote. */
+.step .header .cycles {
   margin-top: var(--space-2);
-  padding: var(--space-1);
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
-}
-
-.cycle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 2rem;
-  padding-inline: var(--space-4);
-  font-family: var(--font-body);
-  font-size: var(--text-subheadline);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
-  background-color: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
-}
-
-.cycle:hover {
-  color: var(--color-label);
-}
-
-.cycle[data-active] {
-  color: var(--color-label);
-  background-color: var(--color-bg-tertiary);
-}
-
-.cycle:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.off {
-  font-size: var(--text-caption-2);
 }
 
 /* Sem align-items: os três cartões esticam para a altura da linha e terminam juntos embaixo. */
@@ -100,6 +83,24 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
+}
+
+/* Entrada em fila. O `backwards` é o que segura o cartão invisível durante a espera: sem ele, ele
+   apareceria e só então sumiria para animar. */
+.grid > * {
+  animation: planPartEnter var(--duration-slow) var(--ease-standard) backwards;
+}
+
+.grid > *:nth-child(1) {
+  animation-delay: var(--duration-fast);
+}
+
+.grid > *:nth-child(2) {
+  animation-delay: calc(var(--duration-fast) * 1.5);
+}
+
+.grid > *:nth-child(3) {
+  animation-delay: calc(var(--duration-fast) * 2);
 }
 
 /* O plano atual fica raso, sem caixa, e as opções de subida ganham superfície e borda. O recuo é o
@@ -173,13 +174,31 @@
   fill: currentColor;
 }
 
+/* Nota de preço no fim da própria linha do recurso, sem parênteses: é texto inline dentro do mesmo
+   parágrafo, então ela só desce se a frase inteira quebrar. */
 .note {
-  margin-inline-start: calc(var(--space-1) * -1);
+  margin-inline-start: var(--space-1);
+  color: var(--color-label-tertiary);
+  white-space: nowrap;
+}
+
+/* Os pontos só existem no mobile, onde a fileira vira carrossel. */
+.dots {
+  display: none;
 }
 
 @media (max-width: 47.9375rem) {
   .step {
-    gap: var(--space-6);
+    gap: var(--space-4);
+  }
+
+  /* Brilho na proporção do painel estreito: o de 34rem, que no desktop é metade da largura, aqui
+     cobriria a tela toda. O recuo negativo acompanha o recuo menor do painel no mobile. */
+  .glow {
+    --glow-wide: 13rem 9rem;
+    --glow-short: 11rem 8rem;
+
+    inset: calc(var(--space-4) * -1);
   }
 
   .header {
@@ -189,8 +208,8 @@
 
   /* Três classes de propósito: o Text define o tamanho com .text[data-variant], e uma classe só perderia. */
   .step .header .title {
-    max-width: none;
-    font-size: var(--text-title-2);
+    max-width: 18ch;
+    font-size: var(--text-title-1);
   }
 
   .step .header .subtitle {
@@ -198,84 +217,105 @@
     font-size: var(--text-footnote);
   }
 
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-  }
-
-  .row {
+  .dots {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    width: 100%;
-    padding: var(--space-3) var(--space-4);
-    text-align: start;
-    background-color: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
+    gap: var(--space-1);
+    justify-content: center;
+  }
+
+  .dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    background-color: var(--color-fill);
+    border-radius: var(--radius-full);
     transition:
-      background-color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard);
+      inline-size var(--duration-base) var(--ease-standard),
+      background-color var(--duration-base) var(--ease-standard);
   }
 
-  .row[data-selected] {
+  /* O ponto da frente estica em vez de mudar só de cor: a diferença fica legível sem depender de
+     contraste entre dois cinzas. */
+  .dot[data-active] {
+    width: 1.125rem;
+    background-color: var(--color-brand);
+  }
+
+  /* Carrossel de rolagem livre, sem `scroll-snap`: o encaixe do navegador prende de cartão em cartão e
+     o arraste anda em degraus. O alinhamento fica com o componente, que espera a rolagem parar e desliza
+     o cartão mais próximo. O cartão ocupa a pista quase toda e sobra 5% para a beirada do próximo, o
+     bastante para contar que há mais para o lado. O recuo no fim é o que permite o último encostar na
+     esquerda, senão ele pararia com sobra à direita e o alinhamento ficaria torto. */
+  .grid {
+    display: flex;
+    gap: var(--space-2);
+    padding-block-end: var(--space-2);
+    padding-inline-end: calc(5% + var(--space-2));
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-fill-quaternary) transparent;
+    cursor: grab;
+  }
+
+  /* Arrastando, a seleção de texto para de atrapalhar. */
+  .grid[data-dragging] {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .grid::-webkit-scrollbar {
+    width: 0.375rem;
+    height: 0.375rem;
+  }
+
+  .grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .grid::-webkit-scrollbar-thumb {
     background-color: var(--color-fill-quaternary);
-    border-color: var(--color-label-tertiary);
+    border-radius: var(--radius-full);
   }
 
-  .row:focus-visible {
+  .grid:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 
-  .rowText {
-    display: grid;
-    gap: var(--space-1);
-    min-width: 0;
+  /* Só a largura muda aqui: fundo e borda continuam vindo do `data-boxed`, igual ao desktop, então o
+     plano em vigor segue raso e as opções de subida seguem com superfície. */
+  .card {
+    flex: 0 0 calc(95% - var(--space-2));
   }
 
-  /* Nome inteiro numa linha só, e a etiqueta desce quando não couber ao lado: quebrar o nome no meio
-     ("Specular / Pro") deixa a lista ondulada. */
-  .rowName {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-1) var(--space-2);
-    min-width: 0;
+  /* Três linhas reservadas para a descrição, e não duas: no cartão estreito uma delas passa de duas
+     linhas e empurrava preço, botão e lista para baixo só naquele cartão, o que salta a cada arraste do
+     carrossel. Com o espaço reservado, os três começam na mesma altura sem cortar texto. */
+  .cardDescription {
+    min-height: 3.75em;
   }
 
-  .rowName > span:first-child {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  /* Lista mais compacta: o check cai para 12px e os vãos encolhem. São 6px de largura devolvidos por
+     linha, que é o que faz o rótulo caber sem quebrar, e 16px de altura que o cartão deixa de esticar. */
+  .features {
+    gap: var(--space-2);
+    margin-top: var(--space-3);
   }
 
-  /* Uma linha de descrição na lista compacta: o resto está no desktop, e aqui ela só situa o plano. */
-  .rowDescription {
-    display: -webkit-box;
-    max-width: 24ch;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+  .features li {
+    align-items: flex-start;
+    gap: var(--space-half) var(--space-1);
   }
 
-  /* Preço empilhado à direita: o "/mês" na mesma linha custava largura que o nome do plano precisa
-     para caber sem cortar. */
-  .price {
-    flex-direction: column;
-    flex-shrink: 0;
-    align-items: flex-end;
-    gap: 0;
-    margin: 0;
+  .features svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top: 0.25em;
   }
 
-  .amount {
-    font-size: var(--text-title-2);
-  }
-
-  .period {
-    font-size: var(--text-caption-2);
+  /* Um passo abaixo no tamanho: são uns três caracteres a mais por linha, que é o que falta para o
+     rótulo mais longo caber sem quebrar num aparelho de 320px. */
+  .features li > span {
+    font-size: var(--text-caption-1);
   }
 }

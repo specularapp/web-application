@@ -21,6 +21,7 @@
 ```
 src/
   app/                  rotas (apenas roteamento, sem lógica de domínio)
+    previa/             prévias de front, só em homologação (fora dela a página é 404 e o proxy fecha)
     (marketing)/        site público: home, preços, termos, privacidade
     (auth)/             login, cadastro, recuperação de senha
     (app)/              área autenticada, protegida pelo proxy
@@ -56,6 +57,8 @@ db/
 - Páginas só compõem componentes de `features` e `components`.
 - Estilo sempre com tokens de `styles/tokens.css`. Primitivos sem interação (Text, Stack, Container, Table, Label, Field, Logo...) são Server Components com CSS Modules (`*.module.css` ao lado do componente, variantes por `data-*`), zero JS no cliente. Componentes interativos (Button com loading, Dialog, Switch, Toast...) usam Emotion e `"use client"`. Nada de valores soltos.
 - Todo componente novo entra na vitrine `/componentes` com nome e exemplo, conferido nos dois temas.
+- Tela grande também ganha prévia em `/previa/*`, que é a vitrine no formato de verdade: tela cheia em vez de caixa, para ajuste visual sem sessão e sem dado no banco. `/previa/primeiros-passos` abre qualquer uma das três etapas por `?etapa=time|membros|plano`, e na etapa do plano escolher um plano pago abre a etapa de pagamento com o espaço do formulário do Stripe reservado. `/previa/plano` mostra `/configuracoes/plano` com assinatura em teste, cartão e faturas de exemplo. As rotas existem só em homologação: o proxy libera o prefixo `/previa/` por `isHomologation()` e a própria página devolve 404 fora dela. Os estados de exemplo vivem num lugar só, em `features/billing/preview.ts`, compartilhados com a vitrine.
+- `OnboardingFlow` separa `demo` (não toca o servidor) de `boxed` (caixa dentro da página, o formato da vitrine): a prévia usa só `demo`, então ela aparece como a camada de verdade.
 - Metadados via `createMetadata` em toda página.
 - Dados via Server Components e Server Actions. Cache em Redis onde houver leitura repetida.
 - Webhooks verificam assinatura. Toda entrada validada com zod no servidor.
@@ -220,6 +223,81 @@ Haverá app Android/iOS usando literalmente o mesmo Supabase. Consequências que
 
 O primeiro domínio montado nesse formato é `organizations`: `service.ts` recebe o cliente Supabase de fora e não sabe quem chamou, `actions.ts` é a casca com sessão, zod, rate limit e revalidação, e `api/v1/organizacoes` (mais `organizacoes/membros`) é a mesma casca para o aplicativo, com `authorizeRequest` de `lib/api/v1.ts` cuidando de token, teto de requisições e leitura do corpo com limite.
 
+## Cobrança e permissão por plano
+
+Montado em 2026-09-01. Três fontes de verdade separadas, de propósito: **o Stripe guarda o dinheiro**, **o banco guarda quem pode o quê** e **`features/billing/plans.ts` guarda o texto de vitrine**. Nenhuma das três repete a outra, então não existe divergência para reconciliar.
+
+### O que vive no banco
+
+| Tabela | Papel |
+| --- | --- |
+| `billing_plans` | catálogo: código, nome, degrau (`tier`), dias de teste, se o teste exige cartão, se é pago |
+| `billing_prices` | mapa plano + ciclo para o `stripe_price_id`. Sem valor: o valor está no Stripe |
+| `plan_features` | catálogo de recursos que o plano libera (`flag` liga e desliga, `limit` guarda teto) |
+| `plan_entitlements` | a permissão em si: um recurso por plano, com `enabled` e `limit_value` |
+| `organization_subscriptions` | uma linha por organização: plano, ciclo, status, ids do Stripe, período, cartão |
+| `billing_trials` | teste gratuito consumido, chaveado por organização e plano |
+| `billing_events` | id do evento do Stripe já processado, para reentrega não processar de novo |
+
+**`plan_features` e `plan_entitlements` nascem vazias.** Cada condição de plano entra junto com a tela que a exige, nunca antes. Sem linha, `plan_allows` nega e `plan_limit` devolve zero: negado por padrão.
+
+### Como se define a regra de uma tela
+
+Duas linhas de SQL numa migração de `billing`, e mais nada:
+
+```sql
+insert into public.plan_features (key, kind, name)
+values ('active_projects', 'limit', 'Projetos ativos');
+
+insert into public.plan_entitlements (plan, feature_key, enabled, limit_value)
+values ('free', 'active_projects', true, 3),
+       ('pro', 'active_projects', true, null),        -- nulo com enabled = ilimitado
+       ('alliance', 'active_projects', true, null);
+```
+
+A partir daí a regra vale em qualquer lugar, sem código novo:
+
+- Em policy de RLS: `using (public.plan_within_limit(organization_id, 'active_projects', (select count(*) from public.projects p where p.organization_id = ...)))`.
+- Em `service.ts`: `client.rpc("plan_allows", { p_organization_id, p_feature_key })`.
+- Na interface: o `Button` já tem `locked` com `plan`, que anexa a etiqueta do plano sem tirar o clique, para o clique levar ao upgrade.
+
+Recurso que não existe em `plan_features` **derruba a chamada com erro**, em vez de negar ou liberar em silêncio: chave escrita errada aparece no primeiro teste.
+
+### Funções de permissão
+
+`organization_plan(org)` é a única que decide plano em vigor, e é o lugar único onde os status com direito estão escritos (`trialing`, `active`, `past_due`). Cancelado, expirado e não pago caem no gratuito sem ninguém mais precisar saber disso. As outras se apoiam nela: `current_plan()`, `plan_at_least(org, plano)`, `plan_allows(org, chave)`, `plan_limit(org, chave)`, `plan_within_limit(org, chave, quantidade)`, `trial_available(org, plano)`, `can_manage_billing(org)`.
+
+### Quem escreve
+
+Nenhuma tabela de cobrança tem policy de escrita. Ninguém troca o próprio plano falando direto com a API, nem o dono do time. As duas portas são:
+
+- `attach_billing_customer(org, cliente)`, aberta para `authenticated`, exige owner ou admin e nunca sobrescreve um cliente já vinculado.
+- `sync_subscription(...)`, **revogada de `authenticated`** e concedida só a `service_role`. Só o servidor escreve plano e status, e sempre com o que o Stripe devolveu, nunca com o que o pedido mandou.
+
+### Fluxo de pagamento
+
+O formulário é nosso, o cartão é do Stripe: `@stripe/react-stripe-js` monta o Payment Element num iframe do provedor, então o número do cartão nunca toca o nosso DOM nem os nossos servidores. As cores saem dos nossos tokens pela Appearance API, resolvidos em RGB por uma sonda invisível, porque `light-dark()` não atravessa o iframe (mesma técnica do `GradientBlinds`). O raio ali é número puro: `corner-shape` não entra no iframe, e é a única parte da interface fora do sistema de cantos da casa.
+
+Dois caminhos, escolhidos no servidor:
+
+1. **Com teste gratuito** (Pro, 7 dias): cria um SetupIntent, guarda o cartão, e só então cria a assinatura com `trial_period_days`. Criar a assinatura antes daria sete dias de plano pago a quem abandonasse o formulário no meio.
+2. **Sem teste gratuito**: cria a assinatura com `payment_behavior: "default_incomplete"` e devolve o segredo de `latest_invoice.confirmation_secret`. O plano só passa a valer quando o pagamento confirma, porque `incomplete` não está na lista de status com direito.
+
+`trial_settings.end_behavior.missing_payment_method: "cancel"` fecha o caso do teste que termina sem cartão. O teste é uma vez por organização e por plano, garantido por `billing_trials`: cancelar e assinar de novo não devolve período grátis.
+
+### Webhook
+
+`api/webhooks/stripe` confere a assinatura com `constructEventAsync` antes de ler qualquer coisa, e então **relê a assinatura no Stripe** em vez de confiar no corpo do evento, porque reentrega fora de ordem gravaria estado antigo por último. `setup_intent.succeeded` é a rede de segurança do fluxo de teste: se a aba morrer depois de confirmar o cartão e antes da action responder, o webhook ativa o plano do mesmo jeito, e passar duas vezes não duplica porque a criação reaproveita a assinatura existente. O id do evento entra em `billing_events` **depois** de processar, senão uma falha de escrita perderia o evento; falha responde 500 para o Stripe reentregar.
+
+### Comandos
+
+| Comando | O que faz |
+| --- | --- |
+| `npm run stripe:sync` | publica produto e preço de cada plano pago no Stripe e grava o `stripe_price_id` em `billing_prices`. Idempotente: produto tem id fixo (`specular_<plano>`) e preço é achado por `lookup_key`. Preço com valor diferente do catálogo vira preço novo com a mesma chave, e o antigo é desativado dos dois lados, para assinatura em vigor continuar no que foi assinado |
+| `npm run billing:probe` | teste ponta a ponta contra o Stripe em modo teste e o banco hospedado, pela mesma porta que o aplicativo usa (`api/v1` com Bearer). Cria usuário e time, assina, confirma cartão de teste, confere banco, cancela, retoma, dispara webhook assinado e apaga tudo no fim |
+
+O `stripe:sync` lê `plans.ts` com `--experimental-strip-types`, para o catálogo continuar tendo uma fonte só.
+
 ## Telas
 
 ### Primeiros passos
@@ -243,7 +321,16 @@ O primeiro domínio montado nesse formato é `organizations`: `service.ts` receb
 - No desktop são três colunas: o plano atual fica raso, sem caixa, e as opções de subida ganham superfície e borda, cada uma com o próprio botão. O recuo é igual nos três para o conteúdo alinhar e o vão entre eles não pesar de um lado.
 - No mobile viram três linhas selecionáveis (`radiogroup`), com nome e descrição à esquerda e preço à direita, e um único botão embaixo agindo sobre a linha escolhida. É troca de árvore por `useMediaQuery`, e não CSS: o cartão tem botão dentro e a linha inteira é um botão, então os dois não podem existir ao mesmo tempo no DOM.
 - O catálogo (nome, descrição, preço em centavos por ciclo e recursos) fica em `features/billing/plans.ts`, longe da tela. Preço fechado não mostra centavo, porque "R$97" lê melhor que "R$97,00" numa tabela de planos.
-- Escolher qualquer plano conclui a configuração: `complete_onboarding` marca `organizations.onboarding_completed_at` e a pessoa vai para o painel. A cobrança em si ainda não existe, então o plano pago avisa por toast que o pagamento entra depois, em vez de fingir uma assinatura.
+- A etapa lê o plano em vigor e o teste gratuito do banco, por `getOnboardingGate`, e não de constante no código. Enquanto o time ainda não existe (ele nasce na etapa 1), o que chega é o catálogo com o gratuito em vigor, que é a verdade de quem acabou de se cadastrar.
+- Plano gratuito conclui a configuração direto. Plano pago troca a etapa pelo checkout **no mesmo painel**, sem modal novo e sem sair para o Stripe: duas colunas dentro dos 66rem que já estavam abertos, resumo do pedido à esquerda e Payment Element à direita, com o mesmo gradiente das quinas atrás. Confirmado o cartão, `complete_onboarding` marca `organizations.onboarding_completed_at` e a pessoa vai para o painel.
+- O resumo mostra "Total hoje R$ 0,00" e a data da primeira cobrança quando há teste gratuito, calculada no cliente porque a assinatura só nasce depois do cartão. Esse bloco só existe após um clique, então não há renderização no servidor para divergir da hidratação.
+- A linha "7 dias grátis para testar" ocupa espaço reservado nos três cartões quando algum plano tem teste, senão o botão do Pro desceria uma linha sozinho e a fileira ficaria torta.
+
+### Plano e assinatura
+
+- `/configuracoes/plano` mostra o plano em vigor com etiqueta de situação, ciclo, fim do teste, próxima cobrança e valor; troca de plano com o alternador de ciclo; forma de pagamento com bandeira e quatro últimos dígitos; e a lista de faturas vinda do Stripe.
+- Cancelar é em dois passos no próprio botão, sem modal: `Dialog` é stub, e o único modal real do projeto é o `.overlay` dos primeiros passos. O texto diz o que acontece de verdade: a assinatura fica ativa até o fim do período já pago, então cancelar não tira o acesso na hora.
+- Trocar o cartão abre o mesmo Payment Element em modo `setup`, no lugar da linha do cartão atual. O novo cartão vira o padrão do cliente e da assinatura no mesmo passo.
 
 ### Login
 

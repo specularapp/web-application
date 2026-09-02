@@ -10,10 +10,15 @@ const authPaths = new Set<string>(publicAuthPaths);
 const sharedPrefixes = ["/p/", "/cv/", "/orcamento/", "/contrato/", "/cobranca/"];
 const openPrefixes = ["/auth/"];
 
+// Prévias de front, para ajustar tela sem sessão nem dado de verdade. Só existem em homologação, e a
+// própria página devolve 404 fora dela.
+const previewPrefixes = isHomologation() ? ["/previa/"] : [];
+
 function isPublic(pathname: string) {
   return (
     openPaths.has(pathname) ||
     openPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
+    previewPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     sharedPrefixes.some((prefix) => pathname.startsWith(prefix))
   );
 }

@@ -24,7 +24,10 @@ const accept = {
   "image/webp": [".webp"],
 };
 
-const sizes = { banner: "(max-width: 40rem) 100vw, 32rem", logo: "6rem" };
+const sizes = {
+  banner: "(max-width: 40rem) 100vw, 32rem",
+  logo: "(max-width: 40rem) 4.5rem, 6rem",
+};
 
 export function ImagePicker({ variant, label, hint, preview, disabled = false, onSelect, onReject }: ImagePickerProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

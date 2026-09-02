@@ -88,13 +88,24 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
     }
 
     const saved = result.data;
-    const [logoUrl, bannerUrl] = [
-      await sendImage(saved.id, logo, "logo"),
-      await sendImage(saved.id, banner, "banner"),
-    ];
+
+    // A imagem não segura a etapa. O time já está salvo, e cada envio ainda custa uma URL assinada, o
+    // upload e a gravação da URL, tudo em série porque o Next despacha uma Server Action por vez por
+    // cliente. Segurando a tela, isso somava vários segundos entre clicar e ver a etapa seguinte; solto,
+    // a etapa vira na hora e a imagem chega atrás. Falha de envio continua avisando por toast.
+    void Promise.all([sendImage(saved.id, logo, "logo"), sendImage(saved.id, banner, "banner")]).catch(
+      () => null,
+    );
 
     setSaving(false);
-    onDone({ ...saved, logoUrl: logoUrl ?? saved.logoUrl, bannerUrl: bannerUrl ?? saved.bannerUrl });
+
+    // A prévia local entra no lugar da URL final: ela já está na tela e o endereço definitivo é gravado
+    // no banco pelo envio que segue rodando.
+    onDone({
+      ...saved,
+      logoUrl: logo.preview ?? saved.logoUrl,
+      bannerUrl: banner.preview ?? saved.bannerUrl,
+    });
   };
 
   return (

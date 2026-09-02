@@ -64,4 +64,6 @@ No ledger gerado o nome vira `<versao>_<dominio>_<acao>.sql`. O Supabase só reg
 - Funções `security definer` sempre com `set search_path = ''` e tudo qualificado com schema.
 - `anon` não executa função nenhuma por padrão (migração `security/…revoke_anon…`). Se uma página pública precisar, faça `grant execute` explícito naquela função.
 - Tokens (convites, links públicos) são salvos como hash, nunca em claro.
+- Tabela cujo conteúdo o cliente não pode escrever nasce **sem policy de escrita**, e a gravação passa por função `security definer` com a checagem de papel dentro. É o caso de cobrança: `organization_subscriptions` e `plan_entitlements` só mudam por função, e `sync_subscription` é revogada até de `authenticated`. Contrato completo na seção Cobrança de `src/docs/structure.md`.
+- Função nova precisa de `grant execute` explícito para cada papel que vai chamar (`authenticated`, e `service_role` quando o servidor chamar pela chave secreta). O revoke de `public` das migrações de segurança tirou o execute implícito de todos, então esquecer o grant quebra em runtime e não na migração.
 - Nunca alterar migração aplicada. Nunca criar objeto pelo painel sem depois rodar `db:pull`. Depois de migrar, rodar `db:types` e commitar.

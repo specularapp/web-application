@@ -1,3 +1,5 @@
+import { PlanSettings } from "@/features/billing/components/plan-settings";
+import { getCurrentBillingPage } from "@/features/billing/queries";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
@@ -6,6 +8,9 @@ export const metadata = createMetadata({
   path: "/configuracoes/plano",
 });
 
-export default function PlanPage() {
-  return null;
+export default async function PlanPage() {
+  const data = await getCurrentBillingPage();
+  if (!data) return null;
+
+  return <PlanSettings state={data.state} invoices={data.invoices} />;
 }

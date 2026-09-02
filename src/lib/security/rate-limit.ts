@@ -15,6 +15,9 @@ export const rateLimitRules = {
   authTotal: { limit: 30, windowSeconds: 60 },
   authEmail: { limit: 5, windowSeconds: 900 },
   action: { limit: 120, windowSeconds: 60 },
+  // Cobrança cria cliente, assinatura e intenção de pagamento no Stripe: o teto de 120 por minuto
+  // das ações comuns é frouxo demais para uma chamada que sai para fora e mexe em dinheiro.
+  billing: { limit: 20, windowSeconds: 60 },
   ai: { limit: 20, windowSeconds: 60 },
   publicLink: { limit: 30, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitRule>;

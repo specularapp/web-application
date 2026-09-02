@@ -1,0 +1,67 @@
+/* Geometria da `Pagination`, que é a da casa para trilho com botão dentro: barra de 44 com raio 22 e
+   recuo de 4, botão de 36 com raio 18. 22 menos 4 dá 18, então o encaixe é concêntrico de verdade, e
+   18 é exatamente metade de 36, o máximo que a superelipse aceita antes de clampar. */
+.cycles {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--icon-button-radius-md);
+}
+
+.cycles[data-full] {
+  display: flex;
+  width: 100%;
+}
+
+.cycles[data-full] .cycle {
+  flex: 1;
+  justify-content: center;
+  padding-inline: var(--space-2);
+}
+
+.cycle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--icon-button-radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+/* Dedo precisa dos 44px da regra. O raio de 18 continua abaixo da metade da altura, então não clampa. */
+@media (pointer: coarse) {
+  .cycle {
+    min-height: var(--touch-target);
+  }
+}
+
+.cycle:hover {
+  color: var(--color-label);
+}
+
+.cycle[data-active] {
+  color: var(--color-label);
+  background-color: var(--color-bg-tertiary);
+}
+
+.cycle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.off {
+  font-size: var(--text-caption-2);
+}

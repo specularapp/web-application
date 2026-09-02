@@ -36,6 +36,8 @@
 11. Limite de corpo em `lib/security/payload.ts`: webhooks leem no máximo 1 MB, conferindo o `Content-Length` antes e contando os bytes durante a leitura (o cabeçalho pode faltar ou mentir em transferência chunked). Acima disso responde 413 sem carregar o corpo na memória.
 12. Dependências: `npm run audit` (`--audit-level=high`).
 
+13. Cobrança (2026-09-01). Dado de cartão nunca entra no nosso perímetro: o Payment Element é iframe do Stripe, então número, validade e CVV não passam pelo nosso DOM nem pelos nossos servidores, e o que guardamos é bandeira e quatro últimos dígitos, que o próprio Stripe devolve. Nenhuma tabela de cobrança tem policy de escrita, então ninguém troca o próprio plano pela API do banco, nem o dono do time; escrever plano e status é privilégio de `sync_subscription`, revogada de `authenticated` e concedida só a `service_role`, e sempre com o objeto que o Stripe devolveu, nunca com o corpo do pedido. Quem pode gerenciar é `can_manage_billing` no banco, não a organização "atual" do perfil. A confirmação relê a intenção no Stripe e confere que o `metadata.organization_id` e o cliente batem com a linha da organização antes de gravar. O webhook confere a assinatura com `constructEventAsync` antes de ler o corpo, guarda o id do evento em `billing_events` para reentrega não reprocessar, e responde 500 quando a escrita falha, para o Stripe reentregar. Escopo `billing` no rate limit (20 por minuto por pessoa e operação), mais apertado que o `action`, porque cada chamada sai para fora e mexe em dinheiro. A CSP ganhou `r.stripe.com` e `merchant-ui-api.stripe.com` em `connect-src` e `*.stripe.com` em `img-src`, que é o mínimo que o Payment Element exige; o script do Stripe entra pelo `strict-dynamic`, sem allowlist de host.
+
 ## Auditoria OWASP
 
 Levantamento contra a lista de API e Web Top 10.
@@ -53,6 +55,8 @@ Levantamento contra a lista de API e Web Top 10.
 | Força bruta | coberto | rate limit nas actions de auth |
 | Segredo no bundle | coberto | `server-only` quebra o build se um módulo de servidor for importado no cliente |
 | Open redirect | corrigido | `safe-path.ts` (item 10) |
+| Fraude de assinatura | coberto | nenhuma policy de escrita em cobrança; `sync_subscription` só para `service_role`; plano em vigor sai de `organization_plan`, que exige status com direito; teste gratuito uma vez por organização em `billing_trials` |
+| Webhook forjado | coberto | assinatura conferida antes da leitura, corpo cru com limite de 1 MB, id do evento registrado contra reentrega |
 | Corpo gigante e exaustão | corrigido para webhooks | `payload.ts` (item 11) |
 | Dependência vulnerável | monitorado | `npm run audit`; falta rodar em CI e ligar o Dependabot |
 | Mass assignment | pendente | nenhuma escrita de feature existe ainda. Regra ao criar: montar o objeto campo a campo a partir do schema zod, nunca repassar o corpo recebido |

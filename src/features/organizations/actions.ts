@@ -39,6 +39,12 @@ const DASHBOARD_PATH = "/dashboard";
 const TOO_MANY = "Muitas ações em pouco tempo. Aguarde um instante e tente de novo.";
 const INVALID = "Confira os dados informados.";
 
+// `revalidatePath` só onde a tela depende do servidor para mudar: aceitar convite e concluir a
+// configuração. Nas outras, ele custava o preço de re-renderizar o painel dentro da própria resposta da
+// action, e o painel refaz a leitura inteira do time e da cobrança, mais de dez idas ao banco. O fluxo de
+// primeiros passos já tem o dado em mãos: a action devolve o time salvo e a lista de membros é estado
+// local. Era isso que fazia cada etapa levar segundos para virar.
+
 async function withinActionLimit(operation: string, userId: string) {
   const { allowed } = await checkRateLimit("action", `${operation}:${userId}`, crypto.randomUUID());
   return allowed;
@@ -58,9 +64,7 @@ export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team
   }
 
   const supabase = await createClient();
-  const result = await saveTeam(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return saveTeam(supabase, parsed.data);
 }
 
 export async function inviteMemberAction(input: unknown): Promise<ServiceResult<TeamInvite>> {
@@ -84,14 +88,11 @@ export async function inviteMemberAction(input: unknown): Promise<ServiceResult<
     return { ok: false, error: "Time não encontrado." };
   }
 
-  const result = await inviteMember(supabase, parsed.data, {
+  return inviteMember(supabase, parsed.data, {
     origin: siteConfig.url,
     teamName: state.team.name,
-    inviterName: (user.user_metadata?.full_name as string | undefined) ?? null,
+    inviterName: user.fullName,
   });
-
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
 }
 
 export async function changeMemberRoleAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -102,9 +103,7 @@ export async function changeMemberRoleAction(input: unknown): Promise<ServiceRes
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  const result = await changeMemberRole(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return changeMemberRole(supabase, parsed.data);
 }
 
 export async function removeMemberAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -115,9 +114,7 @@ export async function removeMemberAction(input: unknown): Promise<ServiceResult<
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  const result = await removeMember(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return removeMember(supabase, parsed.data);
 }
 
 export async function changeInviteRoleAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -128,9 +125,7 @@ export async function changeInviteRoleAction(input: unknown): Promise<ServiceRes
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  const result = await changeInviteRole(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return changeInviteRole(supabase, parsed.data);
 }
 
 export async function cancelInviteAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -141,9 +136,7 @@ export async function cancelInviteAction(input: unknown): Promise<ServiceResult<
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  const result = await cancelInvite(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return cancelInvite(supabase, parsed.data);
 }
 
 export async function createImageUploadAction(input: unknown): Promise<ServiceResult<{ path: string; token: string }>> {
@@ -165,9 +158,7 @@ export async function attachImageAction(input: unknown): Promise<ServiceResult<s
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  const result = await attachImage(supabase, parsed.data);
-  if (result.ok) revalidatePath(DASHBOARD_PATH);
-  return result;
+  return attachImage(supabase, parsed.data);
 }
 
 export async function acceptInviteAction(token: unknown): Promise<ServiceResult<string>> {
@@ -195,10 +186,10 @@ export async function finishOnboardingAction(input: unknown): Promise<ServiceRes
   const parsed = organizationIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: INVALID };
 
+  // Sem `revalidatePath` aqui: ele re-renderiza o painel dentro desta mesma resposta, e o painel deixa
+  // de pedir configuração, o que desmontaria a camada na hora e comeria a despedida antes dela aparecer.
+  // Quem recarrega a rota é a etapa de boas-vindas, quando os dois segundos dela acabam.
   const supabase = await createClient();
   const result = await completeOnboarding(supabase, parsed.data.organizationId);
-  if (result.ok) {
-    revalidatePath(DASHBOARD_PATH);
-  }
   return result;
 }

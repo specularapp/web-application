@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, ArrowRightIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowRightIcon, PaperPlaneTiltIcon, TrashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -201,6 +201,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                           {
                             label: "Remover do time",
                             tone: "danger",
+                            icon: <TrashIcon weight="bold" aria-hidden="true" />,
                             onSelect: () => void dropMember(person.userId),
                           },
                         ]
@@ -238,7 +239,12 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
                   size="sm"
                   onChange={(next) => void updateInviteRole(item.id, next)}
                   actions={[
-                    { label: "Cancelar convite", tone: "danger", onSelect: () => void dropInvite(item.id) },
+                    {
+                      label: "Cancelar convite",
+                      tone: "danger",
+                      icon: <TrashIcon weight="bold" aria-hidden="true" />,
+                      onSelect: () => void dropInvite(item.id),
+                    },
                   ]}
                 />
               </span>

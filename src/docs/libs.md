@@ -15,7 +15,8 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | @supabase/ssr, @supabase/supabase-js | auth, banco, storage, realtime |
 | ioredis | cache e rate limit |
 | resend | e-mail |
-| stripe | pagamentos |
+| stripe | pagamentos (servidor) |
+| @stripe/stripe-js, @stripe/react-stripe-js | formulário de pagamento dentro da nossa interface (Payment Element em iframe do Stripe). Entrou em 2026-09-01 com a assinatura: o cartão nunca toca o nosso DOM, então o PCI fica com o Stripe, e o visual sai da Appearance API alimentada pelos nossos tokens resolvidos em runtime. Descartadas: Checkout hospedado (leva a pessoa para fora e não aceita a nossa identidade) e campo de cartão próprio (viraria escopo PCI SAQ D) |
 | openai | IA |
 | server-only | impede módulo de servidor no cliente |
 | eslint, eslint-config-next, eslint-plugin-jsx-a11y, supabase (dev) | qualidade e banco |
