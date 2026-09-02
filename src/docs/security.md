@@ -24,7 +24,7 @@
 
 1. Headers estáticos em `next.config.ts`: HSTS, `nosniff`, `X-Frame-Options: DENY`, Referrer-Policy, Permissions-Policy.
 2. CSP por nonce em `src/lib/security/csp.ts`, aplicada no proxy: `script-src` com nonce e `strict-dynamic`; `style-src` com nonce (o Emotion recebe o nonce pelo layout raiz); `style-src-attr 'unsafe-inline'` só para atributos `style` (exigido por `next/image` e variáveis CSS inline, risco baixo); `img`, `connect` e `frame` restritos aos domínios do Supabase, GitHub, Google e Stripe; `frame-ancestors 'none'`; `object-src 'none'`. Consequência: todas as páginas renderizam por request. Novo domínio externo entra em `csp.ts`, nunca em `'unsafe-inline'` de script.
-3. Sessão: refresh a cada navegação no proxy, claims verificadas com `getClaims`, step-up MFA para quem tem autenticador.
+3. Sessão: refresh a cada navegação no proxy, claims verificadas com `getClaims`, step-up MFA para quem tem autenticador. Cadastrar autenticador é convite e pode ser pulado (cookie `sp-mfa-skip`, 30 dias); o step-up de quem já tem fator não pode, e a action de pular recusa quando o nível seguinte é aal2.
 4. Autorização: RLS com `is_member`, `has_role`, `mfa_satisfied`; `anon` sem execute em nenhuma função.
 5. Entrada: zod em toda action e route; ids como uuid; `safeNext` contra open redirect no callback.
 6. Webhooks: Stripe, Resend e n8n verificam assinatura antes de ler o corpo.

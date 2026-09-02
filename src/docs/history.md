@@ -244,6 +244,8 @@ Feito:
 - Efeito colateral bom: elemento avulso monta sem `clientSecret`, então a prévia e a vitrine mostram o formulário de verdade e o retângulo tracejado sumiu. Prévia e produto passaram a ter um caminho de código só, com a prop `preview` desligando apenas a confirmação.
 - A fonte dentro do iframe vem do Google Fonts por `cssSrc`: o arquivo do `next/font` sai do nosso domínio sem CORS e o iframe, sendo outra origem, não consegue buscar.
 - Pendência de 2026-09-01 corrigida: cobrança imediata **funciona** em modo teste mesmo com `charges_enabled: false`. Confirmado direto na API, com `PaymentIntent` de R$ 1,00 e `pm_card_visa`, que voltou `succeeded` e `livemode: false`. O que depende de ativar a conta é cobrar de verdade, em modo real.
+- Cadastro de autenticador deixou de travar a operação: a tela de MFA ganhou "Pular por agora", que grava o cookie `sp-mfa-skip` por 30 dias e devolve a pessoa para onde ia. O convite volta quando o cookie vence, e `/mfa` continua alcançável para quem quiser cadastrar antes disso. O step-up de quem já tem fator não mudou e continua obrigatório, com a action recusando pular nesse estado.
+- Prévia do checkout ganhou legenda dizendo por que o botão fica desligado: com o formulário de cartão montando de verdade, o botão desabilitado passou a parecer defeito.
 
 Pendências:
 

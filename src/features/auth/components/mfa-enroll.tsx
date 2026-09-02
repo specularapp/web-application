@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
-import { enrollTotp, signOut, verifyTotp } from "../actions";
+import { enrollTotp, signOut, skipMfaEnrollment, verifyTotp } from "../actions";
 import authStyles from "./auth-form.module.css";
 import styles from "./mfa.module.css";
 
@@ -183,6 +183,16 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
           Tentar de novo
         </Button>
       )}
+
+      <form action={skipMfaEnrollment} className={styles.skip}>
+        <input type="hidden" name="next" value={next} />
+        <Button type="submit" variant="secondary" size="md" fullWidth>
+          Pular por agora
+        </Button>
+        <Text variant="caption2" tone="tertiary" align="center">
+          Você pode ativar a verificação em duas etapas quando quiser, e vamos lembrar em 30 dias.
+        </Text>
+      </form>
 
       <form action={signOut}>
         <Text variant="footnote" tone="secondary" align="center">

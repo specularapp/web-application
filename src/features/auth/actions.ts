@@ -3,7 +3,9 @@
 import type { Route } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { MFA_PATH } from "@/lib/auth-paths";
 import { hasTurnstile } from "@/lib/env";
+import { MFA_SKIP_COOKIE, mfaSkipCookie } from "@/lib/mfa";
 import { siteConfig } from "@/lib/metadata";
 import { checkRateLimit, clientIp, peekRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstile } from "@/lib/security/turnstile";
@@ -278,6 +280,18 @@ export async function signOut(): Promise<never> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+// Pular só existe para quem ainda não tem autenticador: com fator cadastrado o passo é verificação,
+// e verificação não se pula. Quem chegar aqui nesse estado volta para a tela do código.
+export async function skipMfaEnrollment(formData: FormData): Promise<never> {
+  const supabase = await createClient();
+  const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (!level || level.nextLevel === "aal2") redirect(MFA_PATH);
+
+  const cookieStore = await cookies();
+  cookieStore.set(MFA_SKIP_COOKIE, "1", mfaSkipCookie());
+  redirect(nextPathSchema.parse(formData.get("next")) as Route);
 }
 
 export async function listTotpFactors() {

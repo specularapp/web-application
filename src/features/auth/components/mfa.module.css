@@ -14,6 +14,14 @@
   animation: mfaEnter var(--duration-base) var(--ease-standard);
 }
 
+/* O convite de cadastrar não pode travar a operação: quem pula segue para o produto, e o botão fica
+   depois do código, para ser a segunda leitura da tela e não a primeira. */
+.skip {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+
 .verifying {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths, RESET_PASSWORD_PATH } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
+import { hasSkippedMfa, MFA_SKIP_COOKIE } from "@/lib/mfa";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -82,12 +83,18 @@ export async function proxy(request: NextRequest) {
 
   const bounceToDashboard = isAuthPath && pathname !== CONFIRM_EMAIL_PATH && pathname !== RESET_PASSWORD_PATH;
 
-  if (mfaPending || mfaMissing) {
+  // Step-up (`mfaPending`) é obrigatório sempre. Cadastrar autenticador (`mfaMissing`) é convite, e
+  // quem já pulou segue direto para o produto até o cookie vencer.
+  const skippedMfa = hasSkippedMfa(request.cookies.get(MFA_SKIP_COOKIE)?.value);
+
+  if (mfaPending || (mfaMissing && !skippedMfa)) {
     if (pathname === MFA_PATH || isPublic(pathname)) return applyContentSecurityPolicy(response, csp);
     return redirectWithCookies(withNext(request, MFA_PATH, mfaTarget(pathname, search, isAuthPath)), response);
   }
 
-  if (bounceToDashboard || pathname === MFA_PATH) {
+  // Sem fator nenhum, `/mfa` continua alcançável de propósito: é por ali que quem pulou volta para
+  // cadastrar quando quiser. Com fator já verificado não há o que fazer lá, e a rota devolve ao painel.
+  if (bounceToDashboard || (pathname === MFA_PATH && !mfaMissing)) {
     return redirectWithCookies(new URL("/dashboard", request.url), response);
   }
 
