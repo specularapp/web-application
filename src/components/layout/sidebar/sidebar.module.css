@@ -226,9 +226,11 @@
 
 /* Meta em uma linha só: rótulo curto, barra ocupando o vão e o valor no fim. Sem caixa em volta,
    porque aqui a informação é a barra, e moldura só roubaria altura do menu. */
+/* Meta em dois andares: rótulo e valor na primeira linha, e a barra sozinha embaixo, de ponta a
+   ponta, onde ela tem espaço para contar. */
 .goal {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   min-width: 0;
   padding-block: var(--space-2);
@@ -238,9 +240,12 @@
   border-radius: var(--radius-lg);
 }
 
-.goalBar {
-  flex: 1;
-  min-width: 1.5rem;
+.goalHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .goalValue {

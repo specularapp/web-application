@@ -180,13 +180,15 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
         </section>
 
         <section className={styles.goal} {...squircle("lg")} aria-label={goal.label}>
-          <Text variant="caption2" tone="secondary">
-            Meta
-          </Text>
-          <Progress value={reached} size="xs" tone="success" className={styles.goalBar} />
-          <span className={styles.goalValue}>
-            {compactMoney(goal.currentCents)} / {compactMoney(goal.targetCents)}
-          </span>
+          <div className={styles.goalHead}>
+            <Text variant="caption2" tone="secondary">
+              Meta
+            </Text>
+            <span className={styles.goalValue}>
+              {compactMoney(goal.currentCents)} / {compactMoney(goal.targetCents)}
+            </span>
+          </div>
+          <Progress value={reached} size="xs" tone="success" />
         </section>
 
         <div className={styles.profile} {...squircle("lg")}>
