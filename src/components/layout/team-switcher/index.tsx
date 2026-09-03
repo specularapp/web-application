@@ -22,8 +22,9 @@ import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
 import { popIn, thinScrollbar } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
+import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
-import { CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
+import { CREATE_TEAM_PLAN, CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
 import { slugify } from "@/features/organizations/schemas";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 
@@ -257,6 +258,7 @@ const Create = styled.button`
 
 const CreateText = styled.span`
   display: grid;
+  flex: 1;
   gap: var(--space-half);
   min-width: 0;
 `;
@@ -488,6 +490,9 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
               Trabalhe junto com outras pessoas num espaço novo
             </Text>
           </CreateText>
+          <Badge tone="neutral" variant="soft" size="sm">
+            {planBadges[CREATE_TEAM_PLAN]}
+          </Badge>
         </Create>
       </Footer>
     </>

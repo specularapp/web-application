@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { CrownSimpleIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -39,8 +39,8 @@ type Guest = { id: string; email: string; name: string; role: InvitableRole };
 
 const empty: Picked = { file: null, preview: null };
 
-/* Criar equipe é recurso do Alliance: a etiqueta no topo diz isso antes de a pessoa preencher. */
-const REQUIRED_PLAN = "alliance" as const;
+/** Plano que libera criar equipe. A etiqueta sai daqui no topo da gaveta e no convite que a abre. */
+export const CREATE_TEAM_PLAN = "alliance" as const;
 
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -55,7 +55,7 @@ const Header = styled.header`
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-5);
   border-block-end: var(--panel-line) solid var(--color-border);
 `;
 
@@ -291,8 +291,8 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
         <Text as="h2" variant="headline" weight="semibold">
           Criar equipe
         </Text>
-        <Badge tone="neutral" variant="soft" size="sm" icon={<CrownSimpleIcon />}>
-          {planBadges[REQUIRED_PLAN]}
+        <Badge tone="neutral" variant="soft" size="sm">
+          {planBadges[CREATE_TEAM_PLAN]}
         </Badge>
         <Close>
           <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
