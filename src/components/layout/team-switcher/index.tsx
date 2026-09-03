@@ -263,6 +263,15 @@ const CreateText = styled.span`
   min-width: 0;
 `;
 
+/* A etiqueta do plano anda com o rótulo, e não na outra ponta da linha: ela qualifica o "Criar
+   equipe", do mesmo jeito que o "Pendente" anda com o nome na lista de pessoas. */
+const CreateTitle = styled.span`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+`;
+
 type Position = { top: number; left: number; placement: "below" | "above" };
 
 function matches(name: string, query: string) {
@@ -483,16 +492,18 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
         >
           <PlusIcon aria-hidden="true" />
           <CreateText>
-            <Text variant="subheadline" weight="medium">
-              Criar equipe
-            </Text>
+            <CreateTitle>
+              <Text variant="subheadline" weight="medium">
+                Criar equipe
+              </Text>
+              <Badge tone="neutral" variant="soft" size="sm">
+                {planBadges[CREATE_TEAM_PLAN]}
+              </Badge>
+            </CreateTitle>
             <Text variant="caption1" tone="secondary">
               Trabalhe junto com outras pessoas num espaço novo
             </Text>
           </CreateText>
-          <Badge tone="neutral" variant="soft" size="sm">
-            {planBadges[CREATE_TEAM_PLAN]}
-          </Badge>
         </Create>
       </Footer>
     </>
