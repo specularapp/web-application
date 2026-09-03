@@ -1,0 +1,26 @@
+/* Concha do app: a trilha do menu é limite duro de 16rem e o conteúdo rola sozinho na segunda
+   coluna. A concha não abre recuo nenhum: cada tela traz o seu por dentro. */
+.shell {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  height: 100dvh;
+  background-color: var(--color-bg);
+}
+
+.content {
+  min-width: 0;
+  overflow-y: auto;
+  border-inline-start: 0.0375rem solid var(--color-border);
+}
+
+/* Abaixo de 48rem o menu vira a barra flutuante: uma coluna só, com folga no fim para a barra. */
+@media (max-width: 47.9375rem) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content {
+    padding-block-end: calc(var(--touch-target) + var(--space-8));
+    border-inline-start: 0;
+  }
+}

@@ -5,6 +5,7 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   CaretUpDownIcon,
+  CrownSimpleIcon,
   GearSixIcon,
   LifebuoyIcon,
   LightningIcon,
@@ -12,7 +13,6 @@ import {
   MagnifyingGlassIcon,
   MoonIcon,
   SignOutIcon,
-  SparkleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
@@ -24,11 +24,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
-import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
-import { compactMoney } from "@/lib/utils/format";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import styles from "./sidebar.module.css";
 
@@ -36,17 +34,14 @@ export type SidebarTeam = { name: string; logoUrl: string | null; plan: string }
 
 export type SidebarUser = { name: string; role: string; avatarUrl: string | null };
 
-/** Meta de faturamento do período, em centavos, como todo dinheiro do produto. */
-export type SidebarGoal = { label: string; currentCents: number; targetCents: number };
-
 /** Alerta de plano: `eyebrow` é o rótulo curto de cima, `title` é o plano em vigor. */
 export type SidebarPromo = { eyebrow: string; title: string; description: string; action: string; href: Route };
 
 export type SidebarProps = {
   team: SidebarTeam;
   user: SidebarUser;
-  goal: SidebarGoal;
-  promo: SidebarPromo;
+  /** Sem convite (plano pago em dia) a seção não é desenhada. */
+  promo?: SidebarPromo;
 };
 
 const accountActions: { label: string; href: Route; icon: typeof GearSixIcon }[] = [
@@ -75,23 +70,23 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile" };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
+export function SidebarPanel({ team, user, promo, variant }: PanelProps) {
   const pathname = usePathname();
   const [folder, setFolder] = useState<NavFolder | null>(null);
+  const [promoVisible, setPromoVisible] = useState(true);
   const mobile = variant === "mobile";
-  const reached = goal.targetCents > 0 ? (goal.currentCents / goal.targetCents) * 100 : 0;
 
   return (
     <div className={styles.panel}>
       <header className={styles.top}>
-        <Avatar name={team.name} src={team.logoUrl ?? undefined} size="xs" shape="squircle" />
-        <Text variant="subheadline" weight="medium" truncate className={styles.teamName}>
+        <Avatar name={team.name} src={team.logoUrl ?? undefined} size={mobile ? "sm" : "xs"} shape="squircle" />
+        <Text variant={mobile ? "callout" : "subheadline"} weight="medium" truncate className={styles.teamName}>
           {team.name}
         </Text>
-        <Badge tone="neutral" variant="soft" size="sm" className={styles.teamPlan}>
+        <Badge tone="neutral" variant="soft" size={mobile ? "md" : "sm"} className={styles.teamPlan}>
           {team.plan}
         </Badge>
-        <IconButton label="Trocar de time" variant="ghost" size="sm">
+        <IconButton label="Trocar de time" variant="ghost" size={mobile ? "md" : "sm"}>
           <CaretUpDownIcon />
         </IconButton>
       </header>
@@ -145,67 +140,23 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
       </nav>
 
       <div className={styles.foot}>
-        <section className={styles.promo} {...squircle("lg")} aria-label={promo.eyebrow}>
-          <div className={styles.promoHead}>
-            <span className={styles.promoIcon}>
-              <SparkleIcon weight="fill" aria-hidden="true" />
-            </span>
-            <div className={styles.promoPlan}>
-              <Text variant="caption2" tone="secondary" className={styles.promoLine}>
-                {promo.eyebrow}
-              </Text>
-              <Text variant="subheadline" weight="semibold" truncate className={styles.promoLine}>
-                {promo.title}
-              </Text>
-            </div>
-          </div>
-
-          <Text variant="caption1" tone="secondary">
-            {promo.description}
-          </Text>
-
-          <Button
-            size="sm"
-            radius="md"
-            fullWidth
-            variant="secondary"
-            background="var(--color-bg)"
-            foreground="var(--color-label)"
-            border="var(--color-border)"
-            style={{ "--button-background-hover": "var(--color-bg-secondary)" } as CSSProperties}
-            iconStart={<LightningIcon />}
-          >
-            {promo.action}
-          </Button>
-        </section>
-
-        <section className={styles.goal} {...squircle("lg")} aria-label={goal.label}>
-          <div className={styles.goalHead}>
-            <Text variant="caption2" tone="secondary">
-              Meta
-            </Text>
-            <span className={styles.goalValue}>
-              {compactMoney(goal.currentCents)} / {compactMoney(goal.targetCents)}
-            </span>
-          </div>
-          <Progress value={reached} size="xs" tone="success" />
-        </section>
-
-        <div className={styles.profile} {...squircle("lg")}>
-          <Avatar name={user.name} src={user.avatarUrl ?? undefined} size="sm" />
+        <div className={styles.profile}>
+          <Avatar name={user.name} src={user.avatarUrl ?? undefined} size={mobile ? "sm" : "xs"} />
           <span className={styles.profileText}>
-            <Text variant="subheadline" weight="medium" truncate>
+            <Text variant={mobile ? "callout" : "subheadline"} weight="medium" truncate>
               {user.name}
             </Text>
-            <Text variant="caption2" tone="secondary" truncate>
-              {user.role}
-            </Text>
           </span>
-          {!mobile && (
-            <IconButton label="Abrir opções da conta" variant="ghost" size="sm">
-              <CaretUpDownIcon />
+          <span className={styles.profileActions}>
+            <IconButton label="Notificações" variant="ghost" size={mobile ? "md" : "sm"}>
+              <BellIcon />
             </IconButton>
-          )}
+            {!mobile && (
+              <IconButton label="Abrir opções da conta" variant="ghost" size="sm">
+                <CaretUpDownIcon />
+              </IconButton>
+            )}
+          </span>
         </div>
 
         {mobile && (
@@ -229,6 +180,51 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
               <span className={styles.label}>Sair da conta</span>
             </a>
           </div>
+        )}
+
+        {promo && promoVisible && (
+          <section className={styles.promo} {...squircle("lg")} aria-label={promo.eyebrow}>
+            <div className={styles.promoHead}>
+              <span className={styles.promoIcon}>
+                <CrownSimpleIcon aria-hidden="true" />
+              </span>
+              <div className={styles.promoPlan}>
+                <Text variant="caption2" tone="secondary" className={`${styles.promoLine} ${styles.promoEyebrow}`}>
+                  {promo.eyebrow}
+                </Text>
+                <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate className={styles.promoLine}>
+                  {promo.title}
+                </Text>
+              </div>
+              <IconButton
+                label="Dispensar alerta de plano"
+                variant="ghost"
+                size="sm"
+                className={styles.promoClose}
+                onClick={() => setPromoVisible(false)}
+              >
+                <XIcon />
+              </IconButton>
+            </div>
+
+            <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">
+              {promo.description}
+            </Text>
+
+            <Button
+              size={mobile ? "md" : "sm"}
+              radius="md"
+              fullWidth
+              variant="secondary"
+              background="var(--color-label)"
+              foreground="var(--color-bg)"
+              border="transparent"
+              style={{ "--button-background-hover": "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))" } as CSSProperties}
+              iconStart={<LightningIcon />}
+            >
+              {promo.action}
+            </Button>
+          </section>
         )}
       </div>
     </div>
@@ -262,9 +258,10 @@ export function Sidebar(props: SidebarProps) {
           <MagnifyingGlassIcon aria-hidden="true" />
           Buscar
         </button>
+        <span className={styles.barDivider} aria-hidden="true" />
         <IconButton
           label={open ? "Fechar o menu" : "Abrir o menu"}
-          variant="secondary"
+          variant="ghost"
           size="md"
           onClick={() => setOpen((current) => !current)}
         >

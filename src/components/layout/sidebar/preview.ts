@@ -4,9 +4,8 @@ import type { SidebarProps } from "./index";
 export const previewSidebar: SidebarProps = {
   team: { name: "Estúdio Aurora", logoUrl: null, plan: "Pro" },
   user: { name: "Aleph Ramos", role: "Desenvolvedor full stack", avatarUrl: null },
-  goal: { label: "Meta de faturamento", currentCents: 3_050_000, targetCents: 10_000_000 },
   promo: {
-    eyebrow: "Plano atual",
+    eyebrow: "Specular",
     title: "Pro em teste",
     description: "Assine o Pro e mantenha orçamento, contrato e cobrança sem limite.",
     action: "Assinar o Pro",

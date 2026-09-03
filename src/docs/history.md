@@ -10,6 +10,21 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-08-30 (sáb) | ~1h no dia (21:15 a 22:10) mais a continuação no dia 31 (19:59 a 21:47) | Cadastro, MFA, e-mails próprios, auditoria da autenticação e correções de produção |
 | 2026-08-31 (dom) | em andamento | Configuração inicial do time em duas etapas, domínio organizations com service e api/v1, Select do design system |
 | 2026-09-01 (seg) | em andamento | Cobrança com Stripe ponta a ponta: pagamento dentro da nossa interface, teste gratuito de 7 dias no Pro, estrutura de permissão por plano no banco e a tela de plano e assinatura |
+| 2026-09-02 (ter) | em andamento | Sidebar refinada (perfil enxuto, convite de plano com X, mobile em tela cheia com rolagem geral e escala de toque, barra flutuante de vidro) e ligada ao banco pelo `AppShell` no grupo (app) |
+
+## 2026-09-02
+
+Feito:
+
+- Rodapé do menu enxuto: perfil sem caixa (avatar, nome, sino e chevron agrupados no fim), meta removida, convite de plano por último com X para dispensar, eyebrow "Specular" em Geist Mono e botão em contraste invertido (`--color-label` sobre `--color-bg`).
+- Mobile do menu: quem rola é a tela inteira (o `stretch` do grid espremia o topo; `align-self: start` resolve), folga da barra flutuante movida para dentro do painel (padding de fim em container rolável não entra na rolagem), tudo um degrau maior (44px, callout, avatares `sm`, badge `md`) e barra flutuante com divisor e vidro do login (`color-mix 0%` + blur).
+- Fio da barra flutuante: `--menu-line` só existia em `.panel`, então borda e divisor da `.bar` eram descartados em silêncio; a variável nasceu de novo na `.bar`.
+- `AppShell` deixou de ser stub: Server Component com grade de 16rem, busca `getCurrentTeamState()` + `getOnboardingBilling(team.id)` e monta a `Sidebar` com time, plano (badge curto), pessoa e convite derivado da cobrança (`trialing` ou gratuito em vigor; pago em dia não desenha a seção — `promo` virou opcional). Montado no layout do grupo (app), então o menu aparece em todas as páginas logadas.
+
+Pendências:
+
+- O X do convite de plano não persiste (estado em memória): dispensar e recarregar traz o cartão de volta. Persistir exige cookie ou banco, porque Web Storage é proibido pelo lint.
+- `SidebarUser.role` segue prop morta: o componente não desenha o cargo desde o perfil enxuto.
 
 ## 2026-08-27
 

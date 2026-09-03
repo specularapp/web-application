@@ -39,6 +39,9 @@
 .divider {
   flex-shrink: 0;
   height: var(--menu-line);
+  /* O gap do menu (4px) deixava os grupos colados no fio: mais 4px de cada lado dá o dobro de
+     respiro sem afastar demais. */
+  margin-block: var(--space-1);
   margin-inline: calc(var(--menu-padding) * -1);
   background-color: var(--color-border);
 }
@@ -169,23 +172,17 @@
   gap: var(--space-3);
 }
 
-/* Alerta de plano no formato da referência: uma linha de identidade em cima (ícone, "plano atual" e
-   o nome), a frase curta no meio e o botão cheio embaixo. Fundo tingido de accent, e não cinza,
-   para o cartão puxar o olho sem virar caixa de aviso. */
+/* Alerta de plano no formato da referência: uma linha de identidade em cima (ícone, "plano atual",
+   o nome e o X que dispensa), a frase curta no meio e o botão cheio embaixo. Sem fundo, só o traço
+   fino da busca: o cartão pertence ao menu, em vez de gritar dentro dele. */
 .promo {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   min-width: 0;
   padding: var(--space-3);
-  /* O destaque é uma passagem do invisível para o accent, e não branco no claro e preto no escuro:
-     o cartão se apoia no fundo da página, seja ele qual for, e não abre um bloco opaco na coluna. */
-  background-image: linear-gradient(
-    180deg,
-    transparent,
-    color-mix(in oklab, var(--color-accent) 16%, transparent)
-  );
-  border: var(--menu-line) solid color-mix(in oklab, var(--color-accent) 22%, transparent);
+  background-color: transparent;
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -201,8 +198,9 @@
   flex-shrink: 0;
   place-items: center;
   aspect-ratio: 1;
-  color: var(--color-accent);
-  background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
+  color: var(--color-label);
+  background-color: transparent;
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
@@ -214,7 +212,7 @@
 .promoPlan {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-half);
+  gap: 0;
   min-width: 0;
 }
 
@@ -224,49 +222,34 @@
   line-height: 1.1;
 }
 
-/* Meta em uma linha só: rótulo curto, barra ocupando o vão e o valor no fim. Sem caixa em volta,
-   porque aqui a informação é a barra, e moldura só roubaria altura do menu. */
-/* Meta em dois andares: rótulo e valor na primeira linha, e a barra sozinha embaixo, de ponta a
-   ponta, onde ela tem espaço para contar. */
-.goal {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
-  min-width: 0;
-  padding-block: var(--space-2);
-  padding-inline: var(--space-3);
-  background-color: transparent;
-  border: var(--menu-line) solid var(--color-border);
-  border-radius: var(--radius-lg);
+/* Abaixo do menor degrau da escala de tipo: é marca d'água, não texto para ler corrido. */
+.promo .promoPlan .promoEyebrow {
+  font-family: var(--font-code);
+  font-size: 0.625rem;
 }
 
-.goalHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-width: 0;
+.promoClose {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-inline-start: auto;
 }
 
-.goalValue {
-  font-family: var(--font-body);
-  font-size: var(--text-caption-2);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
-  white-space: nowrap;
-}
-
+/* Perfil sem caixa, no mesmo desenho do cabeçalho do time lá em cima: linha nua, avatar e nome de
+   um lado e as ações agrupadas no fim. */
 .profile {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  padding: var(--space-2);
-  background-color: var(--color-fill-quaternary);
-  border: var(--menu-line) solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-2);
+}
+
+.profileActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 .profileText {
@@ -285,20 +268,38 @@
 }
 
 /* Barra flutuante do celular, no rodapé e ao centro: buscar de um lado, abrir o menu do outro. */
+/* A barra vive fora de `.panel`, então o fio precisa nascer de novo aqui: var() de variável que não
+   existe apaga a declaração inteira, e a borda e o risco sumiam sem erro nenhum. */
 .bar {
+  --menu-line: 0.0375rem;
+
   position: fixed;
   bottom: max(var(--space-4), env(safe-area-inset-bottom));
   left: 50%;
-  z-index: 40;
+  /* Acima da tela do menu (50): o menu aberto reserva o rodapé para a barra, e é nela que mora o X
+     que fecha. Abaixo dela, o menu abria e ninguém fechava. */
+  z-index: 60;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1);
-  background-color: var(--color-bg-secondary);
+  /* Mesma receita do painel do login: fundo quase todo transparente, e quem faz o vidro é o blur. */
+  background-color: color-mix(in oklab, var(--color-bg) 0%, transparent);
   border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-full);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   translate: -50% 0;
+}
+
+/* Risco vertical entre buscar e o menu: mais curto que a barra, para dividir sem desenhar cela. */
+.barDivider {
+  align-self: stretch;
+  flex-shrink: 0;
+  width: var(--menu-line);
+  margin-block: var(--space-2);
+  background-color: var(--color-border);
 }
 
 .search {
@@ -325,8 +326,56 @@
   height: 1.125rem;
 }
 
+/* Em tela cheia quem rola é a tela, não a lista: o painel cresce com o conteúdo, todas as opções
+   ficam à vista e o dedo arrasta a página inteira. */
 .screen .panel {
   --menu-padding: var(--space-3);
+
+  /* Sem o start, o stretch do grid trava o painel na altura da tela e espreme o topo e a busca
+     quando a lista passa da dobra. */
+  align-self: start;
+  height: auto;
+  min-height: 100%;
+  /* A folga da barra flutuante mora no painel, e não na tela: padding de fim em container rolável
+     não entra na área de rolagem, e o último item parava atrás da barra. */
+  padding-block-end: calc(var(--touch-target) + var(--space-8));
+}
+
+.screen .nav {
+  flex: none;
+  overflow-y: visible;
+}
+
+/* Em tela cheia tudo sobe um degrau: altura de toque, texto de callout e ícone maior. No tamanho do
+   desktop as linhas ficavam perdidas na largura do celular. */
+.screen .row,
+.screen .back,
+.screen .find {
+  min-height: var(--touch-target);
+  padding-inline: var(--space-3);
+  font-size: var(--text-callout);
+}
+
+.screen .row svg,
+.screen .back svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.screen .find svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* O cartão de plano cresce junto com o resto da tela cheia: mais respiro interno e vão maior. */
+.screen .promo {
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.screen .promoIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .screen {
@@ -334,7 +383,8 @@
   inset: 0;
   z-index: 50;
   display: grid;
-  padding-block-end: calc(var(--touch-target) + var(--space-8));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background-color: var(--color-bg);
 }
 
