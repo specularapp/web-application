@@ -12,6 +12,9 @@ export type Plan = {
   popular?: boolean;
 };
 
+/** Rótulo curto do plano, para chip e etiqueta, onde o nome comercial inteiro não cabe. */
+export const planBadges: Record<PlanId, string> = { free: "Grátis", pro: "Pro", alliance: "Alliance" };
+
 export const YEARLY_DISCOUNT = 33;
 
 // Quantos meses cada ciclo cobra de uma vez. O catálogo guarda o preço por mês porque é assim que a

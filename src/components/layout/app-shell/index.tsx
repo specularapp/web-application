@@ -1,14 +1,11 @@
 import type { ReactNode } from "react";
 import { getOnboardingBilling } from "@/features/billing/queries";
 import type { BillingState } from "@/features/billing/service";
-import type { PlanId } from "@/features/billing/plans";
+import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
 import { Sidebar, type SidebarPromo } from "../sidebar";
 import styles from "./app-shell.module.css";
-
-/* O rótulo curto do badge, e não o nome comercial inteiro: o topo do menu é estreito. */
-const planBadge: Record<PlanId, string> = { free: "Grátis", pro: "Pro", alliance: "Alliance" };
 
 const PLAN_PITCH = "Assine o Pro e mantenha orçamento, contrato e cobrança sem limite.";
 
@@ -44,7 +41,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const team = {
     name: state.team?.name ?? "Seu time",
     logoUrl: state.team?.logoUrl ?? null,
-    plan: planBadge[billing.effectivePlan],
+    plan: planBadges[billing.effectivePlan],
   };
 
   const user = {
@@ -63,7 +60,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           id: option.id,
           name: option.name,
           logoUrl: option.logoUrl,
-          plan: planBadge[option.plan],
+          plan: planBadges[option.plan],
         }))}
         currentTeamId={state.team?.id ?? null}
         promo={promoFor(billing)}

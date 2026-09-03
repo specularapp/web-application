@@ -46,6 +46,7 @@ const GAP = 8;
    recorte do fallback cortaria ele. Mesma escolha do Listbox e do Tooltip. */
 const Popover = styled.div`
   --slide: calc(var(--space-2) * -1);
+  --panel-line: 0.0375rem;
 
   position: fixed;
   z-index: var(--z-dropdown);
@@ -54,7 +55,7 @@ const Popover = styled.div`
   width: min(${PANEL_WIDTH}px, calc(100vw - ${EDGE * 2}px));
   overflow: hidden;
   background-color: var(--glass-bg);
-  border: 1px solid var(--color-border);
+  border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
@@ -80,7 +81,7 @@ const Search = styled.div`
   align-items: center;
   gap: var(--space-2);
   padding-inline: var(--space-3);
-  border-block-end: 1px solid var(--color-border);
+  border-block-end: var(--panel-line, 0.0375rem) solid var(--color-border);
 
   & > svg {
     flex-shrink: 0;
@@ -204,7 +205,7 @@ const EmptyIcon = styled.span`
   width: 2.5rem;
   height: 2.5rem;
   color: var(--color-label-secondary);
-  border: 1px solid var(--color-border);
+  border: var(--panel-line, 0.0375rem) solid var(--color-border);
   border-radius: var(--radius-md);
   corner-shape: squircle;
 
@@ -217,7 +218,7 @@ const EmptyIcon = styled.span`
 const Footer = styled.div`
   flex-shrink: 0;
   padding: var(--space-2);
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: var(--panel-line, 0.0375rem) solid var(--color-border);
 `;
 
 /* O botão não encosta na borda do rodapé: o recuo é o mesmo da lista, então o hover pinta uma caixa

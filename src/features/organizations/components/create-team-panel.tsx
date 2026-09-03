@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { CrownSimpleIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { thinScrollbar } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
+import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
 import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
 import { inviteMemberAction, saveTeamAction, switchTeamAction } from "../actions";
@@ -38,22 +39,39 @@ type Guest = { id: string; email: string; name: string; role: InvitableRole };
 
 const empty: Picked = { file: null, preview: null };
 
+/* Criar equipe é recurso do Alliance: a etiqueta no topo diz isso antes de a pessoa preencher. */
+const REQUIRED_PLAN = "alliance" as const;
+
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/* Fio da casa, o mesmo do menu: 0,6px na cor mais discreta da paleta. A variável nasce na janela e
+   desce por cascata para o cabeçalho, o divisor e o rodapé, então os três nunca saem de sincronia. */
+const Drawer = styled(Dialog)`
+  --panel-line: 0.0375rem;
+`;
 
 const Header = styled.header`
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
-  border-block-end: 1px solid var(--color-border);
+  border-block-end: var(--panel-line) solid var(--color-border);
 `;
 
-const Title = styled.div`
-  display: grid;
-  flex: 1;
-  gap: var(--space-half);
-  min-width: 0;
+const Close = styled.span`
+  flex-shrink: 0;
+  margin-inline-start: auto;
+`;
+
+/* Dois `&` de propósito: o módulo do Separator alveja `.separator[data-orientation]`, e uma classe
+   simples do Emotion perderia. A cor dele é `--color-separator`, quase três vezes mais opaca que a
+   borda, e numa coluna estreita ela vira um risco preto no meio do formulário. */
+const Divider = styled(Separator)`
+  &&[data-orientation="horizontal"] {
+    height: var(--panel-line);
+    background-color: var(--color-border);
+  }
 `;
 
 /* `align-content: start` é obrigatório aqui: a coluna cresce para preencher a gaveta e, no padrão
@@ -145,7 +163,7 @@ const Footer = styled.footer`
   gap: var(--space-3);
   justify-content: flex-end;
   padding: var(--space-4) var(--space-5);
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: var(--panel-line) solid var(--color-border);
 `;
 
 // Criar equipe numa gaveta à direita: identidade, dados e pessoas numa lista só, do jeito que os
@@ -260,7 +278,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
     // Sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o
     // escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no
     // tema claro em vez de translúcida. Fechar por toque fora entra no lugar do clique no fundo.
-    <Dialog
+    <Drawer
       open={open}
       onClose={close}
       label="Criar equipe"
@@ -270,17 +288,17 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
       scrim={false}
     >
       <Header>
-        <Title>
-          <Text as="h2" variant="headline" weight="semibold">
-            Criar equipe
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            Um espaço novo para trabalhar com outras pessoas
-          </Text>
-        </Title>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
-          <XIcon />
-        </IconButton>
+        <Text as="h2" variant="headline" weight="semibold">
+          Criar equipe
+        </Text>
+        <Badge tone="neutral" variant="soft" size="sm" icon={<CrownSimpleIcon />}>
+          {planBadges[REQUIRED_PLAN]}
+        </Badge>
+        <Close>
+          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
+            <XIcon />
+          </IconButton>
+        </Close>
       </Header>
 
       <Scroll>
@@ -348,7 +366,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           </Pair>
         </Fields>
 
-        <Separator />
+        <Divider />
 
         <Section aria-label="Pessoas da equipe">
           <Text as="h3" variant="subheadline" weight="semibold">
@@ -454,6 +472,6 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           {saving ? "Criando" : "Criar equipe"}
         </Button>
       </Footer>
-    </Dialog>
+    </Drawer>
   );
 }
