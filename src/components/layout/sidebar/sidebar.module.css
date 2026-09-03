@@ -1,6 +1,8 @@
 /* Uma composição só, duas apresentações: no desktop o painel é coluna fixa ao lado do conteúdo, no
    celular ele vira tela cheia chamada pela barra flutuante de baixo. O que muda é a moldura, nunca
    a ordem das partes. */
+/* O menu é avulso: nasce direto sobre o fundo da página, sem caixa, borda ou raio em volta. As
+   caixas que sobraram são as partes que precisam se separar do resto (time, convite, meta, perfil). */
 .panel {
   display: flex;
   flex-direction: column;
@@ -8,10 +10,8 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: var(--space-4);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-separator);
-  border-radius: var(--radius-2xl);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-3);
 }
 
 .top {
@@ -77,29 +77,38 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+/* Barra de rolagem some da vista: o menu é coluna estreita e a barra do sistema corta o respiro da
+   direita. A rolagem continua, por roda, teclado e toque. */
+.nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .group {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-half);
 }
 
 .groupTitle {
   padding-inline: var(--space-2);
-  padding-block-end: var(--space-1);
+  padding-block-end: var(--space-half);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
-  min-height: var(--control-height-md);
-  padding: var(--space-2);
+  min-height: 2.25rem;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
   font-family: var(--font-body);
   font-size: var(--text-subheadline);
   font-weight: var(--weight-regular);
@@ -124,8 +133,16 @@
 
 .row svg {
   flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Aperta a linha, mas não o alvo de toque: em ponteiro grosso ela volta para os 44px da regra. */
+@media (pointer: coarse) {
+  .row,
+  .back {
+    min-height: var(--touch-target);
+  }
 }
 
 .label {
@@ -145,8 +162,9 @@
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  min-height: var(--control-height-md);
-  padding: var(--space-2);
+  min-height: 2.25rem;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
   font-family: var(--font-body);
   font-size: var(--text-subheadline);
   font-weight: var(--weight-medium);
@@ -164,8 +182,8 @@
 
 .back svg {
   flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .foot {
@@ -304,11 +322,6 @@
   padding: var(--space-3);
   padding-block-end: calc(var(--touch-target) + var(--space-8));
   background-color: var(--color-bg);
-}
-
-.screen .panel {
-  border: 0;
-  border-radius: 0;
 }
 
 /* Coluna do desktop: largura fixa, altura da tela e nada de encolher quando o conteúdo aperta. */

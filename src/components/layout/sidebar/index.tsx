@@ -82,7 +82,7 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
   const reached = goal.targetCents > 0 ? (goal.currentCents / goal.targetCents) * 100 : 0;
 
   return (
-    <div className={styles.panel} {...squircle("2xl")}>
+    <div className={styles.panel}>
       {!mobile && (
         <header className={styles.top}>
           <Logo variant="logotipo" height={20} />
