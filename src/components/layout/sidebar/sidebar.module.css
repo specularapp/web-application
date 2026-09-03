@@ -5,6 +5,8 @@
    caixas que sobraram são as partes que precisam se separar do resto (time, convite, meta, perfil). */
 .panel {
   --menu-padding: var(--space-2);
+  /* Fio mais fino que o padrão da casa, pedido de 2026-09-02: 0,6px em vez de 1px. */
+  --menu-line: 0.0375rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -15,12 +17,15 @@
   padding: var(--menu-padding);
 }
 
-/* O cabeçalho é o time e nada mais: logo, nome e a seta dupla. */
+/* O cabeçalho é o time e nada mais: logo, nome, plano e a seta dupla. O recuo entra à esquerda e
+   nas duas pontas verticais; a seta fica fora dele, porque o botão já traz o próprio alvo. */
 .top {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-2);
   overflow: hidden;
 }
 
@@ -33,7 +38,7 @@
    dentro de um pai que tem padding. */
 .divider {
   flex-shrink: 0;
-  height: 1px;
+  height: var(--menu-line);
   margin-inline: calc(var(--menu-padding) * -1);
   background-color: var(--color-separator);
 }
@@ -42,7 +47,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-half);
   min-height: 0;
   margin-inline: calc(var(--menu-padding) * -1);
   padding-inline: var(--menu-padding);
@@ -92,17 +97,12 @@
   background-color: var(--color-fill-tertiary);
 }
 
-/* Só o ícone fica um degrau abaixo do texto: o rótulo precisa de contraste cheio nos dois temas. */
+/* O ícone fala a mesma língua do rótulo: mesma cor, herdada, e tamanho que aguenta o traço fino. */
 .row svg {
   flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  color: var(--color-label-secondary);
-}
-
-.row:hover svg,
-.row[data-active] svg {
-  color: var(--color-label);
+  width: 1.25rem;
+  height: 1.25rem;
+  color: inherit;
 }
 
 /* Aperta a linha, mas não o alvo de toque: em ponteiro grosso ela volta para os 44px da regra. */
@@ -150,8 +150,8 @@
 
 .back svg {
   flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .foot {
@@ -164,7 +164,7 @@
   gap: var(--space-3);
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
-  border: 1px solid var(--color-border);
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -203,7 +203,7 @@
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
   background-color: var(--color-fill-quaternary);
-  border: 1px solid var(--color-border);
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -228,7 +228,7 @@
   gap: var(--space-3);
   padding: var(--space-2);
   background-color: var(--color-fill-quaternary);
-  border: 1px solid var(--color-border);
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -242,7 +242,7 @@
   display: grid;
   gap: var(--space-1);
   padding-block-start: var(--space-2);
-  border-block-start: 1px solid var(--color-separator);
+  border-block-start: var(--menu-line) solid var(--color-separator);
 }
 
 /* Barra flutuante do celular, no rodapé e ao centro: buscar de um lado, abrir o menu do outro. */
@@ -256,7 +256,7 @@
   gap: var(--space-2);
   padding: var(--space-1);
   background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-separator);
+  border: var(--menu-line) solid var(--color-separator);
   border-radius: var(--radius-full);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   translate: -50% 0;
@@ -327,7 +327,7 @@
   color: var(--color-label-secondary);
   text-align: start;
   background-color: transparent;
-  border: 1px solid var(--color-border);
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
@@ -354,4 +354,8 @@
   .find {
     min-height: var(--touch-target);
   }
+}
+
+.teamPlan {
+  flex-shrink: 0;
 }

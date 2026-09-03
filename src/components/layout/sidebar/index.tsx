@@ -19,6 +19,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
@@ -30,7 +31,7 @@ import { compactMoney } from "@/lib/utils/format";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import styles from "./sidebar.module.css";
 
-export type SidebarTeam = { name: string; logoUrl: string | null };
+export type SidebarTeam = { name: string; logoUrl: string | null; plan: string };
 
 export type SidebarUser = { name: string; role: string; avatarUrl: string | null };
 
@@ -85,6 +86,9 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
         <Text variant="subheadline" weight="medium" truncate className={styles.teamName}>
           {team.name}
         </Text>
+        <Badge tone="neutral" variant="soft" size="sm" className={styles.teamPlan}>
+          {team.plan}
+        </Badge>
         <IconButton label="Trocar de time" variant="ghost" size="sm">
           <CaretUpDownIcon />
         </IconButton>
@@ -95,8 +99,6 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
         <span className={styles.findLabel}>Buscar</span>
         <Kbd>F</Kbd>
       </button>
-
-      <span className={styles.divider} />
 
       <nav className={styles.nav} aria-label="Navegação principal">
         {folder ? (
@@ -139,8 +141,6 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
           ))
         )}
       </nav>
-
-      <span className={styles.divider} />
 
       <div className={styles.foot}>
         <section className={styles.promo} {...squircle("lg")} aria-label={promo.title}>
