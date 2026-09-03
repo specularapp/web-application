@@ -4,6 +4,7 @@
 /* O menu é avulso: nasce direto sobre o fundo da página, sem caixa, borda ou raio em volta. As
    caixas que sobraram são as partes que precisam se separar do resto (time, convite, meta, perfil). */
 .panel {
+  --menu-padding: var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -11,24 +12,16 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: var(--space-4);
+  padding: var(--menu-padding);
 }
 
+/* O cabeçalho é o time e nada mais: logo, nome e a seta dupla. */
 .top {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
   overflow: hidden;
-}
-
-/* O time ocupa o lugar que era da marca: logo, nome e a seta dupla, nada mais. */
-.team {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
 }
 
 .teamName {
@@ -41,7 +34,7 @@
 .divider {
   flex-shrink: 0;
   height: 1px;
-  margin-inline: calc(var(--space-4) * -1);
+  margin-inline: calc(var(--menu-padding) * -1);
   background-color: var(--color-separator);
 }
 
@@ -51,8 +44,8 @@
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
-  margin-inline: calc(var(--space-4) * -1);
-  padding-inline: var(--space-4);
+  margin-inline: calc(var(--menu-padding) * -1);
+  padding-inline: var(--menu-padding);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -291,6 +284,10 @@
 .search svg {
   width: 1.125rem;
   height: 1.125rem;
+}
+
+.screen .panel {
+  --menu-padding: var(--space-3);
 }
 
 .screen {

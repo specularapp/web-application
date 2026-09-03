@@ -44,7 +44,6 @@ export type SidebarProps = {
   user: SidebarUser;
   goal: SidebarGoal;
   promo: SidebarPromo;
-  onClose?: () => void;
 };
 
 const accountActions: { label: string; href: Route; icon: typeof GearSixIcon }[] = [
@@ -73,7 +72,7 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile" };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, goal, promo, onClose, variant }: PanelProps) {
+export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
   const pathname = usePathname();
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const mobile = variant === "mobile";
@@ -82,20 +81,13 @@ export function SidebarPanel({ team, user, goal, promo, onClose, variant }: Pane
   return (
     <div className={styles.panel}>
       <header className={styles.top}>
-        <div className={styles.team}>
-          <Avatar name={team.name} src={team.logoUrl ?? undefined} size="md" shape="squircle" />
-          <Text variant="subheadline" weight="medium" truncate className={styles.teamName}>
-            {team.name}
-          </Text>
-          <IconButton label="Trocar de time" variant="ghost" size="sm">
-            <CaretUpDownIcon />
-          </IconButton>
-        </div>
-        {!mobile && (
-          <IconButton label="Minimizar o menu" variant="secondary" size="sm" onClick={onClose}>
-            <XIcon />
-          </IconButton>
-        )}
+        <Avatar name={team.name} src={team.logoUrl ?? undefined} size="xs" shape="squircle" />
+        <Text variant="subheadline" weight="medium" truncate className={styles.teamName}>
+          {team.name}
+        </Text>
+        <IconButton label="Trocar de time" variant="ghost" size="sm">
+          <CaretUpDownIcon />
+        </IconButton>
       </header>
 
       <button type="button" className={styles.find} {...squircle("md")}>
@@ -240,7 +232,7 @@ export function Sidebar(props: SidebarProps) {
     <>
       {open && (
         <div className={styles.screen}>
-          <SidebarPanel {...props} variant="mobile" onClose={() => setOpen(false)} />
+          <SidebarPanel {...props} variant="mobile" />
         </div>
       )}
 
