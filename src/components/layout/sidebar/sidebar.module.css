@@ -125,7 +125,11 @@
   white-space: nowrap;
 }
 
-.chevron {
+/* Dois nomes na classe de propósito: o seletor precisa ganhar do `.row svg`, que dimensiona o ícone
+   da esquerda. A seta de abrir é indicação, não ícone da página, então vai menor e mais apagada. */
+.row .chevron {
+  width: 0.875rem;
+  height: 0.875rem;
   color: var(--color-label-tertiary);
 }
 
