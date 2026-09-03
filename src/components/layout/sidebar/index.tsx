@@ -164,7 +164,7 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
             {promo.description}
           </Text>
 
-          <Button size="sm" radius="md" fullWidth iconStart={<LightningIcon weight="fill" />}>
+          <Button size="sm" radius="md" fullWidth iconStart={<LightningIcon />}>
             {promo.action}
           </Button>
         </section>

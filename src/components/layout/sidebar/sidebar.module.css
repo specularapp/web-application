@@ -178,14 +178,20 @@
   gap: var(--space-2);
   min-width: 0;
   padding: var(--space-3);
-  background-color: color-mix(in oklab, var(--color-accent) 8%, var(--color-bg));
-  border: var(--menu-line) solid color-mix(in oklab, var(--color-accent) 24%, transparent);
+  /* O destaque é uma passagem do invisível para o accent, e não branco no claro e preto no escuro:
+     o cartão se apoia no fundo da página, seja ele qual for, e não abre um bloco opaco na coluna. */
+  background-image: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in oklab, var(--color-accent) 16%, transparent)
+  );
+  border: var(--menu-line) solid color-mix(in oklab, var(--color-accent) 22%, transparent);
   border-radius: var(--radius-lg);
 }
 
 .promoHead {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-2);
   min-width: 0;
 }
@@ -194,10 +200,9 @@
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  aspect-ratio: 1;
   color: var(--color-accent);
-  background-color: color-mix(in oklab, var(--color-accent) 16%, var(--color-bg));
+  background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -209,8 +214,9 @@
 .promoPlan {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-half);
   min-width: 0;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 /* Meta em uma linha só: rótulo curto, barra ocupando o vão e o valor no fim. Sem caixa em volta,
