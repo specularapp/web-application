@@ -80,7 +80,9 @@
   font-size: var(--text-subheadline);
   font-weight: var(--weight-regular);
   letter-spacing: var(--tracking-tight);
-  color: var(--color-label);
+  /* Nem preto puro, que gritava, nem o secundário a 60%, que sumia no tema claro: 75% do rótulo
+     misturado ao fundo dá o mesmo peso nos dois temas. */
+  color: color-mix(in oklab, var(--color-label) 75%, var(--color-bg));
   text-align: start;
   background-color: transparent;
   border: 0;
@@ -89,19 +91,21 @@
 }
 
 .row:hover {
+  color: var(--color-label);
   background-color: var(--color-fill-quaternary);
 }
 
 .row[data-active] {
   font-weight: var(--weight-medium);
+  color: var(--color-label);
   background-color: var(--color-fill-tertiary);
 }
 
 /* O ícone fala a mesma língua do rótulo: mesma cor, herdada, e tamanho que aguenta o traço fino. */
 .row svg {
   flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.125rem;
+  height: 1.125rem;
   color: inherit;
 }
 
@@ -150,8 +154,8 @@
 
 .back svg {
   flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .foot {
@@ -304,7 +308,7 @@
   display: flex;
   flex-shrink: 0;
   width: 100%;
-  max-width: 17.5rem;
+  max-width: 16rem;
   height: 100%;
   min-width: 0;
   min-height: 0;

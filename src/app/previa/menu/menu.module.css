@@ -2,7 +2,7 @@
    Grade, e não flex: a trilha do menu é limite duro, então o conteúdo não cruza para cima dele. */
 .screen {
   display: grid;
-  grid-template-columns: 17.5rem minmax(0, 1fr);
+  grid-template-columns: 16rem minmax(0, 1fr);
   align-items: stretch;
   height: 100dvh;
   background-color: var(--color-bg);

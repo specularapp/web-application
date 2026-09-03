@@ -31,7 +31,7 @@
   --color-border: light-dark(rgb(60 60 67 / 0.12), rgb(235 235 245 / 0.13));
   --color-separator-opaque: light-dark(#c6c6c8, #38383a);
 
-  --color-bg: light-dark(#ffffff, #000000);
+  --color-bg: light-dark(#fbfbfc, #000000);
   --color-bg-secondary: light-dark(#f2f2f7, #1c1c1e);
   --color-bg-tertiary: light-dark(#ffffff, #2c2c2e);
   --color-bg-grouped: light-dark(#f2f2f7, #000000);
