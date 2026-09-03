@@ -56,13 +56,17 @@ const Title = styled.div`
   min-width: 0;
 `;
 
+/* `align-content: start` é obrigatório aqui: a coluna cresce para preencher a gaveta e, no padrão
+   `stretch`, as linhas de altura automática esticam para dividir a sobra, então os blocos abriam
+   como se houvesse space-between. A leitura é de cima para baixo, e a sobra fica no fim. */
 const Scroll = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-6);
+  align-content: start;
+  gap: var(--space-5);
   flex: 1;
   min-height: 0;
-  padding: var(--space-5);
+  padding-block: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
   ${thinScrollbar};
@@ -73,27 +77,29 @@ const Scroll = styled.div`
 const Identity = styled(ImageGroup)`
   --identity-ratio: 3 / 1;
   --identity-logo-size: 5rem;
+
+  margin-inline: var(--space-5);
 `;
 
-/* O divisor corre de ponta a ponta: sangra o recuo da coluna pelos dois lados, então as pessoas
-   nascem como bloco novo em vez de mais um campo colado no anterior. */
-const Divider = styled(Separator)`
-  margin-inline: calc(var(--space-5) * -1);
-`;
-
-/* Os três campos da equipe leem como um bloco só: mesmo vão entre o nome e o par de baixo. */
+/* O recuo lateral mora em cada bloco, e não na coluna: assim o divisor corre de ponta a ponta sem
+   margem negativa, que dentro de um container que rola é cortada de um lado e vira rolagem do outro,
+   que era o pedaço faltando na linha. */
 const Fields = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: var(--space-3);
   min-width: 0;
+  padding-inline: var(--space-5);
 `;
 
 const Section = styled.section`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: var(--space-4);
   min-width: 0;
+  padding-inline: var(--space-5);
 `;
 
 const Pair = styled.div`
@@ -342,7 +348,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           </Pair>
         </Fields>
 
-        <Divider />
+        <Separator />
 
         <Section aria-label="Pessoas da equipe">
           <Text as="h3" variant="subheadline" weight="semibold">

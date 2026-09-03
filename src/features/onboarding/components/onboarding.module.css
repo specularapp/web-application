@@ -247,13 +247,13 @@
 }
 
 /* Capa de perfil de rede social: o banner deitado em cima e a bola da logo montada sobre ele, presa
-   na esquerda, com metade dela para fora da borda de baixo. O quanto ela desce e o quanto o bloco
-   reserva saem os dois do tamanho da bola, então mudar só o tamanho mantém o encaixe em qualquer
-   largura, que é o que quebrava quando cada medida era um número solto. */
+   na esquerda, com três quartos dela dentro do banner e só um quarto para fora. O quanto ela desce e
+   o quanto o bloco reserva saem os dois do tamanho da bola, então mudar só o tamanho mantém o
+   encaixe em qualquer largura, que é o que quebrava quando cada medida era um número solto. */
 .identity {
   --identity-logo-size: 6rem;
-  --identity-logo-drop: calc(var(--identity-logo-size) / -2);
-  --identity-drop: calc(var(--identity-logo-size) / 2 + var(--space-3));
+  --identity-logo-drop: calc(var(--identity-logo-size) / -4);
+  --identity-drop: calc(var(--identity-logo-size) / 4 + var(--space-3));
 
   position: relative;
   min-width: 0;
