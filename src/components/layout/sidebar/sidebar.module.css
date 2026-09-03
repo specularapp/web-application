@@ -65,6 +65,7 @@
 
 .group {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
 }
 
@@ -164,12 +165,14 @@
 
 .foot {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
 .promo {
   display: flex;
   gap: var(--space-3);
+  min-width: 0;
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
   border: var(--menu-line) solid var(--color-border);
@@ -194,6 +197,7 @@
 
 .promoText {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   min-width: 0;
 }
@@ -207,7 +211,8 @@
 .goal {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  min-width: 0;
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
   background-color: var(--color-fill-quaternary);
@@ -217,7 +222,7 @@
 
 .goalBar {
   flex: 1;
-  min-width: 2.5rem;
+  min-width: 1.5rem;
 }
 
 .goalValue {
@@ -233,7 +238,8 @@
 .profile {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  min-width: 0;
   padding: var(--space-2);
   background-color: var(--color-fill-quaternary);
   border: var(--menu-line) solid var(--color-border);
@@ -242,12 +248,14 @@
 
 .profileText {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   flex: 1;
   min-width: 0;
 }
 
 .actions {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   padding-block-start: var(--space-2);
   border-block-start: var(--menu-line) solid var(--color-border);
