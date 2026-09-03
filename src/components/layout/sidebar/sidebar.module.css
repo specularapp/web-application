@@ -169,25 +169,36 @@
   gap: var(--space-3);
 }
 
+/* Alerta de plano no formato da referência: uma linha de identidade em cima (ícone, "plano atual" e
+   o nome), a frase curta no meio e o botão cheio embaixo. Fundo tingido de accent, e não cinza,
+   para o cartão puxar o olho sem virar caixa de aviso. */
 .promo {
-  display: flex;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
   min-width: 0;
   padding: var(--space-3);
-  background-color: var(--color-fill-quaternary);
-  border: var(--menu-line) solid var(--color-border);
+  background-color: color-mix(in oklab, var(--color-accent) 8%, var(--color-bg));
+  border: var(--menu-line) solid color-mix(in oklab, var(--color-accent) 24%, transparent);
   border-radius: var(--radius-lg);
+}
+
+.promoHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .promoIcon {
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-label);
-  background-color: var(--color-fill-tertiary);
-  border-radius: var(--radius-full);
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-accent);
+  background-color: color-mix(in oklab, var(--color-accent) 16%, var(--color-bg));
+  border-radius: var(--radius-md);
 }
 
 .promoIcon svg {
@@ -195,15 +206,11 @@
   height: 1rem;
 }
 
-.promoText {
+.promoPlan {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-1);
   min-width: 0;
-}
-
-.promoAction {
-  margin-block-start: var(--space-2);
+  line-height: 1.25;
 }
 
 /* Meta em uma linha só: rótulo curto, barra ocupando o vão e o valor no fim. Sem caixa em volta,

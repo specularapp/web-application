@@ -7,6 +7,7 @@ import {
   CaretUpDownIcon,
   GearSixIcon,
   LifebuoyIcon,
+  LightningIcon,
   ListIcon,
   MagnifyingGlassIcon,
   MoonIcon,
@@ -38,7 +39,8 @@ export type SidebarUser = { name: string; role: string; avatarUrl: string | null
 /** Meta de faturamento do período, em centavos, como todo dinheiro do produto. */
 export type SidebarGoal = { label: string; currentCents: number; targetCents: number };
 
-export type SidebarPromo = { title: string; description: string; action: string; href: Route };
+/** Alerta de plano: `eyebrow` é o rótulo curto de cima, `title` é o plano em vigor. */
+export type SidebarPromo = { eyebrow: string; title: string; description: string; action: string; href: Route };
 
 export type SidebarProps = {
   team: SidebarTeam;
@@ -143,21 +145,28 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
       </nav>
 
       <div className={styles.foot}>
-        <section className={styles.promo} {...squircle("lg")} aria-label={promo.title}>
-          <span className={styles.promoIcon}>
-            <SparkleIcon weight="fill" aria-hidden="true" />
-          </span>
-          <div className={styles.promoText}>
-            <Text variant="subheadline" weight="semibold">
-              {promo.title}
-            </Text>
-            <Text variant="caption1" tone="secondary">
-              {promo.description}
-            </Text>
-            <Button size="sm" radius="md" className={styles.promoAction}>
-              {promo.action}
-            </Button>
+        <section className={styles.promo} {...squircle("lg")} aria-label={promo.eyebrow}>
+          <div className={styles.promoHead}>
+            <span className={styles.promoIcon}>
+              <SparkleIcon weight="fill" aria-hidden="true" />
+            </span>
+            <div className={styles.promoPlan}>
+              <Text variant="caption2" tone="secondary">
+                {promo.eyebrow}
+              </Text>
+              <Text variant="subheadline" weight="semibold" truncate>
+                {promo.title}
+              </Text>
+            </div>
           </div>
+
+          <Text variant="caption1" tone="secondary">
+            {promo.description}
+          </Text>
+
+          <Button size="sm" radius="md" fullWidth iconStart={<LightningIcon weight="fill" />}>
+            {promo.action}
+          </Button>
         </section>
 
         <section className={styles.goal} {...squircle("lg")} aria-label={goal.label}>

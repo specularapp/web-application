@@ -6,9 +6,10 @@ export const previewSidebar: SidebarProps = {
   user: { name: "Aleph Ramos", role: "Desenvolvedor full stack", avatarUrl: null },
   goal: { label: "Meta de faturamento", currentCents: 3_050_000, targetCents: 10_000_000 },
   promo: {
-    title: "Chame o time todo",
-    description: "Convide quem trabalha com você e divida projetos, orçamentos e cobranças.",
-    action: "Convidar pessoas",
-    href: "/configuracoes/equipe",
+    eyebrow: "Plano atual",
+    title: "Pro em teste",
+    description: "Assine o Pro e mantenha orçamento, contrato e cobrança sem limite.",
+    action: "Assinar o Pro",
+    href: "/configuracoes/plano",
   },
 };
