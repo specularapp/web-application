@@ -68,6 +68,19 @@ const Scroll = styled.div`
   ${thinScrollbar};
 `;
 
+/* A gaveta é coluna estreita: o banner deita mais e a bola encolhe, senão ela cobre quase toda a
+   capa. O quanto ela transborda continua saindo do próprio tamanho dela. */
+const Identity = styled(ImageGroup)`
+  --identity-ratio: 3 / 1;
+  --identity-logo-size: 5rem;
+`;
+
+/* O divisor corre de ponta a ponta: sangra o recuo da coluna pelos dois lados, então as pessoas
+   nascem como bloco novo em vez de mais um campo colado no anterior. */
+const Divider = styled(Separator)`
+  margin-inline: calc(var(--space-5) * -1);
+`;
+
 /* Os três campos da equipe leem como um bloco só: mesmo vão entre o nome e o par de baixo. */
 const Fields = styled.div`
   display: grid;
@@ -238,7 +251,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
   };
 
   return (
-        // Sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o
+    // Sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o
     // escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no
     // tema claro em vez de translúcida. Fechar por toque fora entra no lugar do clique no fundo.
     <Dialog
@@ -265,7 +278,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
       </Header>
 
       <Scroll>
-        <ImageGroup>
+        <Identity>
           <ImagePicker
             variant="banner"
             label="o banner da equipe"
@@ -284,7 +297,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
             onSelect={choose(logo, setLogo)}
             onReject={reject}
           />
-        </ImageGroup>
+        </Identity>
 
         <Fields>
           <Field label="Nome da equipe">
@@ -329,7 +342,13 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           </Pair>
         </Fields>
 
+        <Divider />
+
         <Section aria-label="Pessoas da equipe">
+          <Text as="h3" variant="subheadline" weight="semibold">
+            Membros
+          </Text>
+
           <Pair>
             <Field label="E-mail">
               <Input
@@ -365,16 +384,10 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
             iconStart={<PlusIcon />}
             onClick={addGuest}
           >
-            Adicionar à lista
+            Convidar
           </Button>
 
-          <Separator />
-
           <People>
-            <Text variant="footnote" tone="secondary">
-              Membros
-            </Text>
-
             <Person>
               <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} seed={owner.email ?? owner.name} size="md" />
               <PersonText>

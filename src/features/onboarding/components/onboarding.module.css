@@ -246,12 +246,18 @@
   align-items: end;
 }
 
-/* Banner com a logo montada por cima, como capa de perfil: a logo fica na esquerda e transborda
-   metade para baixo, então o bloco reserva essa metade na margem. */
+/* Capa de perfil de rede social: o banner deitado em cima e a bola da logo montada sobre ele, presa
+   na esquerda, com metade dela para fora da borda de baixo. O quanto ela desce e o quanto o bloco
+   reserva saem os dois do tamanho da bola, então mudar só o tamanho mantém o encaixe em qualquer
+   largura, que é o que quebrava quando cada medida era um número solto. */
 .identity {
+  --identity-logo-size: 6rem;
+  --identity-logo-drop: calc(var(--identity-logo-size) / -2);
+  --identity-drop: calc(var(--identity-logo-size) / 2 + var(--space-3));
+
   position: relative;
   min-width: 0;
-  margin-bottom: var(--identity-drop, 3.25rem);
+  margin-bottom: var(--identity-drop);
 }
 
 /* O recorte da imagem sai do próprio alvo, e não de uma camada interna: com o corte num filho, a
@@ -291,10 +297,10 @@
 /* Círculo puro fica fora do sistema de cantos, então nada de corner-shape aqui. */
 .logo {
   position: absolute;
-  bottom: var(--identity-logo-drop, -2.75rem);
+  bottom: var(--identity-logo-drop);
   inset-inline-start: var(--identity-logo-inset, var(--space-4));
-  width: var(--identity-logo-size, 6rem);
-  height: var(--identity-logo-size, 6rem);
+  width: var(--identity-logo-size);
+  height: var(--identity-logo-size);
   background-color: var(--color-bg-grouped-secondary);
   border-radius: var(--radius-full);
   box-shadow: 0 0 0 4px var(--color-bg-grouped-secondary);
@@ -399,8 +405,6 @@
      tomar a capa. O recuo da margem acompanha o quanto ela transborda. */
   .identity {
     --identity-ratio: 3 / 1;
-    --identity-drop: 2.5rem;
-    --identity-logo-drop: -2rem;
     --identity-logo-inset: var(--space-3);
     --identity-logo-size: 4.5rem;
   }
