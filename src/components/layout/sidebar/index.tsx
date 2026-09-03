@@ -176,16 +176,14 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
           </div>
         </section>
 
-        <section className={styles.goal} {...squircle("lg")} aria-label={goal.label}>
-          <div className={styles.goalHead}>
-            <Text variant="caption1" tone="secondary">
-              {goal.label}
-            </Text>
-            <span className={styles.goalValue}>
-              {compactMoney(goal.currentCents)} de {compactMoney(goal.targetCents)}
-            </span>
-          </div>
-          <Progress value={reached} size="xs" tone="success" />
+        <section className={styles.goal} aria-label={goal.label}>
+          <Text variant="caption2" tone="secondary">
+            Meta
+          </Text>
+          <Progress value={reached} size="xs" tone="success" className={styles.goalBar} />
+          <span className={styles.goalValue}>
+            {compactMoney(goal.currentCents)} / {compactMoney(goal.targetCents)}
+          </span>
         </section>
 
         <div className={styles.profile} {...squircle("lg")}>

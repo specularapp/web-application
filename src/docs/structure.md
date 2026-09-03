@@ -212,6 +212,9 @@ Uma composição só, duas apresentações. A ordem das partes não muda entre d
 
 De cima para baixo: marca com as três ações de ícone (buscar, notificações com contador flutuante, fechar); seletor de time com logo, nome, etiqueta do plano e o botão de seta dupla; rotas em grupos com título; e, colado no fim, o convite de ação, a meta de faturamento e o perfil.
 
+- O painel é avulso: sem fundo, borda ou raio em volta, e **padding 0** no desktop. O respiro é da página, que abre 16px em volta de tudo (hoje na prévia, e no `AppShell` quando ele existir). Caixa sobrou só onde a parte precisa se separar do resto: time, convite e perfil.
+- Linha da lista em 36px, com 4px de recuo em cima e embaixo e 2px entre uma e outra. Em ponteiro grosso ela volta para 44px por `@media (pointer: coarse)`, que é a regra de alvo de toque: no celular a lista é o único jeito de navegar. A barra de rolagem do menu fica fora de vista (`scrollbar-width: none`), porque em coluna estreita ela come o respiro da direita.
+- Meta em uma linha só: "Meta", a barra ocupando o vão e o valor no fim, em caption 2. O nome inteiro ("Meta de faturamento") vive no `aria-label`, então quem usa leitor de tela não perde o contexto que a tela encurtou.
 - Rota que abre no lugar: entrada com `items` (`NavFolder`) troca a lista inteira pelas páginas de dentro, com voltar no topo. Submenu aninhado em painel de 17.5rem empurraria tudo para a direita e sairia da vista.
 - `nav.ts` é a fonte única do menu, e `href` é tipado por rota: página que não existe nem compila. Por isso tarefas, calendário e relatório da referência ficaram de fora até as páginas nascerem.
 - O componente é apresentacional e recebe time, pessoa, meta, convite e contador por prop. Ligar isso ao banco é passo separado, junto com o `AppShell`, que hoje ainda é `return null`.
