@@ -85,7 +85,7 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
     <div className={styles.panel}>
       {!mobile && (
         <header className={styles.top}>
-          <Logo variant="logotipo" height={20} />
+          <Logo variant="logotipo" height={26} />
           <div className={styles.tools}>
             <IconButton label="Buscar" variant="ghost" size="sm">
               <MagnifyingGlassIcon />
@@ -176,7 +176,7 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
           </div>
         </section>
 
-        <section className={styles.goal} aria-label={goal.label}>
+        <section className={styles.goal} {...squircle("lg")} aria-label={goal.label}>
           <Text variant="caption2" tone="secondary">
             Meta
           </Text>
