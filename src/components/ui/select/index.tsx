@@ -64,6 +64,16 @@ const Shell = styled.span`
   @media (pointer: coarse) {
     --listbox-trigger-height: max(var(--control-height-md), var(--touch-target));
   }
+
+  /* Mesmo acerto do campo de texto: no celular o raio do controle fecha em pílula, e os dois ficam
+     lado a lado no mesmo formulário. */
+  @media (max-width: 47.9375rem) {
+    &[data-size="sm"],
+    &[data-size="md"],
+    &[data-size="lg"] {
+      --listbox-trigger-radius: var(--radius-md);
+    }
+  }
 `;
 
 const Adornment = styled.span`

@@ -31,6 +31,18 @@ const Surface = styled.span`
     --field-radius: var(--control-radius-lg);
   }
 
+  /* No celular o raio do controle passa da metade da altura e o campo fecha em pílula. O raio desce
+     para o mesmo 12 que o botão já usa numa tela estreita, então os dois voltam a combinar. */
+  @media (max-width: 47.9375rem) {
+    --field-radius: var(--radius-md);
+
+    &[data-size="sm"],
+    &[data-size="md"],
+    &[data-size="lg"] {
+      --field-radius: var(--radius-md);
+    }
+  }
+
   &[data-invalid] {
     border-color: var(--color-danger);
   }

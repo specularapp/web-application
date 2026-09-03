@@ -57,6 +57,12 @@ const Backdrop = styled.div`
   inset: 0;
   z-index: var(--z-overlay);
   background-color: var(--color-scrim);
+
+  /* Véu leve: a bandeja do celular sempre separa a janela da página, mesmo quando a janela dispensa o
+     escurecimento cheio. Sem nada atrás dela, ela lia como parte do conteúdo. */
+  &[data-soft] {
+    background-color: var(--color-scrim-soft);
+  }
   animation: ${fade} var(--duration-base) var(--ease-standard);
 
   @media (prefers-reduced-motion: reduce) {
@@ -248,10 +254,13 @@ export function Dialog({
   if (!open) return null;
 
   const mode = sheet ? "sheet" : "window";
+  // A bandeja do celular sempre põe alguma coisa atrás de si: cheio quando a janela bloqueia o resto,
+  // leve quando ela é avulsa. No desktop, dispensar o escurecimento continua deixando a tela limpa.
+  const veil = scrim || sheet;
 
   return createPortal(
     <>
-      {scrim && <Backdrop onClick={() => onClose()} />}
+      {veil && <Backdrop data-soft={scrim ? undefined : ""} onClick={() => onClose()} />}
       <Frame data-mode={mode} data-placement={placement}>
         <Panel
           ref={panelRef}
