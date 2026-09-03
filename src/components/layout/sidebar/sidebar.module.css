@@ -40,7 +40,7 @@
   flex-shrink: 0;
   height: var(--menu-line);
   margin-inline: calc(var(--menu-padding) * -1);
-  background-color: var(--color-separator);
+  background-color: var(--color-border);
 }
 
 .nav {
@@ -242,7 +242,7 @@
   display: grid;
   gap: var(--space-1);
   padding-block-start: var(--space-2);
-  border-block-start: var(--menu-line) solid var(--color-separator);
+  border-block-start: var(--menu-line) solid var(--color-border);
 }
 
 /* Barra flutuante do celular, no rodapé e ao centro: buscar de um lado, abrir o menu do outro. */
@@ -256,7 +256,7 @@
   gap: var(--space-2);
   padding: var(--space-1);
   background-color: var(--color-bg-secondary);
-  border: var(--menu-line) solid var(--color-separator);
+  border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-full);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   translate: -50% 0;

@@ -16,7 +16,7 @@
   overflow: hidden;
   padding: var(--space-6);
   text-align: center;
-  border-inline-start: 1px solid var(--color-separator);
+  border-inline-start: 0.0375rem solid var(--color-border);
 }
 
 /* Abaixo de 48rem o menu sai da coluna e vira a barra flutuante: sobra uma coluna só. */
