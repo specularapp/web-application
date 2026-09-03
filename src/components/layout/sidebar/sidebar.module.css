@@ -207,8 +207,8 @@
 }
 
 .promoIcon svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .promoPlan {
@@ -216,7 +216,12 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-half);
   min-width: 0;
-  line-height: 1.2;
+}
+
+/* Três classes de propósito: o line-height do Text sai de `.text[data-variant]`, que ganha de
+   classe simples. As duas linhas andam coladas e o vão de 2px sai só do gap. */
+.promo .promoPlan .promoLine {
+  line-height: 1.1;
 }
 
 /* Meta em uma linha só: rótulo curto, barra ocupando o vão e o valor no fim. Sem caixa em volta,

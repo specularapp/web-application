@@ -18,7 +18,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useState } from "react";
+import { Fragment, useState, type CSSProperties } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,10 +151,10 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
               <SparkleIcon weight="fill" aria-hidden="true" />
             </span>
             <div className={styles.promoPlan}>
-              <Text variant="caption2" tone="secondary">
+              <Text variant="caption2" tone="secondary" className={styles.promoLine}>
                 {promo.eyebrow}
               </Text>
-              <Text variant="subheadline" weight="semibold" truncate>
+              <Text variant="subheadline" weight="semibold" truncate className={styles.promoLine}>
                 {promo.title}
               </Text>
             </div>
@@ -164,7 +164,17 @@ export function SidebarPanel({ team, user, goal, promo, variant }: PanelProps) {
             {promo.description}
           </Text>
 
-          <Button size="sm" radius="md" fullWidth iconStart={<LightningIcon />}>
+          <Button
+            size="sm"
+            radius="md"
+            fullWidth
+            variant="secondary"
+            background="var(--color-bg)"
+            foreground="var(--color-label)"
+            border="var(--color-border)"
+            style={{ "--button-background-hover": "var(--color-bg-secondary)" } as CSSProperties}
+            iconStart={<LightningIcon />}
+          >
             {promo.action}
           </Button>
         </section>
