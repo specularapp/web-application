@@ -1,21 +1,31 @@
+/* A página não abre recuo nenhum: cada componente traz o seu por dentro, para a tela render mais.
+   Grade, e não flex: a trilha do menu é limite duro, então o conteúdo não cruza para cima dele. */
 .screen {
-  display: flex;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: 17.5rem minmax(0, 1fr);
   align-items: stretch;
   height: 100dvh;
-  padding: var(--space-4);
   background-color: var(--color-bg);
 }
 
 .content {
   display: grid;
-  flex: 1;
   gap: var(--space-2);
   place-content: center;
   min-width: 0;
+  overflow: hidden;
   padding: var(--space-6);
   text-align: center;
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-separator);
-  border-radius: var(--radius-2xl);
+  border-inline-start: 1px solid var(--color-separator);
+}
+
+/* Abaixo de 48rem o menu sai da coluna e vira a barra flutuante: sobra uma coluna só. */
+@media (max-width: 47.9375rem) {
+  .screen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content {
+    border-inline-start: 0;
+  }
 }

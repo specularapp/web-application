@@ -87,23 +87,23 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
         <header className={styles.top}>
           <Logo variant="logotipo" height={26} />
           <div className={styles.tools}>
-            <IconButton label="Buscar" variant="ghost" size="sm">
+            <IconButton label="Buscar" variant="secondary" size="sm">
               <MagnifyingGlassIcon />
             </IconButton>
             <span className={styles.bell}>
-              <IconButton label={`Notificações, ${notifications} não lidas`} variant="ghost" size="sm">
+              <IconButton label={`Notificações, ${notifications} não lidas`} variant="secondary" size="sm">
                 <BellIcon />
               </IconButton>
               {notifications > 0 && <span className={styles.count}>{notifications > 9 ? "9+" : notifications}</span>}
             </span>
-            <IconButton label="Fechar o menu" variant="ghost" size="sm" onClick={onClose}>
+            <IconButton label="Fechar o menu" variant="secondary" size="sm" onClick={onClose}>
               <XIcon />
             </IconButton>
           </div>
         </header>
       )}
 
-      <div className={styles.team} {...squircle("lg")}>
+      <div className={styles.team}>
         <Avatar name={team.name} src={team.logoUrl ?? undefined} size="sm" shape="squircle" />
         <span className={styles.teamText}>
           <Text variant="subheadline" weight="medium" truncate>

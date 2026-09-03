@@ -9,7 +9,9 @@
   gap: var(--space-4);
   width: 100%;
   height: 100%;
+  min-width: 0;
   min-height: 0;
+  padding: var(--space-4);
 }
 
 .top {
@@ -17,6 +19,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .tools {
@@ -53,14 +57,13 @@
   border-radius: var(--radius-full);
 }
 
+/* O time fica solto no topo, separado do resto por uma linha e nada mais. */
 .team {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--color-separator);
 }
 
 .teamText {
@@ -111,7 +114,7 @@
   font-size: var(--text-subheadline);
   font-weight: var(--weight-regular);
   letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
+  color: var(--color-label);
   text-align: start;
   background-color: transparent;
   border: 0;
@@ -120,19 +123,25 @@
 }
 
 .row:hover {
-  color: var(--color-label);
   background-color: var(--color-fill-quaternary);
 }
 
 .row[data-active] {
-  color: var(--color-label);
+  font-weight: var(--weight-medium);
   background-color: var(--color-fill-tertiary);
 }
 
+/* Só o ícone fica um degrau abaixo do texto: o rótulo precisa de contraste cheio nos dois temas. */
 .row svg {
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+.row:hover svg,
+.row[data-active] svg {
+  color: var(--color-label);
 }
 
 /* Aperta a linha, mas não o alvo de toque: em ponteiro grosso ela volta para os 44px da regra. */
@@ -193,7 +202,7 @@
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-fill-quaternary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
@@ -232,7 +241,7 @@
   gap: var(--space-3);
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-fill-quaternary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
@@ -257,7 +266,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-fill-quaternary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
@@ -321,7 +330,6 @@
   inset: 0;
   z-index: 50;
   display: grid;
-  padding: var(--space-4);
   padding-block-end: calc(var(--touch-target) + var(--space-8));
   background-color: var(--color-bg);
 }
@@ -330,7 +338,10 @@
 .sidebar {
   display: flex;
   flex-shrink: 0;
-  width: 17.5rem;
+  width: 100%;
+  max-width: 17.5rem;
   height: 100%;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
