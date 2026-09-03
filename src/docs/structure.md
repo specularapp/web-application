@@ -257,6 +257,17 @@ A seta dupla no topo do menu abre uma caixa com busca, os times da pessoa e o co
 - O convite de criar não encosta na borda do rodapé: o recuo é o mesmo da lista, então o hover pinta uma caixa arredondada por dentro, no ritmo das opções de cima, em vez de uma faixa de ponta a ponta.
 - Criar equipe fecha a caixa e abre a gaveta de criação, descrita abaixo.
 
+### Busca (CommandPalette)
+
+O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: campo em cima, atalhos em pílula, o que foi aberto por último e sugestões. Caixa de vidro `md`, centralizada no desktop e bandeja no celular.
+
+- As opções saem de `nav.ts`, que já é a fonte única do menu e tem `href` tipado por rota, então a busca nunca oferece página que não existe. `navLinks()` achata as pastas e carrega o nome de onde a página mora, porque "Acompanhar" e "Visão geral" não dizem nada fora da gaveta; `navHighlights` é o punhado que vira pílula, com rótulo próprio.
+- Com o campo vazio a janela mostra Recentes e Sugestões; com texto, uma lista só de Resultados, filtrada por `slugify` no rótulo e na seção, então acento e maiúscula não atrapalham.
+- Recentes são as três últimas rotas abertas pela busca, em cookie (`sp-recent`), porque Web Storage é proibido pelo lint. Guarda só a rota, que já é pública e conhecida pelo menu, nunca o que foi digitado.
+- Um `listbox` só, com o rótulo de cada grupo como item de apresentação dentro dele: um listbox por seção duplicaria o id que o campo aponta em `aria-controls`. O foco fica no campo, a seta move o item ativo e o leitor de tela acompanha por `aria-activedescendant`.
+- Quem abre monta o componente, e não o mantém montado com `open={false}`: assim o estado nasce limpo a cada abertura e o cookie é lido uma vez, sem escrever estado dentro de efeito.
+- Atalho de teclado no comando mais a tecla que o campo mostra. Ele toma o lugar da busca do navegador de propósito: procurar no texto da página não serve a quem quer pular para outra tela. A régua de teclas e a própria tecla somem no celular.
+
 ### Criar equipe
 
 Gaveta de vidro com 30rem na direita (`Dialog` com `placement="end"` e `surface="glass"`), entrando por deslize, com bandeja no celular. Ela vai sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no tema claro em vez de translúcida. Uma lista só, sem etapas: quem cria a segunda equipe já conhece o produto, então o fluxo de primeiros passos, que é guiado, não se repete aqui.

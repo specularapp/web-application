@@ -18,7 +18,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
+import { CommandPalette } from "../command-palette";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import styles from "./sidebar.module.css";
@@ -70,11 +71,11 @@ function Row({ item, active }: { item: NavLink; active: boolean }) {
   );
 }
 
-type PanelProps = SidebarProps & { variant: "desktop" | "mobile" };
+type PanelProps = SidebarProps & { variant: "desktop" | "mobile"; onSearch?: () => void };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant }: PanelProps) {
+export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant, onSearch }: PanelProps) {
   const pathname = usePathname();
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const [promoVisible, setPromoVisible] = useState(true);
@@ -145,7 +146,7 @@ export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant 
         />
       </header>
 
-      <button type="button" className={styles.find} {...squircle("md")}>
+      <button type="button" className={styles.find} onClick={onSearch} {...squircle("md")}>
         <MagnifyingGlassIcon aria-hidden="true" />
         <span className={styles.findLabel}>Buscar</span>
         <Kbd>F</Kbd>
@@ -249,11 +250,27 @@ export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant 
 export function Sidebar(props: SidebarProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  // A tecla do atalho é a mesma que o campo mostra. O `preventDefault` tira a busca do navegador, que
+  // procura no texto da página e não serve a quem quer pular para outra tela.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "f" || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setSearching(true);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const search = searching && <CommandPalette onClose={() => setSearching(false)} />;
 
   if (!mobile) {
     return (
       <aside className={styles.sidebar}>
-        <SidebarPanel {...props} variant="desktop" />
+        <SidebarPanel {...props} variant="desktop" onSearch={() => setSearching(true)} />
+        {search}
       </aside>
     );
   }
@@ -262,12 +279,12 @@ export function Sidebar(props: SidebarProps) {
     <>
       {open && (
         <div className={styles.screen}>
-          <SidebarPanel {...props} variant="mobile" />
+          <SidebarPanel {...props} variant="mobile" onSearch={() => setSearching(true)} />
         </div>
       )}
 
       <div className={styles.bar} {...squircle("3xl")}>
-        <button type="button" className={styles.search}>
+        <button type="button" className={styles.search} onClick={() => setSearching(true)}>
           <MagnifyingGlassIcon aria-hidden="true" />
           Buscar
         </button>
@@ -281,6 +298,8 @@ export function Sidebar(props: SidebarProps) {
           {open ? <XIcon /> : <ListIcon />}
         </IconButton>
       </div>
+
+      {search}
     </>
   );
 }

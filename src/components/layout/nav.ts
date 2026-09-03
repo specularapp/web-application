@@ -27,6 +27,9 @@ export function isFolder(entry: NavEntry): entry is NavFolder {
   return "items" in entry;
 }
 
+/** Página do menu já achatada, com o nome de onde ela mora, para a busca mostrar o contexto. */
+export type NavResult = NavLink & { section: string };
+
 // Só rota que existe entra aqui: `href` é tipado por rota e link para página inventada nem compila.
 // Tarefas, calendário e relatório da referência ficam de fora até as páginas nascerem.
 export const navGroups: NavGroup[] = [
@@ -103,4 +106,28 @@ export const navGroups: NavGroup[] = [
       },
     ],
   },
+];
+
+// Pasta some no achatado: quem procura digita o nome da página, e não o da gaveta onde ela mora. O
+// nome da gaveta vira contexto na segunda linha, senão "Acompanhar" e "Visão geral" não dizem nada
+// fora do menu.
+export function navLinks(): NavResult[] {
+  return navGroups.flatMap((group) =>
+    group.entries.flatMap((entry) =>
+      isFolder(entry)
+        ? entry.items.map((item) => ({ ...item, section: entry.label }))
+        : [{ ...entry, section: group.title }],
+    ),
+  );
+}
+
+/** Atalhos em pílula na busca: o punhado de páginas que se abre todo dia, com rótulo próprio,
+ *  porque dentro da pasta elas se chamam "Acompanhar" ou "Visão geral". */
+export const navHighlights: NavLink[] = [
+  { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
+  { label: "Projetos", href: "/projetos", icon: BriefcaseIcon },
+  { label: "Clientes", href: "/clientes", icon: BuildingsIcon },
+  { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon },
+  { label: "Contratos", href: "/contratos", icon: BriefcaseIcon },
+  { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon },
 ];
