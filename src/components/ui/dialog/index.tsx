@@ -25,6 +25,8 @@ export type DialogProps = {
   surface?: DialogSurface;
   /** Sem o fundo que escurece a janela deixa de bloquear o resto e passa a fechar ao tocar fora. */
   scrim?: boolean;
+  /** Desligado, o foco para na própria janela: no celular, focar um campo abre o teclado sozinho. */
+  focusOnOpen?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -141,7 +143,7 @@ const Panel = styled.div`
     border-block-start: 1px solid var(--color-border);
     border-block-end: 0;
     border-inline: 0;
-    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     animation: ${rise} var(--duration-slow) var(--ease-standard);
   }
 
@@ -171,6 +173,7 @@ export function Dialog({
   placement = "center",
   surface = "solid",
   scrim = true,
+  focusOnOpen = true,
   children,
   className,
 }: DialogProps) {
@@ -190,7 +193,11 @@ export function Dialog({
     const root = document.documentElement;
     const overflow = root.style.overflow;
     root.style.overflow = "hidden";
-    panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
+
+    // Sem `focusOnOpen` quem recebe o foco é a própria janela, e não o primeiro campo: o Tab continua
+    // preso aqui dentro e o teclado do celular não sobe sozinho ao abrir.
+    if (focusOnOpen) panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
+    else panel?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -236,7 +243,7 @@ export function Dialog({
       root.style.overflow = overflow;
       opener?.focus({ preventScroll: true });
     };
-  }, [open, scrim]);
+  }, [open, scrim, focusOnOpen]);
 
   if (!open) return null;
 
@@ -249,6 +256,7 @@ export function Dialog({
         <Panel
           ref={panelRef}
           role="dialog"
+          tabIndex={-1}
           aria-modal={scrim || undefined}
           aria-label={label}
           data-mode={mode}

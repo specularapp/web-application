@@ -316,11 +316,13 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
     };
   }, [open, sheet]);
 
+  // Só o desktop abre com o cursor na busca: no celular focar o campo faz o teclado subir sozinho e
+  // comer metade da bandeja antes de a pessoa ver a lista.
   useEffect(() => {
-    if (!open) return;
+    if (!open || sheet) return;
     const frame = window.requestAnimationFrame(() => fieldRef.current?.focus({ preventScroll: true }));
     return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  }, [open, sheet]);
 
   useEffect(() => {
     if (!open) return;
@@ -509,7 +511,15 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
       </IconButton>
 
       {sheet ? (
-        <Dialog open={open} onClose={close} label="Trocar de time" size="sm" surface="glass" scrim={false}>
+        <Dialog
+          open={open}
+          onClose={close}
+          label="Trocar de time"
+          size="sm"
+          surface="glass"
+          scrim={false}
+          focusOnOpen={false}
+        >
           {content}
         </Dialog>
       ) : (
