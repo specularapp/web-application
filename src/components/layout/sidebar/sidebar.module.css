@@ -17,56 +17,13 @@
 .top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-width: 0;
   overflow: hidden;
 }
 
-.tools {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* O contador precisa de um ancestral posicionado, e o botão de ícone é do design system: o ponto
-   flutua sobre ele por este invólucro, sem tocar no componente. */
-.bell {
-  position: relative;
-  display: inline-flex;
-}
-
-.count {
-  position: absolute;
-  top: -0.125rem;
-  right: -0.125rem;
-  display: grid;
-  place-items: center;
-  min-width: 1rem;
-  height: 1rem;
-  padding-inline: var(--space-half);
-  font-family: var(--font-body);
-  font-size: var(--text-caption-2);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--weight-semibold);
-  line-height: 1;
-  color: var(--color-on-danger);
-  pointer-events: none;
-  background-color: var(--color-danger-solid);
-  border: 2px solid var(--color-bg);
-  border-radius: var(--radius-full);
-}
-
-/* O time fica solto no topo, separado do resto por uma linha e nada mais. */
+/* O time ocupa o lugar que era da marca: logo, nome e a seta dupla, nada mais. */
 .team {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--color-separator);
-}
-
-.teamText {
   display: flex;
   flex: 1;
   align-items: center;
@@ -74,12 +31,28 @@
   min-width: 0;
 }
 
+.teamName {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Linha que separa: sangra o recuo do menu pelos dois lados, então corre de borda a borda mesmo
+   dentro de um pai que tem padding. */
+.divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin-inline: calc(var(--space-4) * -1);
+  background-color: var(--color-separator);
+}
+
 .nav {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-height: 0;
+  margin-inline: calc(var(--space-4) * -1);
+  padding-inline: var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -95,11 +68,6 @@
 .group {
   display: grid;
   gap: var(--space-half);
-}
-
-.groupTitle {
-  padding-inline: var(--space-2);
-  padding-block-end: var(--space-half);
 }
 
 .row {
@@ -344,4 +312,49 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Campo de busca no formato da referência: parece campo, é botão, porque quem vai abrir é a paleta
+   de comandos. A tecla de atalho fica à direita, como dica, e não como enfeite. */
+.find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.25rem;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-align: start;
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.find:hover {
+  background-color: var(--color-fill-quaternary);
+}
+
+.find svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.findLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .find {
+    min-height: var(--touch-target);
+  }
 }

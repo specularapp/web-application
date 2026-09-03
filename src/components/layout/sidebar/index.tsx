@@ -17,21 +17,20 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { Kbd } from "@/components/ui/kbd";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { compactMoney } from "@/lib/utils/format";
-import { Logo } from "../logo";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import styles from "./sidebar.module.css";
 
-export type SidebarTeam = { name: string; logoUrl: string | null; plan: string };
+export type SidebarTeam = { name: string; logoUrl: string | null };
 
 export type SidebarUser = { name: string; role: string; avatarUrl: string | null };
 
@@ -45,7 +44,6 @@ export type SidebarProps = {
   user: SidebarUser;
   goal: SidebarGoal;
   promo: SidebarPromo;
-  notifications?: number;
   onClose?: () => void;
 };
 
@@ -75,7 +73,7 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile" };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClose, variant }: PanelProps) {
+export function SidebarPanel({ team, user, goal, promo, onClose, variant }: PanelProps) {
   const pathname = usePathname();
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const mobile = variant === "mobile";
@@ -83,40 +81,30 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
 
   return (
     <div className={styles.panel}>
-      {!mobile && (
-        <header className={styles.top}>
-          <Logo variant="logotipo" height={26} />
-          <div className={styles.tools}>
-            <IconButton label="Buscar" variant="secondary" size="sm">
-              <MagnifyingGlassIcon />
-            </IconButton>
-            <span className={styles.bell}>
-              <IconButton label={`Notificações, ${notifications} não lidas`} variant="secondary" size="sm">
-                <BellIcon />
-              </IconButton>
-              {notifications > 0 && <span className={styles.count}>{notifications > 9 ? "9+" : notifications}</span>}
-            </span>
-            <IconButton label="Fechar o menu" variant="secondary" size="sm" onClick={onClose}>
-              <XIcon />
-            </IconButton>
-          </div>
-        </header>
-      )}
-
-      <div className={styles.team}>
-        <Avatar name={team.name} src={team.logoUrl ?? undefined} size="sm" shape="squircle" />
-        <span className={styles.teamText}>
-          <Text variant="subheadline" weight="medium" truncate>
+      <header className={styles.top}>
+        <div className={styles.team}>
+          <Avatar name={team.name} src={team.logoUrl ?? undefined} size="md" shape="squircle" />
+          <Text variant="subheadline" weight="medium" truncate className={styles.teamName}>
             {team.name}
           </Text>
-          <Badge tone="neutral" variant="outline" size="sm">
-            {team.plan}
-          </Badge>
-        </span>
-        <IconButton label="Trocar de time" variant="ghost" size="sm">
-          <CaretUpDownIcon />
-        </IconButton>
-      </div>
+          <IconButton label="Trocar de time" variant="ghost" size="sm">
+            <CaretUpDownIcon />
+          </IconButton>
+        </div>
+        {!mobile && (
+          <IconButton label="Minimizar o menu" variant="secondary" size="sm" onClick={onClose}>
+            <XIcon />
+          </IconButton>
+        )}
+      </header>
+
+      <button type="button" className={styles.find} {...squircle("md")}>
+        <MagnifyingGlassIcon aria-hidden="true" />
+        <span className={styles.findLabel}>Buscar</span>
+        <Kbd>F</Kbd>
+      </button>
+
+      <span className={styles.divider} />
 
       <nav className={styles.nav} aria-label="Navegação principal">
         {folder ? (
@@ -130,33 +118,37 @@ export function SidebarPanel({ team, user, goal, promo, notifications = 0, onClo
             ))}
           </div>
         ) : (
-          navGroups.map((group) => (
-            <div key={group.title} className={styles.group}>
-              <Text variant="caption1" tone="tertiary" className={styles.groupTitle}>
-                {group.title}
-              </Text>
-              {group.entries.map((entry) =>
-                isFolder(entry) ? (
-                  <button
-                    key={entry.label}
-                    type="button"
-                    className={styles.row}
-                    data-active={folderIsCurrent(pathname, entry) || undefined}
-                    onClick={() => setFolder(entry)}
-                    {...squircle("md")}
-                  >
-                    <entry.icon aria-hidden="true" />
-                    <span className={styles.label}>{entry.label}</span>
-                    <CaretRightIcon aria-hidden="true" className={styles.chevron} />
-                  </button>
-                ) : (
-                  <Row key={entry.href} item={entry} active={isCurrent(pathname, entry.href)} />
-                ),
-              )}
-            </div>
+          navGroups.map((group, index) => (
+            // O título do grupo saiu da tela e virou nome do grupo para leitor de tela: quem separa
+            // um do outro agora é a linha, que sangra até a borda do menu.
+            <Fragment key={group.title}>
+              {index > 0 && <span className={styles.divider} />}
+              <div className={styles.group} role="group" aria-label={group.title}>
+                {group.entries.map((entry) =>
+                  isFolder(entry) ? (
+                    <button
+                      key={entry.label}
+                      type="button"
+                      className={styles.row}
+                      data-active={folderIsCurrent(pathname, entry) || undefined}
+                      onClick={() => setFolder(entry)}
+                      {...squircle("md")}
+                    >
+                      <entry.icon aria-hidden="true" />
+                      <span className={styles.label}>{entry.label}</span>
+                      <CaretRightIcon aria-hidden="true" className={styles.chevron} />
+                    </button>
+                  ) : (
+                    <Row key={entry.href} item={entry} active={isCurrent(pathname, entry.href)} />
+                  ),
+                )}
+              </div>
+            </Fragment>
           ))
         )}
       </nav>
+
+      <span className={styles.divider} />
 
       <div className={styles.foot}>
         <section className={styles.promo} {...squircle("lg")} aria-label={promo.title}>
