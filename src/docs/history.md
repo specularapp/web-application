@@ -246,8 +246,14 @@ Feito:
 - Pendência de 2026-09-01 corrigida: cobrança imediata **funciona** em modo teste mesmo com `charges_enabled: false`. Confirmado direto na API, com `PaymentIntent` de R$ 1,00 e `pm_card_visa`, que voltou `succeeded` e `livemode: false`. O que depende de ativar a conta é cobrar de verdade, em modo real.
 - Cadastro de autenticador deixou de travar a operação: a tela de MFA ganhou "Pular por agora", que grava o cookie `sp-mfa-skip` por 30 dias e devolve a pessoa para onde ia. O convite volta quando o cookie vence, e `/mfa` continua alcançável para quem quiser cadastrar antes disso. O step-up de quem já tem fator não mudou e continua obrigatório, com a action recusando pular nesse estado.
 - Prévia do checkout ganhou legenda dizendo por que o botão fica desligado: com o formulário de cartão montando de verdade, o botão desabilitado passou a parecer defeito.
+- Menu montado a partir da referência do usuário: `SidebarPanel` com marca e três ações de ícone, seletor de time com etiqueta de plano, rotas em grupos, convite, meta de faturamento e perfil. Rota com filhos abre no lugar da lista, com voltar no topo, em vez de submenu aninhado. `nav.ts` virou a fonte única do menu, com `href` tipado por rota, então só página que existe entra: tarefas, calendário e relatório da referência ficaram de fora.
+- Mesma composição em duas molduras: no celular o painel sai da tela e vira barra flutuante no rodapé (buscar mais abrir), que abre tela cheia sem a marca e com as ações da conta já listadas, sem esconder atrás de botão. Troca de árvore por `useMediaQuery`, não CSS, porque o rodapé difere.
+- Por pedido, nada de camada flutuante nesta rodada: seletor de time, opções da conta, busca e notificações estão de pé e mudos, cada um para entrar depois com o primitivo certo. `Dialog` e `DropdownMenu` continuam stub.
+- `compactMoney` em `lib/utils/format.ts` (o arquivo estava vazio): R$ 30,5k e R$ 1,243M a partir de centavos, para a meta caber na largura do painel.
+- Prévia nova em `/previa/menu`, que é onde a forma do celular aparece, e a forma do desktop entrou na vitrine em caixa alta.
 
 Pendências:
 
+- O menu é apresentacional e vive só de prévia: ligar time, pessoa, meta e contador ao banco vem junto com o `AppShell`, que segue `return null`.
 - O formulário de cartão novo ainda não passou por um teste de ponta a ponta no navegador. A confirmação mudou de `confirmSetup({elements})` para `confirmCardSetup(clientSecret, ...)`, e nenhum check automático cobre isso.
 - Mensagem de erro do campo de cartão é escrita pelo Stripe (em pt-BR). Se incomodar, dá para mapear os códigos para texto nosso.

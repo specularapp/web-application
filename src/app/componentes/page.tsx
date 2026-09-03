@@ -20,6 +20,8 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
+import { SidebarPanel } from "@/components/layout/sidebar";
+import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BrandIcon } from "@/components/ui/brand-icon";
@@ -1113,6 +1115,17 @@ const groups: Group[] = [
               role: "owner",
             }}
           />
+        ),
+      },
+      {
+        name: "Sidebar",
+        note: "Menu do produto, uma composição só em duas apresentações. Aqui está a forma do desktop, em caixa: topo com marca e as três ações de ícone, seletor de time com o plano dele, rotas em grupos (as que têm chevron abrem no lugar da lista, com voltar no topo) e, no fim, o convite, a meta de faturamento e o perfil. No celular a mesma composição vira tela cheia chamada pela barra flutuante de baixo, que só a prévia em /previa/menu mostra. Nada aqui abre camada flutuante ainda: os botões de seta e de busca estão de pé e mudos, de propósito.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.sidebarPreview}>
+            <SidebarPanel {...previewSidebar} variant="desktop" />
+          </div>
         ),
       },
       {

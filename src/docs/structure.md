@@ -206,6 +206,20 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - `Surface` não declara `data-squircle-radius`. No fallback o motor lê o `border-radius` computado. Assim o CSS continua sendo a fonte única do raio e a escada funciona em qualquer profundidade sem duplicar número em TS.
 - Quem precisa de raio fixo e conhecido (Button, Table, Kbd) continua declarando o atributo, que tem prioridade sobre a leitura.
 
+### Menu (Sidebar)
+
+Uma composição só, duas apresentações. A ordem das partes não muda entre desktop e celular; o que muda é a moldura, e por isso o conteúdo mora num `SidebarPanel` com `variant`, enquanto o `Sidebar` decide a moldura por `useMediaQuery(MOBILE_QUERY)`. É troca de árvore, não de CSS, porque o rodapé tem conteúdo diferente nas duas formas.
+
+De cima para baixo: marca com as três ações de ícone (buscar, notificações com contador flutuante, fechar); seletor de time com logo, nome, etiqueta do plano e o botão de seta dupla; rotas em grupos com título; e, colado no fim, o convite de ação, a meta de faturamento e o perfil.
+
+- Rota que abre no lugar: entrada com `items` (`NavFolder`) troca a lista inteira pelas páginas de dentro, com voltar no topo. Submenu aninhado em painel de 17.5rem empurraria tudo para a direita e sairia da vista.
+- `nav.ts` é a fonte única do menu, e `href` é tipado por rota: página que não existe nem compila. Por isso tarefas, calendário e relatório da referência ficaram de fora até as páginas nascerem.
+- O componente é apresentacional e recebe time, pessoa, meta, convite e contador por prop. Ligar isso ao banco é passo separado, junto com o `AppShell`, que hoje ainda é `return null`.
+- Meta de faturamento usa `compactMoney` de `lib/utils/format.ts`: R$ 30,5k, R$ 1,243M, sempre a partir de centavos, como todo dinheiro do produto.
+- Celular: o painel não fica na tela. Uma barra flutuante no rodapé, ao centro, traz "Buscar" e o botão de abrir; aberto, o painel toma a tela inteira, sem a marca, e as ações da conta aparecem listadas em vez de escondidas atrás do botão de seta, porque no celular esconder opção atrás de camada custa um toque a mais e uma camada a mais.
+- Nada aqui abre camada flutuante ainda (decisão de 2026-09-02): seletor de time, opções da conta, busca e notificações estão de pé e mudos, para cada um entrar depois com o primitivo certo. `Dialog` e `DropdownMenu` seguem stub.
+- Prévia em `/previa/menu` (só em homologação), que é onde dá para ver a forma do celular, e a forma do desktop também entra na vitrine `/componentes`, em caixa alta.
+
 ### Marca
 
 Logos em `public/logotipo` (icon, logo e logotipo em preto e branco). O favicon em `src/app/icon.svg` deriva do icon preto e inverte no modo escuro. A imagem Open Graph usa o logotipo branco sobre preto.

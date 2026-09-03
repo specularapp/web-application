@@ -178,3 +178,11 @@
   background-color: var(--color-bg);
   border-radius: var(--radius-lg);
 }
+
+/* A sidebar tem altura de tela: na vitrine ela entra numa caixa alta o bastante para caber o topo,
+   a lista e o rodapé sem rolar, que é o que se quer conferir. */
+.sidebarPreview {
+  width: 17.5rem;
+  height: 40rem;
+  max-width: 100%;
+}
