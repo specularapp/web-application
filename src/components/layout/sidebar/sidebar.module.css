@@ -283,12 +283,12 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1);
-  /* Mesma receita do painel do login: fundo quase todo transparente, e quem faz o vidro é o blur. */
-  background-color: color-mix(in oklab, var(--color-bg) 0%, transparent);
+  /* Vidro da casa, o mesmo do painel do login: o fundo some e quem desenha a barra é o blur. */
+  background-color: var(--glass-bg);
   border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-full);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   translate: -50% 0;
 }

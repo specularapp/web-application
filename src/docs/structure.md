@@ -224,11 +224,49 @@ De cima para baixo, seguindo a referência do usuário (a barra de projeto da Ve
 - Meta em uma linha só: "Meta", a barra ocupando o vão e o valor no fim, em caption 2. O nome inteiro ("Meta de faturamento") vive no `aria-label`, então quem usa leitor de tela não perde o contexto que a tela encurtou.
 - Rota que abre no lugar: entrada com `items` (`NavFolder`) troca a lista inteira pelas páginas de dentro, com voltar no topo. Submenu aninhado em painel de 17.5rem empurraria tudo para a direita e sairia da vista.
 - `nav.ts` é a fonte única do menu, e `href` é tipado por rota: página que não existe nem compila. Por isso tarefas, calendário e relatório da referência ficaram de fora até as páginas nascerem.
-- O componente é apresentacional e recebe time, pessoa, meta, convite e contador por prop. Ligar isso ao banco é passo separado, junto com o `AppShell`, que hoje ainda é `return null`.
+- O componente é apresentacional e recebe time, pessoa, convite e a lista de times por prop. Quem busca isso no banco é o `AppShell`, Server Component do grupo (app), que junta `getCurrentTeamState`, `getTeamOptions` e a cobrança e deriva o convite de plano.
 - Meta de faturamento usa `compactMoney` de `lib/utils/format.ts`: R$ 30,5k, R$ 1,243M, sempre a partir de centavos, como todo dinheiro do produto.
 - Celular: o painel não fica na tela. Uma barra flutuante no rodapé, ao centro, traz "Buscar" e o botão de abrir; aberto, o painel toma a tela inteira, sem a marca, e as ações da conta aparecem listadas em vez de escondidas atrás do botão de seta, porque no celular esconder opção atrás de camada custa um toque a mais e uma camada a mais.
-- Nada aqui abre camada flutuante ainda (decisão de 2026-09-02): seletor de time, opções da conta, busca e notificações estão de pé e mudos, para cada um entrar depois com o primitivo certo. `Dialog` e `DropdownMenu` seguem stub.
+- A seta dupla do time abre a janela de troca (`TeamSwitcher`, 2026-09-03), a primeira camada flutuante do menu. Opções da conta, busca e notificações continuam de pé e mudas, esperando `DropdownMenu` e a paleta de comandos; `DropdownMenu` segue stub.
 - Prévia em `/previa/menu` (só em homologação), que é onde dá para ver a forma do celular, e a forma do desktop também entra na vitrine `/componentes`, em caixa alta.
+
+### Janela (Dialog)
+
+Moldura da casa para conteúdo que interrompe: caixa centralizada no desktop e bandeja subindo do rodapé abaixo de 48rem, na mesma decisão do `DatePicker`. Portal em `document.body`, `role="dialog"`, Escape fecha, o Tab dá a volta por dentro da caixa e o foco volta para quem abriu. Rolagem da página trava enquanto está aberta e `prefers-reduced-motion` corta a animação.
+
+- `scrim` decide o peso da janela. Com ele (o padrão) o fundo escurece em `--color-scrim`, a janela é `aria-modal` e o clique no fundo fecha; a moldura que centraliza cobre a tela e não recebe ponteiro, então o clique na área vazia atravessa e chega lá. Sem ele a janela não bloqueia o resto, não se anuncia como modal e passa a fechar por toque fora da caixa.
+- Canto declarado direto no CSS, sem `data-squircle`: a janela guarda foco e conteúdo que sai do fluxo, e o recorte do fallback cortaria o anel de foco de quem está dentro. Mesma escolha do `Listbox` e do `Tooltip`.
+- Tamanhos por `data-size`: `sm` 24rem, `md` 30rem, `lg` 40rem. A altura é limitada por `min(34rem, 100dvh menos 4rem)` no desktop e 85dvh na bandeja, e quem rola é o conteúdo de dentro, nunca a página.
+- `placement="end"` troca a caixa centralizada por gaveta na lateral final, entrando por `translateX`, com 8px de folga nos quatro lados (o recuo mora na moldura) e canto completo, porque ela não encosta em borda nenhuma. No celular a bandeja continua ganhando, porque a regra dela vem depois e vence no que declara.
+- `surface="glass"` troca a superfície opaca pelo vidro. A receita é a do painel do login e da barra flutuante do menu, agora num par de tokens (`--glass-bg`, que é `--color-bg` a 0% misturado com `transparent`, e `--glass-blur`, que é `blur(12px)`): o fundo some por inteiro e quem desenha a caixa é o borrão. Serve a camada leve; formulário longo continua em superfície opaca, senão o texto disputa com o que está embaixo.
+
+### Troca de time
+
+A seta dupla no topo do menu abre uma caixa com busca, os times da pessoa e o convite de criar no rodapé, no formato da referência (a troca de projeto da Vercel).
+
+- Sem escurecer a tela e colada na origem (decisão de 2026-09-03): no desktop é caixa avulsa de 20rem medida a partir do próprio seletor, alinhada pelo início dele, virando para cima quando falta espaço embaixo e acompanhando rolagem e redimensionamento. A medida sai de `useLayoutEffect`, e não de `useEffect`, senão a caixa pinta no canto e pula para o lugar no quadro seguinte. No celular ela vira a bandeja do `Dialog` com `scrim={false}`, porque lá o topo do painel fica longe do polegar.
+- A faixa dos times tem altura reservada, de 10rem a 15rem no desktop e até 22rem na bandeja, e é ela que rola. Sem piso, um time só deixava a caixa espremida entre a busca e o rodapé; sem teto, muitos times empurravam o convite de criar para fora da vista.
+
+- Regra no banco: `set_current_org` já existia, é `security definer` e recusa organização de que a pessoa não participa. A web chama por `switchTeamAction` e o aplicativo por `PUT /api/v1/organizacoes/atual`, os dois pela mesma função, então a validação não é repetida em código.
+- A lista sai de `listTeams`, que entra pela associação (`organization_members`) e não por `organizations`: a policy de select de lá também deixa passar o time que a pessoa criou, então quem saiu do time continuaria vendo um destino que a troca recusa. O plano de cada linha vem de uma leitura em lote de `organization_subscriptions` com os status de `grantingStatuses`, a mesma lista de `organization_plan`. O aplicativo lê em `GET /api/v1/organizacoes/minhas`.
+- O foco fica no campo de busca o tempo todo: as setas movem o item ativo, Enter escolhe e o leitor de tela acompanha por `aria-activedescendant`, então as linhas são `role="option"` e não botões. A busca compara por `slugify` dos dois lados, então acento e maiúscula não atrapalham.
+- Escolher um time chama a action, mostra giro na própria linha e refaz a árvore do servidor com `router.refresh()`. Enquanto a troca corre a janela não fecha, nem por Escape.
+- A caixa é de vidro nos dois formatos, na mesma receita do painel do login: `--glass-bg` e `--glass-blur`.
+- O convite de criar não encosta na borda do rodapé: o recuo é o mesmo da lista, então o hover pinta uma caixa arredondada por dentro, no ritmo das opções de cima, em vez de uma faixa de ponta a ponta.
+- Criar equipe fecha a caixa e abre a gaveta de criação, descrita abaixo.
+
+### Criar equipe
+
+Gaveta de vidro com 30rem na direita (`Dialog` com `placement="end"` e `surface="glass"`), entrando por deslize, com bandeja no celular. Ela vai sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no tema claro em vez de translúcida. Uma lista só, sem etapas: quem cria a segunda equipe já conhece o produto, então o fluxo de primeiros passos, que é guiado, não se repete aqui.
+
+- De cima para baixo: identidade (banner com a logo montada na borda de baixo, o mesmo `ImagePicker` dos primeiros passos), nome, site, área de atuação e as pessoas. Cabeçalho e rodapé ficam fixos, e só o meio rola.
+- O par banner mais logo é montado pelo `ImageGroup`, exportado junto do `ImagePicker`: a gaveta e os primeiros passos usam o mesmo agrupador, então o conjunto absoluto (logo sentada na borda de baixo do banner) sai idêntico nos dois. As medidas viraram variáveis (`--identity-ratio`, `--identity-drop` e as três da logo), com os valores de hoje como padrão, e a media query do fluxo guiado passou a mexer só nelas.
+- Os três campos da equipe leem como um bloco: nome na linha inteira e, logo abaixo, site e área lado a lado, com o mesmo vão entre eles.
+- As pessoas ficam depois de um divisor, sob o título "Membros": primeiro os campos de convite e o botão que empilha, depois a lista com quem cria no topo.
+- O endereço não aparece: ele sai do nome pela regra do domínio e não é editável, então campo travado só ocuparia linha sem dar escolha nenhuma.
+- Quem cria já entra na lista de pessoas como proprietário, porque é o que o banco vai gravar. A linha não tem papel para escolher nem ação de remover.
+- Os convites entram numa lista local antes de existir a equipe, porque `create_invite` precisa do id da organização. Só depois de a equipe nascer eles saem, com o papel escolhido em cada linha.
+- Criar chama `saveTeamAction` e, na sequência, `switchTeamAction`: a equipe nasce e a pessoa já entra nela, então a gaveta fecha com o menu inteiro já refeito. Imagem e convite seguem em segundo plano, pelo mesmo motivo dos primeiros passos: cada envio custa uma ida ao servidor, em série, e segurando a tela isso somava segundos.
 
 ### Marca
 

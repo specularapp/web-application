@@ -251,7 +251,7 @@
 .identity {
   position: relative;
   min-width: 0;
-  margin-bottom: 3.25rem;
+  margin-bottom: var(--identity-drop, 3.25rem);
 }
 
 /* O recorte da imagem sai do próprio alvo, e não de uma camada interna: com o corte num filho, a
@@ -283,7 +283,7 @@
 
 .banner {
   width: 100%;
-  aspect-ratio: 4 / 1;
+  aspect-ratio: var(--identity-ratio, 4 / 1);
   border-radius: var(--radius-xl);
   corner-shape: squircle;
 }
@@ -291,10 +291,10 @@
 /* Círculo puro fica fora do sistema de cantos, então nada de corner-shape aqui. */
 .logo {
   position: absolute;
-  bottom: -2.75rem;
-  inset-inline-start: var(--space-4);
-  width: 6rem;
-  height: 6rem;
+  bottom: var(--identity-logo-drop, -2.75rem);
+  inset-inline-start: var(--identity-logo-inset, var(--space-4));
+  width: var(--identity-logo-size, 6rem);
+  height: var(--identity-logo-size, 6rem);
   background-color: var(--color-bg-grouped-secondary);
   border-radius: var(--radius-full);
   box-shadow: 0 0 0 4px var(--color-bg-grouped-secondary);
@@ -397,19 +397,12 @@
   /* Numa tela estreita o 4:1 dá uns 66px de altura, e a logo de 96px cobria o banner quase inteiro. O
      banner engorda para 3:1 e a logo encolhe, então ela volta a sentar na borda de baixo em vez de
      tomar a capa. O recuo da margem acompanha o quanto ela transborda. */
-  .banner {
-    aspect-ratio: 3 / 1;
-  }
-
   .identity {
-    margin-bottom: 2.5rem;
-  }
-
-  .logo {
-    bottom: -2rem;
-    inset-inline-start: var(--space-3);
-    width: 4.5rem;
-    height: 4.5rem;
+    --identity-ratio: 3 / 1;
+    --identity-drop: 2.5rem;
+    --identity-logo-drop: -2rem;
+    --identity-logo-inset: var(--space-3);
+    --identity-logo-size: 4.5rem;
   }
 
   .member {

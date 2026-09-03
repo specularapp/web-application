@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { grantingStatuses, type BillingPlan } from "@/features/billing/schemas";
 import type { Database, TablesUpdate } from "@/types/database";
 import {
   LOGO_BUCKET,
@@ -42,6 +43,15 @@ export type TeamInvite = {
   name: string | null;
   email: string;
   role: MemberRole;
+};
+
+/** Time como ele aparece na troca: só o que a linha da lista desenha, mais o plano em vigor. */
+export type TeamOption = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  plan: BillingPlan;
 };
 
 export type TeamState = {
@@ -157,6 +167,45 @@ export async function getTeamState(client: TeamClient, userId: string): Promise<
     })),
     viewer: people.find((person) => person.userId === userId) ?? viewer,
   };
+}
+
+// A leitura entra pela associação, e não por `organizations`: a policy de select de lá também deixa
+// passar o time que a pessoa criou, então quem saiu do time continuaria vendo o time na troca e
+// escolheria um destino que `set_current_org` recusa.
+export async function listTeams(client: TeamClient, userId: string): Promise<TeamOption[]> {
+  const { data: memberships } = await client
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId);
+
+  const ids = (memberships ?? []).map((row) => row.organization_id);
+  if (ids.length === 0) return [];
+
+  const [{ data: rows }, { data: subscriptions }] = await Promise.all([
+    client.from("organizations").select("id, name, slug, logo_url").in("id", ids).order("name"),
+    client.from("organization_subscriptions").select("organization_id, plan, status").in("organization_id", ids),
+  ]);
+
+  const contracted = new Map<string, BillingPlan>();
+  for (const row of subscriptions ?? []) {
+    if (grantingStatuses.includes(row.status)) contracted.set(row.organization_id, row.plan);
+  }
+
+  return (rows ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    logoUrl: row.logo_url,
+    plan: contracted.get(row.id) ?? "free",
+  }));
+}
+
+// Quem decide se a troca vale é o banco: `set_current_org` recusa organização de que a pessoa não
+// participa, então a mesma porta serve à web e ao aplicativo sem repetir a checagem aqui.
+export async function switchTeam(client: TeamClient, organizationId: string): Promise<ServiceResult<undefined>> {
+  const { error } = await client.rpc("set_current_org", { p_organization_id: organizationId });
+  if (error) return { ok: false, error: messageOf(error, "Não foi possível trocar de time.") };
+  return { ok: true, data: undefined };
 }
 
 // O endereço saiu do formulário e vem do nome, então colisão não é erro de quem preencheu:

@@ -52,12 +52,12 @@
   position: relative;
   align-self: end;
   padding: var(--space-5) var(--space-4);
-  background-color: color-mix(in oklab, var(--color-bg) 0%, transparent);
+  background-color: var(--glass-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 .hero {

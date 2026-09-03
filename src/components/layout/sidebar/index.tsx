@@ -28,11 +28,12 @@ import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
+import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import styles from "./sidebar.module.css";
 
 export type SidebarTeam = { name: string; logoUrl: string | null; plan: string };
 
-export type SidebarUser = { name: string; role: string; avatarUrl: string | null };
+export type SidebarUser = { name: string; email: string | null; role: string; avatarUrl: string | null };
 
 /** Alerta de plano: `eyebrow` é o rótulo curto de cima, `title` é o plano em vigor. */
 export type SidebarPromo = { eyebrow: string; title: string; description: string; action: string; href: Route };
@@ -40,6 +41,9 @@ export type SidebarPromo = { eyebrow: string; title: string; description: string
 export type SidebarProps = {
   team: SidebarTeam;
   user: SidebarUser;
+  /** Times em que a pessoa entra, para a troca no topo. O atual vem separado porque pode não existir. */
+  teams: SwitcherTeam[];
+  currentTeamId: string | null;
   /** Sem convite (plano pago em dia) a seção não é desenhada. */
   promo?: SidebarPromo;
 };
@@ -70,11 +74,58 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile" };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, promo, variant }: PanelProps) {
+export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant }: PanelProps) {
   const pathname = usePathname();
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const [promoVisible, setPromoVisible] = useState(true);
   const mobile = variant === "mobile";
+
+  // O convite de plano muda de lugar por moldura: no desktop entra acima do perfil, no celular
+  // segue por último, depois das ações da conta. Posição por árvore, para a leitura seguir a tela.
+  const planCard = promo && promoVisible && (
+    <section className={styles.promo} {...squircle("lg")} aria-label={promo.eyebrow}>
+      <div className={styles.promoHead}>
+        <span className={styles.promoIcon}>
+          <CrownSimpleIcon aria-hidden="true" />
+        </span>
+        <div className={styles.promoPlan}>
+          <Text variant="caption2" tone="secondary" className={`${styles.promoLine} ${styles.promoEyebrow}`}>
+            {promo.eyebrow}
+          </Text>
+          <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate className={styles.promoLine}>
+            {promo.title}
+          </Text>
+        </div>
+        <IconButton
+          label="Dispensar alerta de plano"
+          variant="ghost"
+          size="sm"
+          className={styles.promoClose}
+          onClick={() => setPromoVisible(false)}
+        >
+          <XIcon />
+        </IconButton>
+      </div>
+
+      <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">
+        {promo.description}
+      </Text>
+
+      <Button
+        size={mobile ? "md" : "sm"}
+        radius="md"
+        fullWidth
+        variant="secondary"
+        background="var(--color-label)"
+        foreground="var(--color-bg)"
+        border="transparent"
+        style={{ "--button-background-hover": "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))" } as CSSProperties}
+        iconStart={<LightningIcon />}
+      >
+        {promo.action}
+      </Button>
+    </section>
+  );
 
   return (
     <div className={styles.panel}>
@@ -86,9 +137,12 @@ export function SidebarPanel({ team, user, promo, variant }: PanelProps) {
         <Badge tone="neutral" variant="soft" size={mobile ? "md" : "sm"} className={styles.teamPlan}>
           {team.plan}
         </Badge>
-        <IconButton label="Trocar de time" variant="ghost" size={mobile ? "md" : "sm"}>
-          <CaretUpDownIcon />
-        </IconButton>
+        <TeamSwitcher
+          teams={teams}
+          currentId={currentTeamId}
+          owner={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
+          size={mobile ? "md" : "sm"}
+        />
       </header>
 
       <button type="button" className={styles.find} {...squircle("md")}>
@@ -140,6 +194,8 @@ export function SidebarPanel({ team, user, promo, variant }: PanelProps) {
       </nav>
 
       <div className={styles.foot}>
+        {!mobile && planCard}
+
         <div className={styles.profile}>
           <Avatar name={user.name} src={user.avatarUrl ?? undefined} size={mobile ? "sm" : "xs"} />
           <span className={styles.profileText}>
@@ -182,50 +238,7 @@ export function SidebarPanel({ team, user, promo, variant }: PanelProps) {
           </div>
         )}
 
-        {promo && promoVisible && (
-          <section className={styles.promo} {...squircle("lg")} aria-label={promo.eyebrow}>
-            <div className={styles.promoHead}>
-              <span className={styles.promoIcon}>
-                <CrownSimpleIcon aria-hidden="true" />
-              </span>
-              <div className={styles.promoPlan}>
-                <Text variant="caption2" tone="secondary" className={`${styles.promoLine} ${styles.promoEyebrow}`}>
-                  {promo.eyebrow}
-                </Text>
-                <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate className={styles.promoLine}>
-                  {promo.title}
-                </Text>
-              </div>
-              <IconButton
-                label="Dispensar alerta de plano"
-                variant="ghost"
-                size="sm"
-                className={styles.promoClose}
-                onClick={() => setPromoVisible(false)}
-              >
-                <XIcon />
-              </IconButton>
-            </div>
-
-            <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">
-              {promo.description}
-            </Text>
-
-            <Button
-              size={mobile ? "md" : "sm"}
-              radius="md"
-              fullWidth
-              variant="secondary"
-              background="var(--color-label)"
-              foreground="var(--color-bg)"
-              border="transparent"
-              style={{ "--button-background-hover": "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))" } as CSSProperties}
-              iconStart={<LightningIcon />}
-            >
-              {promo.action}
-            </Button>
-          </section>
-        )}
+        {mobile && planCard}
       </div>
     </div>
   );

@@ -11,6 +11,36 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-08-31 (dom) | em andamento | Configuração inicial do time em duas etapas, domínio organizations com service e api/v1, Select do design system |
 | 2026-09-01 (seg) | em andamento | Cobrança com Stripe ponta a ponta: pagamento dentro da nossa interface, teste gratuito de 7 dias no Pro, estrutura de permissão por plano no banco e a tela de plano e assinatura |
 | 2026-09-02 (ter) | em andamento | Sidebar refinada (perfil enxuto, convite de plano com X, mobile em tela cheia com rolagem geral e escala de toque, barra flutuante de vidro) e ligada ao banco pelo `AppShell` no grupo (app) |
+| 2026-09-03 (qua) | em andamento | Convite de plano acima do perfil no desktop, primitivo `Dialog` saindo de stub, troca de time em caixa de vidro ligada ao banco e gaveta de criar equipe |
+
+## 2026-09-03
+
+Feito:
+
+- Convite de plano subiu para cima do perfil no desktop e continua por último no celular, depois das ações da conta. A posição é por árvore, e não por `order`: com `order` a ordem de leitura do leitor de tela discordaria da tela.
+- `Dialog` deixou de ser stub e virou a moldura da casa: portal, caixa centralizada no desktop e bandeja no celular (a mesma decisão do `DatePicker`), Escape fechando, Tab dando a volta por dentro, foco devolvido a quem abriu, rolagem da página travada e animação cortada em `prefers-reduced-motion`. `scrim` decide se a janela escurece o fundo e bloqueia o resto ou se fica leve e fecha por toque fora.
+- Troca de time no topo do menu (`TeamSwitcher`): busca com `Esc` à direita, times com logo, nome, etiqueta de plano e check no que está em vigor, estado vazio quando a busca não acha, divisor e o convite de criar equipe no rodapé. Teclado no formato de paleta: o foco fica na busca, setas movem, Enter escolhe e o leitor de tela acompanha por `aria-activedescendant`.
+- A caixa nasceu centralizada e virou colada na origem no mesmo dia, por pedido: sem escurecer a tela, medida a partir do próprio seletor, alinhada pelo início dele e virando para cima quando falta espaço embaixo. A medida entrou em `useLayoutEffect` porque com `useEffect` a caixa pintava no canto e pulava para o lugar no quadro seguinte. No celular continua bandeja, agora sem o fundo escuro.
+- A faixa dos times ganhou altura reservada (10rem a 15rem no desktop, até 22rem na bandeja) e é ela que rola: com um time só a caixa ficava espremida entre a busca e o rodapé, e com muitos o convite de criar saía da vista.
+- Ligado ao banco pela função que já existia: `set_current_org` é `security definer` e recusa organização de que a pessoa não participa, então a web (`switchTeamAction`) e o aplicativo (`PUT /api/v1/organizacoes/atual`) trocam pela mesma porta, sem repetir a checagem em código.
+- `listTeams` entra pela associação e não por `organizations`, porque a policy de select de lá também deixa passar o time que a pessoa criou: quem saiu do time veria na lista um destino que a troca recusa. O plano de cada linha sai de uma leitura em lote de `organization_subscriptions` com `grantingStatuses`, novo em `billing/schemas.ts`, que é a mesma lista de status de `organization_plan` no banco. Lista para o aplicativo em `GET /api/v1/organizacoes/minhas`.
+- Vidro na troca de time, por pedido: `--glass-bg` e `--glass-blur` novos em `tokens.css`, na mesma receita da barra flutuante do menu no celular, valendo no popover e na bandeja. `Dialog` ganhou `surface` para escolher entre a superfície opaca e o vidro.
+- Criar equipe deixou de ser botão morto e virou gaveta de 30rem colada na direita (`Dialog` com `placement="end"`, deslizando por `translateX`; bandeja no celular). Uma lista só, sem etapas: identidade com banner e logo pelo mesmo `ImagePicker` dos primeiros passos, nome, endereço derivado em leitura, site, área de atuação e convites.
+- Os convites ficam numa lista local até a equipe nascer, porque `create_invite` precisa do id da organização. Criar chama `saveTeamAction` e em seguida `switchTeamAction`, então a equipe nasce e a pessoa já entra nela; imagem e convite seguem em segundo plano, pelo motivo já medido nos primeiros passos.
+- Vidro acertado na receita da casa, por pedido: `--glass-bg` virou `--color-bg` a 0% misturado com `transparent` e `--glass-blur` virou `blur(12px)`, que é exatamente o que o painel do login e a barra flutuante do menu já usavam. Os dois passaram a ler o token, então o valor existe num lugar só.
+- Gaveta com 8px de folga nos quatro lados, no lugar de encostar na tela: o recuo mora na moldura e o canto voltou a ser completo.
+- Convite de criar equipe deixou de ser faixa de ponta a ponta: o rodapé ganhou o recuo da lista e o botão ganhou raio, então o hover pinta uma caixa por dentro, no ritmo das opções de cima.
+- Identidade parametrizada por variáveis (`--identity-ratio` e as três da logo): a gaveta é estreita e usa as medidas compactas dos primeiros passos no celular, porque no 4 por 1 a logo de 6rem cobria quase todo o banner e o par lia como desalinhado. A media query do fluxo guiado passou a mexer só nas variáveis.
+- Endereço saiu da gaveta: sai do nome e não é editável, então campo travado só ocupava linha. Quem cria entra na lista de pessoas já como proprietário, sem papel para escolher nem ação de remover, porque é o que o banco vai gravar. `SidebarUser` ganhou `email` para essa linha.- Gaveta de criar equipe ganhou o mesmo vidro do seletor, raio `3xl` para destacar da tela e foi sem o fundo que escurece: com ele ligado, o borrão pegaria o próprio escurecimento e a gaveta ficaria cinza no tema claro em vez de translúcida. Fechar por toque fora entrou no lugar do clique no fundo.
+- O par banner mais logo virou `ImageGroup`, exportado junto do `ImagePicker` e usado pelas duas telas, então o conjunto absoluto sai idêntico ao dos primeiros passos em vez de repetir as medidas em cada lado.
+- Campos reagrupados: nome, site e área leem como um bloco só; o texto que explicava o convite saiu; as pessoas ficam depois de um divisor, sob o título "Membros".
+Pendências:
+
+- O dropdown do `Select` dentro da gaveta pode ser cortado: o painel do `Dialog` recorta e a área do formulário rola, e o `Listbox` abre em `position: absolute` dentro do fluxo. A saída conhecida é portal, como o `DatePicker` já faz, e é trabalho no primitivo.
+- A gaveta de criar equipe não foi exercitada contra o banco: nenhuma equipe foi criada de verdade, nem convite enviado, nem imagem subida por esse caminho.
+- O menu ainda não abre camada em opções da conta, busca e notificações. `DropdownMenu` segue stub e a paleta de comandos segue `return null`.
+- A troca de time não foi exercitada contra o banco hospedado: `typecheck`, `lint` e `build` passam, mas ninguém trocou de time com dois times de verdade numa sessão.
+- O X do convite de plano continua sem persistir, e `SidebarUser.role` continua prop morta.
 
 ## 2026-09-02
 

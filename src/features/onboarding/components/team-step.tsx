@@ -18,7 +18,7 @@ import {
 import type { Team } from "@/features/organizations/service";
 import { uploadTeamImage } from "@/features/organizations/upload";
 import { industryOptions } from "../labels";
-import { ImagePicker } from "./image-picker";
+import { ImageGroup, ImagePicker } from "./image-picker";
 import styles from "./onboarding.module.css";
 
 type TeamStepProps = {
@@ -110,7 +110,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
 
   return (
     <form className={styles.step} onSubmit={submit} noValidate>
-      <div className={styles.identity}>
+      <ImageGroup>
         <ImagePicker
           variant="banner"
           label="o banner do time"
@@ -129,7 +129,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
           onSelect={choose(logo, setLogo)}
           onReject={reject}
         />
-      </div>
+      </ImageGroup>
 
       <div className={styles.form}>
         <div className={styles.pair}>

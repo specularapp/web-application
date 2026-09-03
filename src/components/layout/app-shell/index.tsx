@@ -3,7 +3,7 @@ import { getOnboardingBilling } from "@/features/billing/queries";
 import type { BillingState } from "@/features/billing/service";
 import type { PlanId } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
-import { getCurrentTeamState } from "@/features/organizations/queries";
+import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
 import { Sidebar, type SidebarPromo } from "../sidebar";
 import styles from "./app-shell.module.css";
 
@@ -38,7 +38,7 @@ function promoFor(billing: BillingState): SidebarPromo | undefined {
 }
 
 export async function AppShell({ children }: { children: ReactNode }) {
-  const state = await getCurrentTeamState();
+  const [state, teams] = await Promise.all([getCurrentTeamState(), getTeamOptions()]);
   const billing = await getOnboardingBilling(state.team?.id ?? null);
 
   const team = {
@@ -49,13 +49,25 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   const user = {
     name: state.viewer.name ?? state.viewer.email ?? "Você",
+    email: state.viewer.email,
     role: roleLabels[state.viewer.role],
     avatarUrl: state.viewer.avatarUrl,
   };
 
   return (
     <div className={styles.shell}>
-      <Sidebar team={team} user={user} promo={promoFor(billing)} />
+      <Sidebar
+        team={team}
+        user={user}
+        teams={teams.map((option) => ({
+          id: option.id,
+          name: option.name,
+          logoUrl: option.logoUrl,
+          plan: planBadge[option.plan],
+        }))}
+        currentTeamId={state.team?.id ?? null}
+        promo={promoFor(billing)}
+      />
       <main className={styles.content}>{children}</main>
     </div>
   );

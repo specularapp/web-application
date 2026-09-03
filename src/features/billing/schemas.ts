@@ -17,6 +17,9 @@ export const subscriptionStatusSchema = z.enum([
 export type BillingPlan = z.infer<typeof billingPlanSchema>;
 export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
 
+/** Status que mantêm o plano contratado em vigor, na mesma lista de `public.organization_plan`. */
+export const grantingStatuses: SubscriptionStatus[] = ["trialing", "active", "past_due"];
+
 const organizationIdSchema = z.object({ organizationId: z.uuid() });
 
 export const organizationScopeSchema = organizationIdSchema;

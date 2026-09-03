@@ -4,5 +4,6 @@ export * from "./command-palette";
 export * from "./logo";
 export * from "./page-header";
 export * from "./sidebar";
+export * from "./team-switcher";
 export * from "./theme-toggle";
 export * from "./topbar";

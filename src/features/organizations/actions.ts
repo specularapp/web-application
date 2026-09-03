@@ -30,6 +30,7 @@ import {
   inviteMember,
   removeMember,
   saveTeam,
+  switchTeam,
   type ServiceResult,
   type Team,
   type TeamInvite,
@@ -65,6 +66,17 @@ export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team
 
   const supabase = await createClient();
   return saveTeam(supabase, parsed.data);
+}
+
+export async function switchTeamAction(input: unknown): Promise<ServiceResult<undefined>> {
+  const user = await requireUser(DASHBOARD_PATH);
+  if (!(await withinActionLimit("team-switch", user.id))) return { ok: false, error: TOO_MANY };
+
+  const parsed = organizationIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  return switchTeam(supabase, parsed.data.organizationId);
 }
 
 export async function inviteMemberAction(input: unknown): Promise<ServiceResult<TeamInvite>> {

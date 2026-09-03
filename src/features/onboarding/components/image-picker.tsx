@@ -3,10 +3,18 @@
 import { CloudArrowUpIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
+import type { ReactNode } from "react";
 import { Text } from "@/components/ui/text";
 import { LOGO_MAX_BYTES } from "@/features/organizations/schemas";
 import { cx } from "@/lib/utils/cx";
 import styles from "./onboarding.module.css";
+
+/* Banner e logo formam um conjunto: a logo é absoluta dentro deste bloco e senta na borda de baixo
+   do banner, que transborda para fora. Quem monta o par usa este agrupador, e não uma div própria,
+   senão cada tela repete as medidas e elas saem de sincronia. */
+export function ImageGroup({ children }: { children: ReactNode }) {
+  return <div className={styles.identity}>{children}</div>;
+}
 
 type ImagePickerProps = {
   variant: "banner" | "logo";
