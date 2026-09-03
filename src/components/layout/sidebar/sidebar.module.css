@@ -235,7 +235,7 @@
   min-width: 0;
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
-  background-color: var(--color-fill-quaternary);
+  background-color: transparent;
   border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-lg);
 }
