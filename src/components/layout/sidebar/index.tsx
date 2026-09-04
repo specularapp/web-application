@@ -116,12 +116,13 @@ function folderIsCurrent(pathname: string, folder: NavFolder) {
   return folder.items.some((item) => isCurrent(pathname, item.href));
 }
 
-function Row({ item, active }: { item: NavLink; active: boolean }) {
+function Row({ item, active, onNavigate }: { item: NavLink; active: boolean; onNavigate?: () => void }) {
   return (
     <Link
       href={item.href}
       className={styles.row}
       data-active={active || undefined}
+      onClick={onNavigate}
       {...squircle("md")}
     >
       <item.icon aria-hidden="true" />
@@ -134,6 +135,8 @@ type PanelProps = SidebarProps & {
   variant: "desktop" | "mobile";
   onSearch?: () => void;
   onNotificationsChange?: (items: AppNotification[]) => void;
+  /** Chamado ao escolher uma página: na tela cheia do celular, fecha o menu. */
+  onNavigate?: () => void;
 };
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
@@ -148,6 +151,7 @@ export function SidebarPanel({
   variant,
   onSearch,
   onNotificationsChange,
+  onNavigate,
 }: PanelProps) {
   const pathname = usePathname();
   const commandKey = useCommandKey();
@@ -305,6 +309,7 @@ export function SidebarPanel({
                   key={item.href}
                   item={item}
                   active={isCurrent(pathname, item.href)}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>
@@ -343,6 +348,7 @@ export function SidebarPanel({
                         key={entry.href}
                         item={entry}
                         active={isCurrent(pathname, entry.href)}
+                        onNavigate={onNavigate}
                       />
                     ),
                   )}
@@ -392,10 +398,13 @@ export function SidebarPanel({
 
         {mobile && (
           <div className={styles.actions}>
-            {accountLinks.map((action) => (
+            {accountLinks
+              .filter((action) => !action.desktopOnly)
+              .map((action) => (
               <Link
                 key={action.href}
                 href={action.href}
+                onClick={onNavigate}
                 className={styles.row}
                 {...squircle("md")}
               >
@@ -491,7 +500,7 @@ export function Sidebar(props: SidebarProps) {
           data-state={screen.state}
           onAnimationEnd={screen.onAnimationEnd}
         >
-          <SidebarPanel {...panel} variant="mobile" onSearch={openSearch} />
+          <SidebarPanel {...panel} variant="mobile" onSearch={openSearch} onNavigate={() => setOpen(false)} />
         </div>
       )}
 

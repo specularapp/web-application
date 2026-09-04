@@ -360,6 +360,7 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
     }
 
     setOpen(false);
+    toast({ title: "Time trocado", description: `Você está em ${team.name}`, tone: "success" });
     router.refresh();
   };
 

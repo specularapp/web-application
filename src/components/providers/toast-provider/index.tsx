@@ -31,7 +31,7 @@ type ToastContextValue = {
 };
 
 const MAX_VISIBLE = 3;
-const DEFAULT_DURATION = 5000;
+const DEFAULT_DURATION = 3000;
 const LEAVE_DURATION = 240;
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -54,9 +54,10 @@ const Viewport = styled.div`
   }
 `;
 
+// Três segundos para todo tom, erro incluído (decisão de 2026-09-04; antes o erro ficava até agir). Quem
+// precisar de mais passa `duration`.
 function durationOf(entry: ToastEntry) {
-  if (entry.duration !== undefined) return entry.duration;
-  return entry.tone === "danger" ? 0 : DEFAULT_DURATION;
+  return entry.duration ?? DEFAULT_DURATION;
 }
 
 function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: string) => void }) {

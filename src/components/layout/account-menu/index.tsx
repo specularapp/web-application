@@ -39,14 +39,21 @@ const PANEL_WIDTH = 272;
 const PANEL_HEIGHT = 360;
 const EDGE = 16;
 
-export type AccountLink = { label: string; href: Route; icon: typeof GearSixIcon; plan?: boolean };
+export type AccountLink = {
+  label: string;
+  href: Route;
+  icon: typeof GearSixIcon;
+  plan?: boolean;
+  /** Fora da tela cheia do celular, que já tem o sino para o mesmo assunto. */
+  desktopOnly?: boolean;
+};
 
 /** Telas da conta, na ordem em que aparecem. Fonte única das duas molduras: o painel do desktop e a
  *  tela cheia do celular. */
 export const accountLinks: AccountLink[] = [
   { label: "Assinatura", href: "/configuracoes/plano", icon: CreditCardIcon, plan: true },
   { label: "Conta", href: "/configuracoes", icon: GearSixIcon },
-  { label: "Notificações", href: "/configuracoes/notificacoes", icon: BellIcon },
+  { label: "Notificações", href: "/configuracoes/notificacoes", icon: BellIcon, desktopOnly: true },
   { label: "Segurança", href: "/configuracoes/seguranca", icon: ShieldCheckIcon },
 ];
 
