@@ -20,7 +20,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
-import { popIn, thinScrollbar } from "@/components/ui/styles";
+import { popIn } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
@@ -121,7 +121,6 @@ const Body = styled.div`
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  ${thinScrollbar};
 
   &[data-empty] {
     align-content: center;

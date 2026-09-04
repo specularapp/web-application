@@ -174,6 +174,14 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - Larguras fixas para a barra não pulsar ao navegar: o indicador de página tem 5.5rem centrado (cabe "999 / 999" em algarismo tabular) e a faixa de itens tem no mínimo 12rem. Assim trocar de página ou de quantidade não move o grupo de botões.
 - A barra nunca quebra linha (`flex-wrap: nowrap`). Abaixo de 48rem (`MOBILE_QUERY`, por media query em CSS, sem JS) o dropup e a faixa somem e fica só o grupo com página, anterior e próxima. No desktop aparece tudo.
 
+### Barra de rolagem
+
+Desenho único em `globals.css`, valendo em tudo que rola: 3px, polegar em `--color-fill-quaternary` que escurece no hover, trilho transparente e nenhuma seta nas pontas.
+
+- As duas famílias não convivem. Assim que `scrollbar-width` ou `scrollbar-color` aparecem na regra, o Chrome descarta os pseudo-elementos `::-webkit-scrollbar` e cai na barra nativa, que no Windows vem grossa e com uma seta em cada ponta. Por isso as propriedades padrão ficam dentro de `@supports not selector(::-webkit-scrollbar)`, que só o Firefox atende, e o desenho vive nos pseudo-elementos.
+- Pelo mesmo motivo, componente nenhum declara `scrollbar-width: thin` por conta própria: fazer isso desliga o desenho global naquele elemento. Quem quiser esconder a própria barra declara `scrollbar-width: none`, que é o caso do menu.
+
+
 ### Cantos
 
 - Todo canto arredondado passa pelo sistema de cantos da casa, sem lib. `squircle("lg")` de `src/lib/corners.ts` emite `data-squircle` e `data-squircle-radius`; `squircleAuto()` emite só `data-squircle` e deixa o raio para o CSS; `squirclePx(n)` para raio fixo fora da escala. `border-radius` continua sempre no CSS: é o fallback e é o que o motor lê quando o raio não vem no atributo.
@@ -264,7 +272,8 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 - As opções saem de `nav.ts`, que já é a fonte única do menu e tem `href` tipado por rota, então a busca nunca oferece página que não existe. `navLinks()` achata as pastas e carrega o nome de onde a página mora, porque "Acompanhar" e "Visão geral" não dizem nada fora da gaveta; `navHighlights` é o punhado que vira pílula, com rótulo próprio.
 - A pílula tinge pela mesma receita do Badge: tinta no matiz a 70% do rótulo e fundo no matiz em alfa baixo, mais forte no escuro, com o contraste já conferido nas 19 cores da paleta. O matiz de cada atalho fica em `navHighlights`, e o ícone herda a tinta em vez de puxar para o cinza. Canto pelo sistema da casa, no raio `md`, e não pílula redonda.
 - A fila de atalhos rola na horizontal com a barra de `thinScrollbar`, e não escondida: a régua diz que a fila continua. Quebrar em duas linhas empurrava a lista para fora da vista numa tela estreita. O recuo dela é o mesmo da linha da lista, senão as duas faixas começam em pontos diferentes.
-- As duas áreas que rolam desbotam nas pontas por `mask-image`, e não por uma faixa de cor por cima: o painel é de vidro, e um gradiente sólido viraria mancha em vez de sumiço. A faixa do fade tem o tamanho do próprio recuo, então ela cai sobre o vão e não sobre o texto quando não há o que rolar.
+- As duas áreas que rolam desbotam nas pontas por `mask-image`, e não por uma faixa de cor por cima: o painel é de vidro, e um gradiente sólido viraria mancha em vez de sumiço. Em cima a faixa tem o tamanho do recuo, então cai sobre o vão; embaixo ela é maior, porque ali a lista encosta na régua de teclas e o corte seco aparecia inteiro.
+- A pílula fica em 36px no toque, e não no alvo cheio: ela é atalho secundário, a lista logo abaixo é quem guarda os 44px da regra, e com 44 aqui a faixa do topo comia um terço da bandeja.
 - Cada linha da lista é ícone, rótulo e a seção em etiqueta colorida na outra ponta. Sem seta de abrir no fim: a janela inteira já é uma lista de coisas que abrem, e o ícone repetido em toda linha só somava ruído.
 - O matiz da etiqueta é o da seção, declarado em `nav.ts` na pasta e no grupo e propagado por `navLinks()`. Cor de seção mora onde a seção nasce, e não numa tabela paralela que envelhece quando o menu muda.
 - A linha da lista tem a altura do menu, 36px com 4px de recuo, e volta ao alvo de toque em ponteiro grosso. Entre um grupo e outro corre a mesma linha que separa os grupos do menu, sangrando o recuo da lista.

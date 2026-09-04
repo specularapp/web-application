@@ -34,7 +34,6 @@
   padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
 }
 
 .brand {
@@ -129,8 +128,7 @@
     margin-inline: auto;
     padding: var(--space-8);
     overflow-y: auto;
-    scrollbar-width: thin;
-  }
+    }
 
   .brand {
     display: flex;

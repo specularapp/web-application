@@ -68,38 +68,3 @@ export const controlGlyph = (size: ControlSize) => css`
   height: calc(var(--control-height-${size}) * ${glyphRatio});
 `;
 
-export const thinScrollbar = css`
-  /* As duas famílias não convivem: assim que a largura ou a cor padrão da barra aparecem na regra, o
-     Chrome descarta os pseudo-elementos inteiros e cai na barra nativa, que no Windows vem grossa e
-     com uma seta em cada ponta. Por isso as propriedades padrão ficam só onde os pseudo-elementos não
-     existem, que é o Firefox, e o resto do desenho vive neles. */
-  @supports not selector(::-webkit-scrollbar) {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-fill-quaternary) transparent;
-  }
-
-  &::-webkit-scrollbar {
-    width: 0.1875rem;
-    height: 0.1875rem;
-  }
-
-  &::-webkit-scrollbar-button {
-    display: none;
-    width: 0;
-    height: 0;
-  }
-
-  &::-webkit-scrollbar-track,
-  &::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--color-fill-quaternary);
-    border-radius: var(--radius-full);
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    background-color: var(--color-fill);
-  }
-`;

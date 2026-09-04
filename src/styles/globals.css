@@ -37,6 +37,43 @@ samp {
   font-family: var(--font-code);
 }
 
+/* Barra de rolagem da casa, valendo em tudo que rola. As duas famílias não convivem: assim que a
+   largura ou a cor padrão aparecem na regra, o Chrome descarta os pseudo-elementos e cai na barra
+   nativa, que no Windows vem grossa e com uma seta em cada ponta. Por isso as propriedades padrão
+   ficam só onde os pseudo-elementos não existem, que é o Firefox. Quem quiser esconder a própria
+   barra declara `scrollbar-width: none`, que no Chrome também desliga o desenho daqui. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-fill-quaternary) transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0.1875rem;
+  height: 0.1875rem;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-fill);
+}
+
 ::placeholder {
   color: var(--color-placeholder);
 }

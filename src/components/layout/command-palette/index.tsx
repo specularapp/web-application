@@ -17,7 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
-import { thinScrollbar } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { slugify } from "@/features/organizations/schemas";
 import { squircle } from "@/lib/corners";
@@ -97,7 +96,6 @@ const Pills = styled.div`
     #000 calc(100% - var(--space-3)),
     transparent
   );
-  ${thinScrollbar};
 `;
 
 /* Mesma receita de cor do Badge: a tinta é o matiz a 70% sobre o rótulo e o fundo é o matiz em alfa
@@ -148,7 +146,7 @@ const Pill = styled.button`
   }
 
   @media (pointer: coarse) {
-    min-height: var(--touch-target);
+    min-height: 2.25rem;
   }
 `;
 
@@ -166,17 +164,16 @@ const Body = styled.div`
     to bottom,
     transparent,
     #000 var(--space-2),
-    #000 calc(100% - var(--space-2)),
+    #000 calc(100% - var(--space-6)),
     transparent
   );
   mask-image: linear-gradient(
     to bottom,
     transparent,
     #000 var(--space-2),
-    #000 calc(100% - var(--space-2)),
+    #000 calc(100% - var(--space-6)),
     transparent
   );
-  ${thinScrollbar};
 
   &[data-empty] {
     align-content: center;

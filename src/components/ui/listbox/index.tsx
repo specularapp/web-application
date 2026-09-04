@@ -3,7 +3,7 @@
 import styled from "@emotion/styled";
 import { CaretDownIcon, CaretUpIcon, CheckIcon } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { disabledState, popIn, thinScrollbar } from "../styles";
+import { disabledState, popIn } from "../styles";
 
 export type ListboxValue = string | number;
 
@@ -151,7 +151,6 @@ const Scroll = styled.ul`
   overflow-y: auto;
   list-style: none;
   outline: none;
-  ${thinScrollbar};
 `;
 
 // Respiro de 8px por item, nos quatro lados, e 8px entre o rótulo e o ícone. O recuo lateral do painel

@@ -252,8 +252,6 @@
     padding-inline-end: calc(5% + var(--space-2));
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-fill-quaternary) transparent;
     cursor: grab;
   }
 

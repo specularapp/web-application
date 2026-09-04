@@ -15,7 +15,6 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { thinScrollbar } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
@@ -87,7 +86,6 @@ const Scroll = styled.div`
   padding-block: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
-  ${thinScrollbar};
 `;
 
 /* A gaveta é coluna estreita: o banner deita mais e a bola encolhe, senão ela cobre quase toda a
