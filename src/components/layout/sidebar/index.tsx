@@ -274,7 +274,12 @@ export function SidebarPanel({
         </span>
       </button>
 
-      <nav ref={navRef} className={styles.nav} aria-label="Navegação principal">
+      <nav
+        ref={navRef}
+        className={styles.nav}
+        aria-label="Navegação principal"
+        data-folder={folder ? "" : undefined}
+      >
         {/* A chave troca com a pasta, então cada troca remonta a pilha e a entrada anima na direção certa:
             para dentro vem da direita, para fora volta da esquerda. */}
         <div

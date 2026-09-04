@@ -147,9 +147,9 @@ const Panel = styled.div`
   }
 
   &[data-surface="glass"] {
-    background-color: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    background-color: var(--glass-layer-bg);
+    -webkit-backdrop-filter: var(--glass-layer-blur);
+    backdrop-filter: var(--glass-layer-blur);
   }
 
   /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo

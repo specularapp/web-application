@@ -48,13 +48,13 @@ const Popover = styled.div`
   flex-direction: column;
   width: min(${PANEL_WIDTH}px, calc(100vw - ${EDGE * 2}px));
   overflow: hidden;
-  background-color: var(--glass-bg);
+  background-color: var(--glass-layer-bg);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
   transform-origin: top left;
 
   ${layerMotion};

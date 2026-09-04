@@ -452,6 +452,12 @@
   overflow-y: visible;
 }
 
+/* Com pasta aberta o piso sobe para mais da metade da tela: a lista curta fica no alto, e o perfil
+   fica onde sempre esteve, lá embaixo, sem subir para encostar nela. */
+.screen .nav[data-folder] {
+  min-height: 60dvh;
+}
+
 /* Em tela cheia tudo sobe um degrau: altura de toque, texto de callout e ícone maior. No tamanho do
    desktop as linhas ficavam perdidas na largura do celular. */
 .screen .row,
