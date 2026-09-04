@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { Dialog } from "@/components/ui/dialog";
@@ -18,6 +19,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { thinScrollbar } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { slugify } from "@/features/organizations/schemas";
+import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import {
   RECENT_COOKIE,
@@ -75,15 +77,21 @@ const Pills = styled.div`
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   overflow-x: auto;
-  scrollbar-width: none;
+  overscroll-behavior-x: contain;
   border-block-end: var(--panel-line) solid var(--color-border);
-
-  &::-webkit-scrollbar {
-    height: 0;
-  }
+  ${thinScrollbar};
 `;
 
+/* Mesma receita de cor do Badge: a tinta é o matiz a 70% sobre o rótulo e o fundo é o matiz em alfa
+   baixo, mais forte no escuro. O contraste dessa fórmula já foi conferido nas 19 cores da paleta, e
+   o ícone herda a tinta em vez de puxar para o cinza. */
 const Pill = styled.button`
+  --pill-ink: color-mix(in oklab, var(--pill-hue) 70%, var(--color-label));
+  --pill-tint: light-dark(
+    color-mix(in oklab, var(--pill-hue) 14%, transparent),
+    color-mix(in oklab, var(--pill-hue) 18%, transparent)
+  );
+
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -92,23 +100,33 @@ const Pill = styled.button`
   padding-inline: var(--space-3);
   font-family: var(--font-body);
   font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
   letter-spacing: var(--tracking-tight);
   white-space: nowrap;
-  color: var(--color-label);
-  background-color: var(--color-fill-quaternary);
+  color: var(--pill-ink);
+  background-color: var(--pill-tint);
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard);
 
   &:hover {
-    background-color: var(--color-fill-tertiary);
+    background-color: light-dark(
+      color-mix(in oklab, var(--pill-hue) 22%, transparent),
+      color-mix(in oklab, var(--pill-hue) 28%, transparent)
+    );
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   & svg {
     width: 1rem;
     height: 1rem;
-    color: var(--color-label-secondary);
+    color: inherit;
+    fill: currentColor;
   }
 
   @media (pointer: coarse) {
@@ -137,7 +155,7 @@ const Body = styled.div`
    um só, e não um por seção, que duplicaria o id que o campo aponta em `aria-controls`. */
 const GroupLabel = styled.li`
   margin: 0;
-  padding: var(--space-2) var(--space-4) var(--space-1);
+  padding: var(--space-2) var(--space-2) var(--space-1);
   font-family: var(--font-body);
   font-size: var(--text-caption-1);
   letter-spacing: var(--tracking-tight);
@@ -349,7 +367,13 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
 
       <Pills>
         {navHighlights.map((item) => (
-          <Pill key={item.href} type="button" onClick={() => go(item.href)}>
+          <Pill
+            key={item.href}
+            type="button"
+            style={{ "--pill-hue": item.hue } as CSSProperties}
+            onClick={() => go(item.href)}
+            {...squircle("md")}
+          >
             <item.icon aria-hidden="true" />
             {item.label}
           </Pill>

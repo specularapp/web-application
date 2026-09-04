@@ -30,6 +30,9 @@ export function isFolder(entry: NavEntry): entry is NavFolder {
 /** Página do menu já achatada, com o nome de onde ela mora, para a busca mostrar o contexto. */
 export type NavResult = NavLink & { section: string };
 
+/** Atalho da busca: o matiz é o mesmo modelo do Badge, um token de cor que a pílula tinge sozinha. */
+export type NavHighlight = NavLink & { hue: string };
+
 // Só rota que existe entra aqui: `href` é tipado por rota e link para página inventada nem compila.
 // Tarefas, calendário e relatório da referência ficam de fora até as páginas nascerem.
 export const navGroups: NavGroup[] = [
@@ -122,12 +125,13 @@ export function navLinks(): NavResult[] {
 }
 
 /** Atalhos em pílula na busca: o punhado de páginas que se abre todo dia, com rótulo próprio,
- *  porque dentro da pasta elas se chamam "Acompanhar" ou "Visão geral". */
-export const navHighlights: NavLink[] = [
-  { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
-  { label: "Projetos", href: "/projetos", icon: BriefcaseIcon },
-  { label: "Clientes", href: "/clientes", icon: BuildingsIcon },
-  { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon },
-  { label: "Contratos", href: "/contratos", icon: BriefcaseIcon },
-  { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon },
+ *  porque dentro da pasta elas se chamam "Acompanhar" ou "Visão geral". Cada uma tem matiz fixo,
+ *  para a pessoa achar pela cor antes de ler. */
+export const navHighlights: NavHighlight[] = [
+  { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
+  { label: "Projetos", href: "/projetos", icon: BriefcaseIcon, hue: "var(--sys-indigo)" },
+  { label: "Clientes", href: "/clientes", icon: BuildingsIcon, hue: "var(--sys-teal)" },
+  { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)" },
+  { label: "Contratos", href: "/contratos", icon: BriefcaseIcon, hue: "var(--sys-purple)" },
+  { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon, hue: "var(--sys-pink)" },
 ];
