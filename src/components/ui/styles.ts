@@ -77,8 +77,16 @@ export const thinScrollbar = css`
   }
 
   &::-webkit-scrollbar {
-    width: 0.375rem;
-    height: 0.375rem;
+    width: 0.25rem;
+    height: 0.25rem;
+  }
+
+  /* Sem as setas das pontas: assim que a barra é estilizada, o Chrome no Windows desenha um botão em
+     cada extremidade, e eles pesam mais do que a própria barra. */
+  &::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   &::-webkit-scrollbar-track {
