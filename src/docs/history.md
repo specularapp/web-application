@@ -66,13 +66,13 @@ Feito:
 - Barra do celular ainda lia como pílula com raio 32: numa altura de 52px a curva passa da metade e fecha. O raio virou concêntrico com os botões de dentro, o deles mais o recuo que os separa da borda.
 - "Buscar" virava "Bu..." mesmo com espaço de sobra: elemento fixo com `left: 50%` encolhe até o espaço que resta da metade para a direita, ou seja, meia tela, e a barra nunca crescia. `width: max-content` com teto de largura resolve. A barra e os botões dela desceram do canto redondo para `2xl` e `md`, e o divisor entre o sino e o botão do menu voltou.
 - Com o sino na barra flutuante o "Buscar" quebrava: o botão não tinha `min-width: 0` nem o ícone tinha `flex-shrink: 0`, então o flex apertava o glifo em vez do texto. Agora quem cede é o rótulo, que corta por reticências, e o divisor entre o sino e o botão do menu saiu, porque os dois são um par de ações.
-
+- Opções da conta no chevron do perfil, a última camada que faltava no menu: identidade em cima, assinatura com o chip do plano, conta, notificações e segurança, o tema em três estados e sair embaixo. `applyTheme` saiu do `ThemeToggle` para `lib/theme.ts`, porque agora dois lugares trocam o tema.
 Pendências:
 
 - Notificações não têm domínio no banco: não há tabela, service nem action, e a lista vem de `notifications/preview.ts` por prop. O painel já está pronto para trocar só a origem.
 - O dropdown do `Select` dentro da gaveta pode ser cortado: o painel do `Dialog` recorta e a área do formulário rola, e o `Listbox` abre em `position: absolute` dentro do fluxo. A saída conhecida é portal, como o `DatePicker` já faz, e é trabalho no primitivo.
 - A gaveta de criar equipe não foi exercitada contra o banco: nenhuma equipe foi criada de verdade, nem convite enviado, nem imagem subida por esse caminho.
-- Do menu, só as opções da conta seguem sem camada: `DropdownMenu` continua stub.
+- `DropdownMenu` e `Tabs` seguem stub. As camadas do menu foram feitas em componentes próprios, cada uma com a caixa colada no gatilho; se um terceiro caso aparecer, vale nascer o primitivo.
 - A troca de time não foi exercitada contra o banco hospedado: `typecheck`, `lint` e `build` passam, mas ninguém trocou de time com dois times de verdade numa sessão.
 - O X do convite de plano continua sem persistir, e `SidebarUser.role` continua prop morta.
 

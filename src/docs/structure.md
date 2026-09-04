@@ -287,6 +287,15 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 - Quem abre monta o componente, e não o mantém montado com `open={false}`: assim o estado nasce limpo a cada abertura e o cookie é lido uma vez, sem escrever estado dentro de efeito.
 - O botão de busca no menu mostra o atalho inteiro, modificador e letra, e não só a letra. O rótulo do modificador vem de `useCommandKey`, que responde Ctrl no servidor e troca para ⌘ na hidratação em Mac, então a marcação não discorda. O atalho é o comando mais a tecla que o campo mostra. Ele toma o lugar da busca do navegador de propósito: procurar no texto da página não serve a quem quer pular para outra tela. A régua de teclas e a própria tecla somem no celular.
 
+### Opções da conta
+
+O chevron duplo do perfil abre a lista colada nele, que sobe porque o perfil mora no rodapé do menu: quem é você em cima, as telas da conta no meio, o tema e a saída embaixo. Vidro, fio da casa e a mesma linha do menu, na mesma altura e no mesmo tom, porque a camada é continuação dele.
+
+- Assinatura leva o chip do plano em vigor, o mesmo rótulo curto que o topo do menu mostra.
+- Tema em três estados na própria linha, e não em interruptor: a casa guarda claro, escuro e o que o sistema mandar, e interruptor não sabe dizer o terceiro. A troca chama `applyTheme`, que saiu do `ThemeToggle` de homologação para `lib/theme.ts` quando os dois passaram a precisar dela, e mantém cookie e atributo do html andando juntos.
+- Sair é `<a>` cru, e não `Link`: limpar o cookie de sessão exige uma ida ao servidor, coisa que navegação de cliente não faz.
+- Só no desktop. No celular o chevron não existe, porque a tela cheia do menu já lista as ações da conta sem esconder nada atrás de camada.
+
 ### Notificações
 
 O sino no rodapé do menu abre a caixa colada nele, que sobe porque ali não há espaço embaixo: cabeçalho com o que falta ler, categorias em aba e a lista. Bandeja no celular, onde o rodapé do menu fica longe do polegar.

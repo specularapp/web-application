@@ -4,7 +4,6 @@ import {
   BellIcon,
   CaretLeftIcon,
   CaretRightIcon,
-  CaretUpDownIcon,
   CrownSimpleIcon,
   GearSixIcon,
   LifebuoyIcon,
@@ -28,6 +27,7 @@ import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
+import { AccountMenu } from "../account-menu";
 import { CommandPalette } from "../command-palette";
 import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
@@ -236,9 +236,10 @@ export function SidebarPanel({
               size={mobile ? "md" : "sm"}
             />
             {!mobile && (
-              <IconButton label="Abrir opções da conta" variant="ghost" size="sm">
-                <CaretUpDownIcon />
-              </IconButton>
+              <AccountMenu
+                user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
+                plan={team.plan}
+              />
             )}
           </span>
         </div>

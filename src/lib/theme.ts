@@ -13,3 +13,10 @@ export function themeCookieString(preference: ThemePreference) {
   if (preference === "system") return `${base}; Max-Age=0`;
   return `${THEME_COOKIE}=${preference}; Path=/; SameSite=Lax; Secure; Max-Age=31536000`;
 }
+
+/** Só no cliente: grava a preferência e liga o atributo que o CSS lê. */
+export function applyTheme(preference: ThemePreference) {
+  document.cookie = themeCookieString(preference);
+  if (preference === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = preference;
+}

@@ -5,7 +5,7 @@ import { DotsSixVerticalIcon } from "@phosphor-icons/react";
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Listbox, type ListboxOption } from "@/components/ui/listbox";
 import { focusRing } from "@/components/ui/styles";
-import { themeCookieString, type ThemePreference } from "@/lib/theme";
+import { applyTheme, type ThemePreference } from "@/lib/theme";
 
 type ThemeToggleProps = {
   initial: ThemePreference;
@@ -65,12 +65,6 @@ const Grip = styled.button`
     fill: currentColor;
   }
 `;
-
-function applyTheme(preference: ThemePreference) {
-  document.cookie = themeCookieString(preference);
-  if (preference === "system") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = preference;
-}
 
 export function ThemeToggle({ initial, floating = true }: ThemeToggleProps) {
   const [preference, setPreference] = useState<ThemePreference>(initial);
