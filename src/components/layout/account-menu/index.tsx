@@ -182,7 +182,7 @@ const Themes = styled.div`
   gap: var(--space-1);
   padding: var(--space-1);
   background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   corner-shape: squircle;
 `;
 
@@ -196,7 +196,7 @@ const ThemeOption = styled.button`
   color: var(--color-label-secondary);
   background-color: transparent;
   border: 0;
-  border-radius: calc(var(--radius-lg) - var(--space-1));
+  border-radius: calc(var(--radius-md) - var(--space-1));
   corner-shape: squircle;
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard);
