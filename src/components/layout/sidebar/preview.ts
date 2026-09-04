@@ -1,3 +1,4 @@
+import { previewNotifications } from "../notifications/preview";
 import type { SidebarProps } from "./index";
 
 /** Dados de exemplo do menu, para a prévia de front e para a vitrine mostrarem o mesmo estado. */
@@ -10,6 +11,7 @@ export const previewSidebar: SidebarProps = {
     { id: "oficina", name: "Oficina de Marcas", logoUrl: null, plan: "Alliance" },
   ],
   currentTeamId: "aurora",
+  notifications: previewNotifications,
   promo: {
     eyebrow: "Specular",
     title: "Pro em teste",

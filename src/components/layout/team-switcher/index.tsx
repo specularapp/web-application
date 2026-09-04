@@ -3,15 +3,7 @@
 import styled from "@emotion/styled";
 import { CaretUpDownIcon, CheckIcon, MagnifyingGlassIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -26,6 +18,7 @@ import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
 import { CREATE_TEAM_PLAN, CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
 import { slugify } from "@/features/organizations/schemas";
+import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 
 /** O plano chega como rótulo pronto: quem traduz o código do banco é o painel que monta o menu. */
@@ -41,7 +34,6 @@ export type TeamSwitcherProps = {
 const PANEL_WIDTH = 320;
 const PANEL_HEIGHT = 340;
 const EDGE = 16;
-const GAP = 8;
 
 /* Canto declarado direto, sem `data-squircle`: a caixa guarda o anel de foco do campo de busca, e o
    recorte do fallback cortaria ele. Mesma escolha do Listbox e do Tooltip. */
@@ -271,8 +263,6 @@ const CreateTitle = styled.span`
   min-width: 0;
 `;
 
-type Position = { top: number; left: number; placement: "below" | "above" };
-
 function matches(name: string, query: string) {
   return slugify(name, 80).includes(slugify(query, 80));
 }
@@ -290,7 +280,6 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
   const fieldRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<Position | null>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [switching, setSwitching] = useState<string | null>(null);
@@ -301,31 +290,7 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
     [teams, query],
   );
 
-  // Medir antes de pintar: com `useEffect` a caixa aparecia no canto e pulava para o lugar no quadro
-  // seguinte, e o pulo entrava junto com a animação de entrada.
-  useLayoutEffect(() => {
-    if (!open || sheet) return;
-
-    const update = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const width = Math.min(PANEL_WIDTH, window.innerWidth - EDGE * 2);
-      const left = Math.min(Math.max(EDGE, rect.left), window.innerWidth - width - EDGE);
-      const below = window.innerHeight - rect.bottom;
-      const placement = below < PANEL_HEIGHT && rect.top > below ? "above" : "below";
-
-      setPosition({ top: placement === "below" ? rect.bottom + GAP : rect.top - GAP, left, placement });
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-    };
-  }, [open, sheet]);
+  const position = useAnchoredPosition(open && !sheet, triggerRef, { width: PANEL_WIDTH, height: PANEL_HEIGHT });
 
   // Só o desktop abre com o cursor na busca: no celular focar o campo faz o teclado subir sozinho e
   // comer metade da bandeja antes de a pessoa ver a lista.

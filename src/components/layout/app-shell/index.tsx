@@ -4,6 +4,7 @@ import type { BillingState } from "@/features/billing/service";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
+import { previewNotifications } from "../notifications/preview";
 import { Sidebar, type SidebarPromo } from "../sidebar";
 import styles from "./app-shell.module.css";
 
@@ -63,6 +64,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           plan: planBadges[option.plan],
         }))}
         currentTeamId={state.team?.id ?? null}
+        notifications={previewNotifications}
         promo={promoFor(billing)}
       />
       <main className={styles.content}>{children}</main>

@@ -29,6 +29,7 @@ import { useCommandKey } from "@/hooks/use-command-key";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { CommandPalette } from "../command-palette";
+import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import styles from "./sidebar.module.css";
@@ -46,6 +47,7 @@ export type SidebarProps = {
   /** Times em que a pessoa entra, para a troca no topo. O atual vem separado porque pode não existir. */
   teams: SwitcherTeam[];
   currentTeamId: string | null;
+  notifications: AppNotification[];
   /** Sem convite (plano pago em dia) a seção não é desenhada. */
   promo?: SidebarPromo;
 };
@@ -76,7 +78,16 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile"; onSearch?: () 
 
 // Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
-export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant, onSearch }: PanelProps) {
+export function SidebarPanel({
+  team,
+  user,
+  teams,
+  currentTeamId,
+  notifications,
+  promo,
+  variant,
+  onSearch,
+}: PanelProps) {
   const pathname = usePathname();
   const commandKey = useCommandKey();
   const [folder, setFolder] = useState<NavFolder | null>(null);
@@ -210,9 +221,7 @@ export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant,
             </Text>
           </span>
           <span className={styles.profileActions}>
-            <IconButton label="Notificações" variant="ghost" size={mobile ? "md" : "sm"}>
-              <BellIcon />
-            </IconButton>
+            <Notifications items={notifications} size={mobile ? "md" : "sm"} />
             {!mobile && (
               <IconButton label="Abrir opções da conta" variant="ghost" size="sm">
                 <CaretUpDownIcon />

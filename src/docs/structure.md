@@ -286,6 +286,16 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 - Quem abre monta o componente, e não o mantém montado com `open={false}`: assim o estado nasce limpo a cada abertura e o cookie é lido uma vez, sem escrever estado dentro de efeito.
 - O botão de busca no menu mostra o atalho inteiro, modificador e letra, e não só a letra. O rótulo do modificador vem de `useCommandKey`, que responde Ctrl no servidor e troca para ⌘ na hidratação em Mac, então a marcação não discorda. O atalho é o comando mais a tecla que o campo mostra. Ele toma o lugar da busca do navegador de propósito: procurar no texto da página não serve a quem quer pular para outra tela. A régua de teclas e a própria tecla somem no celular.
 
+### Notificações
+
+O sino no rodapé do menu abre a caixa colada nele, que sobe porque ali não há espaço embaixo: cabeçalho com o que falta ler, categorias em aba e a lista. Bandeja no celular, onde o rodapé do menu fica longe do polegar.
+
+- Quatro abas: todas, ação necessária, revisões e sistema. A fila rola na horizontal e desbota nas pontas, como a fila de atalhos da busca, porque quatro categorias não cabem numa tela estreita.
+- A aba em vigor é marcada por traço embaixo, e não por preenchimento: preenchimento ali competiria com a marca de não lido de cada linha.
+- Não lido acende um ponto na frente do título, e a linha lida cai de opacidade. Pintar a linha inteira transformava a lista num bloco de cor com meia dúzia de itens. Clicar na linha marca como lida, e o cabeçalho tem o botão que marca todas.
+- A medida da caixa colada no gatilho é o hook `useAnchoredPosition`, o mesmo da troca de time: mede em `useLayoutEffect`, estima a altura em vez de medir, e vira para cima quando falta espaço embaixo.
+- **O domínio não existe no banco.** A lista chega por prop e hoje vem de `notifications/preview.ts`. Quando a tabela nascer, muda só a origem: o painel não sabe de onde a lista vem.
+
 ### Criar equipe
 
 Gaveta de vidro com 30rem na direita (`Dialog` com `placement="end"` e `surface="glass"`), entrando por deslize, com bandeja no celular. Ela vai sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no tema claro em vez de translúcida. Uma lista só, sem etapas: quem cria a segunda equipe já conhece o produto, então o fluxo de primeiros passos, que é guiado, não se repete aqui.
