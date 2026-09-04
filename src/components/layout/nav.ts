@@ -16,19 +16,20 @@ import type { Route } from "next";
 
 export type NavLink = { label: string; href: Route; icon: Icon };
 
-/** Entrada que abre no lugar da lista, com as páginas dela dentro e um voltar no topo. */
-export type NavFolder = { label: string; icon: Icon; items: NavLink[] };
+/** Entrada que abre no lugar da lista, com as páginas dela dentro e um voltar no topo. O matiz é
+ *  a cor com que a busca marca as páginas que moram aqui. */
+export type NavFolder = { label: string; icon: Icon; hue: string; items: NavLink[] };
 
 export type NavEntry = NavLink | NavFolder;
 
-export type NavGroup = { title: string; entries: NavEntry[] };
+export type NavGroup = { title: string; hue: string; entries: NavEntry[] };
 
 export function isFolder(entry: NavEntry): entry is NavFolder {
   return "items" in entry;
 }
 
 /** Página do menu já achatada, com o nome de onde ela mora, para a busca mostrar o contexto. */
-export type NavResult = NavLink & { section: string };
+export type NavResult = NavLink & { section: string; hue: string };
 
 /** Atalho da busca: o matiz é o mesmo modelo do Badge, um token de cor que a pílula tinge sozinha. */
 export type NavHighlight = NavLink & { hue: string };
@@ -38,11 +39,13 @@ export type NavHighlight = NavLink & { hue: string };
 export const navGroups: NavGroup[] = [
   {
     title: "Área de trabalho",
+    hue: "var(--sys-blue)",
     entries: [
       { label: "Espaço de trabalho", href: "/dashboard", icon: SquaresFourIcon },
       {
         label: "Orçamento",
         icon: ReceiptIcon,
+        hue: "var(--sys-orange)",
         items: [
           { label: "Acompanhar", href: "/orcamentos", icon: ReceiptIcon },
           { label: "Gerar orçamento", href: "/orcamentos/novo", icon: ReceiptIcon },
@@ -51,6 +54,7 @@ export const navGroups: NavGroup[] = [
       {
         label: "Financeiro",
         icon: CurrencyCircleDollarIcon,
+        hue: "var(--sys-green)",
         items: [
           { label: "Visão geral", href: "/financeiro", icon: CurrencyCircleDollarIcon },
           { label: "Cobranças", href: "/cobrancas", icon: CurrencyCircleDollarIcon },
@@ -59,6 +63,7 @@ export const navGroups: NavGroup[] = [
       {
         label: "Projetos",
         icon: BriefcaseIcon,
+        hue: "var(--sys-indigo)",
         items: [
           { label: "Todos os projetos", href: "/projetos", icon: BriefcaseIcon },
           { label: "Contratos", href: "/contratos", icon: BriefcaseIcon },
@@ -68,6 +73,7 @@ export const navGroups: NavGroup[] = [
       {
         label: "Clientes",
         icon: BuildingsIcon,
+        hue: "var(--sys-teal)",
         items: [
           { label: "Funil de vendas", href: "/crm", icon: BuildingsIcon },
           { label: "Base de clientes", href: "/clientes", icon: BuildingsIcon },
@@ -78,10 +84,12 @@ export const navGroups: NavGroup[] = [
   },
   {
     title: "Organização",
+    hue: "var(--sys-brown)",
     entries: [
       {
         label: "Perfil profissional",
         icon: UserIcon,
+        hue: "var(--sys-pink)",
         items: [
           { label: "Portfólio", href: "/portfolio", icon: UserIcon },
           { label: "Currículo", href: "/curriculo", icon: UserIcon },
@@ -92,12 +100,14 @@ export const navGroups: NavGroup[] = [
   },
   {
     title: "Gestão",
+    hue: "var(--sys-purple)",
     entries: [
       { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },
       { label: "Conquistas", href: "/conquistas", icon: TrophyIcon },
       {
         label: "Configurações",
         icon: GearSixIcon,
+        hue: "var(--sys-gray)",
         items: [
           { label: "Geral", href: "/configuracoes", icon: GearSixIcon },
           { label: "Domínio", href: "/configuracoes/dominio", icon: GearSixIcon },
@@ -118,8 +128,8 @@ export function navLinks(): NavResult[] {
   return navGroups.flatMap((group) =>
     group.entries.flatMap((entry) =>
       isFolder(entry)
-        ? entry.items.map((item) => ({ ...item, section: entry.label }))
-        : [{ ...entry, section: group.title }],
+        ? entry.items.map((item) => ({ ...item, section: entry.label, hue: entry.hue }))
+        : [{ ...entry, section: group.title, hue: group.hue }],
     ),
   );
 }

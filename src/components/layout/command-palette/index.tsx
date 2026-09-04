@@ -35,13 +35,18 @@ export type CommandPaletteProps = { onClose: () => void };
 
 const SUGGESTION_LIMIT = 5;
 
+/* Caixa própria, na mesma forma do botão de busca no menu, em vez de faixa colada no topo com linha
+   embaixo: o campo é o que a pessoa usa, então ele se destaca do resto da janela. */
 const Search = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
-  padding-inline: var(--space-4);
-  border-block-end: var(--panel-line) solid var(--color-border);
+  margin: var(--space-2);
+  padding-inline: var(--space-3);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
 
   & > svg {
     flex-shrink: 0;
@@ -55,7 +60,7 @@ const Search = styled.div`
 const Field = styled.input`
   flex: 1;
   min-width: 0;
-  min-height: 3.25rem;
+  min-height: var(--touch-target);
   padding: 0;
   font-family: var(--font-body);
   font-size: max(16px, var(--text-callout));
@@ -142,7 +147,7 @@ const Body = styled.div`
   min-height: 12rem;
   max-height: 20rem;
   min-width: 0;
-  padding-block: var(--space-2);
+  padding-block: var(--space-1);
   overflow-y: auto;
   overscroll-behavior: contain;
   ${thinScrollbar};
@@ -167,7 +172,7 @@ const List = styled.ul`
   display: grid;
   gap: var(--space-1);
   margin: 0;
-  padding-inline: var(--space-2);
+  padding-inline: var(--space-1);
   list-style: none;
 `;
 
@@ -400,7 +405,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
                           <page.icon aria-hidden="true" />
                         )}
                         <OptionLabel>{page.label}</OptionLabel>
-                        <Badge tone="neutral" variant="soft" size="sm">
+                        <Badge variant="soft" size="sm" hue={page.hue}>
                           {page.section}
                         </Badge>
                       </Option>

@@ -79,8 +79,8 @@ export const thinScrollbar = css`
   }
 
   &::-webkit-scrollbar {
-    width: 0.125rem;
-    height: 0.125rem;
+    width: 0.1875rem;
+    height: 0.1875rem;
   }
 
   &::-webkit-scrollbar-button {
