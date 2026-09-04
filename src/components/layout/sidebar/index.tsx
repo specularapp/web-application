@@ -493,24 +493,33 @@ export function Sidebar(props: SidebarProps) {
         </div>
       )}
 
-      <div className={styles.bar} {...squirclePx(BAR_CORNER)}>
-        <button type="button" className={styles.search} onClick={openSearch}>
-          <MagnifyingGlassIcon aria-hidden="true" />
-          <span className={styles.searchLabel}>Buscar</span>
-        </button>
-        <span className={styles.barDivider} aria-hidden="true" />
-        {unread > 0 && (
-          <>
-            <Notifications
-              items={notifications}
-              onChange={setNotifications}
-              size="md"
-              radius="md"
-            />
+      {/* Menu aberto encolhe a barra até sobrar só o X: o grupo de busca e sino recolhe pela trilha da
+          grade, que anima de 1fr a 0fr, e a barra vira bolinha. A chave no botão remonta o glifo a cada
+          troca, e a entrada dele gira, porque X e três linhas não se transformam um no outro. */}
+      <div className={styles.bar} data-collapsed={open || undefined} {...squirclePx(BAR_CORNER)}>
+        <div className={styles.barGroup} aria-hidden={open || undefined}>
+          <div className={styles.barGroupInner}>
+            <button type="button" className={styles.search} onClick={openSearch} tabIndex={open ? -1 : undefined}>
+              <MagnifyingGlassIcon aria-hidden="true" />
+              <span className={styles.searchLabel}>Buscar</span>
+            </button>
             <span className={styles.barDivider} aria-hidden="true" />
-          </>
-        )}
+            {unread > 0 && (
+              <>
+                <Notifications
+                  items={notifications}
+                  onChange={setNotifications}
+                  size="md"
+                  radius="md"
+                />
+                <span className={styles.barDivider} aria-hidden="true" />
+              </>
+            )}
+          </div>
+        </div>
         <IconButton
+          key={open ? "fechar" : "abrir"}
+          className={styles.barToggle}
           label={open ? "Fechar o menu" : "Abrir o menu"}
           variant="ghost"
           size="md"

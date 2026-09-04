@@ -382,6 +382,53 @@
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   translate: -50% 0;
+  transition:
+    gap var(--duration-slow) var(--ease-standard),
+    border-radius var(--duration-slow) var(--ease-standard);
+}
+
+/* Menu aberto: a barra encolhe até sobrar só o botão e vira bolinha. O vão fecha junto, senão ficava
+   um vazio entre o grupo recolhido e o X. */
+.bar[data-collapsed] {
+  gap: 0;
+  border-radius: var(--radius-full);
+}
+
+/* O grupo recolhe pela trilha da grade, de 1fr a 0fr, que o navegador anima como número: largura
+   "auto" não anima, trilha anima. O filho tem largura mínima zero e recorta, então some sem quebrar. */
+.barGroup {
+  display: grid;
+  grid-template-columns: 1fr;
+  transition:
+    grid-template-columns var(--duration-slow) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard);
+}
+
+.bar[data-collapsed] .barGroup {
+  grid-template-columns: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.barGroupInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* O glifo do botão gira ao entrar: X e três linhas não se transformam um no outro, então a troca é
+   remontar e girar o que chega. */
+.barToggle svg {
+  animation: glyphIn var(--duration-base) var(--ease-standard) both;
+}
+
+@keyframes glyphIn {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
 }
 
 /* Risco vertical entre buscar e o menu: mais curto que a barra, para dividir sem desenhar cela. */
