@@ -302,12 +302,15 @@
   background-color: var(--color-border);
 }
 
+/* Com o sino na barra o espaço aperta, e o que cede é o rótulo: `min-width: 0` deixa o botão encolher
+   e o texto cortar por reticências, em vez de espremer o ícone junto. */
 .search {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   min-height: var(--touch-target);
-  padding-inline: var(--space-4);
+  padding-inline: var(--space-3);
   font-family: var(--font-body);
   font-size: var(--text-subheadline);
   letter-spacing: var(--tracking-tight);
@@ -322,8 +325,16 @@
 }
 
 .search svg {
+  flex-shrink: 0;
   width: 1.125rem;
   height: 1.125rem;
+}
+
+.searchLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Em tela cheia quem rola é a tela, não a lista: o painel cresce com o conteúdo, todas as opções
