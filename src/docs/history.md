@@ -61,6 +61,8 @@ Feito:
 - Régua de teclas com respiro: 12px de recuo vertical no lugar de 8, mais vão entre os grupos e entre a tecla e a palavra. Antes disso, o mesmo pedido foi lido duas vezes como sendo a lista e as pílulas, que acabaram ganhando folga sem precisar.
 - Notificações no sino do menu: caixa colada no gatilho, subindo porque ali não há espaço embaixo, com cabeçalho, quatro abas de categoria e a lista. Não lido por ponto na frente do título, clique na linha marcando como lida e um botão que marca todas. Bandeja no celular.
 - A medida da caixa colada no gatilho virou o hook `useAnchoredPosition`, agora usado pela troca de time e pelas notificações, em vez de repetir a conta nos dois.
+- Notificações lapidadas: contador na quina do sino, marcar todas saiu e entrou silenciar (em cookie, com o sino trocando para o riscado), o botão da notificação virou o `Button` da casa, e no celular o sino aparece na barra flutuante enquanto houver o que ler. Os dois gatilhos leem a mesma lista, que subiu para a moldura do menu; o painel aceita `onChange` e, sem ele, guarda a própria lista.
+- `readCookie` e `cookieString` viraram `lib/cookies.ts`, porque a busca e as notificações passaram a precisar dos dois.
 
 Pendências:
 

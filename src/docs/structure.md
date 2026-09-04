@@ -292,7 +292,10 @@ O sino no rodapé do menu abre a caixa colada nele, que sobe porque ali não há
 
 - Quatro abas: todas, ação necessária, revisões e sistema. A fila rola na horizontal e desbota nas pontas, como a fila de atalhos da busca, porque quatro categorias não cabem numa tela estreita.
 - A aba em vigor é marcada por traço embaixo, e não por preenchimento: preenchimento ali competiria com a marca de não lido de cada linha.
-- Não lido acende um ponto na frente do título, e a linha lida cai de opacidade. Pintar a linha inteira transformava a lista num bloco de cor com meia dúzia de itens. Clicar na linha marca como lida, e o cabeçalho tem o botão que marca todas.
+- Não lido acende um ponto na frente do título, e a linha lida cai de opacidade. Pintar a linha inteira transformava a lista num bloco de cor com meia dúzia de itens. Clicar na linha marca como lida.
+- O sino carrega o contador do que falta ler na própria quina, virando "9+" acima de nove, e o cabeçalho tem só silenciar e fechar. Silenciar é preferência de interface, então mora em cookie e sobrevive ao recarregar; o sino troca para o riscado enquanto está mudo.
+- No celular o sino também aparece na barra flutuante, ao lado do botão do menu, e some de lá quando não há nada sem ler. Os dois gatilhos leem a mesma lista, que mora na moldura do menu: o painel aceita `onChange` e, sem ele, guarda a própria lista, que é como a vitrine o usa.
+- O botão dentro da notificação é o `Button` da casa, e não um link pintado à mão.
 - A medida da caixa colada no gatilho é o hook `useAnchoredPosition`, o mesmo da troca de time: mede em `useLayoutEffect`, estima a altura em vez de medir, e vira para cima quando falta espaço embaixo.
 - **O domínio não existe no banco.** A lista chega por prop e hoje vem de `notifications/preview.ts`. Quando a tabela nascer, muda só a origem: o painel não sabe de onde a lista vem.
 

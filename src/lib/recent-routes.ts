@@ -1,3 +1,5 @@
+import { cookieString } from "./cookies";
+
 export const RECENT_COOKIE = "sp-recent";
 export const RECENT_LIMIT = 3;
 
@@ -12,8 +14,7 @@ export function readRecentRoutes(value: string | undefined): string[] {
 }
 
 export function recentRoutesCookie(paths: string[]) {
-  const value = paths.slice(0, RECENT_LIMIT).join(" ");
-  return `${RECENT_COOKIE}=${encodeURIComponent(value)}; Path=/; SameSite=Lax; Secure; Max-Age=31536000`;
+  return cookieString(RECENT_COOKIE, paths.slice(0, RECENT_LIMIT).join(" "));
 }
 
 export function rememberRoute(current: string[], path: string) {

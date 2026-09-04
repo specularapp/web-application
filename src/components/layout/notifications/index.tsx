@@ -1,20 +1,21 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { BellIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { BellIcon, BellSlashIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { popIn } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { cookieString, readCookie } from "@/lib/cookies";
 import { createPortal } from "react-dom";
 
 export type NotificationKind = "acao" | "revisao" | "sistema";
@@ -33,8 +34,16 @@ export type AppNotification = {
 
 export type NotificationsProps = {
   items: AppNotification[];
+  /** Sem ele o painel guarda a própria lista; com ele quem manda é quem chamou, e dois gatilhos podem
+   *  mostrar a mesma contagem. */
+  onChange?: (items: AppNotification[]) => void;
   size?: "sm" | "md";
 };
+
+export const MUTE_COOKIE = "sp-notifications-muted";
+
+/** Quantas notificações sem ler o contador mostra antes de virar "9+". */
+const COUNT_LIMIT = 9;
 
 const PANEL_WIDTH = 384;
 const PANEL_HEIGHT = 460;
@@ -262,17 +271,9 @@ const When = styled.time`
   color: var(--color-label-tertiary);
 `;
 
-const Action = styled(Link)`
+const Action = styled.span`
   justify-self: start;
   margin-block-start: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-caption-1);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-bg);
-  background-color: var(--color-label);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
 `;
 
 const Empty = styled.div`
@@ -299,6 +300,33 @@ const EmptyIcon = styled.span`
   }
 `;
 
+const Trigger = styled.span`
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+`;
+
+/* O contador senta na quina do sino e não recebe ponteiro: quem clica é o botão embaixo dele. */
+const Count = styled.span`
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding-inline: 0.1875rem;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-on-accent);
+  background-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+`;
+
 const Sheet = styled(Dialog)`
   --panel-line: 0.0375rem;
 `;
@@ -309,13 +337,17 @@ function when(iso: string) {
 
 // Notificações do produto, coladas no próprio sino: cabeçalho com o que falta ler, categorias em aba
 // e a lista embaixo. No celular vira bandeja, onde o rodapé do menu fica longe do polegar.
-export function Notifications({ items, size = "sm" }: NotificationsProps) {
+export function Notifications({ items, onChange, size = "sm" }: NotificationsProps) {
   const sheet = useMediaQuery(MOBILE_QUERY);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<NotificationKind | "todas">("todas");
-  const [list, setList] = useState(items);
+  const [own, setOwn] = useState(items);
+  const [muted, setMuted] = useState(() => readCookie(MUTE_COOKIE) === "1");
+
+  const list = onChange ? items : own;
+  const update = onChange ?? setOwn;
 
   const position = useAnchoredPosition(open && !sheet, triggerRef, {
     width: PANEL_WIDTH,
@@ -352,10 +384,14 @@ export function Notifications({ items, size = "sm" }: NotificationsProps) {
     };
   }, [open, sheet]);
 
-  const markAll = () => setList((current) => current.map((item) => ({ ...item, read: true })));
+  const markOne = (id: string) => update(list.map((item) => (item.id === id ? { ...item, read: true } : item)));
 
-  const markOne = (id: string) =>
-    setList((current) => current.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  // Silenciar é preferência de interface, então mora em cookie e sobrevive ao recarregar.
+  const toggleMute = () => {
+    const next = !muted;
+    document.cookie = cookieString(MUTE_COOKIE, next ? "1" : "0");
+    setMuted(next);
+  };
 
   const content = (
     <>
@@ -369,8 +405,14 @@ export function Notifications({ items, size = "sm" }: NotificationsProps) {
           </Badge>
         )}
         <Close>
-          <IconButton label="Marcar todas como lidas" variant="ghost" size="sm" onClick={markAll}>
-            <ChecksIcon />
+          <IconButton
+            label={muted ? "Voltar a receber notificações" : "Silenciar notificações"}
+            variant="ghost"
+            size="sm"
+            aria-pressed={muted}
+            onClick={toggleMute}
+          >
+            {muted ? <BellSlashIcon /> : <BellIcon />}
           </IconButton>
           <IconButton label="Fechar" variant="ghost" size="sm" onClick={close}>
             <XIcon />
@@ -430,8 +472,10 @@ export function Notifications({ items, size = "sm" }: NotificationsProps) {
                       {item.description}
                     </Text>
                     {item.action && (
-                      <Action href={item.action.href} onClick={(event) => event.stopPropagation()}>
-                        {item.action.label}
+                      <Action onClick={(event) => event.stopPropagation()}>
+                        <Button href={item.action.href} size="sm" radius="md">
+                          {item.action.label}
+                        </Button>
                       </Action>
                     )}
                   </Content>
@@ -446,17 +490,20 @@ export function Notifications({ items, size = "sm" }: NotificationsProps) {
 
   return (
     <>
-      <IconButton
-        ref={triggerRef}
-        label={unread > 0 ? `Notificações, ${unread} sem ler` : "Notificações"}
-        variant="ghost"
-        size={size}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <BellIcon />
-      </IconButton>
+      <Trigger>
+        <IconButton
+          ref={triggerRef}
+          label={unread > 0 ? `Notificações, ${unread} sem ler` : "Notificações"}
+          variant="ghost"
+          size={size}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {muted ? <BellSlashIcon /> : <BellIcon />}
+        </IconButton>
+        {unread > 0 && <Count aria-hidden="true">{unread > COUNT_LIMIT ? `${COUNT_LIMIT}+` : unread}</Count>}
+      </Trigger>
 
       {sheet ? (
         <Sheet open={open} onClose={close} label="Notificações" size="sm" surface="glass" scrim={false}>

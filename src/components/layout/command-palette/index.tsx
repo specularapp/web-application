@@ -21,6 +21,7 @@ import { Text } from "@/components/ui/text";
 import { slugify } from "@/features/organizations/schemas";
 import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { readCookie } from "@/lib/cookies";
 import {
   RECENT_COOKIE,
   RECENT_LIMIT,
@@ -290,11 +291,6 @@ type Section = { title: string; items: NavResult[] };
 function matches(item: NavResult, query: string) {
   const needle = slugify(query, 80);
   return slugify(item.label, 80).includes(needle) || slugify(item.section, 80).includes(needle);
-}
-
-function readCookie(name: string) {
-  const entry = document.cookie.split("; ").find((item) => item.startsWith(`${name}=`));
-  return entry ? decodeURIComponent(entry.slice(name.length + 1)) : undefined;
 }
 
 // Busca do produto: campo em cima, atalhos em pílula, o que foi aberto por último e sugestões. As
