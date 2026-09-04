@@ -261,8 +261,8 @@ const Footer = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-4);
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-4);
   border-block-start: var(--panel-line) solid var(--color-border);
 
   @media (max-width: 47.9375rem) {
@@ -273,7 +273,7 @@ const Footer = styled.div`
 const Hint = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   font-family: var(--font-body);
   font-size: var(--text-caption-1);
   letter-spacing: var(--tracking-tight);
