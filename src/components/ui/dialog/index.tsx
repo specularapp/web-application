@@ -108,7 +108,7 @@ const Panel = styled.div`
   overflow: hidden;
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-3xl);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   pointer-events: auto;

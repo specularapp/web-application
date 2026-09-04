@@ -78,22 +78,22 @@ const Pills = styled.div`
   display: flex;
   flex-shrink: 0;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   border-block-end: var(--panel-line) solid var(--color-border);
   -webkit-mask-image: linear-gradient(
     to right,
     transparent,
-    #000 var(--space-3),
-    #000 calc(100% - var(--space-3)),
+    #000 var(--space-4),
+    #000 calc(100% - var(--space-4)),
     transparent
   );
   mask-image: linear-gradient(
     to right,
     transparent,
-    #000 var(--space-3),
-    #000 calc(100% - var(--space-3)),
+    #000 var(--space-4),
+    #000 calc(100% - var(--space-4)),
     transparent
   );
 `;
@@ -194,7 +194,7 @@ const GroupLabel = styled.li`
 const GroupDivider = styled.li`
   height: var(--panel-line);
   margin-block: var(--space-1);
-  margin-inline: calc(var(--space-1) * -1);
+  margin-inline: calc(var(--space-2) * -1);
   background-color: var(--color-border);
 `;
 
@@ -202,7 +202,7 @@ const List = styled.ul`
   display: grid;
   gap: var(--space-1);
   margin: 0;
-  padding-inline: var(--space-1);
+  padding-inline: var(--space-2);
   list-style: none;
 `;
 
@@ -212,7 +212,7 @@ const Option = styled.li`
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 2.25rem;
+  min-height: 2.5rem;
   padding-block: var(--space-1);
   padding-inline: var(--space-2);
   font-size: var(--text-subheadline);

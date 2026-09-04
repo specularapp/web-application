@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
+import { useCommandKey } from "@/hooks/use-command-key";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { CommandPalette } from "../command-palette";
@@ -77,6 +78,7 @@ type PanelProps = SidebarProps & { variant: "desktop" | "mobile"; onSearch?: () 
 // voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
 export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant, onSearch }: PanelProps) {
   const pathname = usePathname();
+  const commandKey = useCommandKey();
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const [promoVisible, setPromoVisible] = useState(true);
   const mobile = variant === "mobile";
@@ -149,7 +151,10 @@ export function SidebarPanel({ team, user, teams, currentTeamId, promo, variant,
       <button type="button" className={styles.find} onClick={onSearch} {...squircle("md")}>
         <MagnifyingGlassIcon aria-hidden="true" />
         <span className={styles.findLabel}>Buscar</span>
-        <Kbd>F</Kbd>
+        <span className={styles.findKeys}>
+          <Kbd>{commandKey}</Kbd>
+          <Kbd>F</Kbd>
+        </span>
       </button>
 
       <nav className={styles.nav} aria-label="Navegação principal">

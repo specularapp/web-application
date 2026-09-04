@@ -247,6 +247,7 @@ Moldura da casa para conteúdo que interrompe: caixa centralizada no desktop e b
 - Canto declarado direto no CSS, sem `data-squircle`: a janela guarda foco e conteúdo que sai do fluxo, e o recorte do fallback cortaria o anel de foco de quem está dentro. Mesma escolha do `Listbox` e do `Tooltip`.
 - Tamanhos por `data-size`: `sm` 24rem, `md` 30rem, `lg` 40rem. A altura é limitada por `min(34rem, 100dvh menos 4rem)` no desktop e 85dvh na bandeja, e quem rola é o conteúdo de dentro, nunca a página.
 - `focusOnOpen={false}` para o foco no próprio painel, e não no primeiro campo: no celular focar um campo faz o teclado subir sozinho e comer metade da bandeja antes de a pessoa ver o conteúdo. O Tab continua preso dentro da janela, porque o painel carrega `tabindex="-1"`. A prop não se chama `autoFocus` porque o lint barra esse nome em JSX.
+- Janela e gaveta usam o mesmo canto, o raio `3xl`, porque são a mesma família e destoavam quando a centralizada ficava num raio menor. A bandeja continua no `xl`, que é o degrau da casa numa tela estreita.
 - `placement="end"` troca a caixa centralizada por gaveta na lateral final, entrando por `translateX`, com 8px de folga nos quatro lados (o recuo mora na moldura) e canto completo, porque ela não encosta em borda nenhuma. No celular a bandeja continua ganhando, porque a regra dela vem depois e vence no que declara.
 - `surface="glass"` troca a superfície opaca pelo vidro. A receita é a do painel do login e da barra flutuante do menu, agora num par de tokens (`--glass-bg`, que é `--color-bg` a 0% misturado com `transparent`, e `--glass-blur`, que é `blur(12px)`): o fundo some por inteiro e quem desenha a caixa é o borrão. Serve a camada leve; formulário longo continua em superfície opaca, senão o texto disputa com o que está embaixo.
 
@@ -283,7 +284,7 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 - Recentes são as três últimas rotas abertas pela busca, em cookie (`sp-recent`), porque Web Storage é proibido pelo lint. Guarda só a rota, que já é pública e conhecida pelo menu, nunca o que foi digitado.
 - Um `listbox` só, com o rótulo de cada grupo como item de apresentação dentro dele: um listbox por seção duplicaria o id que o campo aponta em `aria-controls`. O foco fica no campo, a seta move o item ativo e o leitor de tela acompanha por `aria-activedescendant`.
 - Quem abre monta o componente, e não o mantém montado com `open={false}`: assim o estado nasce limpo a cada abertura e o cookie é lido uma vez, sem escrever estado dentro de efeito.
-- Atalho de teclado no comando mais a tecla que o campo mostra. Ele toma o lugar da busca do navegador de propósito: procurar no texto da página não serve a quem quer pular para outra tela. A régua de teclas e a própria tecla somem no celular.
+- O botão de busca no menu mostra o atalho inteiro, modificador e letra, e não só a letra. O rótulo do modificador vem de `useCommandKey`, que responde Ctrl no servidor e troca para ⌘ na hidratação em Mac, então a marcação não discorda. O atalho é o comando mais a tecla que o campo mostra. Ele toma o lugar da busca do navegador de propósito: procurar no texto da página não serve a quem quer pular para outra tela. A régua de teclas e a própria tecla somem no celular.
 
 ### Criar equipe
 
