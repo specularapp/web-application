@@ -2,9 +2,11 @@
   --badge-hue: var(--sys-gray);
   --badge-hue-share: 70%;
   --badge-ink: color-mix(in oklab, var(--badge-hue) var(--badge-hue-share), var(--color-label));
+  --badge-tint-share: 9%;
+  --badge-tint-share-dark: 12%;
   --badge-tint: light-dark(
-    color-mix(in oklab, var(--badge-hue) 14%, transparent),
-    color-mix(in oklab, var(--badge-hue) 18%, transparent)
+    color-mix(in oklab, var(--badge-hue) var(--badge-tint-share), transparent),
+    color-mix(in oklab, var(--badge-hue) var(--badge-tint-share-dark), transparent)
   );
   --badge-line: light-dark(
     color-mix(in oklab, var(--badge-hue) 36%, transparent),

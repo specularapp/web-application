@@ -266,7 +266,8 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 - A fila de atalhos rola na horizontal com a barra de `thinScrollbar`, e não escondida: a régua diz que a fila continua. Quebrar em duas linhas empurrava a lista para fora da vista numa tela estreita.
 - Cada linha da lista é ícone, rótulo e a seção em etiqueta colorida na outra ponta. Sem seta de abrir no fim: a janela inteira já é uma lista de coisas que abrem, e o ícone repetido em toda linha só somava ruído.
 - O matiz da etiqueta é o da seção, declarado em `nav.ts` na pasta e no grupo e propagado por `navLinks()`. Cor de seção mora onde a seção nasce, e não numa tabela paralela que envelhece quando o menu muda.
-- O campo é caixa própria, na mesma forma do botão de busca no menu, e não faixa colada no topo com linha embaixo: ele é o que a pessoa usa, então se destaca do resto da janela.
+- A linha da lista tem a altura do menu, 36px com 4px de recuo, e volta ao alvo de toque em ponteiro grosso. Entre um grupo e outro corre a mesma linha que separa os grupos do menu, sangrando o recuo da lista.
+- A régua de teclas no pé diz o que dá para fazer daqui: fechar, navegar e abrir. Ela e as próprias teclas somem no celular.
 - O rótulo de grupo recua o mesmo que a opção. Ele mora dentro da lista, que já abre o recuo lateral, então o recuo cheio somava duas vezes e jogava "Recentes" e "Sugestões" para dentro.
 - Com o campo vazio a janela mostra Recentes e Sugestões; com texto, uma lista só de Resultados, filtrada por `slugify` no rótulo e na seção, então acento e maiúscula não atrapalham.
 - Recentes são as três últimas rotas abertas pela busca, em cookie (`sp-recent`), porque Web Storage é proibido pelo lint. Guarda só a rota, que já é pública e conhecida pelo menu, nunca o que foi digitado.

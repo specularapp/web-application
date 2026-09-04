@@ -35,18 +35,13 @@ export type CommandPaletteProps = { onClose: () => void };
 
 const SUGGESTION_LIMIT = 5;
 
-/* Caixa própria, na mesma forma do botão de busca no menu, em vez de faixa colada no topo com linha
-   embaixo: o campo é o que a pessoa usa, então ele se destaca do resto da janela. */
 const Search = styled.div`
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
-  margin: var(--space-2);
-  padding-inline: var(--space-3);
-  border: var(--panel-line) solid var(--color-border);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
+  padding-inline: var(--space-4);
+  border-block-end: var(--panel-line) solid var(--color-border);
 
   & > svg {
     flex-shrink: 0;
@@ -60,7 +55,7 @@ const Search = styled.div`
 const Field = styled.input`
   flex: 1;
   min-width: 0;
-  min-height: var(--touch-target);
+  min-height: 3.25rem;
   padding: 0;
   font-family: var(--font-body);
   font-size: max(16px, var(--text-callout));
@@ -168,6 +163,13 @@ const GroupLabel = styled.li`
   color: var(--color-label-secondary);
 `;
 
+const GroupDivider = styled.li`
+  height: var(--panel-line);
+  margin-block: var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  background-color: var(--color-border);
+`;
+
 const List = styled.ul`
   display: grid;
   gap: var(--space-1);
@@ -182,7 +184,8 @@ const Option = styled.li`
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: var(--touch-target);
+  min-height: 2.25rem;
+  padding-block: var(--space-1);
   padding-inline: var(--space-2);
   font-size: var(--text-subheadline);
   letter-spacing: var(--tracking-tight);
@@ -201,6 +204,10 @@ const Option = styled.li`
     width: 1.125rem;
     height: 1.125rem;
     color: var(--color-label-secondary);
+  }
+
+  @media (pointer: coarse) {
+    min-height: var(--touch-target);
   }
 `;
 
@@ -384,8 +391,9 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
           <List id={listId} role="listbox" aria-label="Resultados da busca">
             {sections
               .filter((section) => section.items.length > 0)
-              .map((section) => (
+              .map((section, position) => (
                 <Fragment key={section.title}>
+                  {position > 0 && <GroupDivider role="presentation" />}
                   <GroupLabel role="presentation">{section.title}</GroupLabel>
                   {section.items.map((page) => {
                     const index = flat.findIndex((item) => item.href === page.href);
@@ -418,6 +426,10 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
       </Body>
 
       <Footer>
+        <Hint>
+          <Kbd>Esc</Kbd>
+          fechar
+        </Hint>
         <Hint>
           <Kbd>↑</Kbd>
           <Kbd>↓</Kbd>
