@@ -57,8 +57,11 @@
   --color-scrim-soft: light-dark(rgb(0 0 0 / 0.3), rgb(0 0 0 / 0.5));
 
   --font-body: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-code: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
+  /* Uma família só (decisão de 2026-09-04): código e display apontam para a Inter. Os tokens ficam,
+     porque quem os usa continua dizendo o papel do texto, e trocar a fonte de um papel volta a ser um
+     lugar só. */
+  --font-code: var(--font-body);
+  --font-display: var(--font-body);
 
   --text-caption-2: 0.6875rem;
   --text-caption-1: 0.75rem;

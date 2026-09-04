@@ -414,6 +414,10 @@
   pointer-events: none;
 }
 
+.barBell {
+  display: contents;
+}
+
 .barGroupInner {
   display: flex;
   align-items: center;

@@ -90,6 +90,8 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 - Escala de tipos da Apple: caption 2 e 1, footnote, subheadline, callout, body, headline, title 3 a 1 e large title.
 - Tracking sai do tamanho, não do gosto: `--tracking-tightest` (-0.06em) de 22px para cima, `--tracking-tighter` (-0.04em) entre 16px e 20px, `--tracking-tight` (-0.02em) até 15px. Texto grande precisa de mais aperto que texto pequeno.
 
+- Uma família só desde 2026-09-04: `--font-code` e `--font-display` apontam para a Inter, e Geist Mono e Playfair deixaram de ser carregadas. Os tokens ficam porque dizem o papel do texto; trocar a fonte de um papel volta a ser um lugar só.
+
 ### Controles
 
 - Altura e respiro em `--control-height-*` e `--control-padding-*`, nos tamanhos `sm`, `md` e `lg`.

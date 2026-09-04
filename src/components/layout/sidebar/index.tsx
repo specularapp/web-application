@@ -508,24 +508,24 @@ export function Sidebar(props: SidebarProps) {
           grade, que anima de 1fr a 0fr, e a barra vira bolinha. A chave no botão remonta o glifo a cada
           troca, e a entrada dele gira, porque X e três linhas não se transformam um no outro. */}
       <div className={styles.bar} data-collapsed={open || undefined} {...squirclePx(BAR_CORNER)}>
-        <div className={styles.barGroup} aria-hidden={open || undefined}>
+        <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
-            <button type="button" className={styles.search} onClick={openSearch} tabIndex={open ? -1 : undefined}>
+            <button type="button" className={styles.search} onClick={openSearch}>
               <MagnifyingGlassIcon aria-hidden="true" />
               <span className={styles.searchLabel}>Buscar</span>
             </button>
             <span className={styles.barDivider} aria-hidden="true" />
-            {unread > 0 && (
-              <>
-                <Notifications
-                  items={notifications}
-                  onChange={setNotifications}
-                  size="md"
-                  radius="md"
-                />
-                <span className={styles.barDivider} aria-hidden="true" />
-              </>
-            )}
+            {/* Escondido, e não desmontado, quando não há o que ler: desmontar levava junto a bandeja aberta
+                no instante em que a última notificação era lida. */}
+            <span className={styles.barBell} hidden={unread === 0}>
+              <Notifications
+                items={notifications}
+                onChange={setNotifications}
+                size="md"
+                radius="md"
+              />
+              <span className={styles.barDivider} aria-hidden="true" />
+            </span>
           </div>
         </div>
         <IconButton
