@@ -444,8 +444,11 @@
   padding-block-end: calc(var(--touch-target) + var(--space-8));
 }
 
+/* Piso de altura: com uma pasta aberta a lista fica curta e, sem o piso, o rodapé subia colado nela e
+   pasta e perfil se misturavam. O espaço em branco é o que separa os dois. */
 .screen .nav {
   flex: none;
+  min-height: 18rem;
   overflow-y: visible;
 }
 

@@ -37,12 +37,14 @@ const FOCUSABLE =
 
 const rise = keyframes`
   from {
+    opacity: 0;
     transform: translateY(100%);
   }
 `;
 
 const fall = keyframes`
   to {
+    opacity: 0;
     transform: translateY(100%);
   }
 `;
@@ -70,6 +72,12 @@ const Backdrop = styled.div`
      escurecimento cheio. Sem nada atrás dela, ela lia como parte do conteúdo. */
   &[data-soft] {
     background-color: var(--color-scrim-soft);
+  }
+
+  /* Sob vidro a escuridão vai para a sombra da própria janela, e o fundo fica só para pegar o clique:
+     pintada aqui, atrás do vidro, o borrão a puxava para dentro e a janela inteira escurecia junto. */
+  &[data-clear] {
+    background-color: transparent;
   }
 
   &[data-state="closed"] {
@@ -142,6 +150,20 @@ const Panel = styled.div`
     background-color: var(--glass-bg);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
+  }
+
+  /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo
+     em volta e nada atrás do vidro, que só borra o que está dentro dos próprios limites. */
+  &[data-veil="soft"] {
+    box-shadow:
+      var(--shadow-lg),
+      0 0 0 100vmax var(--color-scrim-soft);
+  }
+
+  &[data-veil="full"] {
+    box-shadow:
+      var(--shadow-lg),
+      0 0 0 100vmax var(--color-scrim);
   }
 
   /* Gaveta da lateral: altura cheia menos a folga de 8px que a moldura abre, e canto nos quatro
@@ -294,10 +316,20 @@ export function Dialog({
   // A bandeja do celular sempre põe alguma coisa atrás de si: cheio quando a janela bloqueia o resto,
   // leve quando ela é avulsa. No desktop, dispensar o escurecimento continua deixando a tela limpa.
   const veil = scrim || sheet;
+  // Janela de vidro carrega a própria escuridão na sombra; o fundo fica transparente e só pega o clique.
+  const glass = surface === "glass";
+  const veilKind = veil && glass ? (scrim ? "full" : "soft") : undefined;
 
   return createPortal(
     <>
-      {veil && <Backdrop data-state={state} data-soft={scrim ? undefined : ""} onClick={() => onClose()} />}
+      {veil && (
+        <Backdrop
+          data-state={state}
+          data-soft={scrim ? undefined : ""}
+          data-clear={glass ? "" : undefined}
+          onClick={() => onClose()}
+        />
+      )}
       <Frame data-mode={mode} data-placement={placement}>
         <Panel
           ref={panelRef}
@@ -309,6 +341,7 @@ export function Dialog({
           data-placement={placement}
           data-size={size}
           data-surface={surface}
+          data-veil={veilKind}
           data-state={state}
           className={className}
           onAnimationEnd={onAnimationEnd}
