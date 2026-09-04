@@ -152,6 +152,10 @@ const Panel = styled.div`
     backdrop-filter: var(--glass-layer-blur);
   }
 
+  &[data-mode="sheet"][data-surface="glass"] {
+    background-color: var(--glass-sheet-bg);
+  }
+
   /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo
      em volta e nada atrás do vidro, que só borra o que está dentro dos próprios limites. */
   &[data-veil="soft"] {

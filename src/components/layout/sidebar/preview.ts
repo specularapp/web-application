@@ -12,11 +12,5 @@ export const previewSidebar: SidebarProps = {
   ],
   currentTeamId: "aurora",
   notifications: previewNotifications,
-  promo: {
-    eyebrow: "Specular",
-    title: "Pro em teste",
-    description: "Assine o Pro e mantenha orçamento, contrato e cobrança sem limite.",
-    action: "Assinar o Pro",
-    href: "/configuracoes/plano",
-  },
+  suggestion: "orcamento",
 };

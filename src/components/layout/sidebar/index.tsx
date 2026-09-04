@@ -1,17 +1,27 @@
 "use client";
 
 import {
+  ArrowRightIcon,
+  BellIcon,
+  BriefcaseIcon,
+  BuildingsIcon,
   CaretLeftIcon,
   CaretRightIcon,
-  CrownSimpleIcon,
-  LightningIcon,
   ListIcon,
   MagnifyingGlassIcon,
+  PlugsIcon,
+  ReceiptIcon,
+  ShieldCheckIcon,
   CircleHalfIcon,
+  CrownSimpleIcon,
+  FlowArrowIcon,
+  GlobeIcon,
+  ImagesIcon,
   SignOutIcon,
+  TrophyIcon,
+  UsersThreeIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,6 +43,7 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
+import { findSuggestion, type SuggestionIcon } from "../suggestions";
 import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
@@ -51,15 +62,6 @@ export type SidebarUser = {
   avatarUrl: string | null;
 };
 
-/** Alerta de plano: `eyebrow` é o rótulo curto de cima, `title` é o plano em vigor. */
-export type SidebarPromo = {
-  eyebrow: string;
-  title: string;
-  description: string;
-  action: string;
-  href: Route;
-};
-
 export type SidebarProps = {
   team: SidebarTeam;
   user: SidebarUser;
@@ -67,13 +69,29 @@ export type SidebarProps = {
   teams: SwitcherTeam[];
   currentTeamId: string | null;
   notifications: AppNotification[];
-  /** Sem convite (plano pago em dia) a seção não é desenhada. */
-  promo?: SidebarPromo;
+  /** Id da sugestão do mural sorteada no servidor; o cliente resolve ícone e texto pela lista. Sem id, sem cartão. */
+  suggestion?: string;
 };
 
 /* Canto da barra flutuante: o raio dos botões de dentro mais o recuo que os separa da borda, que é a
    conta concêntrica lida ao contrário, do filho para o pai. */
 const BAR_CORNER = cornerRadius.md + 4;
+
+/* A sugestão chega do servidor com o ícone por nome; aqui, no cliente, o nome vira componente. */
+const suggestionIcons: Record<SuggestionIcon, typeof BellIcon> = {
+  receipt: ReceiptIcon,
+  users: UsersThreeIcon,
+  globe: GlobeIcon,
+  shield: ShieldCheckIcon,
+  images: ImagesIcon,
+  plugs: PlugsIcon,
+  flow: FlowArrowIcon,
+  buildings: BuildingsIcon,
+  trophy: TrophyIcon,
+  bell: BellIcon,
+  briefcase: BriefcaseIcon,
+  crown: CrownSimpleIcon,
+};
 
 type NavMotion = "forward" | "back";
 
@@ -126,7 +144,7 @@ export function SidebarPanel({
   teams,
   currentTeamId,
   notifications,
-  promo,
+  suggestion,
   variant,
   onSearch,
   onNotificationsChange,
@@ -158,37 +176,26 @@ export function SidebarPanel({
   const [promoVisible, setPromoVisible] = useState(true);
   const mobile = variant === "mobile";
 
-  // O convite de plano muda de lugar por moldura: no desktop entra acima do perfil, no celular
-  // segue por último, depois das ações da conta. Posição por árvore, para a leitura seguir a tela.
-  const planCard = promo && promoVisible && (
-    <section
-      className={styles.promo}
-      {...squircle("lg")}
-      aria-label={promo.eyebrow}
-    >
+  // O mural muda de lugar por moldura: no desktop entra acima do perfil, no celular segue por último,
+  // depois das ações da conta. Posição por árvore, para a leitura seguir a tela.
+  const tip = findSuggestion(suggestion);
+  const TipIcon = tip ? suggestionIcons[tip.icon] : null;
+  const planCard = tip && TipIcon && promoVisible && (
+    <section className={styles.promo} {...squircle("lg")} aria-label={`${tip.eyebrow}: ${tip.title}`}>
       <div className={styles.promoHead}>
         <span className={styles.promoIcon}>
-          <CrownSimpleIcon aria-hidden="true" />
+          <TipIcon aria-hidden="true" />
         </span>
         <div className={styles.promoPlan}>
-          <Text
-            variant="caption2"
-            tone="secondary"
-            className={`${styles.promoLine} ${styles.promoEyebrow}`}
-          >
-            {promo.eyebrow}
+          <Text variant="caption2" tone="secondary" className={`${styles.promoLine} ${styles.promoEyebrow}`}>
+            {tip.eyebrow}
           </Text>
-          <Text
-            variant={mobile ? "callout" : "subheadline"}
-            weight="semibold"
-            truncate
-            className={styles.promoLine}
-          >
-            {promo.title}
+          <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate className={styles.promoLine}>
+            {tip.title}
           </Text>
         </div>
         <IconButton
-          label="Dispensar alerta de plano"
+          label="Dispensar sugestão"
           variant="ghost"
           size="sm"
           className={styles.promoClose}
@@ -199,10 +206,11 @@ export function SidebarPanel({
       </div>
 
       <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">
-        {promo.description}
+        {tip.description}
       </Text>
 
       <Button
+        href={tip.href}
         size={mobile ? "md" : "sm"}
         radius="md"
         fullWidth
@@ -210,19 +218,13 @@ export function SidebarPanel({
         background="var(--color-label)"
         foreground="var(--color-bg)"
         border="transparent"
-        style={
-          {
-            "--button-background-hover":
-              "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))",
-          } as CSSProperties
-        }
-        iconStart={<LightningIcon />}
+        style={{ "--button-background-hover": "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))" } as CSSProperties}
+        iconEnd={<ArrowRightIcon />}
       >
-        {promo.action}
+        {tip.action}
       </Button>
     </section>
   );
-
   return (
     <div className={styles.panel}>
       <header className={styles.top}>
@@ -521,7 +523,9 @@ export function Sidebar(props: SidebarProps) {
           key={open ? "fechar" : "abrir"}
           className={styles.barToggle}
           label={open ? "Fechar o menu" : "Abrir o menu"}
-          variant="ghost"
+          // Na bolinha o X ganha preenchimento: sozinho sobre o vidro, o traço fino sumia. Fechado, volta a
+          // ser fantasma como os vizinhos da barra.
+          variant={open ? "secondary" : "ghost"}
           size="md"
           // Bolinha por fora pede círculo por dentro: com a barra fechada em pílula, o canto de 12px do
           // botão aparecia no hover como um quadrado dentro da bola.

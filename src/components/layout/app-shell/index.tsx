@@ -1,28 +1,18 @@
 import type { ReactNode } from "react";
 import { getOnboardingBilling } from "@/features/billing/queries";
 import type { BillingState } from "@/features/billing/service";
-import { pickPitch } from "@/features/billing/pitches";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
 import { previewNotifications } from "../notifications/preview";
-import { Sidebar, type SidebarPromo } from "../sidebar";
+import { Sidebar } from "../sidebar";
+import { pickSuggestion } from "../suggestions";
 import styles from "./app-shell.module.css";
 
-/* O convite só existe enquanto há o que vender: teste em andamento ou plano gratuito em vigor. A frase
-   e o botão são sorteados a cada carga, entre convites que apontam para recursos reais do Pro. */
-function promoFor(billing: BillingState): SidebarPromo | undefined {
-  const selling = billing.status === "trialing" || billing.effectivePlan === "free";
-  if (!selling) return undefined;
-
-  const pitch = pickPitch();
-  return {
-    eyebrow: "Specular",
-    title: billing.status === "trialing" ? "Pro em teste" : "Plano gratuito",
-    description: pitch.description,
-    action: pitch.action,
-    href: "/configuracoes/plano",
-  };
+/* O mural sorteia uma sugestão por carga. As de plano só entram enquanto há o que vender: teste em
+   andamento ou plano gratuito em vigor. */
+function selling(billing: BillingState) {
+  return billing.status === "trialing" || billing.effectivePlan === "free";
 }
 
 export async function AppShell({ children }: { children: ReactNode }) {
@@ -55,7 +45,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
         }))}
         currentTeamId={state.team?.id ?? null}
         notifications={previewNotifications}
-        promo={promoFor(billing)}
+        suggestion={pickSuggestion(selling(billing)).id}
       />
       <main className={styles.content}>{children}</main>
     </div>
