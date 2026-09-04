@@ -240,6 +240,17 @@ De cima para baixo, seguindo a referência do usuário (a barra de projeto da Ve
 - A seta dupla do time abre a janela de troca (`TeamSwitcher`, 2026-09-03), a primeira camada flutuante do menu. Opções da conta, busca e notificações continuam de pé e mudas, esperando `DropdownMenu` e a paleta de comandos; `DropdownMenu` segue stub.
 - Prévia em `/previa/menu` (só em homologação), que é onde dá para ver a forma do celular, e a forma do desktop também entra na vitrine `/componentes`, em caixa alta.
 
+### Movimento das camadas
+
+Toda camada flutuante da casa entra e sai animando, e a receita mora em dois lugares só: `usePresence` em `hooks/use-presence.ts` e `layerMotion` em `components/ui/styles.ts`.
+
+- `usePresence(open)` devolve `present`, `state` e `onAnimationEnd`. `open` é a intenção; `present` é se a camada ainda existe na tela; `state` vai para `data-state` e é o que o CSS lê para escolher entre entrar e sair. A camada fica montada até o `animationend` da saída, com um temporizador de segurança caso ele não chegue. O ajuste de `present` ao abrir é feito durante o render, o padrão que o React recomenda para reagir a prop nova, e não em efeito, que o lint barra.
+- `onAnimationEnd` vai só no elemento animado e ignora o que subiu dos filhos: o evento de animação borbulha, e um giro ou um badge lá dentro fechava a camada antes da hora.
+- `layerMotion` é o gênio da lâmpada na versão que o CSS alcança: a caixa nasce a 90% e um degrau mais perto de quem a abriu (`--genie-x` e `--genie-y` dizem de onde) e cresce até o lugar com a mola curta da casa; ao fechar volta pelo mesmo caminho, mais rápido e sem mola, porque saída não pede atenção. Com movimento reduzido sobra só o fade: a regra é sobre deslocamento, e opacidade não desloca nada.
+- Cada moldura tem o seu caminho: as caixas coladas no gatilho usam o gênio com a origem no lado do gatilho; a janela centralizada nasce um degrau abaixo e sobe; a gaveta lateral entra e sai deslizando pela lateral; a bandeja do celular sobe do rodapé e volta para ele; a tela cheia do menu sobe um degrau e desbota. Fundo que escurece e véu leve fazem fade nos dois sentidos.
+- Quem monta uma camada com `Dialog` precisa mantê-la montada enquanto `open` é falso, senão a saída não acontece. A busca, que era montada só ao abrir, passou a ficar sempre montada com uma chave que muda a cada abertura: a chave remonta o conteúdo, então o estado nasce limpo sem escrever estado em efeito, e o cookie das recentes é lido só quando há documento, porque agora ela também renderiza no servidor.
+- Troca de seleção dentro das camadas também anda: o traço da aba de notificações cresce a partir da esquerda, a lista troca com um fade curto quando a aba muda, a opção de tema desliza cor e sombra, e as linhas de lista já transitavam o fundo.
+
 ### Janela (Dialog)
 
 Moldura da casa para conteúdo que interrompe: caixa centralizada no desktop e bandeja subindo do rodapé abaixo de 48rem, na mesma decisão do `DatePicker`. Portal em `document.body`, `role="dialog"`, Escape fecha, o Tab dá a volta por dentro da caixa e o foco volta para quem abriu. Rolagem da página trava enquanto está aberta e `prefers-reduced-motion` corta a animação.

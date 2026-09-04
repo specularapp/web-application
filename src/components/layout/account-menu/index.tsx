@@ -16,9 +16,10 @@ import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
-import { popIn } from "@/components/ui/styles";
+import { layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { usePresence } from "@/hooks/use-presence";
 import { readCookie } from "@/lib/cookies";
 import { applyTheme, THEME_COOKIE, type ThemePreference } from "@/lib/theme";
 
@@ -56,7 +57,7 @@ const themes: { value: ThemePreference; label: string }[] = [
    recorte do fallback cortaria os dois. Mesma escolha das outras camadas do menu. */
 const Popover = styled.div`
   --panel-line: 0.0375rem;
-  --slide: calc(var(--space-2) * -1);
+  --genie-y: calc(var(--space-2) * -1);
 
   position: fixed;
   z-index: var(--z-dropdown);
@@ -72,16 +73,13 @@ const Popover = styled.div`
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   transform-origin: top left;
-  animation: ${popIn} var(--duration-fast) var(--ease-standard);
+
+  ${layerMotion};
 
   &[data-placement="above"] {
-    --slide: var(--space-2);
+    --genie-y: var(--space-2);
     transform-origin: bottom left;
     translate: 0 -100%;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 `;
 
@@ -199,7 +197,10 @@ const ThemeOption = styled.button`
   border-radius: calc(var(--radius-md) - var(--space-1));
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 
   &[aria-pressed="true"] {
     color: var(--color-label);
@@ -246,6 +247,7 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const { present, state, onAnimationEnd } = usePresence(open);
 
   const position = useAnchoredPosition(open, triggerRef, { width: PANEL_WIDTH, height: PANEL_HEIGHT });
 
@@ -286,14 +288,16 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
         <CaretUpDownIcon />
       </IconButton>
 
-      {open &&
+      {present &&
         createPortal(
           <Popover
             ref={popoverRef}
             role="menu"
             aria-label="Opções da conta"
             data-placement={position?.placement ?? "above"}
+            data-state={state}
             style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
+            onAnimationEnd={onAnimationEnd}
           >
             <Header>
               <Avatar name={user.name} src={user.avatarUrl ?? undefined} seed={user.email ?? user.name} size="sm" />

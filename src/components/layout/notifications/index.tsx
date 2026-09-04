@@ -1,5 +1,6 @@
 "use client";
 
+import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
 import { BellIcon, BellSlashIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -11,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
-import { popIn } from "@/components/ui/styles";
+import { fadeIn, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cookieString, readCookie } from "@/lib/cookies";
 import { createPortal } from "react-dom";
@@ -64,11 +66,17 @@ const kindIcon: Record<NotificationKind, typeof BellIcon> = {
   sistema: GearSixIcon,
 };
 
+const grow = keyframes`
+  from {
+    transform: scaleX(0);
+  }
+`;
+
 /* Canto declarado direto, sem `data-squircle`: a caixa guarda anel de foco de botão e link, e o
    recorte do fallback cortaria os dois. Mesma escolha do Listbox e da troca de time. */
 const Popover = styled.div`
   --panel-line: 0.0375rem;
-  --slide: calc(var(--space-2) * -1);
+  --genie-y: calc(var(--space-2) * -1);
 
   position: fixed;
   z-index: var(--z-dropdown);
@@ -84,16 +92,13 @@ const Popover = styled.div`
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   transform-origin: top left;
-  animation: ${popIn} var(--duration-fast) var(--ease-standard);
+
+  ${layerMotion};
 
   &[data-placement="above"] {
-    --slide: var(--space-2);
+    --genie-y: var(--space-2);
     transform-origin: bottom left;
     translate: 0 -100%;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 `;
 
@@ -169,6 +174,14 @@ const Tab = styled.button`
     bottom: calc(var(--panel-line) * -1);
     height: 0.125rem;
     background-color: var(--color-label);
+    transform-origin: left;
+    animation: ${grow} var(--duration-base) var(--ease-standard);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[aria-selected="true"]::after {
+      animation: none;
+    }
   }
 `;
 
@@ -193,6 +206,7 @@ const List = styled.ul`
   margin: 0;
   padding: 0;
   list-style: none;
+  animation: ${fadeIn} var(--duration-fast) var(--ease-standard) both;
 `;
 
 /* A linha inteira é o alvo: clicar marca como lida. O não lido acende um ponto na frente do título,
@@ -347,6 +361,7 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
   const [tab, setTab] = useState<NotificationKind | "todas">("todas");
   const [own, setOwn] = useState(items);
   const [muted, setMuted] = useState(() => readCookie(MUTE_COOKIE) === "1");
+  const { present, state, onAnimationEnd } = usePresence(open && !sheet);
 
   const list = onChange ? items : own;
   const update = onChange ?? setOwn;
@@ -447,7 +462,7 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
             </Text>
           </Empty>
         ) : (
-          <List>
+          <List key={tab}>
             {shown.map((item) => {
               const Icon = kindIcon[item.kind];
               return (
@@ -513,14 +528,16 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
           {content}
         </Sheet>
       ) : (
-        open &&
+        present &&
         createPortal(
           <Popover
             ref={popoverRef}
             role="dialog"
             aria-label="Notificações"
             data-placement={position?.placement ?? "above"}
+            data-state={state}
             style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
+            onAnimationEnd={onAnimationEnd}
           >
             {content}
           </Popover>,

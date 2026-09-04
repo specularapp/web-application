@@ -5,7 +5,8 @@ import styled from "@emotion/styled";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { popIn } from "../styles";
+import { usePresence } from "@/hooks/use-presence";
+import { fadeIn, fadeOut, layerMotion } from "../styles";
 
 export type DialogSize = "sm" | "md" | "lg";
 
@@ -34,21 +35,27 @@ export type DialogProps = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const fade = keyframes`
-  from {
-    opacity: 0;
-  }
-`;
-
 const rise = keyframes`
   from {
     transform: translateY(100%);
   }
 `;
 
-const slide = keyframes`
+const fall = keyframes`
+  to {
+    transform: translateY(100%);
+  }
+`;
+
+const slideIn = keyframes`
   from {
-    transform: translateX(100%);
+    transform: translateX(calc(100% + var(--space-2)));
+  }
+`;
+
+const slideOut = keyframes`
+  to {
+    transform: translateX(calc(100% + var(--space-2)));
   }
 `;
 
@@ -57,16 +64,17 @@ const Backdrop = styled.div`
   inset: 0;
   z-index: var(--z-overlay);
   background-color: var(--color-scrim);
+  animation: ${fadeIn} var(--duration-base) var(--ease-standard) both;
 
   /* Véu leve: a bandeja do celular sempre separa a janela da página, mesmo quando a janela dispensa o
      escurecimento cheio. Sem nada atrás dela, ela lia como parte do conteúdo. */
   &[data-soft] {
     background-color: var(--color-scrim-soft);
   }
-  animation: ${fade} var(--duration-base) var(--ease-standard);
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  &[data-state="closed"] {
+    pointer-events: none;
+    animation: ${fadeOut} var(--duration-fast) var(--ease-standard) both;
   }
 `;
 
@@ -97,7 +105,9 @@ const Frame = styled.div`
 /* Canto declarado direto, sem `data-squircle`: a janela guarda foco e conteúdo que sai do fluxo, e o
    recorte do fallback cortaria o anel de foco de quem está dentro. */
 const Panel = styled.div`
-  --slide: var(--space-2);
+  /* A caixa centralizada nasce um degrau abaixo do lugar e sobe; é o "de onde" do gênio quando não há
+     gatilho na tela para apontar. */
+  --genie-y: var(--space-3);
 
   position: relative;
   display: flex;
@@ -112,7 +122,9 @@ const Panel = styled.div`
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   pointer-events: auto;
-  animation: ${popIn} var(--duration-base) var(--ease-standard);
+  transform-origin: center;
+
+  ${layerMotion};
 
   &[data-size="sm"] {
     max-width: 24rem;
@@ -133,14 +145,23 @@ const Panel = styled.div`
   }
 
   /* Gaveta da lateral: altura cheia menos a folga de 8px que a moldura abre, e canto nos quatro
-     lados, porque ela não encosta em borda nenhuma. */
+     lados, porque ela não encosta em borda nenhuma. Entra e sai deslizando pela lateral. */
   &[data-placement="end"] {
     height: 100%;
     max-height: none;
     border-radius: var(--radius-3xl);
-    animation: ${slide} var(--duration-slow) var(--ease-standard);
   }
 
+  &[data-placement="end"][data-state="open"] {
+    animation: ${slideIn} var(--duration-slow) var(--ease-standard) both;
+  }
+
+  &[data-placement="end"][data-state="closed"] {
+    animation: ${slideOut} var(--duration-base) var(--ease-standard) both;
+  }
+
+  /* A bandeja vem depois da gaveta de propósito: quando as duas regras casam, no celular, é ela que
+     manda, e o painel sobe do rodapé em vez de entrar pela lateral. */
   &[data-mode="sheet"] {
     height: auto;
     max-width: none;
@@ -150,11 +171,26 @@ const Panel = styled.div`
     border-block-end: 0;
     border-inline: 0;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    animation: ${rise} var(--duration-slow) var(--ease-standard);
+  }
+
+  &[data-mode="sheet"][data-state="open"] {
+    animation: ${rise} var(--duration-slow) var(--ease-standard) both;
+  }
+
+  &[data-mode="sheet"][data-state="closed"] {
+    animation: ${fall} var(--duration-base) var(--ease-standard) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
+    &[data-placement="end"][data-state="open"],
+    &[data-mode="sheet"][data-state="open"] {
+      animation: ${fadeIn} var(--duration-fast) linear both;
+    }
+
+    &[data-placement="end"][data-state="closed"],
+    &[data-mode="sheet"][data-state="closed"] {
+      animation: ${fadeOut} var(--duration-fast) linear both;
+    }
   }
 `;
 
@@ -170,7 +206,7 @@ const Handle = styled.span`
 
 // Janela da casa: caixa centralizada, gaveta colada na lateral final ou bandeja subindo do rodapé no
 // celular, na mesma moldura do calendário. Escape fecha, o Tab dá a volta por dentro e o foco volta
-// para quem abriu.
+// para quem abriu. A janela fica na tela enquanto anima a saída, e só então sai da árvore.
 export function Dialog({
   open,
   onClose,
@@ -184,6 +220,7 @@ export function Dialog({
   className,
 }: DialogProps) {
   const sheet = useMediaQuery(MOBILE_QUERY);
+  const { present, state, onAnimationEnd } = usePresence(open);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
 
@@ -251,7 +288,7 @@ export function Dialog({
     };
   }, [open, scrim, focusOnOpen]);
 
-  if (!open) return null;
+  if (!present) return null;
 
   const mode = sheet ? "sheet" : "window";
   // A bandeja do celular sempre põe alguma coisa atrás de si: cheio quando a janela bloqueia o resto,
@@ -260,7 +297,7 @@ export function Dialog({
 
   return createPortal(
     <>
-      {veil && <Backdrop data-soft={scrim ? undefined : ""} onClick={() => onClose()} />}
+      {veil && <Backdrop data-state={state} data-soft={scrim ? undefined : ""} onClick={() => onClose()} />}
       <Frame data-mode={mode} data-placement={placement}>
         <Panel
           ref={panelRef}
@@ -272,7 +309,9 @@ export function Dialog({
           data-placement={placement}
           data-size={size}
           data-surface={surface}
+          data-state={state}
           className={className}
+          onAnimationEnd={onAnimationEnd}
         >
           {sheet && <Handle aria-hidden="true" />}
           {children}

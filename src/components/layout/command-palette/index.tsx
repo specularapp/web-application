@@ -31,7 +31,7 @@ import {
 } from "@/lib/recent-routes";
 import { navHighlights, navLinks, type NavResult } from "../nav";
 
-export type CommandPaletteProps = { onClose: () => void };
+export type CommandPaletteProps = { open: boolean; onClose: () => void };
 
 const SUGGESTION_LIMIT = 5;
 
@@ -296,7 +296,7 @@ function matches(item: NavResult, query: string) {
 // Busca do produto: campo em cima, atalhos em pílula, o que foi aberto por último e sugestões. As
 // opções saem de `nav.ts`, que já é a fonte única do menu e tem `href` tipado por rota, então a
 // paleta nunca oferece uma página que não existe.
-export function CommandPalette({ onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const router = useRouter();
   const sheet = useMediaQuery(MOBILE_QUERY);
   const listId = useId();
@@ -304,7 +304,9 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const [recent, setRecent] = useState<string[]>(() => readRecentRoutes(readCookie(RECENT_COOKIE)));
+  const [recent, setRecent] = useState<string[]>(() =>
+    typeof document === "undefined" ? [] : readRecentRoutes(readCookie(RECENT_COOKIE)),
+  );
 
   const pages = useMemo(() => navLinks(), []);
 
@@ -365,7 +367,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
   };
 
   return (
-    <Palette open onClose={onClose} label="Buscar" size="md" surface="glass" scrim={false} focusOnOpen={false}>
+    <Palette open={open} onClose={onClose} label="Buscar" size="md" surface="glass" scrim={false} focusOnOpen={false}>
       <Search>
         <MagnifyingGlassIcon aria-hidden="true" />
         <Field

@@ -437,6 +437,49 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-10)), transparent);
 }
 
+/* A tela cheia entra subindo um degrau e sai pelo mesmo caminho, mais rápido. Com movimento reduzido
+   sobra o fade, que não desloca nada. */
+.screen[data-state="open"] {
+  animation: screenIn var(--duration-base) var(--ease-standard) both;
+}
+
+.screen[data-state="closed"] {
+  pointer-events: none;
+  animation: screenOut var(--duration-fast) var(--ease-standard) both;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+}
+
+@keyframes screenOut {
+  to {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen[data-state="open"],
+  .screen[data-state="closed"] {
+    animation-name: screenFade;
+    animation-duration: var(--duration-fast);
+  }
+
+  .screen[data-state="closed"] {
+    animation-direction: reverse;
+  }
+}
+
+@keyframes screenFade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Coluna do desktop: largura fixa, altura da tela e nada de encolher quando o conteúdo aperta. */
 .sidebar {
   display: flex;

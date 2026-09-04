@@ -12,13 +12,14 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
-import { popIn } from "@/components/ui/styles";
+import { layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
 import { CREATE_TEAM_PLAN, CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
 import { slugify } from "@/features/organizations/schemas";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 
 /** O plano chega como rótulo pronto: quem traduz o código do banco é o painel que monta o menu. */
@@ -38,7 +39,7 @@ const EDGE = 16;
 /* Canto declarado direto, sem `data-squircle`: a caixa guarda o anel de foco do campo de busca, e o
    recorte do fallback cortaria ele. Mesma escolha do Listbox e do Tooltip. */
 const Popover = styled.div`
-  --slide: calc(var(--space-2) * -1);
+  --genie-y: calc(var(--space-2) * -1);
   --panel-line: 0.0375rem;
 
   position: fixed;
@@ -55,16 +56,13 @@ const Popover = styled.div`
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   transform-origin: top left;
-  animation: ${popIn} var(--duration-fast) var(--ease-standard);
+
+  ${layerMotion};
 
   &[data-placement="above"] {
-    --slide: var(--space-2);
+    --genie-y: var(--space-2);
     transform-origin: bottom left;
     translate: 0 -100%;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 `;
 
@@ -284,6 +282,7 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
   const [active, setActive] = useState(0);
   const [switching, setSwitching] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const { present, state, onAnimationEnd } = usePresence(open && !sheet);
 
   const filtered = useMemo(
     () => (query.trim() ? teams.filter((team) => matches(team.name, query)) : teams),
@@ -504,14 +503,16 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
           {content}
         </Dialog>
       ) : (
-        open &&
+        present &&
         createPortal(
           <Popover
             ref={popoverRef}
             role="dialog"
             aria-label="Trocar de time"
             data-placement={position?.placement ?? "below"}
+            data-state={state}
             style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
+            onAnimationEnd={onAnimationEnd}
           >
             {content}
           </Popover>,

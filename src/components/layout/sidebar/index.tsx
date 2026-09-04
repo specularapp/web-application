@@ -22,6 +22,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
+import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
@@ -277,7 +278,14 @@ export function Sidebar(props: SidebarProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchKey, setSearchKey] = useState(0);
   const [notifications, setNotifications] = useState(props.notifications);
+  const screen = usePresence(open);
+
+  const openSearch = () => {
+    setSearchKey((current) => current + 1);
+    setSearching(true);
+  };
 
   const unread = notifications.filter((item) => !item.read).length;
 
@@ -287,19 +295,20 @@ export function Sidebar(props: SidebarProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "f" || !(event.metaKey || event.ctrlKey)) return;
       event.preventDefault();
+      setSearchKey((current) => current + 1);
       setSearching(true);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const search = searching && <CommandPalette onClose={() => setSearching(false)} />;
+  const search = <CommandPalette key={searchKey} open={searching} onClose={() => setSearching(false)} />;
   const panel = { ...props, notifications, onNotificationsChange: setNotifications };
 
   if (!mobile) {
     return (
       <aside className={styles.sidebar}>
-        <SidebarPanel {...panel} variant="desktop" onSearch={() => setSearching(true)} />
+        <SidebarPanel {...panel} variant="desktop" onSearch={openSearch} />
         {search}
       </aside>
     );
@@ -307,14 +316,14 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <>
-      {open && (
-        <div className={styles.screen}>
-          <SidebarPanel {...panel} variant="mobile" onSearch={() => setSearching(true)} />
+      {screen.present && (
+        <div className={styles.screen} data-state={screen.state} onAnimationEnd={screen.onAnimationEnd}>
+          <SidebarPanel {...panel} variant="mobile" onSearch={openSearch} />
         </div>
       )}
 
       <div className={styles.bar} {...squirclePx(BAR_CORNER)}>
-        <button type="button" className={styles.search} onClick={() => setSearching(true)}>
+        <button type="button" className={styles.search} onClick={openSearch}>
           <MagnifyingGlassIcon aria-hidden="true" />
           <span className={styles.searchLabel}>Buscar</span>
         </button>
