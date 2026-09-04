@@ -13,7 +13,15 @@ import {
 } from "@/lib/corners";
 import { matchIconWeight } from "../icons";
 import { Spinner } from "../spinner";
-import { controlGlyph, controlMetrics, controlSquare, disabledState, focusRing, type ControlSize } from "../styles";
+import {
+  controlGlyph,
+  controlMetrics,
+  controlSquare,
+  disabledState,
+  focusRing,
+  hoverMotion,
+  type ControlSize,
+} from "../styles";
 import { VisuallyHidden } from "../visually-hidden";
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
@@ -75,8 +83,8 @@ const Root = styled.button`
   background-color: var(--button-background);
   border: 1px solid var(--button-border);
   border-radius: var(--button-radius);
-  transition: background-color var(--duration-fast) var(--ease-standard);
 
+  ${hoverMotion};
   ${focusRing};
   ${disabledState};
 

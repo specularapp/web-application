@@ -123,7 +123,6 @@
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .row:hover {
@@ -143,6 +142,33 @@
   width: 1.125rem;
   height: 1.125rem;
   color: inherit;
+}
+
+/* Hover das linhas do menu, na receita da casa: entra macio no tempo base, sai rápido no tempo curto,
+   e o clique afunda um fio. */
+.row,
+.back,
+.find,
+.search {
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.row:hover,
+.back:hover,
+.find:hover,
+.search:hover {
+  transition-duration: var(--duration-base);
+}
+
+.row:active,
+.back:active,
+.find:active,
+.search:active {
+  transform: scale(0.985);
+  transition-duration: 60ms;
 }
 
 /* Aperta a linha, mas não o alvo de toque: em ponteiro grosso ela volta para os 44px da regra. */
@@ -542,7 +568,6 @@
   background-color: transparent;
   border: var(--menu-line) solid var(--color-border);
   border-radius: var(--radius-md);
-  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .find:hover {

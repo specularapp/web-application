@@ -15,6 +15,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { Badge } from "@/components/ui/badge";
+import { hoverMotion } from "@/components/ui/styles";
 import { Dialog } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
@@ -125,7 +126,8 @@ const Pill = styled.button`
   border: 0;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &:hover {
     background-color: light-dark(
@@ -222,7 +224,8 @@ const Option = styled.li`
   border-radius: var(--radius-md);
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &[data-active] {
     background-color: var(--color-fill-quaternary);

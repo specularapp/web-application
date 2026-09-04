@@ -1,5 +1,6 @@
 "use client";
 
+import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import {
   BellIcon,
@@ -19,7 +20,7 @@ import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
-import { layerMotion } from "@/components/ui/styles";
+import { hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { usePresence } from "@/hooks/use-presence";
@@ -113,7 +114,7 @@ const Section = styled.div`
 
 /* Mesma linha do menu, na mesma altura e no mesmo tom: a camada é continuação dele, e não outra ilha
    de estilo. */
-const rowStyles = `
+const rowStyles = css`
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -131,7 +132,8 @@ const rowStyles = `
   border-radius: var(--radius-md);
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &:hover {
     color: var(--color-label);
@@ -209,10 +211,8 @@ const ThemeOption = styled.button`
   border-radius: calc(var(--radius-md) - var(--space-1));
   corner-shape: squircle;
   cursor: pointer;
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &:hover {
     color: var(--color-label);

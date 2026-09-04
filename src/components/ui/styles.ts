@@ -62,6 +62,28 @@ export const layerMotion = css`
   }
 `;
 
+/* Hover de todo controle da casa. A transição é assimétrica de propósito: entrar no hover leva o
+   tempo base, para a cor chegar macia, e sair leva o tempo curto, para o ponteiro que passa por uma
+   lista não deixar rastro. O clique afunda um fio e volta, que é o retorno tátil que o Mac dá. */
+export const hoverMotion = css`
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+
+  &:hover {
+    transition-duration: var(--duration-base);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.985);
+    transition-duration: 60ms;
+  }
+`;
+
 const controlFontSize: Record<ControlSize, string> = {
   sm: "var(--text-footnote)",
   md: "var(--text-subheadline)",

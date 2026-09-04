@@ -252,6 +252,15 @@ Toda camada flutuante da casa entra e sai animando, e a receita mora em dois lug
 - Quem monta uma camada com `Dialog` precisa mantê-la montada enquanto `open` é falso, senão a saída não acontece. A busca, que era montada só ao abrir, passou a ficar sempre montada com uma chave que muda a cada abertura: a chave remonta o conteúdo, então o estado nasce limpo sem escrever estado em efeito, e o cookie das recentes é lido só quando há documento, porque agora ela também renderiza no servidor.
 - Troca de seleção dentro das camadas também anda: o traço da aba de notificações cresce a partir da esquerda, a lista troca com um fade curto quando a aba muda, a opção de tema desliza cor e sombra, e as linhas de lista já transitavam o fundo.
 
+### Hover dos controles
+
+Receita única em `hoverMotion` (`components/ui/styles.ts`), aplicada ao `Button` e a toda linha, pílula, aba e opção das camadas do menu; as linhas do menu em CSS Module repetem a mesma receita, porque módulo não importa mixin do Emotion.
+
+- A transição é assimétrica de propósito: entrar no hover leva o tempo base, para a cor chegar macia, e sair leva o tempo curto, para o ponteiro que passa por uma lista não deixar rastro. A duração maior mora na regra `:hover`, então ela só vale na ida.
+- Fundo, cor, borda, sombra e opacidade transitam juntos. Antes só o fundo transitava e a cor do rótulo saltava por cima dele.
+- O clique afunda um fio (`scale(0.985)`, 60ms) e volta, o retorno tátil que o Mac dá. Desabilitado não afunda.
+
+
 ### Janela (Dialog)
 
 Moldura da casa para conteúdo que interrompe: caixa centralizada no desktop e bandeja subindo do rodapé abaixo de 48rem, na mesma decisão do `DatePicker`. Portal em `document.body`, `role="dialog"`, Escape fecha, o Tab dá a volta por dentro da caixa e o foco volta para quem abriu. Rolagem da página trava enquanto está aberta e `prefers-reduced-motion` corta a animação.

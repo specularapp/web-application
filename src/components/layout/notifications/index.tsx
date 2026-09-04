@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
-import { fadeIn, layerMotion } from "@/components/ui/styles";
+import { fadeIn, hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { usePresence } from "@/hooks/use-presence";
@@ -157,7 +157,8 @@ const Tab = styled.button`
   background-color: transparent;
   border: 0;
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &:hover {
     color: var(--color-label);
@@ -216,7 +217,8 @@ const Item = styled.li`
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   & + & {
     border-block-start: var(--panel-line) solid var(--color-border);

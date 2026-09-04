@@ -12,7 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
-import { layerMotion } from "@/components/ui/styles";
+import { hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
@@ -143,7 +143,8 @@ const Option = styled.li`
   border-radius: var(--radius-md);
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &[data-active] {
     background-color: var(--color-fill-quaternary);
@@ -227,7 +228,8 @@ const Create = styled.button`
   border-radius: var(--radius-md);
   corner-shape: squircle;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
+
+  ${hoverMotion};
 
   &:hover:not(:disabled) {
     background-color: var(--color-fill-quaternary);
