@@ -7,7 +7,7 @@ import {
   LightningIcon,
   ListIcon,
   MagnifyingGlassIcon,
-  MoonIcon,
+  CircleHalfIcon,
   SignOutIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -404,7 +404,7 @@ export function SidebarPanel({
 
             <div className={styles.theme}>
               <span className={styles.themeLabel}>
-                <MoonIcon aria-hidden="true" />
+                <CircleHalfIcon aria-hidden="true" />
                 Tema
               </span>
               <ThemePicker />

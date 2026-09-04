@@ -4,11 +4,13 @@ import styled from "@emotion/styled";
 import {
   BellIcon,
   CaretUpDownIcon,
+  CircleHalfIcon,
   CreditCardIcon,
   GearSixIcon,
   MoonIcon,
   ShieldCheckIcon,
   SignOutIcon,
+  SunIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -49,9 +51,9 @@ export const accountLinks: AccountLink[] = [
 
 /* Dois estados, e não três: o produto é escuro por padrão e não segue o aparelho, então "Sistema" só
    confundia, e na linha estreita do celular a terceira opção estourava a largura. */
-const themes: { value: Theme; label: string }[] = [
-  { value: "light", label: "Claro" },
-  { value: "dark", label: "Escuro" },
+const themes: { value: Theme; label: string; icon: typeof SunIcon }[] = [
+  { value: "light", label: "Claro", icon: SunIcon },
+  { value: "dark", label: "Escuro", icon: MoonIcon },
 ];
 
 /* Canto declarado direto, sem `data-squircle`: a caixa guarda anel de foco de link e botão, e o
@@ -188,8 +190,7 @@ const Themes = styled.div`
   display: inline-grid;
   flex-shrink: 0;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(max-content, 1fr);
-  gap: var(--space-1);
+  gap: var(--space-half);
   padding: var(--space-1);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
@@ -197,12 +198,11 @@ const Themes = styled.div`
 `;
 
 const ThemeOption = styled.button`
-  min-height: 1.75rem;
-  padding-inline: var(--space-2);
-  font-family: var(--font-body);
-  font-size: var(--text-caption-1);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  padding: 0;
   color: var(--color-label-secondary);
   background-color: transparent;
   border: 0;
@@ -214,10 +214,25 @@ const ThemeOption = styled.button`
     color var(--duration-fast) var(--ease-standard),
     box-shadow var(--duration-fast) var(--ease-standard);
 
+  &:hover {
+    color: var(--color-label);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
   &[aria-pressed="true"] {
     color: var(--color-label);
     background-color: var(--color-bg-grouped-secondary);
     box-shadow: var(--shadow-sm);
+  }
+
+  & svg {
+    width: 1rem;
+    height: 1rem;
+    fill: currentColor;
   }
 `;
 
@@ -240,10 +255,12 @@ export function ThemePicker() {
         <ThemeOption
           key={option.value}
           type="button"
+          aria-label={option.label}
+          title={option.label}
           aria-pressed={option.value === theme}
           onClick={() => choose(option.value)}
         >
-          {option.label}
+          <option.icon aria-hidden="true" weight={option.value === theme ? "fill" : "regular"} />
         </ThemeOption>
       ))}
     </Themes>
@@ -343,7 +360,7 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
 
             <Section>
               <ThemeRow>
-                <MoonIcon aria-hidden="true" />
+                <CircleHalfIcon aria-hidden="true" />
                 <Label>Tema</Label>
                 <ThemePicker />
               </ThemeRow>
