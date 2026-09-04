@@ -27,7 +27,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { squircle } from "@/lib/corners";
+import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
 import { CommandPalette } from "../command-palette";
 import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
@@ -51,6 +51,10 @@ export type SidebarProps = {
   /** Sem convite (plano pago em dia) a seção não é desenhada. */
   promo?: SidebarPromo;
 };
+
+/* Canto da barra flutuante: o raio dos botões de dentro mais o recuo que os separa da borda, que é a
+   conta concêntrica lida ao contrário, do filho para o pai. */
+const BAR_CORNER = cornerRadius.md + 4;
 
 const accountActions: { label: string; href: Route; icon: typeof GearSixIcon }[] = [
   { label: "Configurações da conta", href: "/configuracoes", icon: GearSixIcon },
@@ -310,7 +314,7 @@ export function Sidebar(props: SidebarProps) {
         </div>
       )}
 
-      <div className={styles.bar} {...squircle("2xl")}>
+      <div className={styles.bar} {...squirclePx(BAR_CORNER)}>
         <button type="button" className={styles.search} onClick={() => setSearching(true)}>
           <MagnifyingGlassIcon aria-hidden="true" />
           <span className={styles.searchLabel}>Buscar</span>

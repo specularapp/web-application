@@ -288,7 +288,9 @@
   /* Vidro da casa, o mesmo do painel do login: o fundo some e quem desenha a barra é o blur. */
   background-color: var(--glass-bg);
   border: var(--menu-line) solid var(--color-border);
-  border-radius: var(--radius-2xl);
+  /* Concêntrico com os botões de dentro: o raio deles mais o recuo que os separa da borda. Com 32 a
+     curva passava da metade da altura e a barra fechava em pílula. */
+  border-radius: calc(var(--radius-md) + var(--space-1));
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
