@@ -6,6 +6,7 @@ import {
   CaretUpDownIcon,
   CreditCardIcon,
   GearSixIcon,
+  MoonIcon,
   ShieldCheckIcon,
   SignOutIcon,
 } from "@phosphor-icons/react";
@@ -20,8 +21,7 @@ import { layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { usePresence } from "@/hooks/use-presence";
-import { readCookie } from "@/lib/cookies";
-import { applyTheme, THEME_COOKIE, type ThemePreference } from "@/lib/theme";
+import { applyTheme, type Theme } from "@/lib/theme";
 
 export type AccountUser = { name: string; email: string | null; avatarUrl: string | null };
 
@@ -47,8 +47,9 @@ export const accountLinks: AccountLink[] = [
   { label: "Segurança", href: "/configuracoes/seguranca", icon: ShieldCheckIcon },
 ];
 
-const themes: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "Sistema" },
+/* Dois estados, e não três: o produto é escuro por padrão e não segue o aparelho, então "Sistema" só
+   confundia, e na linha estreita do celular a terceira opção estourava a largura. */
+const themes: { value: Theme; label: string }[] = [
   { value: "light", label: "Claro" },
   { value: "dark", label: "Escuro" },
 ];
@@ -164,10 +165,21 @@ const Label = styled.span`
 `;
 
 const ThemeRow = styled.div`
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
+  min-height: 2.25rem;
   padding-block: var(--space-1);
   padding-inline: var(--space-2);
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--tracking-tight);
+  color: color-mix(in oklab, var(--color-label) 75%, var(--color-bg));
+
+  & > svg {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 `;
 
 /* Três estados em fila, e não um interruptor: a casa guarda claro, escuro e o que o sistema mandar, e
@@ -211,11 +223,13 @@ const ThemeOption = styled.button`
 
 /** Fila de três estados, usada pelo painel do desktop e pela tela cheia do celular. */
 export function ThemePicker() {
-  const [theme, setTheme] = useState<ThemePreference>(
-    () => (readCookie(THEME_COOKIE) as ThemePreference | undefined) ?? "system",
+  // O estado nasce do que está na tela, e não do cookie: sem cookie o produto é escuro, e é isso que o
+  // html carrega quando o seletor monta.
+  const [theme, setTheme] = useState<Theme>(() =>
+    typeof document !== "undefined" && document.documentElement.dataset.theme === "light" ? "light" : "dark",
   );
 
-  const choose = (next: ThemePreference) => {
+  const choose = (next: Theme) => {
     applyTheme(next);
     setTheme(next);
   };
@@ -329,9 +343,8 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
 
             <Section>
               <ThemeRow>
-                <Text variant="caption1" tone="secondary">
-                  Tema
-                </Text>
+                <MoonIcon aria-hidden="true" />
+                <Label>Tema</Label>
                 <ThemePicker />
               </ThemeRow>
             </Section>

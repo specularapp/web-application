@@ -66,6 +66,38 @@
   height: 0;
 }
 
+/* A pilha é o que troca quando uma pasta abre ou fecha. Ela repete a coluna do nav para o desenho não
+   mudar, e entra deslizando na direção do movimento: para dentro vem da direita, para fora volta da
+   esquerda. Movimento reduzido já zera a duração pelo reset. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.stack[data-motion="forward"] {
+  animation: stackForward var(--duration-base) var(--ease-standard) both;
+}
+
+.stack[data-motion="back"] {
+  animation: stackBack var(--duration-base) var(--ease-standard) both;
+}
+
+@keyframes stackForward {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-4));
+  }
+}
+
+@keyframes stackBack {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--space-4) * -1));
+  }
+}
+
 .group {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -9,7 +9,7 @@ import { ToastProvider } from "@/components/providers/toast-provider";
 import { isAuthPath } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
-import { readThemeCookie } from "@/lib/theme";
+import { readThemeCookie, themeAttribute } from "@/lib/theme";
 import "@/styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -68,8 +68,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const nonce = headerStore.get("x-nonce") ?? undefined;
   const preference = readThemeCookie(cookieStore.get("theme")?.value);
   const authScreen = isAuthPath(headerStore.get("x-pathname"));
-  // Escuro é o padrão do produto: sem preferência salva, nada de seguir o sistema.
-  const theme = authScreen ? "dark" : (preference ?? "dark");
+  // Escuro é o padrão do produto: sem preferência salva, nada de seguir o sistema. Quem escolheu
+  // "Sistema" tem isso gravado, e aí o html fica sem atributo e o color-scheme segue o aparelho.
+  const theme = authScreen ? "dark" : themeAttribute(preference);
 
   return (
     <html
