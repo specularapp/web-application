@@ -70,16 +70,33 @@ const Field = styled.input`
   }
 `;
 
-/* As pílulas rolam na horizontal em vez de quebrar linha: o topo da busca tem altura previsível, e
-   numa tela estreita seis atalhos em duas linhas empurravam a lista para fora da vista. */
+/* As pílulas rolam na horizontal em vez de quebrar linha: numa tela estreita seis atalhos em duas
+   linhas empurravam a lista para fora da vista. O conteúdo some por máscara, e não por uma faixa de
+   cor por cima, porque o painel é de vidro e um gradiente sólido viraria mancha em vez de sumiço. A
+   faixa do fade tem o tamanho do próprio recuo, então ela cai sobre o vão e não sobre o texto quando
+   não há o que rolar. */
 const Pills = styled.div`
   display: flex;
   flex-shrink: 0;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   border-block-end: var(--panel-line) solid var(--color-border);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--space-3),
+    #000 calc(100% - var(--space-3)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--space-3),
+    #000 calc(100% - var(--space-3)),
+    transparent
+  );
   ${thinScrollbar};
 `;
 
@@ -142,9 +159,23 @@ const Body = styled.div`
   min-height: 12rem;
   max-height: 20rem;
   min-width: 0;
-  padding-block: var(--space-1);
+  padding-block: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-2)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-2)),
+    transparent
+  );
   ${thinScrollbar};
 
   &[data-empty] {
