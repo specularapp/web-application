@@ -35,7 +35,12 @@ const PANEL_WIDTH = 272;
 const PANEL_HEIGHT = 360;
 const EDGE = 16;
 
-const links: { label: string; href: Route; icon: typeof GearSixIcon }[] = [
+export type AccountLink = { label: string; href: Route; icon: typeof GearSixIcon; plan?: boolean };
+
+/** Telas da conta, na ordem em que aparecem. Fonte única das duas molduras: o painel do desktop e a
+ *  tela cheia do celular. */
+export const accountLinks: AccountLink[] = [
+  { label: "Assinatura", href: "/configuracoes/plano", icon: CreditCardIcon, plan: true },
   { label: "Conta", href: "/configuracoes", icon: GearSixIcon },
   { label: "Notificações", href: "/configuracoes/notificacoes", icon: BellIcon },
   { label: "Segurança", href: "/configuracoes/seguranca", icon: ShieldCheckIcon },
@@ -201,6 +206,33 @@ const ThemeOption = styled.button`
   }
 `;
 
+/** Fila de três estados, usada pelo painel do desktop e pela tela cheia do celular. */
+export function ThemePicker() {
+  const [theme, setTheme] = useState<ThemePreference>(
+    () => (readCookie(THEME_COOKIE) as ThemePreference | undefined) ?? "system",
+  );
+
+  const choose = (next: ThemePreference) => {
+    applyTheme(next);
+    setTheme(next);
+  };
+
+  return (
+    <Themes role="group" aria-label="Tema da interface">
+      {themes.map((option) => (
+        <ThemeOption
+          key={option.value}
+          type="button"
+          aria-pressed={option.value === theme}
+          onClick={() => choose(option.value)}
+        >
+          {option.label}
+        </ThemeOption>
+      ))}
+    </Themes>
+  );
+}
+
 const Trigger = styled.span`
   display: inline-flex;
   flex-shrink: 0;
@@ -212,9 +244,6 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<ThemePreference>(
-    () => (readCookie(THEME_COOKIE) as ThemePreference | undefined) ?? "system",
-  );
 
   const position = useAnchoredPosition(open, triggerRef, { width: PANEL_WIDTH, height: PANEL_HEIGHT });
 
@@ -240,11 +269,6 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
-
-  const choose = (next: ThemePreference) => {
-    applyTheme(next);
-    setTheme(next);
-  };
 
   return (
     <Trigger>
@@ -284,18 +308,15 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
             </Header>
 
             <Section>
-              <Row href="/configuracoes/plano" role="menuitem" onClick={() => setOpen(false)}>
-                <CreditCardIcon aria-hidden="true" />
-                <Label>Assinatura</Label>
-                <Badge tone="neutral" variant="soft" size="sm">
-                  {plan}
-                </Badge>
-              </Row>
-
-              {links.map((link) => (
+              {accountLinks.map((link) => (
                 <Row key={link.href} href={link.href} role="menuitem" onClick={() => setOpen(false)}>
                   <link.icon aria-hidden="true" />
                   <Label>{link.label}</Label>
+                  {link.plan && (
+                    <Badge tone="neutral" variant="soft" size="sm">
+                      {plan}
+                    </Badge>
+                  )}
                 </Row>
               ))}
             </Section>
@@ -305,18 +326,7 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
                 <Text variant="caption1" tone="secondary">
                   Tema
                 </Text>
-                <Themes role="group" aria-label="Tema da interface">
-                  {themes.map((option) => (
-                    <ThemeOption
-                      key={option.value}
-                      type="button"
-                      aria-pressed={option.value === theme}
-                      onClick={() => choose(option.value)}
-                    >
-                      {option.label}
-                    </ThemeOption>
-                  ))}
-                </Themes>
+                <ThemePicker />
               </ThemeRow>
             </Section>
 

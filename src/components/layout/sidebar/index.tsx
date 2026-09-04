@@ -1,12 +1,9 @@
 "use client";
 
 import {
-  BellIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CrownSimpleIcon,
-  GearSixIcon,
-  LifebuoyIcon,
   LightningIcon,
   ListIcon,
   MagnifyingGlassIcon,
@@ -27,7 +24,7 @@ import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
-import { AccountMenu } from "../account-menu";
+import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
 import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
@@ -55,11 +52,6 @@ export type SidebarProps = {
 /* Canto da barra flutuante: o raio dos botões de dentro mais o recuo que os separa da borda, que é a
    conta concêntrica lida ao contrário, do filho para o pai. */
 const BAR_CORNER = cornerRadius.md + 4;
-
-const accountActions: { label: string; href: Route; icon: typeof GearSixIcon }[] = [
-  { label: "Configurações da conta", href: "/configuracoes", icon: GearSixIcon },
-  { label: "Notificações", href: "/configuracoes/notificacoes", icon: BellIcon },
-];
 
 function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -246,20 +238,26 @@ export function SidebarPanel({
 
         {mobile && (
           <div className={styles.actions}>
-            {accountActions.map((action) => (
+            {accountLinks.map((action) => (
               <Link key={action.href} href={action.href} className={styles.row} {...squircle("md")}>
                 <action.icon aria-hidden="true" />
                 <span className={styles.label}>{action.label}</span>
+                {action.plan && (
+                  <Badge tone="neutral" variant="soft" size="sm">
+                    {team.plan}
+                  </Badge>
+                )}
               </Link>
             ))}
-            <button type="button" className={styles.row} {...squircle("md")}>
-              <MoonIcon aria-hidden="true" />
-              <span className={styles.label}>Tema</span>
-            </button>
-            <button type="button" className={styles.row} {...squircle("md")}>
-              <LifebuoyIcon aria-hidden="true" />
-              <span className={styles.label}>Ajuda</span>
-            </button>
+
+            <div className={styles.theme}>
+              <span className={styles.themeLabel}>
+                <MoonIcon aria-hidden="true" />
+                Tema
+              </span>
+              <ThemePicker />
+            </div>
+
             <a href="/auth/sair" className={styles.row} {...squircle("md")}>
               <SignOutIcon aria-hidden="true" />
               <span className={styles.label}>Sair da conta</span>

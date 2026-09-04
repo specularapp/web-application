@@ -267,6 +267,31 @@
   border-block-start: var(--menu-line) solid var(--color-border);
 }
 
+.theme {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding-inline: var(--space-2);
+}
+
+.themeLabel {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-callout);
+  letter-spacing: var(--tracking-tight);
+  color: color-mix(in oklab, var(--color-label) 75%, var(--color-bg));
+}
+
+.themeLabel svg {
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
 /* Barra flutuante do celular, no rodapé e ao centro: buscar de um lado, abrir o menu do outro. */
 /* A barra vive fora de `.panel`, então o fio precisa nascer de novo aqui: var() de variável que não
    existe apaga a declaração inteira, e a borda e o risco sumiam sem erro nenhum. */
@@ -401,6 +426,10 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--color-bg);
+  /* A lista some por máscara antes de chegar na barra flutuante, em vez de ser cortada pela borda da
+     tela. A faixa cobre a altura da barra mais o respiro dela. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-10)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-10)), transparent);
 }
 
 /* Coluna do desktop: largura fixa, altura da tela e nada de encolher quando o conteúdo aperta. */

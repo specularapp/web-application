@@ -235,6 +235,7 @@ De cima para baixo, seguindo a referência do usuário (a barra de projeto da Ve
 - O componente é apresentacional e recebe time, pessoa, convite e a lista de times por prop. Quem busca isso no banco é o `AppShell`, Server Component do grupo (app), que junta `getCurrentTeamState`, `getTeamOptions` e a cobrança e deriva o convite de plano.
 - Meta de faturamento usa `compactMoney` de `lib/utils/format.ts`: R$ 30,5k, R$ 1,243M, sempre a partir de centavos, como todo dinheiro do produto.
 - A barra flutuante declara `width: max-content`: elemento fixo com `left: 50%` encolhe até o espaço que sobra da metade para a direita, ou seja, meia tela, e o rótulo cortava por reticências mesmo com espaço de sobra na esquerda. O teto de largura impede o vazamento na tela estreita.
+- A tela cheia do celular desbota na base por `mask-image`, onde o conteúdo passa por trás da barra flutuante, em vez de ser cortado pela borda da tela.
 - Celular: o painel não fica na tela. Uma barra flutuante no rodapé, ao centro, traz "Buscar" e o botão de abrir; aberto, o painel toma a tela inteira, sem a marca, e as ações da conta aparecem listadas em vez de escondidas atrás do botão de seta, porque no celular esconder opção atrás de camada custa um toque a mais e uma camada a mais.
 - A seta dupla do time abre a janela de troca (`TeamSwitcher`, 2026-09-03), a primeira camada flutuante do menu. Opções da conta, busca e notificações continuam de pé e mudas, esperando `DropdownMenu` e a paleta de comandos; `DropdownMenu` segue stub.
 - Prévia em `/previa/menu` (só em homologação), que é onde dá para ver a forma do celular, e a forma do desktop também entra na vitrine `/componentes`, em caixa alta.
@@ -294,7 +295,7 @@ O chevron duplo do perfil abre a lista colada nele, que sobe porque o perfil mor
 - Assinatura leva o chip do plano em vigor, o mesmo rótulo curto que o topo do menu mostra.
 - Tema em três estados na própria linha, e não em interruptor: a casa guarda claro, escuro e o que o sistema mandar, e interruptor não sabe dizer o terceiro. A troca chama `applyTheme`, que saiu do `ThemeToggle` de homologação para `lib/theme.ts` quando os dois passaram a precisar dela, e mantém cookie e atributo do html andando juntos.
 - Sair é `<a>` cru, e não `Link`: limpar o cookie de sessão exige uma ida ao servidor, coisa que navegação de cliente não faz.
-- Só no desktop. No celular o chevron não existe, porque a tela cheia do menu já lista as ações da conta sem esconder nada atrás de camada.
+- O painel só existe no desktop, mas as opções são as mesmas nos dois: `accountLinks` e `ThemePicker` saem daqui e a tela cheia do celular monta as mesmas linhas com o CSS dela. As molduras diferem, a lista não, então nenhuma das duas conta uma história diferente da outra.
 
 ### Notificações
 
