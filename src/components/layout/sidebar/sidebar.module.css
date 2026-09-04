@@ -381,7 +381,6 @@
   border-radius: calc(var(--radius-md) + var(--space-1));
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
   translate: -50% 0;
 }
 
