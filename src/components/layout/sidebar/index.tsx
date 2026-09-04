@@ -310,17 +310,23 @@ export function Sidebar(props: SidebarProps) {
         </div>
       )}
 
-      <div className={styles.bar} {...squircle("3xl")}>
+      <div className={styles.bar} {...squircle("2xl")}>
         <button type="button" className={styles.search} onClick={() => setSearching(true)}>
           <MagnifyingGlassIcon aria-hidden="true" />
           <span className={styles.searchLabel}>Buscar</span>
         </button>
         <span className={styles.barDivider} aria-hidden="true" />
-        {unread > 0 && <Notifications items={notifications} onChange={setNotifications} size="md" />}
+        {unread > 0 && (
+          <>
+            <Notifications items={notifications} onChange={setNotifications} size="md" radius="md" />
+            <span className={styles.barDivider} aria-hidden="true" />
+          </>
+        )}
         <IconButton
           label={open ? "Fechar o menu" : "Abrir o menu"}
           variant="ghost"
           size="md"
+          radius="md"
           onClick={() => setOpen((current) => !current)}
         >
           {open ? <XIcon /> : <ListIcon />}

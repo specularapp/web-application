@@ -38,6 +38,8 @@ export type NotificationsProps = {
    *  mostrar a mesma contagem. */
   onChange?: (items: AppNotification[]) => void;
   size?: "sm" | "md";
+  /** Repassado ao gatilho: na barra flutuante ele acompanha o canto da barra, e não o círculo padrão. */
+  radius?: "auto" | "md";
 };
 
 export const MUTE_COOKIE = "sp-notifications-muted";
@@ -337,7 +339,7 @@ function when(iso: string) {
 
 // Notificações do produto, coladas no próprio sino: cabeçalho com o que falta ler, categorias em aba
 // e a lista embaixo. No celular vira bandeja, onde o rodapé do menu fica longe do polegar.
-export function Notifications({ items, onChange, size = "sm" }: NotificationsProps) {
+export function Notifications({ items, onChange, size = "sm", radius = "auto" }: NotificationsProps) {
   const sheet = useMediaQuery(MOBILE_QUERY);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -496,6 +498,7 @@ export function Notifications({ items, onChange, size = "sm" }: NotificationsPro
           label={unread > 0 ? `Notificações, ${unread} sem ler` : "Notificações"}
           variant="ghost"
           size={size}
+          radius={radius}
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}

@@ -63,6 +63,7 @@ Feito:
 - A medida da caixa colada no gatilho virou o hook `useAnchoredPosition`, agora usado pela troca de time e pelas notificações, em vez de repetir a conta nos dois.
 - Notificações lapidadas: contador na quina do sino, marcar todas saiu e entrou silenciar (em cookie, com o sino trocando para o riscado), o botão da notificação virou o `Button` da casa, e no celular o sino aparece na barra flutuante enquanto houver o que ler. Os dois gatilhos leem a mesma lista, que subiu para a moldura do menu; o painel aceita `onChange` e, sem ele, guarda a própria lista.
 - `readCookie` e `cookieString` viraram `lib/cookies.ts`, porque a busca e as notificações passaram a precisar dos dois.
+- "Buscar" virava "Bu..." mesmo com espaço de sobra: elemento fixo com `left: 50%` encolhe até o espaço que resta da metade para a direita, ou seja, meia tela, e a barra nunca crescia. `width: max-content` com teto de largura resolve. A barra e os botões dela desceram do canto redondo para `2xl` e `md`, e o divisor entre o sino e o botão do menu voltou.
 - Com o sino na barra flutuante o "Buscar" quebrava: o botão não tinha `min-width: 0` nem o ícone tinha `flex-shrink: 0`, então o flex apertava o glifo em vez do texto. Agora quem cede é o rótulo, que corta por reticências, e o divisor entre o sino e o botão do menu saiu, porque os dois são um par de ações.
 
 Pendências:

@@ -282,11 +282,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: max-content;
+  max-width: calc(100vw - var(--space-8));
   padding: var(--space-1);
   /* Vidro da casa, o mesmo do painel do login: o fundo some e quem desenha a barra é o blur. */
   background-color: var(--glass-bg);
   border: var(--menu-line) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-2xl);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
@@ -317,7 +319,7 @@
   color: var(--color-label-secondary);
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-lg);
 }
 
 .search:hover {
