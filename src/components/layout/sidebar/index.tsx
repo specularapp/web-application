@@ -523,7 +523,9 @@ export function Sidebar(props: SidebarProps) {
           label={open ? "Fechar o menu" : "Abrir o menu"}
           variant="ghost"
           size="md"
-          radius="md"
+          // Bolinha por fora pede círculo por dentro: com a barra fechada em pílula, o canto de 12px do
+          // botão aparecia no hover como um quadrado dentro da bola.
+          radius={open ? "full" : "md"}
           onClick={() => setOpen((current) => !current)}
         >
           {open ? <XIcon /> : <ListIcon />}
