@@ -69,27 +69,28 @@ export const controlGlyph = (size: ControlSize) => css`
 `;
 
 export const thinScrollbar = css`
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-fill-quaternary) transparent;
-
-  &:hover {
-    scrollbar-color: var(--color-fill) transparent;
+  /* As duas famílias não convivem: assim que a largura ou a cor padrão da barra aparecem na regra, o
+     Chrome descarta os pseudo-elementos inteiros e cai na barra nativa, que no Windows vem grossa e
+     com uma seta em cada ponta. Por isso as propriedades padrão ficam só onde os pseudo-elementos não
+     existem, que é o Firefox, e o resto do desenho vive neles. */
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-fill-quaternary) transparent;
   }
 
   &::-webkit-scrollbar {
-    width: 0.25rem;
-    height: 0.25rem;
+    width: 0.125rem;
+    height: 0.125rem;
   }
 
-  /* Sem as setas das pontas: assim que a barra é estilizada, o Chrome no Windows desenha um botão em
-     cada extremidade, e eles pesam mais do que a própria barra. */
   &::-webkit-scrollbar-button {
     display: none;
     width: 0;
     height: 0;
   }
 
-  &::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
     background: transparent;
   }
 

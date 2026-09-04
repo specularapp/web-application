@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { ArrowUpRightIcon, ClockCounterClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { thinScrollbar } from "@/components/ui/styles";
@@ -198,25 +199,12 @@ const Option = styled.li`
   }
 `;
 
-const OptionText = styled.span`
-  display: flex;
-  flex: 1;
-  align-items: baseline;
-  gap: var(--space-2);
-  min-width: 0;
-`;
-
 const OptionLabel = styled.span`
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const OptionSection = styled.span`
-  flex-shrink: 0;
-  font-size: var(--text-caption-1);
-  color: var(--color-label-tertiary);
 `;
 
 const Empty = styled.div`
@@ -411,11 +399,10 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
                         ) : (
                           <page.icon aria-hidden="true" />
                         )}
-                        <OptionText>
-                          <OptionLabel>{page.label}</OptionLabel>
-                          <OptionSection>{page.section}</OptionSection>
-                        </OptionText>
-                        <ArrowUpRightIcon aria-hidden="true" />
+                        <OptionLabel>{page.label}</OptionLabel>
+                        <Badge tone="neutral" variant="soft" size="sm">
+                          {page.section}
+                        </Badge>
                       </Option>
                     );
                   })}

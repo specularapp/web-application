@@ -263,7 +263,8 @@ O campo de busca do menu e o "Buscar" da barra flutuante abrem a mesma janela: c
 
 - As opções saem de `nav.ts`, que já é a fonte única do menu e tem `href` tipado por rota, então a busca nunca oferece página que não existe. `navLinks()` achata as pastas e carrega o nome de onde a página mora, porque "Acompanhar" e "Visão geral" não dizem nada fora da gaveta; `navHighlights` é o punhado que vira pílula, com rótulo próprio.
 - A pílula tinge pela mesma receita do Badge: tinta no matiz a 70% do rótulo e fundo no matiz em alfa baixo, mais forte no escuro, com o contraste já conferido nas 19 cores da paleta. O matiz de cada atalho fica em `navHighlights`, e o ícone herda a tinta em vez de puxar para o cinza. Canto pelo sistema da casa, no raio `md`, e não pílula redonda.
-- A fila de atalhos rola na horizontal com a barra fina de `thinScrollbar`, e não escondida: a régua diz que a fila continua. Quebrar em duas linhas empurrava a lista para fora da vista numa tela estreita.
+- A fila de atalhos rola na horizontal com a barra de `thinScrollbar`, e não escondida: a régua diz que a fila continua. Quebrar em duas linhas empurrava a lista para fora da vista numa tela estreita.
+- Cada linha da lista é ícone, rótulo e a seção em etiqueta na outra ponta. Sem seta de abrir no fim: a janela inteira já é uma lista de coisas que abrem, e o ícone repetido em toda linha só somava ruído.
 - O rótulo de grupo recua o mesmo que a opção. Ele mora dentro da lista, que já abre o recuo lateral, então o recuo cheio somava duas vezes e jogava "Recentes" e "Sugestões" para dentro.
 - Com o campo vazio a janela mostra Recentes e Sugestões; com texto, uma lista só de Resultados, filtrada por `slugify` no rótulo e na seção, então acento e maiúscula não atrapalham.
 - Recentes são as três últimas rotas abertas pela busca, em cookie (`sp-recent`), porque Web Storage é proibido pelo lint. Guarda só a rota, que já é pública e conhecida pelo menu, nunca o que foi digitado.
