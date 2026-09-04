@@ -175,18 +175,20 @@ const ThemeRow = styled.div`
 /* Três estados em fila, e não um interruptor: a casa guarda claro, escuro e o que o sistema mandar, e
    interruptor não sabe dizer o terceiro. */
 const Themes = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: inline-grid;
+  flex-shrink: 0;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(max-content, 1fr);
   gap: var(--space-1);
-  padding: var(--space-half);
+  padding: var(--space-1);
   background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   corner-shape: squircle;
 `;
 
 const ThemeOption = styled.button`
   min-height: 1.75rem;
-  padding-inline: var(--space-1);
+  padding-inline: var(--space-2);
   font-family: var(--font-body);
   font-size: var(--text-caption-1);
   font-weight: var(--weight-medium);
@@ -194,7 +196,7 @@ const ThemeOption = styled.button`
   color: var(--color-label-secondary);
   background-color: transparent;
   border: 0;
-  border-radius: calc(var(--radius-md) - var(--space-half));
+  border-radius: calc(var(--radius-lg) - var(--space-1));
   corner-shape: squircle;
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard);
