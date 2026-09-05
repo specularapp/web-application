@@ -33,20 +33,34 @@ export async function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
+    <AppFrame
+      sidebar={
+        <Sidebar
+          team={team}
+          user={user}
+          teams={teams.map((option) => ({
+            id: option.id,
+            name: option.name,
+            logoUrl: option.logoUrl,
+            plan: planBadges[option.plan],
+          }))}
+          currentTeamId={state.team?.id ?? null}
+          notifications={previewNotifications}
+          suggestion={pickSuggestion(selling(billing)).id}
+        />
+      }
+    >
+      {children}
+    </AppFrame>
+  );
+}
+
+/** A moldura sem dado nenhum: trilha do menu e coluna que rola. O `AppShell` a preenche com o banco;
+ *  a prévia do painel, com dados de exemplo. */
+export function AppFrame({ sidebar, children }: { sidebar: ReactNode; children: ReactNode }) {
+  return (
     <div className={styles.shell}>
-      <Sidebar
-        team={team}
-        user={user}
-        teams={teams.map((option) => ({
-          id: option.id,
-          name: option.name,
-          logoUrl: option.logoUrl,
-          plan: planBadges[option.plan],
-        }))}
-        currentTeamId={state.team?.id ?? null}
-        notifications={previewNotifications}
-        suggestion={pickSuggestion(selling(billing)).id}
-      />
+      {sidebar}
       <main className={styles.content}>{children}</main>
     </div>
   );

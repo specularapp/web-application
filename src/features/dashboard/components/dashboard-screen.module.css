@@ -1,0 +1,16 @@
+/* A concha não abre recuo: o painel traz o seu, 16 no celular e 24 daí para cima, com o cabeçalho a
+   24 da grade e 16 entre os blocos. A tela ocupa no mínimo a altura da coluna e a grade recebe o que
+   sobra, então no desktop as linhas se ajustam à tela em vez de vazar dela. */
+.screen {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-6);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .screen {
+    padding: var(--space-6);
+  }
+}

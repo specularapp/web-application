@@ -1,0 +1,49 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+
+.identity {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Título e linha de apoio a 2px um do outro: são uma identidade só, e não dois parágrafos. */
+.text {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+/* Compacto no celular: só o `leading` fica na tela e o texto vai para o leitor de tela, então as ações
+   cabem na mesma linha da foto sem descer. */
+@media (max-width: 47.9375rem) {
+  .header[data-compact] .text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .header[data-compact] .actions {
+    flex-wrap: nowrap;
+  }
+}

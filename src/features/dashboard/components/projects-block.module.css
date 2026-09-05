@@ -1,0 +1,56 @@
+/* Duas metades iguais, sempre lado a lado: o resumo de um lado, o gráfico do outro, e nenhum dos dois
+   empurra o outro. Quem se adapta à largura é o gráfico, que mostra só os meses que cabem. */
+.block {
+  display: flex;
+  gap: var(--space-4);
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
+}
+
+/* O resumo lê de cima para baixo com a sobra no meio: o número em cima, os clientes colados na base. */
+.summary {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+}
+
+/* Entrelinha de 120% na linha de apoio, pedido de 2026-09-04. Três classes de propósito: o line-height
+   do Text sai de `.text[data-variant]`, que ganha de classe simples. */
+.summary .heading .description {
+  line-height: var(--leading-tight);
+}
+
+/* O total de clientes fica sempre ao lado das bolinhas, nunca embaixo. No celular a metade é estreita,
+   então as três bolinhas entram mais uma sobre a outra, e o texto encurta por reticências só se ainda
+   faltar. */
+.clients {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.clientsLabel {
+  min-width: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .avatars {
+    --avatar-overlap: var(--space-3);
+  }
+}
+
+.chart {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 4rem;
+}

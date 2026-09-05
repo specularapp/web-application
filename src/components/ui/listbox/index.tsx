@@ -3,6 +3,7 @@
 import styled from "@emotion/styled";
 import { CaretDownIcon, CaretUpIcon, CheckIcon } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { matchIconWeight } from "../icons";
 import { disabledState, popIn } from "../styles";
 
 export type ListboxValue = string | number;
@@ -25,6 +26,10 @@ export type ListboxProps<T extends ListboxValue> = {
   value: T;
   onChange: (value: T) => void;
   placement?: ListboxPlacement;
+  /** Ícone antes do rótulo, no peso do caret, para o gatilho ler como os botões da mesma fila. */
+  icon?: ReactNode;
+  /** Só o ícone, num gatilho quadrado como o `IconButton`: o valor em vigor fica no nome acessível e na lista. */
+  iconOnly?: boolean;
   prefix?: ReactNode;
   disabled?: boolean;
   className?: string;
@@ -78,6 +83,17 @@ const Trigger = styled.button`
     color: var(--color-placeholder);
   }
 
+  /* Quadrado do lado da altura, como o botão de ícone: só o glifo dentro, centrado, sem recuo. */
+  &[data-icon-only] {
+    justify-content: center;
+    width: var(--listbox-trigger-height, 2rem);
+    padding: 0;
+  }
+
+  &[data-icon-only] [data-glyph] {
+    margin-inline-end: 0;
+  }
+
   &[data-invalid] {
     border-color: var(--color-danger);
   }
@@ -92,11 +108,27 @@ const Trigger = styled.button`
     outline-offset: -2px;
   }
 
-  & svg {
+  & > svg {
     flex-shrink: 0;
     width: var(--listbox-caret-size, 0.875rem);
     height: var(--listbox-caret-size, 0.875rem);
     color: var(--color-label-secondary);
+    fill: currentColor;
+  }
+`;
+
+/* Filho direto do gatilho é só o caret: o ícone fica dentro do próprio invólucro, com o tamanho dos
+   ícones de botão e a cor do rótulo. A margem soma ao vão do gatilho e fecha nos 8px do Button. */
+const Glyph = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-inline-end: var(--space-1);
+  line-height: 0;
+  color: var(--color-label);
+
+  & svg {
+    width: 1rem;
+    height: 1rem;
     fill: currentColor;
   }
 `;
@@ -257,6 +289,8 @@ export function Listbox<T extends ListboxValue>({
   value,
   onChange,
   placement = "below",
+  icon,
+  iconOnly = false,
   prefix,
   disabled = false,
   className,
@@ -362,8 +396,9 @@ export function Listbox<T extends ListboxValue>({
         disabled={disabled}
         data-full-width={fullWidth || undefined}
         data-empty={!selected && placeholder ? "" : undefined}
+        data-icon-only={iconOnly || undefined}
         data-invalid={invalid || undefined}
-        aria-label={prefix ? undefined : label}
+        aria-label={iconOnly ? `${label}: ${selected?.label ?? placeholder ?? ""}` : prefix ? undefined : label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
@@ -376,9 +411,14 @@ export function Listbox<T extends ListboxValue>({
           setOpen((state) => !state);
         }}
       >
-        {prefix && <Prefix>{prefix}</Prefix>}
-        <Value>{selected?.label ?? placeholder}</Value>
-        <Caret weight="bold" aria-hidden="true" />
+        {icon && <Glyph data-glyph aria-hidden="true">{matchIconWeight(icon, "bold")}</Glyph>}
+        {!iconOnly && (
+          <>
+            {prefix && <Prefix>{prefix}</Prefix>}
+            <Value>{selected?.label ?? placeholder}</Value>
+            <Caret weight="bold" aria-hidden="true" />
+          </>
+        )}
       </Trigger>
       {open && (
         <List data-placement={side}>

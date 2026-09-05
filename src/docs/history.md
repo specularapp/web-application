@@ -12,6 +12,27 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-01 (seg) | em andamento | Cobrança com Stripe ponta a ponta: pagamento dentro da nossa interface, teste gratuito de 7 dias no Pro, estrutura de permissão por plano no banco e a tela de plano e assinatura |
 | 2026-09-02 (ter) | em andamento | Sidebar refinada (perfil enxuto, convite de plano com X, mobile em tela cheia com rolagem geral e escala de toque, barra flutuante de vidro) e ligada ao banco pelo `AppShell` no grupo (app) |
 | 2026-09-03 (qua) | ~4h (20:15 a 00:08 do dia 4), 40 commits | Menu completo: troca de time, busca, notificações, opções da conta e gaveta de criar equipe, todas em vidro com entrada e saída animadas; mural de sugestões, tema com sol e lua, barra do celular que vira bolinha; Inter em tudo |
+| 2026-09-04 (qui) | em andamento (noite) | Painel começou, um bloco por vez: cabeçalho da pessoa com ações em ícone, grade de sete blocos em quatro linhas com altura pré-definida, `Card` e `PageHeader` saíram do stub, bloco de projetos com gráfico Recharts adaptável, avatar trocado para o DiceBear Lorelei e correção do 500 da vitrine |
+
+## 2026-09-04
+
+Tempo: em andamento (noite).
+
+Feito:
+
+- Notificações com altura fixa: o painel deixou de encolher a cada aba com poucos itens; a lista preenche e rola dentro, e a bandeja do celular guarda a mesma altura.
+- Painel (`/dashboard`) começou, a pedido um bloco por vez, com prévia em tela cheia em `/previa/painel` sobre a `AppFrame`, a moldura do `AppShell` sem o banco. Cabeçalho da pessoa (avatar, nome e frase do dia, sorteada por pessoa e por dia para não trocar a cada ida ao servidor) com ações só em ícone (busca, período, engrenagem) e o botão de criar orçamento; no celular sobra a foto e tudo vira ícone. O período vai para `?periodo=` validado com zod. `PageHeader` saiu do stub e o `Listbox` ganhou `icon` e `iconOnly`.
+- Grade de sete blocos por áreas nomeadas: uma coluna até 48rem, duas até 72rem, três daí, todo bloco com duas linhas menos projetos e conquistas. No desktop a altura é pré-definida (piso 11rem, teto 60rem, sem crescer com conteúdo), então não gera rolagem. `Card` saiu do stub: sem fundo, fio de 0,6px do menu, cabeçalho com ícone, título e atalho em contorno separado por outro fio.
+- Bloco de projetos: total, linha de apoio e clientes de um lado, gráfico Recharts do outro em duas metades iguais. O gráfico mede a própria largura e mostra só os meses que cabem, barras roxas em duas opacidades, sem texto, e a dica de vidro no hover, presa dentro da área para não sair da tela no celular. Recharts entrou em uso pela primeira vez.
+- Avatar trocou o `avvvatars-react` pelo DiceBear no estilo Lorelei: SVG gerado em código, sem folha injetada nem nonce (`GooberNonce` saiu), `id` da máscara reescrito com o hash da semente e fundo pastel por matiz da paleta.
+- Bug anterior: a vitrine devolvia 500 porque `Notifications` lia cookie com `document` no servidor; `readCookie` passou a devolver vazio sem documento.
+
+Pendências:
+
+- Os outros seis blocos do painel estão só com a caixa e o cabeçalho; o conteúdo entra um por vez.
+- A engrenagem de personalizar o painel ainda não faz nada; vai escolher quais blocos aparecem.
+- Projetos e notificações não têm domínio no banco: os dois blocos leem de arquivos de prévia e trocam só a origem quando as tabelas nascerem.
+- O site de divulgação (home) ficou para depois do painel; a versão anterior foi apagada em 2026-08-31 e a raiz redireciona para o painel.
 
 ## 2026-09-03
 

@@ -1,0 +1,63 @@
+/* Sem fundo: quem desenha a caixa é o fio, no mesmo peso do menu (0,6px em `--color-border`), e o
+   conteúdo assenta direto no fundo da página. O recuo mora no cabeçalho e no corpo, e não na caixa,
+   para o fio do cabeçalho correr de borda a borda. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-pad: var(--space-4);
+  --card-line: 0.0375rem;
+  /* Raio de quem mora dentro: o de fora menos o recuo. */
+  --card-inner: calc(var(--card-corner) - var(--card-pad));
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border: var(--card-line) solid var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* Cabeçalho na altura do botão pequeno mais o respiro, tenha o cartão ação ou não: assim os títulos
+   de cartões vizinhos ficam na mesma linha. */
+.head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: calc(var(--control-height-sm) + var(--space-4));
+  padding-block: var(--space-2);
+  padding-inline: var(--card-pad);
+  border-block-end: var(--card-line) solid var(--color-border);
+}
+
+/* Ícone na cor do título, herdada, como as linhas do menu: ícone mais claro que o texto quebrava o
+   cabeçalho em dois pesos. */
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+  color: var(--color-label);
+}
+
+.icon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: currentColor;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.action {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--card-pad);
+}

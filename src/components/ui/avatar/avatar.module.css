@@ -33,6 +33,20 @@
   border-radius: var(--avatar-radius);
 }
 
+/* Rosto desenhado: pastel do matiz da semente sobre o branco fixo, o mesmo dos dois temas, porque o
+   traço do Lorelei é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
+   vizinho. */
+.avatar[data-generated] {
+  background-color: color-mix(in oklab, var(--avatar-hue) 32%, var(--color-on-accent));
+}
+
+.shape,
+.shape svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .image {
   object-fit: cover;
 }
@@ -46,6 +60,7 @@
   box-shadow: 0 0 0 2px var(--color-bg);
 }
 
+/* Quanto um avatar entra sobre o anterior: 8px por padrão, e quem embute o grupo aperta pela variável. */
 .group > .avatar + .avatar {
-  margin-inline-start: calc(var(--space-2) * -1);
+  margin-inline-start: calc(var(--avatar-overlap, var(--space-2)) * -1);
 }

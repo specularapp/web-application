@@ -20,19 +20,24 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
+import { PageHeader } from "@/components/layout/page-header";
 import { SidebarPanel } from "@/components/layout/sidebar";
 import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BrandIcon } from "@/components/ui/brand-icon";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Carousel } from "@/components/ui/carousel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
 import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
 import { MfaVerify } from "@/features/auth/components/mfa-verify";
+import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
+import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { PlanSettings } from "@/features/billing/components/plan-settings";
 import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
+import { previewProjectsSummary } from "@/features/projects/preview";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
 import { Container } from "@/components/ui/container";
@@ -400,6 +405,71 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "PageHeader",
+        note: "Cabeçalho de página: avatar ou ícone, título e linha de apoio à esquerda, com 2px entre as duas linhas, e as ações à direita. Em tela estreita as ações descem para a linha de baixo. Server Component com CSS Module.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <Stack gap={6}>
+            <PageHeader
+              as="h2"
+              leading={<Avatar name="Aleph Ramos" seed="aleph@specular.app" size="md" />}
+              title="Aleph Ramos"
+              description="Vamos com tudo hoje!"
+              actions={
+                <>
+                  <Button size="sm" variant="outline" iconStart={<ExportIcon />}>
+                    Exportar
+                  </Button>
+                  <Button size="sm" iconStart={<PlusIcon />}>
+                    Criar orçamento
+                  </Button>
+                </>
+              }
+            />
+            <PageHeader
+              as="h2"
+              title="Clientes"
+              description="48 clientes ativos neste trimestre"
+              actions={
+                <Button size="sm" iconStart={<PlusIcon />}>
+                  Novo cliente
+                </Button>
+              }
+            />
+          </Stack>
+        ),
+      },
+      {
+        name: "Card",
+        note: "Cartão de bloco do painel, sem fundo: quem desenha a caixa é o fio fino do menu, e o cabeçalho (ícone, título e uma ação discreta em contorno) se separa do corpo por outro fio. Raio 24 com recuo 16, então o que for aninhado cai no raio 8. O cabeçalho tem a altura do botão pequeno mesmo sem ação, para os títulos de vizinhos ficarem na mesma linha.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Card
+              heading="h3"
+              title="Financeiro"
+              icon={<CreditCardIcon />}
+              action={
+                <Button size="sm" variant="outline" radius="md">
+                  Ver tudo
+                </Button>
+              }
+            >
+              <Text variant="footnote" tone="secondary">
+                O corpo cresce até o fim do cartão, então dois vizinhos terminam juntos embaixo.
+              </Text>
+            </Card>
+            <Card heading="h3" title="Sua equipe">
+              <Text variant="footnote" tone="secondary">
+                Sem ícone nem ação, o título continua na mesma linha do vizinho.
+              </Text>
+            </Card>
+          </div>
+        ),
+      },
+      {
         name: "Separator",
         note: "Divisor horizontal ou vertical, decorativo por padrão.",
         layout: "stack",
@@ -756,7 +826,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Avatar",
-        note: "Sem foto entra o avvvatars, que tira cor de fundo e forma vetorial do seed (o e-mail, para o avatar não mudar quando o nome muda); com src a foto vem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        note: "Sem foto entra o rosto do DiceBear no estilo Lorelei, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
         wide: true,
         layout: "stack",
         example: (
@@ -1129,6 +1199,27 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "Cabeçalho do painel (prévia)",
+        note: "Abertura do painel: a pessoa à esquerda, com avatar, nome e a frase do dia, e as ações à direita, só em ícone: buscar (abre a mesma busca do menu), período e a engrenagem de personalizar o painel, que ainda não faz nada. Criar orçamento é a ação principal e a única com texto; no celular vira só ícone, e o nome e a frase saem, sobrando a foto. Aqui o período fica só na tela; no painel de verdade ele vai para a URL.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <DashboardHeader
+            demo
+            user={{ name: previewSidebar.user.name, email: previewSidebar.user.email, avatarUrl: null }}
+            greeting="Vamos com tudo hoje!"
+            period="mes"
+          />
+        ),
+      },
+      {
+        name: "Grade do painel (prévia)",
+        note: "Os sete blocos do painel, cada um com o cabeçalho padrão e só projetos com conteúdo por enquanto: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos projetos e conquistas, que dividem a primeira coluna. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
+        wide: true,
+        layout: "stack",
+        example: <DashboardGrid projects={previewProjectsSummary} />,
+      },
+      {
         name: "Plano e assinatura (prévia)",
         note: "A tela de /configuracoes/plano com dados de exemplo: assinatura do Pro em teste gratuito, cartão guardado e duas faturas. As ações são as de verdade e falham de propósito aqui, porque o time do exemplo não existe. Serve para conferir o desenho nos dois temas sem precisar de assinatura.",
         wide: true,
@@ -1169,7 +1260,6 @@ const pending = [
   {
     area: "ui",
     names: [
-      "Card",
       "Dialog",
       "DropdownMenu",
       "EmptyState",
@@ -1183,7 +1273,6 @@ const pending = [
     names: [
       "AppShell",
       "CommandPalette",
-      "PageHeader",
       "Sidebar",
       "Topbar",
     ],

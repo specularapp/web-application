@@ -1,6 +1,8 @@
 const YEAR = 31_536_000;
 
+/** No servidor não há documento: devolve vazio em vez de derrubar o render de quem lê cookie no estado inicial. */
 export function readCookie(name: string) {
+  if (typeof document === "undefined") return undefined;
   const entry = document.cookie.split("; ").find((item) => item.startsWith(`${name}=`));
   return entry ? decodeURIComponent(entry.slice(name.length + 1)) : undefined;
 }

@@ -1,0 +1,94 @@
+/* Sete blocos, sempre na mesma ordem de leitura; o que muda por largura é quantas colunas há. Todo
+   bloco tem duas linhas de altura, menos projetos e conquistas, que dividem a coluna que os outros
+   ocupam inteira. O id de cada bloco é a área, então mover um bloco é mexer só no mapa. */
+.grid {
+  --block-min: 8rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(12, minmax(var(--block-min), auto));
+  grid-template-areas:
+    "projects"
+    "achievements"
+    "finance"
+    "finance"
+    "clients"
+    "clients"
+    "tasks"
+    "tasks"
+    "team"
+    "team"
+    "quote"
+    "quote";
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid > [data-block="projects"] {
+  grid-area: projects;
+}
+
+.grid > [data-block="achievements"] {
+  grid-area: achievements;
+}
+
+.grid > [data-block="finance"] {
+  grid-area: finance;
+}
+
+.grid > [data-block="clients"] {
+  grid-area: clients;
+}
+
+.grid > [data-block="tasks"] {
+  grid-area: tasks;
+}
+
+.grid > [data-block="team"] {
+  grid-area: team;
+}
+
+.grid > [data-block="quote"] {
+  grid-area: quote;
+}
+
+/* Duas colunas de 48rem a 72rem, quando o menu vira coluna fixa e sobra meia tela: três pares de
+   blocos altos, com projetos e conquistas dividindo a primeira coluna do primeiro par. Aqui e no
+   celular a página é alta por natureza e rola, então a linha tem só o piso e cresce com o conteúdo. */
+@media (min-width: 48rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(var(--block-min), auto));
+    grid-template-areas:
+      "projects finance"
+      "achievements finance"
+      "tasks clients"
+      "tasks clients"
+      "team quote"
+      "team quote";
+  }
+}
+
+/* Três colunas a partir de 72rem, que dá 896px de conteúdo ao lado do menu, a largura da referência. A
+   altura é pré-definida, e não do conteúdo: as quatro linhas dividem o que sobra abaixo do cabeçalho
+   entre um piso e um teto, e o piso é fixo em vez de `auto`, então bloco nenhum estica a linha e gera
+   rolagem. Só em tela mais baixa que o piso a página rola, e em tela muito alta a grade para no teto
+   em vez de esparramar os blocos. */
+@media (min-width: 72rem) {
+  .grid {
+    --block-min: 11rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(var(--block-min), 1fr));
+    max-height: 60rem;
+    grid-template-areas:
+      "projects finance clients"
+      "achievements finance clients"
+      "tasks team quote"
+      "tasks team quote";
+  }
+}

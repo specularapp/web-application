@@ -83,6 +83,7 @@ const Popover = styled.div`
   display: flex;
   flex-direction: column;
   width: min(${PANEL_WIDTH}px, calc(100vw - ${EDGE * 2}px));
+  height: min(${PANEL_HEIGHT}px, calc(100dvh - ${EDGE * 2}px));
   overflow: hidden;
   background-color: var(--glass-layer-bg);
   border: var(--panel-line) solid var(--color-border);
@@ -186,11 +187,13 @@ const Tab = styled.button`
   }
 `;
 
+/* A caixa tem altura própria e a lista preenche o que sobra: sem isso o painel encolhia a cada aba
+   com poucos itens e o rodapé pulava junto. Quem tem pouco conteúdo fica com espaço embaixo. */
 const Body = styled.div`
   display: grid;
+  flex: 1;
   align-content: start;
-  min-height: 14rem;
-  max-height: 24rem;
+  min-height: 0;
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -345,8 +348,14 @@ const Count = styled.span`
   pointer-events: none;
 `;
 
+/* A bandeja guarda a mesma altura da caixa do desktop, e o teto de tela dela continua valendo. A classe
+   dobrada vence a regra de bandeja do próprio Dialog, que tem o mesmo peso. */
 const Sheet = styled(Dialog)`
   --panel-line: 0.0375rem;
+
+  &&[data-mode="sheet"] {
+    height: ${PANEL_HEIGHT}px;
+  }
 `;
 
 function when(iso: string) {
