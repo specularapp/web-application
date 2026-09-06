@@ -3,6 +3,7 @@ import { greetingFor } from "@/features/dashboard/greetings";
 import { parsePeriod, PERIOD_PARAM } from "@/features/dashboard/period";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { getOnboardingGate } from "@/features/onboarding/guard";
+import { previewFinanceSummary } from "@/features/finance/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
@@ -25,6 +26,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         greeting={greetingFor(viewer.userId)}
         period={period}
         projects={previewProjectsSummary}
+        finance={previewFinanceSummary}
       />
 
       {needsSetup && billing && (

@@ -33,8 +33,16 @@
   border-radius: var(--avatar-radius);
 }
 
+/* Hexágono de emblema de nível, pela máscara da casa: pontas baixas e cantos arredondados, que um
+   polígono de recorte não desenha. A máscara escala com o avatar. */
+.avatar[data-shape="hexagon"] {
+  border-radius: 0;
+  -webkit-mask: var(--shape-hexagon) center / 100% 100% no-repeat;
+  mask: var(--shape-hexagon) center / 100% 100% no-repeat;
+}
+
 /* Rosto desenhado: pastel do matiz da semente sobre o branco fixo, o mesmo dos dois temas, porque o
-   traço do Lorelei é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
+   traço do Adventurer é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
    vizinho. */
 .avatar[data-generated] {
   background-color: color-mix(in oklab, var(--avatar-hue) 32%, var(--color-on-accent));

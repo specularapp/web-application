@@ -1,0 +1,80 @@
+.ring {
+  --ring-size: 5.5rem;
+  position: relative;
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--ring-size);
+  aspect-ratio: 1;
+}
+
+.ring[data-size="sm"] {
+  --ring-size: 3rem;
+}
+
+.ring[data-size="lg"] {
+  --ring-size: 7rem;
+}
+
+/* Preenche quem o contém, até o teto que quem o contém der: é como ele divide um bloco ao meio. */
+.ring[data-size="fill"] {
+  --ring-size: 100%;
+}
+
+/* A meia rosquinha é a metade de cima do círculo, 2 por 1, com as pontas retas assentadas na base. */
+.ring[data-variant="gauge"] {
+  aspect-ratio: 2 / 1;
+}
+
+.ring[data-variant="gauge"] .track,
+.ring[data-variant="gauge"] .arc {
+  stroke-linecap: butt;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* No círculo inteiro o arco nasce no topo e corre no sentido do relógio; na meia rosquinha o caminho
+   já sai da esquerda para a direita e não precisa girar. */
+.ring[data-variant="ring"] .svg {
+  transform: rotate(-90deg);
+}
+
+.track,
+.arc {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.track {
+  stroke: var(--color-fill-tertiary);
+}
+
+/* O traço é a porcentagem sobre um caminho de 100, e cresce do zero na entrada. */
+.arc {
+  stroke: var(--ring-hue, var(--color-accent));
+  stroke-dasharray: var(--ring-value) 100;
+  animation: ringGrow var(--duration-slow) var(--ease-standard) both;
+}
+
+@keyframes ringGrow {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+/* Na meia rosquinha o número assenta na base do arco, e não no meio da caixa. */
+.ring[data-variant="gauge"] .center {
+  place-items: end center;
+}

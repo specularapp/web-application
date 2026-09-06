@@ -3,6 +3,7 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Sidebar } from "@/components/layout/sidebar";
 import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { DashboardScreen } from "@/features/dashboard/components/dashboard-screen";
+import { previewFinanceSummary } from "@/features/finance/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
 import { isHomologation } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
@@ -27,6 +28,7 @@ export default function DashboardPreviewPage() {
         greeting="Vamos com tudo hoje!"
         period="mes"
         projects={previewProjectsSummary}
+        finance={previewFinanceSummary}
       />
     </AppFrame>
   );

@@ -2,7 +2,7 @@
    empurra o outro. Quem se adapta à largura é o gráfico, que mostra só os meses que cabem. */
 .block {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-6);
   align-items: stretch;
   height: 100%;
   min-height: 0;

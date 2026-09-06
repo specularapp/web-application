@@ -5,7 +5,8 @@ import styles from "./link.module.css";
 
 type TextLinkProps = ComponentProps<typeof Link> & {
   tone?: "accent" | "inherit";
-  underline?: "hover" | "always";
+  /** `dashed` é o link de ação discreto: sublinhado tracejado que vira contínuo no hover. */
+  underline?: "hover" | "always" | "dashed";
 };
 
 export function TextLink({ tone = "accent", underline = "hover", className, ...props }: TextLinkProps) {

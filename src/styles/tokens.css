@@ -109,6 +109,12 @@
   --radius-3xl: 2.5rem;
   --radius-full: 9999px;
 
+  /* Hexágono de emblema, por máscara SVG e não por polígono: topo e base retos, pontas nos lados e
+     cantos levemente arredondados por curvas, o que `clip-path: polygon` não desenha. A máscara estica
+     para a caixa do elemento: numa caixa mais larga que alta (altura igual à largura vezes 0,866) vira
+     um hexágono regular, na quadrada fica esticado. */
+  --shape-hexagon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M21.5 7 Q25 0 32 0L68 0 Q75 0 78.5 7L96.5 43 Q100 50 96.5 57L78.5 93 Q75 100 68 100L32 100 Q25 100 21.5 93L3.5 57 Q0 50 3.5 43Z'/%3E%3C/svg%3E");
+
   /* Vidro da casa, na receita do painel do login e da barra flutuante do menu: o fundo some por
      inteiro e quem desenha a caixa é o borrão do que passa atrás. O `color-mix` a 0% fica escrito
      assim de propósito, para o valor continuar dizendo de qual cor ele nasce. */

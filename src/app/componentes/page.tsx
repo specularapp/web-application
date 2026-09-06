@@ -37,6 +37,7 @@ import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { PlanSettings } from "@/features/billing/components/plan-settings";
 import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
+import { previewFinanceSummary } from "@/features/finance/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
@@ -51,6 +52,7 @@ import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/link";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Progress } from "@/components/ui/progress";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -773,6 +775,31 @@ const groups: Group[] = [
         ),
       },
       {
+        name: "ProgressRing",
+        note: "Anel de progresso em duas formas: o círculo inteiro e a meia rosquinha (gauge), mais grossa, de pontas retas e com o número assentado na base. O arco tem comprimento normalizado em 100, então o traço é a própria porcentagem, e cresce do zero na entrada. Cor por hue, um token de cor; size fill preenche a largura de quem o contém.",
+        layout: "stack",
+        example: (
+          <Inline gap={5} wrap>
+            <ProgressRing value={25} label="25% concluído" size="sm" />
+            <ProgressRing value={62} label="62% até o nível 5" hue="var(--sys-purple)">
+              <Text as="span" variant="headline" weight="semibold">
+                62%
+              </Text>
+            </ProgressRing>
+            <ProgressRing value={88} label="88% da meta" size="lg" hue="var(--color-success)">
+              <Text as="span" variant="title3" weight="semibold">
+                88%
+              </Text>
+            </ProgressRing>
+            <ProgressRing variant="gauge" value={62} label="62% até o nível 5" size="lg" hue="var(--sys-purple)">
+              <Text as="span" variant="title3" weight="semibold">
+                62%
+              </Text>
+            </ProgressRing>
+          </Inline>
+        ),
+      },
+      {
         name: "Toast",
         note: "Sempre com ícone, título, descrição e um botão de ação. Raio xl com padding 12, então o botão cai no raio md concêntrico. Entra com mola por transform e opacidade, pausa no hover e no foco, fecha com Escape. Erro fica até a ação. Máximo de três na tela, o resto espera na fila.",
         wide: true,
@@ -826,7 +853,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Avatar",
-        note: "Sem foto entra o rosto do DiceBear no estilo Lorelei, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão e squircle com raio em metade do lado, na escala do botão de ícone. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        note: "Sem foto entra o rosto do DiceBear no estilo Adventurer, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão, squircle com raio em metade do lado, na escala do botão de ícone, e hexágono por recorte para emblema de nível. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
         wide: true,
         layout: "stack",
         example: (
@@ -841,6 +868,8 @@ const groups: Group[] = [
               <Avatar name="Marina Costa" shape="circle" />
               <Avatar name="Marina Costa" shape="squircle" />
               <Avatar name="Marina Costa" shape="squircle" size="lg" />
+              <Avatar name="Marina Costa" shape="hexagon" />
+              <Avatar name="Marina Costa" shape="hexagon" size="lg" />
             </Sample>
             <Sample label="AvatarGroup com 2">
               <AvatarGroup>
@@ -1059,7 +1088,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "TextLink",
-        note: "Link de texto com sublinhado no hover ou sempre.",
+        note: "Link de texto com sublinhado no hover, sempre, ou tracejado: o tracejado é o atalho de ação discreto, sem borda nem recuo, que vira contínuo no hover.",
         example: (
           <>
             <TextLink href="/login">Ir para o login</TextLink>
@@ -1068,6 +1097,9 @@ const groups: Group[] = [
             </TextLink>
             <TextLink href="/componentes" tone="inherit">
               Vitrine
+            </TextLink>
+            <TextLink href="/conquistas" tone="inherit" underline="dashed">
+              Acompanhar progresso
             </TextLink>
           </>
         ),
@@ -1214,10 +1246,10 @@ const groups: Group[] = [
       },
       {
         name: "Grade do painel (prévia)",
-        note: "Os sete blocos do painel, cada um com o cabeçalho padrão e só projetos com conteúdo por enquanto: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos projetos e conquistas, que dividem a primeira coluna. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
+        note: "Os sete blocos do painel, cada um com o cabeçalho padrão e só projetos e financeiro com conteúdo por enquanto: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos projetos e conquistas, que dividem a primeira coluna. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
         wide: true,
         layout: "stack",
-        example: <DashboardGrid projects={previewProjectsSummary} />,
+        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} />,
       },
       {
         name: "Plano e assinatura (prévia)",

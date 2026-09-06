@@ -14,3 +14,10 @@ export function compactMoney(cents: number) {
   if (size < 1_000_000) return `R$ ${short.format(value / 1000)}k`;
   return `R$ ${long.format(value / 1_000_000)}M`;
 }
+
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Dinheiro por extenso, R$ 16.058,94, a partir de centavos. */
+export function formatMoney(cents: number) {
+  return money.format(cents / 100);
+}

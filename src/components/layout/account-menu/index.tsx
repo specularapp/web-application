@@ -23,6 +23,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { applyTheme, type Theme } from "@/lib/theme";
 
@@ -289,14 +290,11 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
 
   const position = useAnchoredPosition(open, triggerRef, { width: PANEL_WIDTH, height: PANEL_HEIGHT });
 
+  // Toque fora fecha e engole o clique, para o botão embaixo não disparar junto.
+  useOutsideDismiss(open, [popoverRef, triggerRef], () => setOpen(false));
+
   useEffect(() => {
     if (!open) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
-      setOpen(false);
-    };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -304,12 +302,8 @@ export function AccountMenu({ user, plan, size = "sm" }: AccountMenuProps) {
       triggerRef.current?.focus({ preventScroll: true });
     };
 
-    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (

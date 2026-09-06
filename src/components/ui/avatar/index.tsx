@@ -8,7 +8,7 @@ import { AvatarShape } from "./shape";
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg";
 
-export type AvatarShapeName = "circle" | "squircle";
+export type AvatarShapeName = "circle" | "squircle" | "hexagon";
 
 export type AvatarProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
   name: string;

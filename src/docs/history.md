@@ -12,7 +12,28 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-01 (seg) | em andamento | Cobrança com Stripe ponta a ponta: pagamento dentro da nossa interface, teste gratuito de 7 dias no Pro, estrutura de permissão por plano no banco e a tela de plano e assinatura |
 | 2026-09-02 (ter) | em andamento | Sidebar refinada (perfil enxuto, convite de plano com X, mobile em tela cheia com rolagem geral e escala de toque, barra flutuante de vidro) e ligada ao banco pelo `AppShell` no grupo (app) |
 | 2026-09-03 (qua) | ~4h (20:15 a 00:08 do dia 4), 40 commits | Menu completo: troca de time, busca, notificações, opções da conta e gaveta de criar equipe, todas em vidro com entrada e saída animadas; mural de sugestões, tema com sol e lua, barra do celular que vira bolinha; Inter em tudo |
-| 2026-09-04 (qui) | em andamento (noite) | Painel começou, um bloco por vez: cabeçalho da pessoa com ações em ícone, grade de sete blocos em quatro linhas com altura pré-definida, `Card` e `PageHeader` saíram do stub, bloco de projetos com gráfico Recharts adaptável, avatar trocado para o DiceBear Lorelei e correção do 500 da vitrine |
+| 2026-09-04 (qui) | noite, até 23:27 (1 commit) | Painel começou, um bloco por vez: cabeçalho da pessoa com ações em ícone, grade de sete blocos em quatro linhas com altura pré-definida, `Card` e `PageHeader` saíram do stub, bloco de projetos com gráfico Recharts adaptável, avatar trocado para o DiceBear Lorelei e correção do 500 da vitrine |
+| 2026-09-05 (sex) | tarde e noite, até 21:30 (início não anotado), 1 commit | Bloco de financeiro do painel: caixa vestido de cartão com o desenho do usuário e atualizar de verdade, cinco movimentações com rosto ou logo de quem está do outro lado; bloco de conquistas ganhou e perdeu conteúdo no mesmo dia; avatar passou para o DiceBear Adventurer; fechar por toque fora unificado em `useOutsideDismiss` |
+
+## 2026-09-05
+
+Tempo: tarde e noite, até 21:30; o horário de início não foi anotado.
+
+Feito:
+
+- Fechar por toque fora virou um hook só, `useOutsideDismiss`, usado pelas caixas coladas no gatilho (troca de time, notificações, conta) e pelo `Dialog` sem escurecimento: apontar fora fecha e engole o clique seguinte, que antes disparava o botão que estava embaixo. O vão entre as ações do `PageHeader` caiu para 4px, o do menu.
+- Bloco de conquistas ganhou e perdeu conteúdo no mesmo dia: trilha de níveis em hexágonos com barra de progresso, depois anel e meia rosquinha, tudo descartado a pedido porque o cartão vai virar outra coisa. Ficaram na casa o `ProgressRing` (`ring` e `gauge`), a máscara `--shape-hexagon` com o `Avatar` em `shape="hexagon"` e o `underline="dashed"` do `TextLink`. O resumo de gamificação saiu.
+- Avatar trocou o estilo Lorelei pelo Adventurer do DiceBear, a pedido; mesma reescrita de `id` e mesma limpeza, porque os dois estilos têm a mesma estrutura.
+- Bloco de financeiro, o segundo do painel com conteúdo: o caixa vestido de cartão em grade 2x2 (marca, "Ativo", saldo em `title1` sem algarismo tabular e botão de atualizar que refaz a árvore do servidor), na proporção 7 por 4, raio `lg` de propósito fora da conta concêntrica, com o `card-bg.svg` do usuário como máscara CSS pintada por token no canto de cima à direita. Embaixo, até cinco movimentações com quem está do outro lado (rosto pelo `Avatar`, logo de `public/brands` ou ícone do tipo, todos em 36px no raio de metade do lado), valor sempre neutro com sinal, data "2 set. 2026" e a lista desbotando nas pontas como as camadas do menu. `formatMoney` entrou ao lado do `compactMoney`. Domínio sem banco: lê de `features/finance/preview.ts`.
+- Padrões do painel e dos componentes relidos por inteiro (`rules`, `objective`, `structure`, `theme`, `libs`) antes do bloco novo.
+
+Pendências:
+
+- Cinco blocos do painel seguem só com a caixa: conquistas (vai virar outra coisa, a definir), clientes, tarefas, equipe e último orçamento.
+- No desktop, com a altura do bloco pré-definida, o cartão do caixa deixa uma ou duas movimentações visíveis e o resto rola; baixar o teto do cartão ou tirar o título da lista são as saídas se incomodar.
+- A engrenagem de personalizar o painel ainda não faz nada.
+- Projetos, financeiro e notificações não têm domínio no banco: leem de arquivos de prévia e trocam só a origem quando as tabelas nascerem.
+- O site de divulgação (home) continua para depois do painel.
 
 ## 2026-09-04
 

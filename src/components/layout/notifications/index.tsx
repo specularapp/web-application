@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cookieString, readCookie } from "@/lib/cookies";
@@ -388,15 +389,11 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
   const close = () => setOpen(false);
 
   // A bandeja fecha sozinha por Escape e por toque fora; no desktop a caixa é avulsa e precisa dos
-  // dois escutadores aqui.
+  // dois aqui. O toque fora engole o clique, para o botão embaixo não disparar junto.
+  useOutsideDismiss(open && !sheet, [popoverRef, triggerRef], close);
+
   useEffect(() => {
     if (!open || sheet) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
-      setOpen(false);
-    };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -404,12 +401,8 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
       triggerRef.current?.focus({ preventScroll: true });
     };
 
-    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, sheet]);
 
   const markOne = (id: string) => update(list.map((item) => (item.id === id ? { ...item, read: true } : item)));

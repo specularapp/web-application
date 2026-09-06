@@ -5,6 +5,7 @@ import styled from "@emotion/styled";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
 
@@ -254,6 +255,10 @@ export function Dialog({
     closeRef.current = onClose;
   });
 
+  // Sem o fundo que escurece não há onde clicar para fechar, então quem fecha é o toque fora da caixa,
+  // que engole o clique para o que estava embaixo não disparar junto.
+  useOutsideDismiss(open && !scrim, [panelRef], () => closeRef.current());
+
   useEffect(() => {
     if (!open) return;
 
@@ -297,22 +302,14 @@ export function Dialog({
       }
     };
 
-    // Sem o fundo que escurece não há onde clicar para fechar, então quem fecha é o toque fora da caixa.
-    const onPointerDown = (event: PointerEvent) => {
-      if (panelRef.current?.contains(event.target as Node)) return;
-      closeRef.current();
-    };
-
     document.addEventListener("keydown", onKeyDown);
-    if (!scrim) document.addEventListener("pointerdown", onPointerDown);
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
       root.style.overflow = overflow;
       opener?.focus({ preventScroll: true });
     };
-  }, [open, scrim, focusOnOpen]);
+  }, [open, focusOnOpen]);
 
   if (!present) return null;
 

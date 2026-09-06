@@ -1,0 +1,193 @@
+/* O cartão do caixa fica fixo no topo e a lista toma o que sobra: no desktop, onde a altura do bloco é
+   pré-definida, é a lista que rola por dentro, nunca o bloco. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+}
+
+/* Grade 2x2 com a marca e a situação em cima, o saldo e o atualizar embaixo, na proporção de um cartão
+   de verdade: a altura sai da largura (7 por 4), com piso e teto para não virar faixa no celular largo
+   nem esmagar na coluna estreita. A linha de baixo toma a sobra e o conteúdo dela assenta na base. O
+   raio é `lg` pelo sistema da casa, e não o concêntrico de 8px, por pedido: com o recuo de 16 do bloco
+   a conta dava um canto que lia como quadrado num cartão desse tamanho. No fallback o motor recorta,
+   porque o cartão já esconde o que transborda. Fundo no preenchimento do botão secundário, o mesmo das
+   caixas do menu. */
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-4) var(--space-3);
+  align-items: start;
+  aspect-ratio: 7 / 4;
+  min-height: 8.5rem;
+  max-height: 11rem;
+  padding: var(--space-4);
+  overflow: hidden;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+/* O desenho do cartão é `public/bg/card-bg.svg`, dois traços que descem em curva, usado como máscara
+   e pintado com a cor do texto em alfa baixo, a mesma técnica do `Logo`: assim a cor sai de token e
+   segue o tema, em vez do preto do arquivo. Fica só no canto de cima à direita, com uns três quartos da
+   altura do cartão, e o que passa da borda é cortado pelo `overflow` dele. Isolado numa camada própria
+   para não disputar com o conteúdo da grade. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -10%;
+  inset-inline-end: -3%;
+  height: 78%;
+  aspect-ratio: 150 / 199;
+  pointer-events: none;
+  background-color: color-mix(in oklab, var(--color-label) 22%, transparent);
+  -webkit-mask: url("/bg/card-bg.svg") center / contain no-repeat;
+  mask: url("/bg/card-bg.svg") center / contain no-repeat;
+}
+
+.card > * {
+  position: relative;
+}
+
+.brand {
+  grid-area: 1 / 1;
+}
+
+.status {
+  grid-area: 1 / 2;
+  justify-self: end;
+}
+
+.balance {
+  display: grid;
+  grid-area: 2 / 1;
+  gap: var(--space-half);
+  min-width: 0;
+  align-self: end;
+}
+
+.refresh {
+  display: inline-flex;
+  grid-area: 2 / 2;
+  align-self: end;
+  justify-self: end;
+}
+
+.recent {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+/* A lista sangra o recuo do corpo pelos lados para o hover de cada linha pintar uma caixa em volta do
+   conteúdo, e não colada nele, no ritmo das linhas do menu. Ela desbota nas pontas por máscara, como
+   as listas que rolam nas camadas do menu: em cima uma faixa curta, embaixo uma maior, e o respiro no
+   fim é para a última linha aparecer inteira quando a rolagem chega ao fundo. */
+.list {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  padding: 0 0 var(--space-4);
+  margin: 0 calc(var(--space-2) * -1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-6)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-6)),
+    transparent
+  );
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.row:hover {
+  background-color: var(--color-fill-quaternary);
+  transition-duration: var(--duration-base);
+}
+
+/* Um matiz por tipo gera o fundo e a tinta do ícone de reserva, na mesma receita do Badge: recebido em
+   verde, por vir no acento, e o que saiu em neutro. O valor em si é sempre neutro. */
+.row[data-kind="income"] {
+  --chip-hue: var(--color-success);
+}
+
+.row[data-kind="scheduled"] {
+  --chip-hue: var(--color-accent);
+}
+
+.row[data-kind="expense"] {
+  --chip-hue: var(--color-label);
+}
+
+/* Quem está do outro lado, em 36px e no raio de metade do lado, a escala do botão de ícone e do
+   `Avatar` em squircle, seja logo ou ícone. Sem borda, para o fallback poder recortar na superelipse. */
+.party {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border-radius: var(--icon-button-radius-sm);
+}
+
+/* Logo em cores sobre o mesmo preenchimento de base do `Avatar`, para os chips da lista lerem como uma
+   família só. */
+.party[data-brand] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.party[data-brand] > * {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.party[data-glyph] {
+  color: color-mix(in oklab, var(--chip-hue) 70%, var(--color-label));
+  background-color: light-dark(
+    color-mix(in oklab, var(--chip-hue) 12%, transparent),
+    color-mix(in oklab, var(--chip-hue) 18%, transparent)
+  );
+}
+
+.party[data-glyph] svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.amount {
+  display: grid;
+  gap: var(--space-half);
+  justify-items: end;
+  text-align: end;
+  white-space: nowrap;
+}

@@ -19,6 +19,7 @@ import { switchTeamAction } from "@/features/organizations/actions";
 import { CREATE_TEAM_PLAN, CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
 import { slugify } from "@/features/organizations/schemas";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 
@@ -307,33 +308,23 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
   }, [open, active, query]);
 
   // A bandeja fecha por Escape e por toque fora dentro do próprio Dialog; no desktop a caixa é avulsa
-  // e precisa dos dois escutadores aqui.
+  // e precisa dos dois aqui. O toque fora engole o clique, para o botão embaixo não disparar junto, e
+  // enquanto a troca corre nada fecha.
+  useOutsideDismiss(open && !sheet, [popoverRef, triggerRef], () => {
+    if (!switching) setOpen(false);
+  });
+
   useEffect(() => {
     if (!open || sheet) return;
 
-    const dismiss = () => {
-      if (switching) return;
-      setOpen(false);
-    };
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
-      dismiss();
-    };
-
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      dismiss();
+      if (event.key !== "Escape" || switching) return;
+      setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
     };
 
-    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, sheet, switching]);
 
   const close = () => {
