@@ -5,9 +5,10 @@ import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow
 import { getOnboardingGate } from "@/features/onboarding/guard";
 import { previewClientsSummary } from "@/features/clients/preview";
 import { previewFinanceSummary } from "@/features/finance/preview";
-import { previewWeeklyChallenge } from "@/features/gamification/preview";
+import { previewPointsSummary, previewWeeklyChallenge } from "@/features/gamification/preview";
 import { previewTeamSummary } from "@/features/organizations/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
+import { previewQuotesSummary } from "@/features/quotes/preview";
 import { previewTasksSummary } from "@/features/tasks/preview";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
@@ -35,6 +36,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         tasks={previewTasksSummary}
         team={previewTeamSummary}
         challenge={previewWeeklyChallenge}
+        quotes={previewQuotesSummary}
+        achievements={previewPointsSummary}
       />
 
       {needsSetup && billing && (

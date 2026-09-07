@@ -129,6 +129,12 @@
      corpo para ler. Vidro continua, só com o fundo a 40% em vez de 20%. */
   --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 40%, transparent);
 
+  /* Tinta e vidro do controle de arrastar da gamificação: os genéricos da casa, para o bloco assentar no
+     fundo de cada tema. Um degradê próprio nas cores do adesivo holográfico existiu por umas horas em
+     2026-09-07 e saiu a pedido. */
+  --gamification-ink: var(--color-label);
+  --gamification-pill: var(--color-fill-quaternary);
+
   --shadow-sm: 0 1px 2px light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
   --shadow-md: 0 4px 16px light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.6));
   --shadow-lg: 0 12px 40px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.7));

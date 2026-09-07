@@ -30,7 +30,7 @@ const fillAvatar = { "--avatar-size": "100%" } as CSSProperties;
 
 /* Duas linhas a 12px uma da outra: em cima a fila de fotos, que toma toda a altura que sobra, e embaixo
    a ficha de quem está em foco. As fotos crescem com a fila, então o bloco não tem espaço em branco em
-   tela nenhuma; no corpo mínimo de 108px elas ficam no piso de 32px e a conta fecha por um fio. */
+   tela nenhuma; no corpo mínimo de 116px elas ficam no piso de 32px e a conta fecha por um fio. */
 const Block = styled.div`
   display: flex;
   flex-direction: column;
@@ -155,7 +155,7 @@ const Fading = styled.span`
   }
 `;
 
-/* Nome e função colados e em entrelinha justa, para a faixa caber nos 108px do corpo mínimo. */
+/* Nome e função colados e em entrelinha justa, para a faixa caber nos 116px do corpo mínimo. */
 const Naming = styled.div`
   display: grid;
   flex: 1 1 auto;

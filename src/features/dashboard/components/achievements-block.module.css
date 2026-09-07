@@ -1,0 +1,115 @@
+/* O cartão do bloco sem cabeçalho: cor genérica da casa, o fio dos outros cartões e, por trás do
+   conteúdo, as quatro bolas de cor sangrando pelas quinas, a receita do container do plano nos primeiros
+   passos (gradiente radial em vez de filtro de desfoque, sem custo de composição). O mesmo raio dos
+   outros blocos e o recuo de 16 direto no cartão. Dois containers empilhados com a sobra entre eles: o
+   de cima meio a meio, o de baixo de ponta a ponta. */
+.block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  justify-content: space-between;
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-4);
+  overflow: hidden;
+  color: var(--color-label);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+/* As bolas na escala do bloco, que é bem menor que o painel do plano: índigo e menta de um lado, vermelho
+   e amarelo do outro, a 45% de opacidade para o texto por cima continuar em contraste. */
+.block::before {
+  --glow-wide: 16rem 11rem;
+  --glow-short: 13rem 10rem;
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-6) * -1);
+  pointer-events: none;
+  background-image:
+    radial-gradient(var(--glow-wide) at 0% 0%, color-mix(in oklab, var(--sys-indigo) 90%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 0% 100%, color-mix(in oklab, var(--sys-mint) 60%, transparent), transparent 62%),
+    radial-gradient(var(--glow-wide) at 100% 0%, color-mix(in oklab, var(--sys-red) 85%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 100% 100%, color-mix(in oklab, var(--sys-yellow) 60%, transparent), transparent 62%);
+  opacity: 0.45;
+}
+
+.block > * {
+  position: relative;
+}
+
+/* Meio a meio: o adesivo de um lado e os números do outro, centrados na altura. */
+.top {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: center;
+  min-height: 0;
+}
+
+.art {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* O adesivo é a ilustração da casa em `public/bg/logo-gamification.png`, quadrado, do tamanho que a metade
+   der entre um piso e um teto, com uma sombra leve para descolar do fundo. */
+.sticker {
+  width: clamp(4rem, 100%, 6rem);
+  height: auto;
+  filter: drop-shadow(0 6px 16px rgb(0 0 0 / 0.18));
+}
+
+.numbers {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* O total: o número grande e a unidade menor e apagada ao lado, na linha de base. */
+.total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: baseline;
+  margin: 0;
+  line-height: 1;
+}
+
+.total > * {
+  line-height: inherit;
+}
+
+/* Os dois fatos em duas colunas iguais, rótulo apagado em cima e valor em semibold embaixo. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  font-family: var(--font-body);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.fact dt {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}
+
+.fact dd {
+  margin: 0;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}

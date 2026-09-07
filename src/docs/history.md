@@ -14,11 +14,11 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-03 (qua) | ~4h (20:15 a 00:08 do dia 4), 40 commits | Menu completo: troca de time, busca, notificações, opções da conta e gaveta de criar equipe, todas em vidro com entrada e saída animadas; mural de sugestões, tema com sol e lua, barra do celular que vira bolinha; Inter em tudo |
 | 2026-09-04 (qui) | noite, até 23:27 (1 commit) | Painel começou, um bloco por vez: cabeçalho da pessoa com ações em ícone, grade de sete blocos em quatro linhas com altura pré-definida, `Card` e `PageHeader` saíram do stub, bloco de projetos com gráfico Recharts adaptável, avatar trocado para o DiceBear Lorelei e correção do 500 da vitrine |
 | 2026-09-05 (sex) | tarde e noite, até 21:30 (início não anotado), 1 commit | Bloco de financeiro do painel: caixa vestido de cartão com o desenho do usuário e atualizar de verdade, cinco movimentações com rosto ou logo de quem está do outro lado; bloco de conquistas ganhou e perdeu conteúdo no mesmo dia; avatar passou para o DiceBear Adventurer; fechar por toque fora unificado em `useOutsideDismiss` |
-| 2026-09-07 (dom) | em andamento (tarde, primeiro commit às 16:20) | Painel: blocos de clientes, tarefas, equipe e desafio semanal com conteúdo; lista compartilhada entre blocos; grade com oito blocos e linhas fixas em toda largura; barra de rolagem com folga; cartão do caixa responsivo |
+| 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
 
 ## 2026-09-07
 
-Tempo: em andamento (tarde; primeiro commit às 16:20).
+Tempo: em andamento (tarde e noite; commits às 16:20 e no fim do dia).
 
 Feito:
 
@@ -29,10 +29,14 @@ Feito:
 - Bloco de desafio semanal, novo na grade abaixo de equipe: sete dias em bolinhas que crescem com o espaço (anel de progresso da meta de 30 minutos por dia, check no dia batido, dia do mês dentro, tempo online embaixo) e a faixa amarela com a posição entre os usuários. Domínio `gamification` com tipos e prévia relativa a hoje.
 - Grade: oito blocos, equipe e desafio dividindo uma coluna; linhas fixas em 12rem em toda largura (antes cresciam com o conteúdo no celular e no tablet), então toda lista rola por dentro.
 - Barra de rolagem global com 2px de folga de cada lado e nas pontas, em 7px de layout.
+- Desafio semanal virou desafio diário e foi refeito sobre uma segunda referência: azulejo da sequência com a chama da casa e "142 dias", meta de hoje em número grande com a data do primeiro acesso na outra ponta, barra da casa com um segmento por dia do mês em roxo e a semana em bolinhas com check roxo com fio; rolagem da fila de equipe por arrasto com o mouse, com a barra da casa embaixo, no lugar das setas.
+- Bloco de último orçamento em ficha de cinco linhas: identificador, título com situação, cliente e responsável, valor com itens e pagamento, enviado em e válido até, descrição. Nasceu junto o padrão de identificador da aplicação, `formatReference` em `lib/utils/reference.ts` (`ORC-2026-0042`, com `CTR`, `COB` e `PRJ` para os outros domínios).
+- Bloco de conquistas, o único sem cabeçalho (`bare` em `blocks.ts`): cor genérica com as quatro bolas de cor das quinas do container do plano, o adesivo holográfico da marca meio a meio com o total de pontos e os fatos em grade, e embaixo o `ClaimSlider`, o arrasto que dá 50 pontos por dia, com a pista se preenchendo em roxo e voltando com mola se solto antes do fim. Passaram e saíram no mesmo dia: degradê forte da estrela, degradê pastel com `light-dark()`, pontos em coluna. Conquistas subiu para a primeira posição da grade.
+- `Card` com o fio em duas camadas recortadas em vez de `border`, para o canto sair em superelipse também no Chrome sem `corner-shape`, igual ao bloco de conquistas; 1px no fallback e `@supports` devolvendo a `border` de 0,6px onde o nativo existe. Auditoria de travamento sem laço encontrado; o custo no navegador do usuário é o motor de fallback mais o modo de desenvolvimento.
 
 Pendências:
 
-- Conquistas e último orçamento seguem só com a caixa; conquistas vai virar outra coisa, a definir.
+- Nenhum domínio novo do painel existe no banco: clientes, tarefas, orçamentos, medidas por pessoa, pontos, ranking, sequência de dias e tempo online leem de prévia. O arrasto de pontos só muda o estado na tela; `onClaim` espera a action que credita e marca o dia.
 - Chevrons de mais opções (clientes, tarefas) estão mudos até o `DropdownMenu` sair do stub. `/tarefas` é página vazia e ainda não está no menu.
 - Contagem de acessos e tempo online do desafio semanal não é medida em lugar nenhum: precisa de registro de sessão por dia quando for para valer.
 - Clientes, tarefas, medidas por pessoa e desafio não têm domínio no banco: leem de prévia.

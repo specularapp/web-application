@@ -20,17 +20,19 @@ export type DashboardBlock = {
   icon: Icon;
   /** Atalho do cabeçalho, tipado por rota: bloco sem tela fica sem atalho. */
   action?: { label: string; href: Route };
+  /** Sem o cartão padrão: o conteúdo desenha a própria caixa, sem cabeçalho nem fio. */
+  bare?: boolean;
 };
 
 /** Os oito blocos do painel, na ordem de leitura. O id é a área da grade em `dashboard-grid.module.css`,
  *  e o ícone é o mesmo da rota no menu, para o bloco e a tela que ele abre falarem a mesma língua. */
 export const dashboardBlocks: DashboardBlock[] = [
+  { id: "achievements", title: "Conquistas", icon: TrophyIcon, bare: true },
   { id: "projects", title: "Projetos", icon: BriefcaseIcon, action: { label: "Ver todos", href: "/projetos" } },
-  { id: "achievements", title: "Conquistas", icon: TrophyIcon, action: { label: "Ver todas", href: "/conquistas" } },
   { id: "finance", title: "Financeiro", icon: CurrencyCircleDollarIcon, action: { label: "Ver tudo", href: "/financeiro" } },
   { id: "clients", title: "Clientes", icon: BuildingsIcon, action: { label: "Ver todos", href: "/clientes" } },
   { id: "tasks", title: "Tarefas", icon: ListChecksIcon, action: { label: "Ver todas", href: "/tarefas" } },
   { id: "team", title: "Sua equipe", icon: UsersThreeIcon, action: { label: "Gerenciar", href: "/configuracoes/equipe" } },
-  { id: "challenge", title: "Desafio semanal", icon: TargetIcon },
+  { id: "challenge", title: "Desafio diário", icon: TargetIcon },
   { id: "quote", title: "Último orçamento", icon: ReceiptIcon, action: { label: "Ver todos", href: "/orcamentos" } },
 ];

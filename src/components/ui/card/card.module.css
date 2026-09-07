@@ -1,19 +1,51 @@
-/* Sem fundo: quem desenha a caixa é o fio, no mesmo peso do menu (0,6px em `--color-border`), e o
-   conteúdo assenta direto no fundo da página. O recuo mora no cabeçalho e no corpo, e não na caixa,
-   para o fio do cabeçalho correr de borda a borda. */
+/* Quem desenha a caixa é o fio, no mesmo peso do menu (0,6px em `--color-border`), e o conteúdo assenta
+   no fundo da página. O fio não é `border`: a caixa de fora tem a cor do fio e um recuo da espessura
+   dele, e a de dentro tem a cor do fundo, as duas recortadas pelo sistema de cantos. Assim o canto sai
+   em superelipse também onde não há `corner-shape`, igual ao do bloco de conquistas, o que `border`
+   não permite (a regra da casa não recorta elemento com borda, porque o arco da borda e a superelipse
+   do recorte não coincidem). O recuo mora no cabeçalho e no corpo, e não na caixa, para o fio do
+   cabeçalho correr de borda a borda. */
 .card {
   --card-corner: var(--radius-xl);
   --card-pad: var(--space-4);
   --card-line: 0.0375rem;
+  /* Espessura do fio de fora no fallback: 1px cheio, porque a faixa de 0,6px entre duas caixas se perde
+     no antialias e sumia em algumas bordas. */
+  --card-frame: 1px;
   /* Raio de quem mora dentro: o de fora menos o recuo. */
   --card-inner: calc(var(--card-corner) - var(--card-pad));
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: var(--card-frame);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* A caixa de dentro, concêntrica: o raio de fora menos a espessura do fio. */
+.inner {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  border: var(--card-line) solid var(--color-border);
-  border-radius: var(--card-corner);
+  background-color: var(--color-bg);
+  border-radius: calc(var(--card-corner) - var(--card-frame));
+}
+
+/* Onde o canto nativo existe, o fio volta a ser `border` de 0,6px, o peso do menu, e o motor de cantos
+   nem liga: as duas caixas viram uma só, sem fundo, como o cartão sempre foi. */
+@supports (corner-shape: squircle) {
+  .card {
+    padding: 0;
+    background-color: transparent;
+    border: var(--card-line) solid var(--color-border);
+  }
+
+  .inner {
+    background-color: transparent;
+    border-radius: inherit;
+  }
 }
 
 /* Cabeçalho na altura do botão pequeno mais o respiro, tenha o cartão ação ou não: assim os títulos

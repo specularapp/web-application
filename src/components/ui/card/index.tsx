@@ -1,5 +1,5 @@
 import { useId, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from "react";
-import { squircle } from "@/lib/corners";
+import { squircle, squircleAuto } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { Text } from "../text";
 import styles from "./card.module.css";
@@ -17,7 +17,9 @@ export type CardProps = Omit<ComponentPropsWithoutRef<"section">, "title"> & {
 
 // Cartão de bloco: cabeçalho com ícone, título e uma ação discreta, separado do corpo por um fio, e o
 // corpo crescendo até o fim da caixa. Raio 24 com recuo 16, então o que for aninhado cai no raio 8
-// (`--card-inner`), como manda a regra dos cantos.
+// (`--card-inner`), como manda a regra dos cantos. O fio de fora não é `border`: é a caixa de fora na cor
+// do fio com a caixa de dentro na cor do fundo, as duas recortadas, para o canto sair em superelipse
+// também onde não há `corner-shape`.
 export function Card({
   title,
   icon,
@@ -31,19 +33,21 @@ export function Card({
   const id = useId();
 
   return (
-    <Tag className={cx(styles.card, className)} aria-labelledby={id} {...squircle("xl")} {...props}>
-      <header className={styles.head}>
-        {icon && (
-          <span className={styles.icon} aria-hidden="true">
-            {icon}
-          </span>
-        )}
-        <Text as={heading} id={id} variant="subheadline" weight="semibold" truncate className={styles.title}>
-          {title}
-        </Text>
-        {action && <span className={styles.action}>{action}</span>}
-      </header>
-      <div className={styles.body}>{children}</div>
+    <Tag className={cx(styles.card, className)} aria-labelledby={id} {...squircle("xl", { clip: true })} {...props}>
+      <div className={styles.inner} {...squircleAuto({ clip: true })}>
+        <header className={styles.head}>
+          {icon && (
+            <span className={styles.icon} aria-hidden="true">
+              {icon}
+            </span>
+          )}
+          <Text as={heading} id={id} variant="subheadline" weight="semibold" truncate className={styles.title}>
+            {title}
+          </Text>
+          {action && <span className={styles.action}>{action}</span>}
+        </header>
+        <div className={styles.body}>{children}</div>
+      </div>
     </Tag>
   );
 }
