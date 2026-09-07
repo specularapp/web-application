@@ -39,28 +39,33 @@ const Track = styled.div`
 
 `;
 
-/* O preenchimento que acompanha a bolinha: vai da borda esquerda até a borda direita dela, no roxo em
-   alfa baixo, e anda junto com ela; solto no meio do caminho, volta com a mesma mola. Pego,
-   toma a pista inteira. */
+/* O preenchimento que acompanha a bolinha: um degradê de várias cores da paleta (roxo, índigo, azul,
+   rosa e laranja) pintado na pista inteira e revelado até a borda direita da bolinha por um recorte, e
+   não por largura, então as cores ficam paradas e o arrasto vai descobrindo uma a uma. Solto no meio do
+   caminho, volta com a mesma mola. Pego, aparece inteiro. */
 const Fill = styled.span`
+  --reveal: calc(var(--x) + ${KNOB + INSET * 2}px);
   position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: calc(var(--x) + ${KNOB + INSET * 2}px);
+  inset: 0;
   pointer-events: none;
-  background-color: light-dark(
-    color-mix(in oklab, var(--claim-hue) 22%, transparent),
-    color-mix(in oklab, var(--claim-hue) 32%, transparent)
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--sys-purple) 45%, transparent),
+    color-mix(in oklab, var(--sys-indigo) 45%, transparent) 30%,
+    color-mix(in oklab, var(--sys-blue) 45%, transparent) 55%,
+    color-mix(in oklab, var(--sys-pink) 45%, transparent) 80%,
+    color-mix(in oklab, var(--sys-orange) 50%, transparent)
   );
   border-radius: var(--radius-full);
-  transition: width var(--duration-base) var(--ease-spring);
+  clip-path: inset(0 calc(100% - var(--reveal)) 0 0 round var(--radius-full));
+  transition: clip-path var(--duration-base) var(--ease-spring);
 
   [data-dragging] > & {
     transition: none;
   }
 
   [data-claimed] > & {
-    width: 100%;
+    clip-path: inset(0 round var(--radius-full));
   }
 
   @media (prefers-reduced-motion: reduce) {

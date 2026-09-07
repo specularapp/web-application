@@ -3,7 +3,15 @@
    a ordem das partes. */
 /* O menu é avulso: nasce direto sobre o fundo da página, sem caixa, borda ou raio em volta. As
    caixas que sobraram são as partes que precisam se separar do resto (time, convite, meta, perfil). */
+/* O menu surge com um fade curto junto com o painel: só opacidade, sem custo de layout. */
+@keyframes panelEnter {
+  from {
+    opacity: 0;
+  }
+}
+
 .panel {
+  animation: panelEnter var(--duration-slow) var(--ease-standard) both;
   --menu-padding: var(--space-2);
   /* Fio mais fino que o padrão da casa, pedido de 2026-09-02: 0,6px em vez de 1px. */
   --menu-line: 0.0375rem;
@@ -230,9 +238,10 @@
   gap: var(--space-3);
 }
 
-/* Alerta de plano no formato da referência: uma linha de identidade em cima (ícone, "plano atual",
-   o nome e o X que dispensa), a frase curta no meio e o botão cheio embaixo. Sem fundo, só o traço
-   fino da busca: o cartão pertence ao menu, em vez de gritar dentro dele. */
+/* Aviso do rodapé no formato da referência: em cima as bolinhas de quem está envolvido, com "+N" para o
+   resto, e o X que dispensa na outra ponta; no meio o título e a linha de apoio (quando, onde ou quanto
+   falta); embaixo o atalho em texto sublinhado com a seta. Sem fundo, só o traço fino da busca: o
+   cartão pertence ao menu, em vez de gritar dentro dele. */
 .promo {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -246,52 +255,46 @@
 
 .promoHead {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-2);
   min-width: 0;
 }
 
-.promoIcon {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  aspect-ratio: 1;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-  color: var(--color-label);
-  background-color: transparent;
+/* As bolinhas numa pílula com o fio da casa, como na referência, e o "+N" dentro dela. */
+.promoPeople {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-half);
   border: var(--menu-line) solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.promoIcon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  border-radius: var(--radius-full);
 }
 
 .promoPlan {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  gap: var(--space-half);
   min-width: 0;
-}
-
-/* Três classes de propósito: o line-height do Text sai de `.text[data-variant]`, que ganha de
-   classe simples. As duas linhas andam coladas e o vão de 2px sai só do gap. */
-.promo .promoPlan .promoLine {
-  line-height: 1.1;
-}
-
-/* Abaixo do menor degrau da escala de tipo: é marca d'água, não texto para ler corrido. */
-.promo .promoPlan .promoEyebrow {
-  font-family: var(--font-code);
-  font-size: 0.625rem;
 }
 
 .promoClose {
   flex-shrink: 0;
-  align-self: flex-start;
   margin-inline-start: auto;
+}
+
+/* O atalho é texto sublinhado com a seta colada, e não botão: o cartão avisa, não vende. */
+.promoAction {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-self: start;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+}
+
+.promoAction svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 /* Perfil sem caixa, no mesmo desenho do cabeçalho do time lá em cima: linha nua, avatar e nome de
@@ -533,15 +536,14 @@
   height: 1.25rem;
 }
 
-/* O cartão de plano cresce junto com o resto da tela cheia: mais respiro interno e vão maior. */
+/* O cartão de aviso cresce junto com o resto da tela cheia: mais respiro interno e vão maior. */
 .screen .promo {
   gap: var(--space-3);
   padding: var(--space-4);
 }
 
-.screen .promoIcon svg {
-  width: 1.5rem;
-  height: 1.5rem;
+.screen .promoAction {
+  font-size: var(--text-callout);
 }
 
 .screen {

@@ -35,6 +35,7 @@ import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
 import { MfaVerify } from "@/features/auth/components/mfa-verify";
 import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
+import { defaultLayout } from "@/features/dashboard/layout";
 import { PlanSettings } from "@/features/billing/components/plan-settings";
 import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
 import { previewClientsSummary } from "@/features/clients/preview";
@@ -1246,6 +1247,7 @@ const groups: Group[] = [
             user={{ name: previewSidebar.user.name, email: previewSidebar.user.email, avatarUrl: null }}
             greeting="Vamos com tudo hoje!"
             period="mes"
+            layout={defaultLayout}
           />
         ),
       },
@@ -1254,7 +1256,7 @@ const groups: Group[] = [
         note: "Os oito blocos do painel, todos com conteúdo, cada um com o cabeçalho padrão menos conquistas, que é um cartão de degradê sem cabeçalho: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos os pares que dividem uma coluna: conquistas com projetos, e equipe com desafio diário. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
         wide: true,
         layout: "stack",
-        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} clients={previewClientsSummary} tasks={previewTasksSummary} team={previewTeamSummary} challenge={previewWeeklyChallenge} quotes={previewQuotesSummary} achievements={previewPointsSummary} />,
+        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} clients={previewClientsSummary} tasks={previewTasksSummary} team={previewTeamSummary} challenge={previewWeeklyChallenge} quotes={previewQuotesSummary} achievements={previewPointsSummary} layout={defaultLayout} />,
       },
       {
         name: "Plano e assinatura (prévia)",

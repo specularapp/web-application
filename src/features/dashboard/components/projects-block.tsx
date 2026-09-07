@@ -1,7 +1,7 @@
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import type { ProjectsSummary } from "@/features/projects/summary";
-import { ProjectsChart } from "./projects-chart";
+import { ProjectsChart } from "./projects-chart-lazy";
 import styles from "./projects-block.module.css";
 
 export type ProjectsBlockProps = { summary: ProjectsSummary };

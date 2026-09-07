@@ -1,3 +1,4 @@
+import { pickAlert, previewAlerts } from "../alerts";
 import { previewNotifications } from "../notifications/preview";
 import type { SidebarProps } from "./index";
 
@@ -12,5 +13,5 @@ export const previewSidebar: SidebarProps = {
   ],
   currentTeamId: "aurora",
   notifications: previewNotifications,
-  suggestion: "orcamento",
+  alert: pickAlert(previewAlerts),
 };

@@ -19,7 +19,7 @@ export function AchievementsBlock({ summary }: AchievementsBlockProps) {
     <section className={styles.block} aria-label="Conquistas" {...squircleAuto({ clip: true })}>
       <div className={styles.top}>
         <div className={styles.art}>
-          <Image src="/bg/logo-gamification.png" alt="" width={415} height={414} className={styles.sticker} priority />
+          <Image src="/bg/logo-gamification.png" alt="" width={415} height={414} sizes="96px" className={styles.sticker} priority />
         </div>
 
         <div className={styles.numbers}>

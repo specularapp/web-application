@@ -28,17 +28,17 @@
   border-radius: var(--card-corner);
 }
 
-/* A caixa de dentro: o raio de fora menos duas vezes o fio, e não uma, de propósito. Com a diferença
-   exata de 1px, as duas superelipses antialiasadas do fallback quase coincidiam nas quinas e o fio
-   sumia lá (o que apareceu no iPhone); com 2px de diferença, ele engrossa um fio na quina em vez de
-   sumir. */
+/* A caixa de dentro com o MESMO raio da de fora, e não o concêntrico: com raio menor a curva de dentro
+   chega mais perto da de fora na quina do que o fio tem de espessura (na diagonal, a distância é o
+   recuo vezes raiz de dois menos 0,29 vezes a diferença de raios) e o antialias apaga o fio lá, o que
+   apareceu no iPhone. Com o mesmo raio, a quina fica com 1,4px de fio e as retas com 1px. */
 .inner {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   background-color: var(--color-bg);
-  border-radius: calc(var(--card-corner) - var(--card-frame) * 2);
+  border-radius: var(--card-corner);
 }
 
 /* Onde o canto nativo existe, o fio volta a ser `border` de 0,6px, o peso do menu, e o motor de cantos

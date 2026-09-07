@@ -61,9 +61,9 @@
   }
 }
 
-/* Duas vezes o fio, e não uma, pelo mesmo motivo do `Card`: com 1px exato as quinas sumiam no fallback. */
+/* O mesmo raio da caixa de fora, pelo mesmo motivo do `Card`: com raio menor o fio sumia nas quinas. */
 .bare > * {
-  border-radius: calc(var(--bare-corner) - var(--bare-frame) * 2);
+  border-radius: var(--bare-corner);
 }
 
 @supports (corner-shape: squircle) {
@@ -110,11 +110,28 @@
   grid-area: quote;
 }
 
+/* Layout mexido pela pessoa (algo escondido ou fora da ordem): o mapa de áreas sai e entra a posição
+   calculada por `packDashboard` no servidor, que mantém a mesma estrutura de andares de duas linhas com
+   um alto ou dois baixos por coluna. O bloco chega com coluna e linha em variáveis por largura
+   (`--c1`/`--r1`, `--c2`/`--r2`, `--c3`/`--r3`) e a altura em `--span`. Com o layout padrão nada disto
+   vale, e a grade é a de sempre. */
+.grid[data-custom] {
+  grid-template-rows: none;
+  grid-template-areas: none;
+  grid-auto-rows: var(--block-row);
+}
+
+.grid[data-custom] > [data-block] {
+  grid-area: auto;
+  grid-column: var(--c1);
+  grid-row: var(--r1) / span var(--span, 1);
+}
+
 /* Duas colunas de 48rem a 72rem, quando o menu vira coluna fixa e sobra meia tela: três pares de
    blocos altos, com conquistas e projetos dividindo a primeira coluna do primeiro par e equipe e
-   desafio a do último. Aqui e no
-   celular a página é alta por natureza e rola, e a linha é fixa em 12,5rem em vez de crescer com o
-   conteúdo (decisão de 2026-09-07): bloco com lista rola por dentro, e não estica a página. */
+   desafio a do último. Aqui e no celular a página é alta por natureza e rola, e a linha é fixa em
+   12,5rem em vez de crescer com o conteúdo (decisão de 2026-09-07): bloco com lista rola por dentro, e
+   não estica a página. */
 @media (min-width: 48rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -126,6 +143,16 @@
       "tasks clients"
       "team quote"
       "challenge quote";
+  }
+
+  .grid[data-custom] {
+    grid-template-rows: none;
+    grid-template-areas: none;
+  }
+
+  .grid[data-custom] > [data-block] {
+    grid-column: var(--c2);
+    grid-row: var(--r2) / span var(--span, 1);
   }
 }
 
@@ -144,5 +171,16 @@
       "projects finance clients"
       "tasks team quote"
       "tasks challenge quote";
+  }
+
+  .grid[data-custom] {
+    grid-template-rows: none;
+    grid-template-areas: none;
+    grid-auto-rows: minmax(var(--block-row), 1fr);
+  }
+
+  .grid[data-custom] > [data-block] {
+    grid-column: var(--c3);
+    grid-row: var(--r3) / span var(--span, 1);
   }
 }

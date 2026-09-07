@@ -2,7 +2,7 @@
 
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
-import { CaretRightIcon, CaretUpDownIcon, type Icon } from "@phosphor-icons/react";
+import { CaretRightIcon, CaretUpDownIcon, CheckIcon, type Icon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -33,6 +33,8 @@ export type DropdownAction = {
   /** Contagem no fim da linha, como quantos itens o histórico tem. */
   count?: number;
   tone?: "default" | "danger";
+  /** Item marcado numa escolha única, como o período em vigor: vira `menuitemradio` com o check no fim. */
+  selected?: boolean;
   onSelect?: () => void;
 };
 
@@ -160,6 +162,10 @@ const rowStyles = css`
     outline: none;
   }
 
+  &[data-selected] {
+    color: var(--color-label);
+  }
+
   &[data-tone="danger"] {
     color: var(--color-danger);
   }
@@ -218,6 +224,11 @@ const Trailing = styled.span`
     height: 1rem;
     color: var(--color-label-tertiary);
   }
+
+  /* O check do item marcado vai na cor do texto, e não apagado como a seta. */
+  & > svg[data-selected] {
+    color: var(--color-label);
+  }
 `;
 
 const Trigger = styled.span`
@@ -225,7 +236,7 @@ const Trigger = styled.span`
   flex-shrink: 0;
 `;
 
-const MENU_ITEMS = '[role="menuitem"], [role="menuitemcheckbox"]';
+const MENU_ITEMS = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
 
 function heightOf(sections: DropdownSection[]) {
   const rows = sections.reduce((total, section) => total + section.items.length + (section.label ? 0.6 : 0), 0);
@@ -332,7 +343,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
       );
     }
 
-    const trailing = (item.count !== undefined || item.plan || item.submenu) && (
+    const trailing = (item.count !== undefined || item.plan || item.submenu || item.selected !== undefined) && (
       <Trailing>
         {item.count !== undefined && (
           <Badge tone="neutral" size="sm">
@@ -345,8 +356,12 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
           </Badge>
         )}
         {item.submenu && <CaretRightIcon aria-hidden="true" weight="bold" />}
+        {item.selected && <CheckIcon aria-hidden="true" weight="bold" data-selected />}
       </Trailing>
     );
+
+    const role = item.selected === undefined ? "menuitem" : "menuitemradio";
+    const checked = item.selected === undefined ? undefined : item.selected;
 
     const content = (
       <>
@@ -363,7 +378,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
 
     if (item.href && isExternal(item.href)) {
       return (
-        <ActionAnchor key={item.id} role="menuitem" href={item.href} target="_blank" rel="noreferrer" data-tone={item.tone} onClick={select} tabIndex={-1}>
+        <ActionAnchor key={item.id} role={role} aria-checked={checked} href={item.href} target="_blank" rel="noreferrer" data-tone={item.tone} onClick={select} tabIndex={-1}>
           {content}
         </ActionAnchor>
       );
@@ -371,14 +386,14 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
 
     if (item.href) {
       return (
-        <ActionLink key={item.id} role="menuitem" href={item.href as Route} data-tone={item.tone} onClick={select} tabIndex={-1}>
+        <ActionLink key={item.id} role={role} aria-checked={checked} href={item.href as Route} data-tone={item.tone} onClick={select} tabIndex={-1}>
           {content}
         </ActionLink>
       );
     }
 
     return (
-      <ActionButton key={item.id} type="button" role="menuitem" data-tone={item.tone} onClick={select} tabIndex={-1}>
+      <ActionButton key={item.id} type="button" role={role} aria-checked={checked} data-tone={item.tone} data-selected={item.selected || undefined} onClick={select} tabIndex={-1}>
         {content}
       </ActionButton>
     );

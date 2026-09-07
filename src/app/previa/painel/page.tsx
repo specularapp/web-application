@@ -3,6 +3,7 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Sidebar } from "@/components/layout/sidebar";
 import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { DashboardScreen } from "@/features/dashboard/components/dashboard-screen";
+import { defaultLayout } from "@/features/dashboard/layout";
 import { previewClientsSummary } from "@/features/clients/preview";
 import { previewFinanceSummary } from "@/features/finance/preview";
 import { previewPointsSummary, previewWeeklyChallenge } from "@/features/gamification/preview";
@@ -40,6 +41,7 @@ export default function DashboardPreviewPage() {
         challenge={previewWeeklyChallenge}
         quotes={previewQuotesSummary}
         achievements={previewPointsSummary}
+        layout={defaultLayout}
       />
     </AppFrame>
   );

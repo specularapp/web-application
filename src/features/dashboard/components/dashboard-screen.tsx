@@ -16,12 +16,13 @@ export function DashboardScreen({
   challenge,
   quotes,
   achievements,
+  layout,
   ...header
 }: DashboardScreenProps) {
   return (
     <div className={styles.screen}>
       <div className={styles.top}>
-        <DashboardHeader {...header} />
+        <DashboardHeader {...header} layout={layout} />
       </div>
       <DashboardGrid
         projects={projects}
@@ -32,6 +33,7 @@ export function DashboardScreen({
         challenge={challenge}
         quotes={quotes}
         achievements={achievements}
+        layout={layout}
       />
     </div>
   );

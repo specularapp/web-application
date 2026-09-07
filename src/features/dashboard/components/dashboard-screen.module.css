@@ -20,10 +20,17 @@
   --fade: var(--space-6);
   position: sticky;
   isolation: isolate;
+  animation: fadeIn var(--duration-slow) var(--ease-standard) both;
   inset-block-start: 0;
   z-index: 1;
   padding: var(--space-4) var(--space-4) var(--fade);
   margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) calc(var(--fade) * -1 + var(--space-2));
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
 }
 
 /* O degradê, o borrão e a máscara vivem numa camada atrás do conteúdo, e não no invólucro: a lista do

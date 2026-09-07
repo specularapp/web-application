@@ -1,27 +1,15 @@
 "use client";
 
 import {
-  ArrowRightIcon,
-  BellIcon,
-  BriefcaseIcon,
-  BuildingsIcon,
   CaretLeftIcon,
   CaretRightIcon,
   ListIcon,
   MagnifyingGlassIcon,
-  PlugsIcon,
-  ReceiptIcon,
-  ShieldCheckIcon,
   CircleHalfIcon,
-  CrownSimpleIcon,
-  FlowArrowIcon,
-  GlobeIcon,
-  ImagesIcon,
   SignOutIcon,
-  TrophyIcon,
-  UsersThreeIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -29,13 +17,12 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
+import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { usePresence } from "@/hooks/use-presence";
@@ -43,7 +30,7 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
-import { findSuggestion, type SuggestionIcon } from "../suggestions";
+import { alertKindLabels, type SidebarAlert } from "../alerts";
 import { Notifications, type AppNotification } from "../notifications";
 import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
@@ -69,29 +56,16 @@ export type SidebarProps = {
   teams: SwitcherTeam[];
   currentTeamId: string | null;
   notifications: AppNotification[];
-  /** Id da sugestão do mural sorteada no servidor; o cliente resolve ícone e texto pela lista. Sem id, sem cartão. */
-  suggestion?: string;
+  /** O aviso mais urgente, escolhido no servidor: reunião, entrega, cobrança ou tarefa. Sem aviso, sem cartão. */
+  alert?: SidebarAlert;
 };
 
 /* Canto da barra flutuante: o raio dos botões de dentro mais o recuo que os separa da borda, que é a
    conta concêntrica lida ao contrário, do filho para o pai. */
 const BAR_CORNER = cornerRadius.md + 4;
 
-/* A sugestão chega do servidor com o ícone por nome; aqui, no cliente, o nome vira componente. */
-const suggestionIcons: Record<SuggestionIcon, typeof BellIcon> = {
-  receipt: ReceiptIcon,
-  users: UsersThreeIcon,
-  globe: GlobeIcon,
-  shield: ShieldCheckIcon,
-  images: ImagesIcon,
-  plugs: PlugsIcon,
-  flow: FlowArrowIcon,
-  buildings: BuildingsIcon,
-  trophy: TrophyIcon,
-  bell: BellIcon,
-  briefcase: BriefcaseIcon,
-  crown: CrownSimpleIcon,
-};
+/* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
+const ALERT_FACES = 3;
 
 type NavMotion = "forward" | "back";
 
@@ -147,7 +121,7 @@ export function SidebarPanel({
   teams,
   currentTeamId,
   notifications,
-  suggestion,
+  alert,
   variant,
   onSearch,
   onNotificationsChange,
@@ -177,56 +151,57 @@ export function SidebarPanel({
     setFolder(null);
     setMotion("back");
   };
-  const [promoVisible, setPromoVisible] = useState(true);
+  const [alertVisible, setAlertVisible] = useState(true);
   const mobile = variant === "mobile";
 
-  // O mural muda de lugar por moldura: no desktop entra acima do perfil, no celular segue por último,
-  // depois das ações da conta. Posição por árvore, para a leitura seguir a tela.
-  const tip = findSuggestion(suggestion);
-  const TipIcon = tip ? suggestionIcons[tip.icon] : null;
-  const planCard = tip && TipIcon && promoVisible && (
-    <section className={styles.promo} {...squircle("lg")} aria-label={`${tip.eyebrow}: ${tip.title}`}>
+  // O aviso muda de lugar por moldura: no desktop entra acima do perfil, no celular segue por último,
+  // depois das ações da conta. Posição por árvore, para a leitura seguir a tela. Quem está envolvido
+  // vira bolinhas com o resto em "+N", o título e a linha de apoio dizem o que e quando, e o atalho leva
+  // a quem resolve. O X dispensa até a próxima carga.
+  const faces = alert?.people.slice(0, ALERT_FACES) ?? [];
+  const extraFaces = alert ? alert.people.length - faces.length : 0;
+  const external = alert?.action.href.startsWith("http");
+  const planCard = alert && alertVisible && (
+    <section className={styles.promo} {...squircle("lg")} aria-label={`${alertKindLabels[alert.kind]}: ${alert.title}`}>
       <div className={styles.promoHead}>
-        <span className={styles.promoIcon}>
-          <TipIcon aria-hidden="true" />
-        </span>
-        <div className={styles.promoPlan}>
-          <Text variant="caption2" tone="secondary" className={`${styles.promoLine} ${styles.promoEyebrow}`}>
-            {tip.eyebrow}
-          </Text>
-          <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate className={styles.promoLine}>
-            {tip.title}
-          </Text>
-        </div>
-        <IconButton
-          label="Dispensar sugestão"
-          variant="ghost"
-          size="sm"
-          className={styles.promoClose}
-          onClick={() => setPromoVisible(false)}
-        >
+        {faces.length > 0 && (
+          <span className={styles.promoPeople}>
+            <AvatarGroup>
+              {faces.map((person) => (
+                <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
+              ))}
+            </AvatarGroup>
+            {extraFaces > 0 && (
+              <Text as="span" variant="caption1" tone="secondary">
+                +{extraFaces}
+              </Text>
+            )}
+          </span>
+        )}
+        <IconButton label="Dispensar aviso" variant="ghost" size="sm" className={styles.promoClose} onClick={() => setAlertVisible(false)}>
           <XIcon />
         </IconButton>
       </div>
 
-      <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">
-        {tip.description}
-      </Text>
+      <div className={styles.promoPlan}>
+        <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate>
+          {alert.title}
+        </Text>
+        <Text variant={mobile ? "footnote" : "caption1"} tone="secondary" truncate>
+          {alert.detail}
+        </Text>
+      </div>
 
-      <Button
-        href={tip.href}
-        size={mobile ? "md" : "sm"}
-        radius="md"
-        fullWidth
-        variant="secondary"
-        background="var(--color-label)"
-        foreground="var(--color-bg)"
-        border="transparent"
-        style={{ "--button-background-hover": "color-mix(in oklab, var(--color-label) 85%, var(--color-bg))" } as CSSProperties}
-        iconEnd={<ArrowRightIcon />}
+      <TextLink
+        href={alert.action.href as Route}
+        tone="inherit"
+        underline="always"
+        className={styles.promoAction}
+        {...(external && { target: "_blank", rel: "noreferrer" })}
       >
-        {tip.action}
-      </Button>
+        {alert.action.label}
+        <CaretRightIcon aria-hidden="true" weight="bold" />
+      </TextLink>
     </section>
   );
   return (

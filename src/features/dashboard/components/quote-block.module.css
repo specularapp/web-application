@@ -112,36 +112,42 @@
 }
 
 /* No celular o bloco de duas linhas tem 332px de corpo (duas linhas de 200 mais o vão, menos cabeçalho e
-   recuo), e cinco linhas de 36px com rótulo passavam disso: aqui os chips e as bolinhas caem para 28px,
-   o título e o valor descem um degrau e os campos empilham a partir do topo com 12 entre si, o que dá
-   uns 280px e sobra folga. Três classes para vencer o `data-variant` do Text e o `data-size` do Avatar. */
+   recuo), e cinco linhas de 36px com rótulo passavam disso: aqui os chips e as bolinhas caem para 24px,
+   todo texto desce dois degraus (rótulos em caption 2, valores em footnote, o dinheiro em subheadline)
+   e os campos empilham a partir do topo com 12 entre si, o que dá uns 250px e sobra folga. Três classes para vencer o `data-variant` do Text e o `data-size` do Avatar. */
 @media (max-width: 47.9375rem) {
   .sheet {
     gap: var(--space-3);
     justify-content: flex-start;
   }
 
-  .sheet .heading .title {
-    font-size: var(--text-subheadline);
+  .sheet .label {
+    font-size: var(--text-caption-2);
+  }
+
+  .sheet .heading .title,
+  .sheet .inline > :last-child,
+  .sheet .stack > :last-child {
+    font-size: var(--text-footnote);
   }
 
   .sheet .stack > :first-child {
-    font-size: var(--text-headline);
+    font-size: var(--text-subheadline);
   }
 
   .sheet .glyph {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: var(--radius-md);
   }
 
   .sheet .glyph svg {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   .sheet .inline > :first-child {
-    --avatar-size: 1.75rem;
+    --avatar-size: 1.5rem;
   }
 }
 

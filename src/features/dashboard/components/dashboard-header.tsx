@@ -1,16 +1,18 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { CalendarBlankIcon, GearSixIcon, MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { PageHeader } from "@/components/layout/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { Listbox } from "@/components/ui/listbox";
+import type { DashboardLayout } from "../layout";
 import { dashboardPeriods, PERIOD_PARAM, type DashboardPeriod } from "../period";
+import { DashboardCustomizer } from "./dashboard-customizer";
 
 export type DashboardUser = { name: string; email: string | null; avatarUrl: string | null };
 
@@ -18,12 +20,12 @@ export type DashboardHeaderProps = {
   user: DashboardUser;
   greeting: string;
   period: DashboardPeriod;
+  /** Ordem e visibilidade dos blocos, para a gaveta de personalizar. */
+  layout: DashboardLayout;
   /** Guarda o período localmente em vez de escrever na URL do painel: é o formato da vitrine. */
   demo?: boolean;
 };
 
-/* O seletor de período veste a roupa do botão de ícone fantasma ao lado: mesmo quadrado de 36, mesmo
-   raio de metade do lado e o mesmo preenchimento no hover, para a fila de ícones ler como uma só. */
 /* O botão de criar tem texto no desktop e vira só ícone no celular, por CSS e não por media query em
    JS, para a marcação não saltar na hidratação: os dois existem e cada largura mostra um. */
 const Wide = styled.span`
@@ -42,23 +44,11 @@ const Narrow = styled.span`
   }
 `;
 
-const Period = styled.span`
-  --listbox-trigger-height: var(--control-height-sm);
-  --listbox-trigger-radius: var(--icon-button-radius-sm);
-  --listbox-trigger-background: transparent;
-  --listbox-trigger-background-hover: var(--color-fill-quaternary);
-  --listbox-trigger-border: transparent;
-  display: inline-flex;
-
-  @media (pointer: coarse) {
-    --listbox-trigger-height: max(var(--control-height-sm), var(--touch-target));
-  }
-`;
-
 // Cabeçalho do painel: a pessoa à esquerda e, à direita, o que ela faz todo dia. Só ícones, menos o
 // de criar orçamento, que é a ação principal e leva texto. Buscar abre a mesma busca do menu; o
-// período vai para a URL, que é de onde os blocos do painel vão ler.
-export function DashboardHeader({ user, greeting, period, demo = false }: DashboardHeaderProps) {
+// período abre o menu de opções da casa com o escolhido marcado e vai para a URL, que é de onde os
+// blocos do painel vão ler; a engrenagem abre a gaveta de personalizar a grade.
+export function DashboardHeader({ user, greeting, period, layout, demo = false }: DashboardHeaderProps) {
   const router = useRouter();
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
@@ -90,19 +80,24 @@ export function DashboardHeader({ user, greeting, period, demo = false }: Dashbo
             <IconButton label="Buscar" variant="ghost" size="sm" onClick={openSearch}>
               <MagnifyingGlassIcon />
             </IconButton>
-            <Period>
-              <Listbox
-                label="Período"
-                icon={<CalendarBlankIcon />}
-                iconOnly
-                options={dashboardPeriods}
-                value={current}
-                onChange={changePeriod}
-              />
-            </Period>
-            <IconButton label="Personalizar painel" variant="ghost" size="sm">
-              <GearSixIcon />
-            </IconButton>
+            <DropdownMenu
+              label="Período do painel"
+              triggerLabel={`Período: ${dashboardPeriods.find((option) => option.value === current)?.label ?? ""}`}
+              icon={<CalendarBlankIcon />}
+              sections={[
+                {
+                  id: "periods",
+                  label: "Período",
+                  items: dashboardPeriods.map((option) => ({
+                    id: option.value,
+                    label: option.label,
+                    selected: option.value === current,
+                    onSelect: () => changePeriod(option.value),
+                  })),
+                },
+              ]}
+            />
+            <DashboardCustomizer layout={layout} />
             <Wide>
               <Button href="/orcamentos/novo" size="sm" iconStart={<PlusIcon />}>
                 Criar orçamento

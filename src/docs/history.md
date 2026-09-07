@@ -38,11 +38,15 @@ Feito:
 - Cabeçalho do painel fixo no topo, desbotando para o transparente com o borrão indo junto, numa camada atrás do conteúdo para não apagar a lista do período.
 - `DropdownMenu` saiu do stub: menu de opções colado no gatilho no padrão das camadas do menu (vidro, seções, ações, seta de submenu, contagem, selo do plano no chip da Assinatura, interruptores, tom vermelho), bandeja no celular, setas e Escape, e posição medida de verdade antes de pintar para nunca cortar. Primeiro uso: `ClientMenu` no bloco de clientes, com as opções da referência do usuário.
 - Segunda rodada do celular, sobre o iPhone do usuário: fio dos cartões engrossando na quina em vez de sumir (raio de dentro menos duas vezes o fio), cabeçalho sem quebrar com o nome em reticências e botões pequenos, menu do cliente rolando na bandeja e o vidro da bandeja a 72%, último orçamento cabendo nos 332px de corpo. "Tarefas pendentes" a 12px da lista. `Button` só de ícone deixou de mostrar giro e glifo juntos em `loading`, e o atualizar do financeiro dispara toast ao terminar.
+- Cartão do menu deixou de ser mural de sugestões e virou aviso contextual (`alerts.ts`): reunião, entrega, cobrança ou tarefa, com as pessoas em bolinhas, título, linha de apoio escrita no servidor e o atalho em texto; o mais urgente é escolhido no `AppShell`. O `suggestions.ts` saiu.
+- Varredura de peso do painel: Recharts fora do pacote inicial por `next/dynamic` sem SSR, `sizes` nas ilustrações, rosto gerado do `Avatar` em cache por semente no servidor.
+- Personalizar o painel: a engrenagem abre a gaveta com os blocos, alça de arrastar (`@dnd-kit`, primeiro uso) e interruptor de mostrar, guardado no cookie `sp-painel` lido com zod. A grade padrão é o mapa de sempre; com algo escondido ou fora da ordem, `packDashboard` recalcula na mesma estrutura, sem partir par de baixos com um alto no desktop e com ordem literal no celular. Uma versão com fluxo automático desmanchou o mapa e saiu em minutos.
+- Período no cabeçalho virou o menu de opções da casa com o escolhido marcado; arrasto de pontos em degradê de várias cores revelado por recorte; cabeçalho e menu entrando com fade.
 
 Pendências:
 
 - Nenhum domínio novo do painel existe no banco: clientes, tarefas, orçamentos, medidas por pessoa, pontos, ranking, sequência de dias e tempo online leem de prévia. O arrasto de pontos só muda o estado na tela; `onClaim` espera a action que credita e marca o dia.
-- No menu do cliente, editar, histórico, mapa e excluir só fecham o menu, e ativo e favorito trocam só na tela; o submenu é só a seta. O chevron das tarefas segue mudo. `/tarefas` é página vazia e ainda não está no menu.
+- No menu do cliente, editar, histórico, mapa e excluir só fecham o menu, e ativo e favorito trocam só na tela; o submenu é só a seta. O chevron das tarefas segue mudo. `/tarefas` é página vazia e ainda não está no menu. Os avisos do menu lateral vêm de prévia: reuniões, entregas e cobranças não existem no banco.
 - Contagem de acessos e tempo online do desafio semanal não é medida em lugar nenhum: precisa de registro de sessão por dia quando for para valer.
 - Clientes, tarefas, medidas por pessoa e desafio não têm domínio no banco: leem de prévia.
 - A engrenagem de personalizar o painel ainda não faz nada.
