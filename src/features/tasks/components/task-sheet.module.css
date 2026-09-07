@@ -1,0 +1,256 @@
+/* A ficha é uma coluna com o recuo da janela; o X flutuante fica na quina, e a primeira linha deixa
+   lugar para ele. */
+.sheet {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+@media (width >= 48rem) {
+  .sheet {
+    padding: var(--space-6);
+  }
+}
+
+.head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding-inline-end: var(--space-10);
+}
+
+.project {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.project svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* O aviso lê antes de tudo: fundo no matiz de alerta, ícone cheio na mesma cor e o texto na tinta normal. */
+.alert {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-warning) 10%, transparent),
+    color-mix(in oklab, var(--color-warning) 16%, transparent)
+  );
+  border-radius: var(--radius-md);
+}
+
+.alert svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-block-start: 0.0625rem;
+  color: var(--color-warning);
+}
+
+/* Os fatos em rótulo à esquerda, com o ícone, e o valor à direita; no celular o rótulo sobe para a linha de cima. */
+.facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.factLabel {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.factLabel svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+.factValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+}
+
+@media (width < 30rem) {
+  .fact {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Pessoa em chip: a bolinha e o nome, na borda da casa e em pílula, como as etiquetas em pílula. */
+.person,
+.chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  max-width: 100%;
+  height: 2rem;
+  padding-inline: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.chip {
+  padding-inline: var(--space-3);
+}
+
+.rule {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.sectionHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.progress {
+  width: 4rem;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Subtarefa: a caixa da casa com o título como rótulo, e quem cuida na ponta; marcada fica riscada e
+   apagada. As duas classes vencem o estilo da caixa, que entra depois na folha. */
+.subtask {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.subtask .check {
+  flex: 1;
+  min-width: 0;
+}
+
+.subtask[data-done] .check {
+  color: var(--color-label-secondary);
+  text-decoration: line-through;
+}
+
+/* Anexo num cartão no preenchimento da casa, que é um botão e abre o arquivo na própria tela: o ícone do
+   tipo num chip, nome e formato, a situação e a seta na ponta. */
+.file {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  appearance: none;
+  cursor: pointer;
+  border: 0;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.file:active {
+  background-color: var(--color-fill-secondary);
+}
+
+@media (hover: hover) {
+  .file:hover {
+    background-color: var(--color-fill-tertiary);
+  }
+
+  .file:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.open {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+.fileIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.fileIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.fileCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* Atividade: a bolinha de quem fez, o que fez em uma linha e quando, embaixo. */
+.event {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.eventCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}

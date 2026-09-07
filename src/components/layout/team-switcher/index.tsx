@@ -232,8 +232,10 @@ const Create = styled.button`
 
   ${hoverMotion};
 
-  &:hover:not(:disabled) {
-    background-color: var(--color-fill-quaternary);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background-color: var(--color-fill-quaternary);
+    }
   }
 
   &:disabled {

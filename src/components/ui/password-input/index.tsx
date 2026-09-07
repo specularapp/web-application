@@ -30,8 +30,10 @@ const Toggle = styled.button`
     height: var(--touch-target);
   }
 
-  &:hover {
-    color: var(--color-label);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-label);
+    }
   }
 
   & svg {

@@ -114,11 +114,10 @@
 /* No celular o bloco de duas linhas tem 332px de corpo (duas linhas de 200 mais o vão, menos cabeçalho e
    recuo), e cinco linhas de 36px com rótulo passavam disso: aqui os chips e as bolinhas caem para 24px,
    todo texto desce dois degraus (rótulos em caption 2, valores em footnote, o dinheiro em subheadline)
-   e os campos empilham a partir do topo com 12 entre si, o que dá uns 250px e sobra folga. Três classes para vencer o `data-variant` do Text e o `data-size` do Avatar. */
+   e os campos dividem a sobra entre si com 12 de vão mínimo, então a ficha ocupa o bloco inteiro. Três classes para vencer o `data-variant` do Text e o `data-size` do Avatar. */
 @media (max-width: 47.9375rem) {
   .sheet {
     gap: var(--space-3);
-    justify-content: flex-start;
   }
 
   .sheet .label {

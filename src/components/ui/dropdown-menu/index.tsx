@@ -80,7 +80,7 @@ const Popover = styled.div`
   --genie-y: calc(var(--space-2) * -1);
 
   position: fixed;
-  z-index: var(--z-dropdown);
+  z-index: var(--z-popover);
   display: flex;
   flex-direction: column;
   width: min(${PANEL_WIDTH}px, calc(100vw - ${EDGE * 2}px));
@@ -152,14 +152,18 @@ const rowStyles = css`
 
   ${hoverMotion};
 
-  &:hover,
-  &:focus-visible {
-    color: var(--color-label);
-    background-color: var(--color-fill-quaternary);
+  @media (hover: hover) {
+    &:hover,
+    &:focus-visible {
+      color: var(--color-label);
+      background-color: var(--color-fill-quaternary);
+    }
   }
 
-  &:focus-visible {
-    outline: none;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   &[data-selected] {
@@ -170,10 +174,12 @@ const rowStyles = css`
     color: var(--color-danger);
   }
 
-  &[data-tone="danger"]:hover,
-  &[data-tone="danger"]:focus-visible {
-    color: var(--color-danger);
-    background-color: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  @media (hover: hover) {
+    &[data-tone="danger"]:hover,
+    &[data-tone="danger"]:focus-visible {
+      color: var(--color-danger);
+      background-color: color-mix(in oklab, var(--color-danger) 10%, transparent);
+    }
   }
 
   & > svg {

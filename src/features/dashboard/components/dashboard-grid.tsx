@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { StreakButton } from "@/features/gamification/components/streak-button";
 import type { ClientsSummary } from "@/features/clients/summary";
 import type { FinanceSummary } from "@/features/finance/summary";
 import type { PointsSummary, WeeklyChallenge } from "@/features/gamification/summary";
@@ -37,7 +38,7 @@ export type DashboardGridProps = {
 // caixa. Com o layout padrão, a grade é o mapa de áreas nomeadas de sempre. Se a pessoa escondeu ou
 // reordenou blocos, a grade entra em `data-custom` e cada bloco chega com a posição calculada por
 // `packDashboard` na mesma estrutura, uma vez por largura. O atalho é contorno e pequeno de propósito:
-// leva à tela, não é o foco.
+// leva à tela, não é o foco; um bloco pode trazer um atalho próprio, que abre algo em vez de navegar.
 export function DashboardGrid({
   layout,
   projects,
@@ -58,6 +59,11 @@ export function DashboardGrid({
     team: <TeamBlock summary={team} />,
     challenge: <ChallengeBlock challenge={challenge} />,
     quote: <QuoteBlock summary={quotes} />,
+  };
+
+  // Atalho de cabeçalho que abre algo em vez de levar a uma tela; ganha do atalho de rota do registro.
+  const actions: Partial<Record<DashboardBlockId, ReactNode>> = {
+    challenge: <StreakButton challenge={challenge} />,
   };
 
   const custom = !isDefaultLayout(layout);
@@ -97,11 +103,12 @@ export function DashboardGrid({
             title={block.title}
             icon={<block.icon />}
             action={
-              block.action && (
+              actions[block.id] ??
+              (block.action && (
                 <Button href={block.action.href} variant="outline" size="sm" radius="md">
                   {block.action.label}
                 </Button>
-              )
+              ))
             }
             data-block={block.id}
           >

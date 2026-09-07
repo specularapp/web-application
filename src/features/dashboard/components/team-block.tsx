@@ -1,13 +1,16 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { BriefcaseIcon, CurrencyCircleDollarIcon, type Icon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CaretRightIcon, CurrencyCircleDollarIcon, type Icon } from "@phosphor-icons/react";
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DetailsTrigger } from "@/components/ui/details-dialog";
+import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, focusRing } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { MemberProfile } from "@/features/organizations/components/member-profile";
 import type { TeamMember, TeamMemberMetrics, TeamMemberStatus, TeamSummary } from "@/features/organizations/summary";
 import { compactMoney } from "@/lib/utils/format";
 
@@ -105,8 +108,10 @@ const Pick = styled.button`
     opacity: 0.72;
   }
 
-  &:hover {
-    opacity: 1;
+  @media (hover: hover) {
+    &:hover {
+      opacity: 1;
+    }
   }
 
   &[aria-pressed="true"] {
@@ -131,8 +136,8 @@ const Pick = styled.button`
 /* A ficha de quem está em foco, numa faixa com o preenchimento do botão secundário e o raio de dentro
    do bloco: nome e função à esquerda, encurtando por reticências, e as medidas na outra ponta. A faixa
    fica parada na troca de pessoa; o que entra com um fade curto são só os textos, que remontam por
-   `key`, então nada salta. */
-const Focused = styled.div`
+   `key`, então nada salta. A faixa inteira abre o perfil da pessoa, e a seta na ponta também. */
+const Focused = styled(DetailsTrigger)`
   display: flex;
   flex-shrink: 0;
   gap: var(--space-3);
@@ -195,7 +200,7 @@ const Measure = styled.div`
 const DRAG_THRESHOLD = 4;
 
 // Todo mundo da equipe numa fila de fotos que rola e cresce com o espaço, e embaixo a ficha de quem
-// está em foco com as duas medidas do que produziu. Começa pela primeira pessoa; clicar em outra foto
+// está em foco com as duas medidas do que produziu; clicar na faixa abre o perfil da pessoa. Começa pela primeira pessoa; clicar em outra foto
 // troca e a traz para a vista. Com o mouse a fila também anda arrastando, e um arrasto não conta como
 // clique na foto onde o ponteiro soltou.
 export function TeamBlock({ summary }: TeamBlockProps) {
@@ -283,7 +288,13 @@ export function TeamBlock({ summary }: TeamBlockProps) {
         ))}
       </Strip>
 
-      <Focused>
+      <Focused
+        as="div"
+        dialog={<MemberProfile member={focused} />}
+        dialogLabel={`Perfil de ${focused.name}`}
+        dialogSize="lg"
+        label={`Ver perfil de ${focused.name}`}
+      >
         <Naming>
           <Fading key={`name-${focused.id}`}>
             <Text as="p" variant="subheadline" weight="semibold" truncate>
@@ -308,6 +319,9 @@ export function TeamBlock({ summary }: TeamBlockProps) {
             </Measure>
           ))}
         </Metrics>
+        <IconButton label={`Abrir perfil de ${focused.name}`} variant="ghost" size="sm" data-open-details>
+          <CaretRightIcon weight="bold" />
+        </IconButton>
       </Focused>
     </Block>
   );

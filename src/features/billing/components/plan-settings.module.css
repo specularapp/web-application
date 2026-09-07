@@ -121,14 +121,18 @@
   text-underline-offset: 0.2em;
 }
 
-.link:hover {
-  text-decoration-thickness: 2px;
+@media (hover: hover) {
+  .link:hover {
+    text-decoration-thickness: 2px;
+  }
 }
 
-.link:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+@media (hover: hover) {
+  .link:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
 }
 
 .empty {

@@ -55,8 +55,10 @@ const Root = styled.div`
   width: 100%;
   padding: var(--toast-pad) var(--toast-pad) var(--toast-pad) var(--space-4);
   color: var(--color-label);
-  background-color: var(--color-bg-grouped-secondary);
-  border: 1px solid var(--color-border);
+  background-color: var(--glass-layer-bg);
+  border: 0.0375rem solid var(--color-border);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
   border-radius: var(--toast-radius);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);

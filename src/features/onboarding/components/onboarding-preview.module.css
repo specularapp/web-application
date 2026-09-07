@@ -45,8 +45,10 @@
     color var(--duration-fast) var(--ease-standard);
 }
 
-.tab:hover {
-  color: var(--color-label);
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--color-label);
+  }
 }
 
 .tab[data-active] {
@@ -54,9 +56,11 @@
   background-color: var(--color-bg-tertiary);
 }
 
-.tab:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+@media (hover: hover) {
+  .tab:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
 .hint {

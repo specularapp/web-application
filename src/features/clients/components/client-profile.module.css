@@ -1,0 +1,4 @@
+/* O "Ver todos" na cabeça da seção, no tamanho da legenda. */
+.more {
+  font-size: var(--text-footnote);
+}

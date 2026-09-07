@@ -133,9 +133,11 @@
   border-radius: var(--radius-md);
 }
 
-.row:hover {
-  color: var(--color-label);
-  background-color: var(--color-fill-quaternary);
+@media (hover: hover) {
+  .row:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
 }
 
 .row[data-active] {
@@ -164,11 +166,13 @@
     transform var(--duration-fast) var(--ease-standard);
 }
 
-.row:hover,
-.back:hover,
-.find:hover,
-.search:hover {
-  transition-duration: var(--duration-base);
+@media (hover: hover) {
+  .row:hover,
+  .back:hover,
+  .find:hover,
+  .search:hover {
+    transition-duration: var(--duration-base);
+  }
 }
 
 .row:active,
@@ -222,8 +226,10 @@
   border-radius: var(--radius-md);
 }
 
-.back:hover {
-  background-color: var(--color-fill-quaternary);
+@media (hover: hover) {
+  .back:hover {
+    background-color: var(--color-fill-quaternary);
+  }
 }
 
 .back svg {
@@ -469,8 +475,10 @@
   border-radius: var(--radius-lg);
 }
 
-.search:hover {
-  color: var(--color-label);
+@media (hover: hover) {
+  .search:hover {
+    color: var(--color-label);
+  }
 }
 
 .search svg {
@@ -645,8 +653,10 @@
   border-radius: var(--radius-md);
 }
 
-.find:hover {
-  background-color: var(--color-fill-quaternary);
+@media (hover: hover) {
+  .find:hover {
+    background-color: var(--color-fill-quaternary);
+  }
 }
 
 .find svg {

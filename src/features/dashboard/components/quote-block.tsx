@@ -2,41 +2,28 @@ import type { Icon } from "@phosphor-icons/react";
 import {
   CalendarBlankIcon,
   CalendarCheckIcon,
-  CheckCircleIcon,
-  ClockIcon,
   CreditCardIcon,
   CurrencyCircleDollarIcon,
-  EyeIcon,
-  FileDashedIcon,
-  HourglassIcon,
   PencilSimpleIcon,
   ReceiptIcon,
-  XCircleIcon,
 } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
-import type { LatestQuote, QuotePerson, QuotesSummary, QuoteStatus } from "@/features/quotes/summary";
+import { quoteStatuses } from "@/features/quotes/labels";
+import type { LatestQuote, QuotePerson, QuotesSummary } from "@/features/quotes/summary";
 import { iconButtonCornerRadius, squirclePx } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import styles from "./quote-block.module.css";
 
 export type QuoteBlockProps = { summary: QuotesSummary };
 
-const statuses: Record<QuoteStatus, { label: string; tone: BadgeTone; icon: Icon }> = {
-  draft: { label: "Rascunho", tone: "neutral", icon: FileDashedIcon },
-  sent: { label: "Enviado", tone: "accent", icon: ClockIcon },
-  viewed: { label: "Visualizado", tone: "info", icon: EyeIcon },
-  approved: { label: "Aprovado", tone: "success", icon: CheckCircleIcon },
-  declined: { label: "Recusado", tone: "danger", icon: XCircleIcon },
-  expired: { label: "Vencido", tone: "warning", icon: HourglassIcon },
-};
 
 const chipCorner = squirclePx(iconButtonCornerRadius.sm, { clip: true });
 
@@ -100,7 +87,7 @@ export function QuoteBlock({ summary }: QuoteBlockProps) {
     );
   }
 
-  const status = statuses[quote.status];
+  const status = quoteStatuses[quote.status];
 
   return (
     <dl className={styles.sheet}>

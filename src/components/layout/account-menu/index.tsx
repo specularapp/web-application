@@ -143,9 +143,11 @@ const rowStyles = css`
 
   ${hoverMotion};
 
-  &:hover {
-    color: var(--color-label);
-    background-color: var(--color-fill-quaternary);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-label);
+      background-color: var(--color-fill-quaternary);
+    }
   }
 
   & > svg {
@@ -222,13 +224,17 @@ const ThemeOption = styled.button`
 
   ${hoverMotion};
 
-  &:hover {
-    color: var(--color-label);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-label);
+    }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
   }
 
   &[aria-pressed="true"] {

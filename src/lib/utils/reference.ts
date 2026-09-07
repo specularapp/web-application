@@ -4,6 +4,9 @@ export const referencePrefixes = {
   contract: "CTR",
   invoice: "COB",
   project: "PRJ",
+  transaction: "TRX",
+  task: "TAR",
+  client: "CLI",
 } as const;
 
 export type ReferenceKind = keyof typeof referencePrefixes;

@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/text";
 import type { PointsSummary } from "@/features/gamification/summary";
 import { squircleAuto } from "@/lib/corners";
 import styles from "./achievements-block.module.css";
-import { ClaimSlider } from "./claim-slider";
+import { ClaimReward } from "./claim-reward";
 
 export type AchievementsBlockProps = { summary: PointsSummary };
 
@@ -12,7 +12,7 @@ const number = new Intl.NumberFormat("pt-BR");
 // O único bloco sem cabeçalho: um cartão de cor genérica com as quatro bolas de cor das quinas, na
 // receita do container do plano. Dois containers: em cima, meio a meio, o adesivo holográfico da marca e
 // os números (o total de pontos grande, e a posição no ranking e a geração diária em duas colunas);
-// embaixo, de ponta a ponta, o arrasto que dá os pontos do dia, uma vez por dia. É a cara da
+// embaixo, de ponta a ponta, o arrasto que dá os pontos do dia, uma vez por dia, com a comemoração ao chegar. É a cara da
 // gamificação no painel.
 export function AchievementsBlock({ summary }: AchievementsBlockProps) {
   return (
@@ -44,7 +44,7 @@ export function AchievementsBlock({ summary }: AchievementsBlockProps) {
         </div>
       </div>
 
-      <ClaimSlider points={summary.dailyBonus.points} claimed={summary.dailyBonus.claimedToday} />
+      <ClaimReward points={summary.dailyBonus.points} claimed={summary.dailyBonus.claimedToday} />
     </section>
   );
 }

@@ -34,7 +34,7 @@ const Root = styled.span`
 
 const Bubble = styled.span`
   position: absolute;
-  z-index: var(--z-overlay);
+  z-index: var(--z-popover);
   width: max-content;
   max-width: 18rem;
   padding: var(--space-2) var(--space-3);

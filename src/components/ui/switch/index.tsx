@@ -36,8 +36,10 @@ const Root = styled.label`
     gap: var(--space-2);
   }
 
-  &:hover {
-    --switch-track: var(--color-fill-secondary);
+  @media (hover: hover) {
+    &:hover {
+      --switch-track: var(--color-fill-secondary);
+    }
   }
 
   &:has(input:checked) {
@@ -45,13 +47,17 @@ const Root = styled.label`
     --switch-offset: calc(var(--switch-width) - var(--switch-thumb-width) - var(--switch-inset) * 2);
   }
 
-  &:has(input:checked):hover {
-    --switch-track: color-mix(in oklab, var(--color-success) 90%, var(--color-label));
+  @media (hover: hover) {
+    &:has(input:checked):hover {
+      --switch-track: color-mix(in oklab, var(--color-success) 90%, var(--color-label));
+    }
   }
 
-  &:has(input:focus-visible) [data-track] {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+  @media (hover: hover) {
+    &:has(input:focus-visible) [data-track] {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
   }
 
   &:has(input:disabled) {

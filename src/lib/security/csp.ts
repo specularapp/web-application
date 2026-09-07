@@ -18,7 +18,7 @@ export function buildContentSecurityPolicy(nonce: string) {
     // configuração de meios de pagamento em merchant-ui-api.stripe.com. Sem os três, o formulário
     // monta e não carrega o cartão.
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://r.stripe.com https://merchant-ui-api.stripe.com https://challenges.cloudflare.com",
-    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

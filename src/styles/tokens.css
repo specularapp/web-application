@@ -20,6 +20,10 @@
   --sys-gray-5: light-dark(#e5e5ea, #2c2c2e);
   --sys-gray-6: light-dark(#f2f2f7, #1c1c1e);
 
+  /* Marca de fora, na cor oficial dela: o botão de chamar no WhatsApp. */
+  --color-whatsapp: #25d366;
+  --color-on-whatsapp: #ffffff;
+
   --color-label: light-dark(#000000, #ffffff);
   --color-label-secondary: light-dark(rgb(60 60 67 / 0.6), rgb(235 235 245 / 0.6));
   --color-label-tertiary: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));
@@ -144,6 +148,8 @@
   --z-sticky: 200;
   --z-overlay: 300;
   --z-modal: 400;
+  /* Menus, listas e dicas que abrem a partir de algo: acima das janelas, porque abrem de dentro delas. */
+  --z-popover: 450;
   --z-toast: 500;
 
   --duration-fast: 120ms;

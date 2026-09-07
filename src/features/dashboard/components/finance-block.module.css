@@ -32,6 +32,11 @@
   overflow: hidden;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
+
+  /* No celular o cartão respira um pouco mais: a coluna é larga e o bloco tem duas linhas. */
+  @media (max-width: 47.9375rem) {
+    max-height: 12.5rem;
+  }
 }
 
 /* O desenho do cartão é `public/bg/card-bg.svg`, dois traços que descem em curva, usado como máscara
@@ -78,55 +83,6 @@
   grid-area: 2 / 2;
   align-self: end;
   justify-self: end;
-}
-
-/* Um matiz por tipo gera o fundo e a tinta do ícone de reserva, na mesma receita do Badge: recebido em
-   verde, por vir no acento, e o que saiu em neutro. O valor em si é sempre neutro. */
-.row[data-kind="income"] {
-  --chip-hue: var(--color-success);
-}
-
-.row[data-kind="scheduled"] {
-  --chip-hue: var(--color-accent);
-}
-
-.row[data-kind="expense"] {
-  --chip-hue: var(--color-label);
-}
-
-/* Quem está do outro lado, em 36px e no raio de metade do lado, a escala do botão de ícone e do
-   `Avatar` em squircle, seja logo ou ícone. Sem borda, para o fallback poder recortar na superelipse. */
-.party {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: var(--control-height-sm);
-  height: var(--control-height-sm);
-  border-radius: var(--icon-button-radius-sm);
-}
-
-/* Logo em cores sobre o mesmo preenchimento de base do `Avatar`, para os chips da lista lerem como uma
-   família só. */
-.party[data-brand] {
-  background-color: var(--color-fill-tertiary);
-}
-
-.party[data-brand] > * {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.party[data-glyph] {
-  color: color-mix(in oklab, var(--chip-hue) 70%, var(--color-label));
-  background-color: light-dark(
-    color-mix(in oklab, var(--chip-hue) 12%, transparent),
-    color-mix(in oklab, var(--chip-hue) 18%, transparent)
-  );
-}
-
-.party[data-glyph] svg {
-  width: 1rem;
-  height: 1rem;
 }
 
 .amount {

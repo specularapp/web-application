@@ -74,8 +74,10 @@ export const hoverMotion = css`
     opacity var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
 
-  &:hover {
-    transition-duration: var(--duration-base);
+  @media (hover: hover) {
+    &:hover {
+      transition-duration: var(--duration-base);
+    }
   }
 
   &:active:not(:disabled) {
@@ -91,9 +93,11 @@ const controlFontSize: Record<ControlSize, string> = {
 };
 
 export const focusRing = css`
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
   }
 `;
 

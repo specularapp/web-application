@@ -60,7 +60,7 @@ const fade = keyframes`
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  z-index: var(--z-overlay);
+  z-index: var(--z-popover);
   background-color: var(--color-scrim);
   animation: ${fade} var(--duration-base) var(--ease-standard);
 `;
@@ -100,8 +100,10 @@ const Trigger = styled.button`
     color: var(--color-placeholder);
   }
 
-  &:focus-visible {
-    outline: none;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   &:disabled {
@@ -121,7 +123,7 @@ const Glyph = styled(FieldAdornment)`
 
 const Popover = styled.div`
   position: fixed;
-  z-index: var(--z-overlay);
+  z-index: var(--z-popover);
   width: min(20rem, calc(100vw - 2rem));
   padding: var(--space-3);
   background-color: var(--color-bg-grouped-secondary);

@@ -6,10 +6,12 @@
 
 .link[data-tone="inherit"] { color: inherit; }
 
-.link[data-underline="always"],
-.link:hover {
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+@media (hover: hover) {
+  .link[data-underline="always"],
+  .link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
 }
 
 .link[data-underline="dashed"] {
@@ -18,7 +20,9 @@
   text-underline-offset: 0.2em;
 }
 
-.link[data-underline="dashed"]:hover {
-  text-decoration-style: solid;
-  text-underline-offset: 0.2em;
+@media (hover: hover) {
+  .link[data-underline="dashed"]:hover {
+    text-decoration-style: solid;
+    text-underline-offset: 0.2em;
+  }
 }

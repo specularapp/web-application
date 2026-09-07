@@ -24,9 +24,14 @@ const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44
    tem sempre a mesma cor e duas pessoas lado a lado quase nunca repetem. */
 const hues = ["red", "orange", "yellow", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "pink", "brown"];
 
+/** O nome do matiz da paleta do sistema que a semente escolhe, para pintar outra coisa com a cor da pessoa. */
+export function avatarHue(seed: string) {
+  return hues[hashString(seed) % hues.length];
+}
+
 export function Avatar({ name, src, seed, size = "md", shape = "circle", className, style, ...props }: AvatarProps) {
   const key = seed ?? name;
-  const hue = hues[hashString(key) % hues.length];
+  const hue = avatarHue(key);
   const vars = { ...style, ...(!src && { "--avatar-hue": `var(--sys-${hue})` }) } as CSSProperties;
 
   return (

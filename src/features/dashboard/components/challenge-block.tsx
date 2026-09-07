@@ -27,7 +27,8 @@ function formatMinutes(minutes: number) {
 // Na pegada da referência: à esquerda o azulejo da sequência, só a chama da casa e quantos dias seguidos
 // a pessoa entrou; à direita, quanto falta para a meta de tempo de hoje, em número e barra, com
 // a data do primeiro acesso na outra ponta da linha do número, e a semana em bolinhas, com check no dia em que a meta foi batida. Acessos e tempo de cada dia vão para
-// a leitura por voz e para a dica do ponteiro.
+// a leitura por voz e para a dica do ponteiro. A sequência inteira abre pelo atalho do cabeçalho do bloco
+// (`StreakButton`, ligado na grade).
 export function ChallengeBlock({ challenge }: ChallengeBlockProps) {
   const today = new Date();
   const todayMinutes = challenge.days.find((day) => isSameDay(parseISO(day.date), today))?.onlineMinutes ?? 0;

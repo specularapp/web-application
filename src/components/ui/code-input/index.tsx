@@ -56,9 +56,11 @@ const Box = styled.input`
     color: var(--color-label-quaternary);
   }
 
-  &:focus-visible {
-    border-color: var(--color-label-secondary);
-    outline: none;
+  @media (hover: hover) {
+    &:focus-visible {
+      border-color: var(--color-label-secondary);
+      outline: none;
+    }
   }
 
   &[data-invalid] {

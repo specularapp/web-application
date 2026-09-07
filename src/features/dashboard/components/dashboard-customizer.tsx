@@ -104,9 +104,11 @@ const Handle = styled.button`
   ${hoverMotion};
   ${focusRing};
 
-  &:hover {
-    color: var(--color-label);
-    background-color: var(--color-fill-quaternary);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-label);
+      background-color: var(--color-fill-quaternary);
+    }
   }
 
   &:active {

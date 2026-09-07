@@ -1,12 +1,15 @@
 import { CaretRightIcon } from "@phosphor-icons/react/ssr";
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useId } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
-import type { Task, TasksSummary, TaskStatus } from "@/features/tasks/summary";
+import { TaskSheet } from "@/features/tasks/components/task-sheet";
+import { dueOf, statusLabels, statusTones } from "@/features/tasks/labels";
+import type { Task, TasksSummary } from "@/features/tasks/summary";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import list from "./block-list.module.css";
@@ -17,34 +20,26 @@ export type TasksBlockProps = { summary: TasksSummary };
 const SHOWN_TASKS = 5;
 const SHOWN_PEOPLE = 3;
 
-const statusLabels: Record<TaskStatus, string> = { upcoming: "A começar", ongoing: "Em andamento", done: "Concluída" };
-const statusTones: Record<TaskStatus, BadgeTone> = { upcoming: "success", ongoing: "accent", done: "neutral" };
-
 const names = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" });
 
 /* Cartão de tarefa no raio `md` da casa, recortado no fallback porque não tem borda. */
 const cardCorner = squircle("md", { clip: true });
 
-// O prazo em uma palavra quando dá: hoje em vermelho, amanhã em laranja, e o resto pela data. Tarefa
-// aberta com o prazo vencido também fica em vermelho, porque é a mais urgente da lista; concluída no
-// passado fica neutra.
-function dueOf(task: Task): { label: string; tone: BadgeTone } {
-  const date = parseISO(task.dueDate);
-  const days = differenceInCalendarDays(date, new Date());
-  const overdue = days < 0 && task.status !== "done";
-
-  if (days === 0) return { label: "Hoje", tone: "danger" };
-  if (days === 1) return { label: "Amanhã", tone: "warning" };
-  if (days === -1) return { label: "Ontem", tone: overdue ? "danger" : "neutral" };
-  return { label: format(date, "d MMM.", { locale: ptBR }), tone: overdue ? "danger" : "neutral" };
-}
-
+// O cartão é o gatilho da janela de detalhes, com o mesmo `li` e a mesma classe de sempre; a seta da
+// ponta também abre. A janela é a ficha completa da tarefa.
 function Row({ task }: { task: Task }) {
   const due = dueOf(task);
   const shown = task.people.slice(0, SHOWN_PEOPLE);
 
   return (
-    <li className={styles.task} {...cardCorner}>
+    <DetailsTrigger
+      dialog={<TaskSheet task={task} />}
+      dialogLabel={`Tarefa ${task.title}`}
+      dialogSize="lg"
+      label={`Ver detalhes de ${task.title}`}
+      className={styles.task}
+      {...cardCorner}
+    >
       <div className={styles.head}>
         <span className={styles.naming}>
           <Text as="p" variant="headline" truncate>
@@ -57,7 +52,7 @@ function Row({ task }: { task: Task }) {
             {statusLabels[task.status]}
           </Badge>
         </span>
-        <IconButton label={`Abrir ${task.title}`} variant="ghost" size="sm">
+        <IconButton label={`Abrir ${task.title}`} variant="ghost" size="sm" data-open-details>
           <CaretRightIcon weight="bold" />
         </IconButton>
       </div>
@@ -81,7 +76,7 @@ function Row({ task }: { task: Task }) {
           </Text>
         </div>
       )}
-    </li>
+    </DetailsTrigger>
   );
 }
 

@@ -1,16 +1,15 @@
-import type { Icon } from "@phosphor-icons/react";
-import { ArrowDownLeftIcon, ArrowUpRightIcon, CalendarCheckIcon, CheckCircleIcon } from "@phosphor-icons/react/ssr";
+import { CheckCircleIcon } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useId } from "react";
 import { Logo } from "@/components/layout/logo";
-import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { BrandIcon } from "@/components/ui/brand-icon";
+import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { Text } from "@/components/ui/text";
+import { TransactionParty } from "@/features/finance/components/transaction-party";
+import { TransactionReceipt } from "@/features/finance/components/transaction-receipt";
 import type { FinanceSummary, Transaction, TransactionKind } from "@/features/finance/summary";
-import { iconButtonCornerRadius, squircle, squirclePx } from "@/lib/corners";
-import { cx } from "@/lib/utils/cx";
+import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import list from "./block-list.module.css";
 import styles from "./finance-block.module.css";
@@ -20,52 +19,24 @@ export type FinanceBlockProps = { summary: FinanceSummary };
 
 const SHOWN_TRANSACTIONS = 5;
 
-const icons: Record<TransactionKind, Icon> = {
-  income: ArrowDownLeftIcon,
-  expense: ArrowUpRightIcon,
-  scheduled: CalendarCheckIcon,
-};
-
 const signs: Record<TransactionKind, string> = { income: "+", expense: "-", scheduled: "" };
-
-/* Chip de 36px no raio de metade do lado, a escala do botão de ícone, recortado no fallback porque não
-   tem borda. */
-const chipCorner = squirclePx(iconButtonCornerRadius.sm, { clip: true });
 
 function dayLabel(transaction: Transaction) {
   const day = format(parseISO(transaction.date), "d MMM. yyyy", { locale: ptBR });
   return transaction.kind === "scheduled" ? `Previsto ${day}` : day;
 }
 
-// Quem aparece na linha: a pessoa pelo `Avatar` (foto, ou o rosto gerado), o serviço pela logo em
-// cores num chip, e, sem nenhum dos dois, o ícone do tipo. Os três têm o mesmo tamanho e canto.
-function Party({ transaction }: { transaction: Transaction }) {
-  const { visual } = transaction;
-
-  if (visual?.type === "person") {
-    return <Avatar name={transaction.title} src={visual.avatarUrl ?? undefined} size="sm" shape="squircle" />;
-  }
-
-  if (visual?.type === "brand") {
-    return (
-      <span className={styles.party} data-brand aria-hidden="true" {...chipCorner}>
-        <BrandIcon name={visual.name} color />
-      </span>
-    );
-  }
-
-  const Glyph = icons[transaction.kind];
-  return (
-    <span className={styles.party} data-glyph aria-hidden="true" {...chipCorner}>
-      <Glyph weight="bold" />
-    </span>
-  );
-}
-
+// A linha é o gatilho da janela de detalhes, com o mesmo `li` e as mesmas classes de sempre; a janela é
+// o recibo da movimentação.
 function Row({ transaction }: { transaction: Transaction }) {
   return (
-    <li className={cx(list.row, styles.row)} data-kind={transaction.kind}>
-      <Party transaction={transaction} />
+    <DetailsTrigger
+      dialog={<TransactionReceipt transaction={transaction} />}
+      dialogLabel={`Recibo de ${transaction.title}`}
+      label={`Ver detalhes de ${transaction.title}`}
+      className={list.row}
+    >
+      <TransactionParty transaction={transaction} />
       <span className={list.copy}>
         <Text as="span" variant="subheadline" weight="medium" truncate>
           {transaction.title}
@@ -83,7 +54,7 @@ function Row({ transaction }: { transaction: Transaction }) {
           {dayLabel(transaction)}
         </Text>
       </span>
-    </li>
+    </DetailsTrigger>
   );
 }
 

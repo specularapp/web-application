@@ -49,9 +49,11 @@
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-.row:hover {
-  background-color: var(--color-fill-quaternary);
-  transition-duration: var(--duration-base);
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--color-fill-quaternary);
+    transition-duration: var(--duration-base);
+  }
 }
 
 .copy {

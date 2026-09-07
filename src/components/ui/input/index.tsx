@@ -39,8 +39,10 @@ const Control = styled.input`
   background: transparent;
   border: 0;
 
-  &:focus-visible {
-    outline: none;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: none;
+    }
   }
 `;
 

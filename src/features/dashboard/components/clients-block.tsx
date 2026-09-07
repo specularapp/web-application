@@ -1,8 +1,10 @@
 import { useId } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { Text } from "@/components/ui/text";
 import { ClientMenu } from "@/features/clients/components/client-menu";
+import { ClientProfile } from "@/features/clients/components/client-profile";
 import type { Client, ClientsSummary } from "@/features/clients/summary";
 import { applyPattern } from "@/lib/masks";
 import list from "./block-list.module.css";
@@ -16,12 +18,19 @@ const phoneOf = (client: Client) => (client.phone ? applyPattern("phone", client
 
 // O cliente mais novo em destaque: a foto grande à esquerda e, à direita, o nome com a etiqueta "Novo
 // cliente" e o menu de opções do cliente na outra ponta da mesma linha, e a ficha em grade embaixo
-// (e-mail e telefone, cada um com o próprio rótulo).
+// (e-mail e telefone, cada um com o próprio rótulo). Clicar abre o perfil do cliente.
 function Featured({ client }: { client: Client }) {
   const phone = phoneOf(client);
 
   return (
-    <div className={styles.featured}>
+    <DetailsTrigger
+      as="div"
+      dialog={<ClientProfile client={client} />}
+      dialogLabel={`Perfil de ${client.name}`}
+      dialogSize="lg"
+      label={`Ver detalhes de ${client.name}`}
+      className={styles.featured}
+    >
       <Avatar
         name={client.name}
         src={client.avatarUrl ?? undefined}
@@ -62,7 +71,7 @@ function Featured({ client }: { client: Client }) {
           </div>
         </dl>
       </div>
-    </div>
+    </DetailsTrigger>
   );
 }
 
@@ -70,7 +79,13 @@ function Row({ client }: { client: Client }) {
   const phone = phoneOf(client);
 
   return (
-    <li className={list.row}>
+    <DetailsTrigger
+      dialog={<ClientProfile client={client} />}
+      dialogLabel={`Perfil de ${client.name}`}
+      dialogSize="lg"
+      label={`Ver detalhes de ${client.name}`}
+      className={list.row}
+    >
       <Avatar name={client.name} src={client.avatarUrl ?? undefined} seed={client.email ?? client.name} size="sm" shape="squircle" />
       <span className={list.copy}>
         <Text as="span" variant="subheadline" weight="medium" truncate>
@@ -83,7 +98,7 @@ function Row({ client }: { client: Client }) {
         )}
       </span>
       <ClientMenu client={client} historyCount={12} />
-    </li>
+    </DetailsTrigger>
   );
 }
 

@@ -98,14 +98,22 @@ const Trigger = styled.button`
     border-color: var(--color-danger);
   }
 
-  &:hover:not(:disabled),
+  /* Aberto, o gatilho fica marcado em qualquer aparelho; o hover só onde há ponteiro. */
   &[aria-expanded="true"] {
     background-color: var(--listbox-trigger-background-hover, var(--color-fill-tertiary));
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-label);
-    outline-offset: -2px;
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background-color: var(--listbox-trigger-background-hover, var(--color-fill-tertiary));
+    }
+  }
+
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: 2px solid var(--color-label);
+      outline-offset: -2px;
+    }
   }
 
   & > svg {
@@ -148,7 +156,7 @@ const Value = styled.span`
 const List = styled.div`
   position: absolute;
   inset-inline-start: 0;
-  z-index: var(--z-dropdown);
+  z-index: var(--z-popover);
   min-width: max(100%, 10rem);
   width: max-content;
   padding-block: var(--space-1);

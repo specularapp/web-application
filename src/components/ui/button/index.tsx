@@ -193,8 +193,10 @@ const Root = styled.button`
     ${controlSquare("lg")};
   }
 
-  &:hover:not(:disabled) {
-    background-color: var(--button-background-hover);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background-color: var(--button-background-hover);
+    }
   }
 
   &[data-variant="primary"] {
@@ -291,6 +293,7 @@ export function Button({
   const colors = {
     ...style,
     "--button-background": background,
+    "--button-background-hover": background && `color-mix(in oklab, ${background} 88%, var(--color-bg))`,
     "--button-foreground": foreground,
     "--button-border": border,
   } as CSSProperties;

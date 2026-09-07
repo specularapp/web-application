@@ -19,12 +19,12 @@ const INSET = 4;
 const CLAIM_AT = 0.85;
 
 /* A pista: uma pílula no preenchimento da casa, da altura do controle médio, com o texto centrado e a
-   bolinha que anda por cima. A cor do arrasto é o roxo do painel, a cor de dado da casa, a mesma da barra
-   do desafio: bolinha cheia, preenchimento em alfa. */
+   bolinha que anda por cima. Tudo em preto e branco, limpo: a bolinha é a cor do texto (preta no claro,
+   branca no escuro) com a seta na cor do fundo, e o preenchimento é a cor do texto em alfa baixo. */
 const Track = styled.div`
   --x: 0px;
   --progress: 0;
-  --claim-hue: var(--sys-purple);
+  --claim-hue: var(--color-label);
   position: relative;
   display: grid;
   place-items: center;
@@ -39,10 +39,10 @@ const Track = styled.div`
 
 `;
 
-/* O preenchimento que acompanha a bolinha: um degradê de várias cores da paleta (roxo, índigo, azul,
-   rosa e laranja) pintado na pista inteira e revelado até a borda direita da bolinha por um recorte, e
-   não por largura, então as cores ficam paradas e o arrasto vai descobrindo uma a uma. Solto no meio do
-   caminho, volta com a mesma mola. Pego, aparece inteiro. */
+/* O preenchimento que acompanha a bolinha: a cor do texto num degradê de alfa, mais claro no começo e
+   mais cheio no fim, pintado na pista inteira e revelado até a borda direita da bolinha por um recorte,
+   e não por largura, então o arrasto vai descobrindo o degradê parado. Solto no meio do caminho, volta
+   com a mesma mola. Pego, aparece inteiro. (O degradê de várias cores durou uma rodada.) */
 const Fill = styled.span`
   --reveal: calc(var(--x) + ${KNOB + INSET * 2}px);
   position: absolute;
@@ -50,11 +50,8 @@ const Fill = styled.span`
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    color-mix(in oklab, var(--sys-purple) 45%, transparent),
-    color-mix(in oklab, var(--sys-indigo) 45%, transparent) 30%,
-    color-mix(in oklab, var(--sys-blue) 45%, transparent) 55%,
-    color-mix(in oklab, var(--sys-pink) 45%, transparent) 80%,
-    color-mix(in oklab, var(--sys-orange) 50%, transparent)
+    color-mix(in oklab, var(--claim-hue) 6%, transparent),
+    color-mix(in oklab, var(--claim-hue) 18%, transparent)
   );
   border-radius: var(--radius-full);
   clip-path: inset(0 calc(100% - var(--reveal)) 0 0 round var(--radius-full));
@@ -93,7 +90,7 @@ const Label = styled.span`
   position: relative;
 `;
 
-/* A bolinha no roxo cheio com a seta dupla em branco, que vira check ao chegar. Enquanto se arrasta ela segue o
+/* A bolinha na cor do texto com a seta dupla na cor do fundo, que vira check ao chegar. Enquanto se arrasta ela segue o
    ponteiro sem transição; ao soltar, volta ou completa com a mola curta da casa. */
 const Knob = styled.button`
   position: absolute;
@@ -104,7 +101,7 @@ const Knob = styled.button`
   width: ${KNOB}px;
   height: ${KNOB}px;
   padding: 0;
-  color: var(--color-on-accent);
+  color: var(--color-bg);
   cursor: grab;
   background-color: var(--claim-hue);
   border: 0;

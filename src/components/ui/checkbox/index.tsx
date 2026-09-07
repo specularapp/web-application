@@ -27,8 +27,10 @@ const Root = styled.label`
   color: var(--color-label);
   cursor: pointer;
 
-  &:hover {
-    --checkbox-border: var(--color-label-secondary);
+  @media (hover: hover) {
+    &:hover {
+      --checkbox-border: var(--color-label-secondary);
+    }
   }
 
   &:has(input:checked),
@@ -46,9 +48,11 @@ const Root = styled.label`
     --checkbox-minus: block;
   }
 
-  &:has(input:focus-visible) [data-box] {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+  @media (hover: hover) {
+    &:has(input:focus-visible) [data-box] {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
   }
 
   &:has(input:disabled) {

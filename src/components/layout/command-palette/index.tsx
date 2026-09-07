@@ -129,16 +129,20 @@ const Pill = styled.button`
 
   ${hoverMotion};
 
-  &:hover {
-    background-color: light-dark(
-      color-mix(in oklab, var(--pill-hue) 22%, transparent),
-      color-mix(in oklab, var(--pill-hue) 28%, transparent)
-    );
+  @media (hover: hover) {
+    &:hover {
+      background-color: light-dark(
+        color-mix(in oklab, var(--pill-hue) 22%, transparent),
+        color-mix(in oklab, var(--pill-hue) 28%, transparent)
+      );
+    }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
+  @media (hover: hover) {
+    &:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
   }
 
   & svg {

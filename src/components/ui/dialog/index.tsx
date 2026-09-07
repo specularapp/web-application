@@ -33,6 +33,10 @@ export type DialogProps = {
   className?: string;
 };
 
+/* As janelas abertas, na ordem: só a última responde a Escape e prende o Tab, para uma janela por cima
+   de outra (o anexo sobre a ficha) não fechar as duas. */
+const openDialogs: symbol[] = [];
+
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -145,6 +149,7 @@ const Panel = styled.div`
 
   &[data-size="lg"] {
     max-width: 40rem;
+    max-height: min(46rem, calc(100dvh - var(--space-16)));
   }
 
   &[data-surface="glass"] {
@@ -262,6 +267,10 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
 
+    const id = Symbol("dialog");
+    openDialogs.push(id);
+    const onTop = () => openDialogs[openDialogs.length - 1] === id;
+
     const panel = panelRef.current;
     const opener = document.activeElement as HTMLElement | null;
     const root = document.documentElement;
@@ -274,6 +283,7 @@ export function Dialog({
     else panel?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!onTop()) return;
       if (event.key === "Escape") {
         closeRef.current();
         return;
@@ -306,6 +316,7 @@ export function Dialog({
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      openDialogs.splice(openDialogs.indexOf(id), 1);
       root.style.overflow = overflow;
       opener?.focus({ preventScroll: true });
     };

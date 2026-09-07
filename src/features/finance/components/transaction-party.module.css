@@ -1,0 +1,59 @@
+/* Quem está do outro lado, no raio de metade do lado, a escala do botão de ícone e do `Avatar` em
+   squircle, seja logo ou ícone. Sem borda, para o fallback poder recortar na superelipse. */
+.party {
+  --party-size: var(--control-height-sm);
+  --party-radius: var(--icon-button-radius-sm);
+  --glyph-size: 1rem;
+  --logo-size: 1.25rem;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--party-size);
+  height: var(--party-size);
+  border-radius: var(--party-radius);
+}
+
+/* No recibo, o tamanho do controle grande. */
+.party[data-size="lg"] {
+  --party-size: var(--control-height-lg);
+  --party-radius: var(--icon-button-radius-lg);
+  --glyph-size: 1.375rem;
+  --logo-size: 1.75rem;
+}
+
+/* Logo em cores sobre o mesmo preenchimento de base do `Avatar`, para os chips lerem como uma família só. */
+.party[data-brand] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.party[data-brand] > * {
+  width: var(--logo-size);
+  height: var(--logo-size);
+}
+
+/* Um matiz por tipo gera o fundo e a tinta do ícone de reserva, na mesma receita do Badge: recebido em
+   verde, por vir no acento, e o que saiu em neutro. */
+.party[data-kind="income"] {
+  --chip-hue: var(--color-success);
+}
+
+.party[data-kind="scheduled"] {
+  --chip-hue: var(--color-accent);
+}
+
+.party[data-kind="expense"] {
+  --chip-hue: var(--color-label);
+}
+
+.party[data-glyph] {
+  color: color-mix(in oklab, var(--chip-hue) 70%, var(--color-label));
+  background-color: light-dark(
+    color-mix(in oklab, var(--chip-hue) 12%, transparent),
+    color-mix(in oklab, var(--chip-hue) 18%, transparent)
+  );
+}
+
+.party[data-glyph] svg {
+  width: var(--glyph-size);
+  height: var(--glyph-size);
+}

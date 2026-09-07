@@ -1,0 +1,20 @@
+/* Atividade recente: a bolinha da pessoa, o que fez em uma linha e quando, embaixo. */
+.events {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.event {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.eventCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}

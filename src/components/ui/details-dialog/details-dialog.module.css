@@ -1,0 +1,12 @@
+/* A linha que abre a janela: só o cursor e o anel de foco, e o resto continua vindo da classe de quem
+   chama. O anel só onde há ponteiro, como todo foco da casa. */
+.trigger {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .trigger:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}

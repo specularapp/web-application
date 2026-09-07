@@ -25,6 +25,8 @@ export type WeeklyChallenge = {
   since: string;
   /** De segunda a domingo. */
   days: ChallengeDay[];
+  /** Um dia para cada dia desde o primeiro acesso até hoje, do mais antigo para o mais novo; dia sem entrada não teve acesso. */
+  history: ChallengeDay[];
   /** Minutos online por dia para o dia contar como batido: 30, por decisão de produto de 2026-09-07. */
   dailyGoalMinutes: number;
 };

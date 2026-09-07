@@ -1,0 +1,117 @@
+/* O recibo é uma coluna com o recuo da janela: quem está do outro lado no alto, as linhas de fato em
+   pares rótulo e valor, a linha tracejada de recibo no meio e a forma de pagamento num cartão no fim. */
+.receipt {
+  --seal-hue: var(--color-success);
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+.receipt[data-status="pending"] {
+  --seal-hue: var(--color-warning);
+}
+
+.receipt[data-status="cancelled"] {
+  --seal-hue: var(--color-danger);
+}
+
+.hero {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  padding-block-end: var(--space-2);
+}
+
+/* A foto grande com o selo da situação na quina de baixo à direita: círculo cheio no matiz da situação,
+   ícone branco, e um anel na cor do fundo para descolar da foto. */
+.figure {
+  position: relative;
+  display: inline-flex;
+  margin-block-end: var(--space-2);
+}
+
+.seal {
+  position: absolute;
+  inset-block-end: -0.25rem;
+  inset-inline-end: -0.25rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-on-accent);
+  background-color: var(--seal-hue);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+.seal svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Cada linha de fato é rótulo à esquerda e valor à direita, na mesma linha, como num recibo. */
+.rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.row > dt {
+  flex-shrink: 0;
+}
+
+.value {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  margin: 0;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+/* A linha tracejada do recibo, no fio da casa. */
+.tear {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-block-start: 1px dashed var(--color-border);
+}
+
+/* A forma de pagamento num cartão no preenchimento da casa, com o ícone num chip e o rótulo ao lado. */
+.method {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.methodLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.methodIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.methodIcon svg {
+  width: 1rem;
+  height: 1rem;
+}

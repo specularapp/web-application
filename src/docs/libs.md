@@ -106,7 +106,7 @@ Implementado em 2026-08-29. Componente visual em `components/ui/toast/`, fila e 
 - Todo toast tem ícone, título, descrição e um botão de ação. Não existe botão de fechar: a ação fecha, e sem `action` o botão vira "Entendi". Decisão de produto de 2026-08-29.
 - Máximo de 3 visíveis, o resto espera na fila e só começa a contar ao aparecer.
 - Posição: canto superior direito no desktop; largura total no topo no mobile, com `safe-area-inset-top`.
-- Visual: superfície `--color-bg-grouped-secondary`, borda `--color-border`, `--radius-xl` com canto nativo, `--shadow-lg`, título em `subheadline` semibold e descrição em `footnote` secundária. Botão de ação `sm` com raio `md`, concêntrico ao toast. Erro usa o botão primário, os outros o secundário.
+- Visual: vidro das camadas da casa (`--glass-layer-bg` com `--glass-layer-blur`, desde 2026-09-07; antes era `--color-bg-grouped-secondary` opaco), fio de 0,6px em `--color-border`, `--radius-xl` com canto nativo, `--shadow-lg`, título em `subheadline` semibold e descrição em `footnote` secundária. Botão de ação `sm` com raio `md`, concêntrico ao toast. Erro usa o botão primário, os outros o secundário.
 - Acessibilidade: `role="alert"` para `warning` e `danger`, `role="status"` para o resto, com `aria-labelledby` e `aria-describedby`; pausa o timer em hover e foco; fecha com Escape quando focado; a ação é um `Button` comum, acessível por teclado.
 - Movimento: entrada com `--ease-spring` em `--duration-slow`, saída em `--duration-base`, só `transform` e `opacity`; nada em `prefers-reduced-motion`.
 - Duração padrão 5s; `danger` não fecha sozinho.

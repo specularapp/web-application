@@ -41,20 +41,10 @@
   border-radius: var(--card-corner);
 }
 
-/* Onde o canto nativo existe, o fio volta a ser `border` de 0,6px, o peso do menu, e o motor de cantos
-   nem liga: as duas caixas viram uma só, sem fundo, como o cartão sempre foi. */
-@supports (corner-shape: squircle) {
-  .card {
-    padding: 0;
-    background-color: transparent;
-    border: var(--card-line) solid var(--color-border);
-  }
-
-  .inner {
-    background-color: transparent;
-    border-radius: inherit;
-  }
-}
+/* As duas camadas valem também onde o canto nativo existe: o Safari do iPhone já tem `corner-shape`, e
+   a `border` dele soma nas quinas superelípticas, então o fio de 1px pintado pelas duas caixas é o que
+   aparece igual em todo navegador (decisão de 2026-09-07, depois de o fio sumir nas quinas no iPhone
+   mesmo com o raio igual). */
 
 /* Cabeçalho na altura do botão pequeno mais o respiro, tenha o cartão ação ou não: assim os títulos
    de cartões vizinhos ficam na mesma linha. */

@@ -162,8 +162,10 @@ const Tab = styled.button`
 
   ${hoverMotion};
 
-  &:hover {
-    color: var(--color-label);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-label);
+    }
   }
 
   &[aria-selected="true"] {
@@ -228,8 +230,10 @@ const Item = styled.li`
     border-block-start: var(--panel-line) solid var(--color-border);
   }
 
-  &:hover {
-    background-color: var(--color-fill-quaternary);
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--color-fill-quaternary);
+    }
   }
 
   &[data-read] {
