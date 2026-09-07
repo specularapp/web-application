@@ -111,20 +111,37 @@
   line-height: var(--leading-tight);
 }
 
-/* No celular o bloco de duas linhas tem quase 400px de corpo e a sobra dividida espalhava os campos;
-   aqui eles empilham a partir do topo com 16 entre si, e o título e o valor descem um degrau. */
+/* No celular o bloco de duas linhas tem 332px de corpo (duas linhas de 200 mais o vão, menos cabeçalho e
+   recuo), e cinco linhas de 36px com rótulo passavam disso: aqui os chips e as bolinhas caem para 28px,
+   o título e o valor descem um degrau e os campos empilham a partir do topo com 12 entre si, o que dá
+   uns 280px e sobra folga. Três classes para vencer o `data-variant` do Text e o `data-size` do Avatar. */
 @media (max-width: 47.9375rem) {
   .sheet {
-    gap: var(--space-4);
+    gap: var(--space-3);
     justify-content: flex-start;
   }
 
-  .heading .title {
+  .sheet .heading .title {
     font-size: var(--text-subheadline);
   }
 
-  .stack > :first-child {
+  .sheet .stack > :first-child {
     font-size: var(--text-headline);
+  }
+
+  .sheet .glyph {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-md);
+  }
+
+  .sheet .glyph svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .sheet .inline > :first-child {
+    --avatar-size: 1.75rem;
   }
 }
 

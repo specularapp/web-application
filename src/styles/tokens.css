@@ -126,8 +126,9 @@
   --glass-layer-bg: color-mix(in oklab, var(--color-bg) 20%, transparent);
   --glass-layer-blur: blur(16px);
   /* Bandeja do celular: o conteúdo da página passa mais perto do texto, e a lista precisava de mais
-     corpo para ler. Vidro continua, só com o fundo a 40% em vez de 20%. */
-  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 40%, transparent);
+     corpo para ler. Vidro continua, só com o fundo a 72% em vez de 20% (era 40% até 2026-09-07, e o
+     menu de opções do cliente sobre o painel ainda ficava difícil de ler). */
+  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 72%, transparent);
 
   /* Tinta e vidro do controle de arrastar da gamificação: os genéricos da casa, para o bloco assentar no
      fundo de cada tema. Um degradê próprio nas cores do adesivo holográfico existiu por umas horas em

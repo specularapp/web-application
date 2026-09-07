@@ -316,7 +316,8 @@ export function Button({
         </span>
       )}
       {iconStart && !loading && <span data-button-icon>{matchTextWeight(iconStart)}</span>}
-      {iconOnly ? <span data-button-icon>{matchTextWeight(children)}</span> : children}
+      {/* Só ícone carregando: o giro toma o lugar do glifo, senão os dois apareciam lado a lado. */}
+      {iconOnly ? !loading && <span data-button-icon>{matchTextWeight(children)}</span> : children}
       {iconEnd && <span data-button-icon>{matchTextWeight(iconEnd)}</span>}
       {locked && (
         <Plan style={planStyle} {...squirclePx(planCorner(radius, size))}>

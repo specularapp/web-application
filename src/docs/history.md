@@ -37,6 +37,7 @@ Feito:
 - Rodada do celular: ações do cabeçalho coladas e o nome ao lado da foto; fotos da equipe no alvo de 44px; desafio diário e último orçamento um degrau menores; canto dos blocos em `lg`; atalho "Ver todos" em 36px; tela cheia do menu opaca, com o desbotamento num degradê grudado no rodapé em vez de máscara na tela inteira, que deixava a página aparecer por baixo. Conquistas deixou de ter `border` e recorte juntos: o fio passou para o invólucro `bare` da grade, na receita do `Card`.
 - Cabeçalho do painel fixo no topo, desbotando para o transparente com o borrão indo junto, numa camada atrás do conteúdo para não apagar a lista do período.
 - `DropdownMenu` saiu do stub: menu de opções colado no gatilho no padrão das camadas do menu (vidro, seções, ações, seta de submenu, contagem, selo do plano no chip da Assinatura, interruptores, tom vermelho), bandeja no celular, setas e Escape, e posição medida de verdade antes de pintar para nunca cortar. Primeiro uso: `ClientMenu` no bloco de clientes, com as opções da referência do usuário.
+- Segunda rodada do celular, sobre o iPhone do usuário: fio dos cartões engrossando na quina em vez de sumir (raio de dentro menos duas vezes o fio), cabeçalho sem quebrar com o nome em reticências e botões pequenos, menu do cliente rolando na bandeja e o vidro da bandeja a 72%, último orçamento cabendo nos 332px de corpo. "Tarefas pendentes" a 12px da lista. `Button` só de ícone deixou de mostrar giro e glifo juntos em `loading`, e o atualizar do financeiro dispara toast ao terminar.
 
 Pendências:
 

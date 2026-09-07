@@ -102,11 +102,15 @@ const Popover = styled.div`
   }
 `;
 
-/* Na bandeja do celular a lista fica solta dentro do Dialog, com o mesmo recuo das seções. */
+/* Na bandeja do celular a lista fica dentro do Dialog e rola por conta própria: o painel dele esconde o
+   que transborda e espera que o conteúdo role, senão a lista era cortada no fim. */
 const Sheet = styled.div`
   --panel-line: 0.0375rem;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 const Section = styled.div`

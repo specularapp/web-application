@@ -28,14 +28,17 @@
   border-radius: var(--card-corner);
 }
 
-/* A caixa de dentro, concêntrica: o raio de fora menos a espessura do fio. */
+/* A caixa de dentro: o raio de fora menos duas vezes o fio, e não uma, de propósito. Com a diferença
+   exata de 1px, as duas superelipses antialiasadas do fallback quase coincidiam nas quinas e o fio
+   sumia lá (o que apareceu no iPhone); com 2px de diferença, ele engrossa um fio na quina em vez de
+   sumir. */
 .inner {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   background-color: var(--color-bg);
-  border-radius: calc(var(--card-corner) - var(--card-frame));
+  border-radius: calc(var(--card-corner) - var(--card-frame) * 2);
 }
 
 /* Onde o canto nativo existe, o fio volta a ser `border` de 0,6px, o peso do menu, e o motor de cantos

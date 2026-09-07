@@ -30,10 +30,19 @@
   margin-inline-start: auto;
 }
 
-/* Compacto no celular: a foto e o nome ficam na tela, a linha de apoio vai para o leitor de tela, e as
-   ações ficam coladas, sem vão, porque no toque cada uma já cresce para 44px e o vão de 4 as afastava
-   demais. O nome encurta por reticências antes de as ações descerem. */
+/* Compacto no celular: a foto e o nome ficam na tela numa linha só, a linha de apoio vai para o leitor
+   de tela, e as ações ficam na mesma linha, na versão pequena dos botões (36px, sem crescer para o alvo
+   de toque) e a 4px uma da outra. O cabeçalho não quebra: o nome encurta por reticências antes de as
+   ações descerem, porque a identidade cede e as ações não. */
 @media (max-width: 47.9375rem) {
+  .header[data-compact] {
+    flex-wrap: nowrap;
+  }
+
+  .header[data-compact] .identity {
+    flex: 1 1 0;
+  }
+
   .header[data-compact] .text > :nth-child(2) {
     position: absolute;
     width: 1px;
@@ -46,7 +55,9 @@
   }
 
   .header[data-compact] .actions {
+    --touch-target: var(--control-height-sm);
     flex-wrap: nowrap;
-    gap: 0;
+    flex-shrink: 0;
+    gap: var(--space-1);
   }
 }
