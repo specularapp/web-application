@@ -30,10 +30,11 @@
   margin-inline-start: auto;
 }
 
-/* Compacto no celular: só o `leading` fica na tela e o texto vai para o leitor de tela, então as ações
-   cabem na mesma linha da foto sem descer. */
+/* Compacto no celular: a foto e o nome ficam na tela, a linha de apoio vai para o leitor de tela, e as
+   ações ficam coladas, sem vão, porque no toque cada uma já cresce para 44px e o vão de 4 as afastava
+   demais. O nome encurta por reticências antes de as ações descerem. */
 @media (max-width: 47.9375rem) {
-  .header[data-compact] .text {
+  .header[data-compact] .text > :nth-child(2) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -46,5 +47,6 @@
 
   .header[data-compact] .actions {
     flex-wrap: nowrap;
+    gap: 0;
   }
 }

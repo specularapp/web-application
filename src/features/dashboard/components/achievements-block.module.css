@@ -1,7 +1,8 @@
-/* O cartão do bloco sem cabeçalho: cor genérica da casa, o fio dos outros cartões e, por trás do
-   conteúdo, as quatro bolas de cor sangrando pelas quinas, a receita do container do plano nos primeiros
-   passos (gradiente radial em vez de filtro de desfoque, sem custo de composição). O mesmo raio dos
-   outros blocos e o recuo de 16 direto no cartão. Dois containers empilhados com a sobra entre eles: o
+/* O cartão do bloco sem cabeçalho: cor genérica da casa, o fio e o raio herdados do invólucro `bare` da
+   grade (que os desenha na mesma receita do `Card`) e, por trás do conteúdo, as quatro bolas de cor
+   sangrando pelas quinas, a receita do container do plano nos primeiros
+   passos (gradiente radial em vez de filtro de desfoque, sem custo de composição). O recuo de 16 direto
+   no cartão. Dois containers empilhados com a sobra entre eles: o
    de cima meio a meio, o de baixo de ponta a ponta. */
 .block {
   position: relative;
@@ -14,8 +15,7 @@
   padding: var(--space-4);
   overflow: hidden;
   color: var(--color-label);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-xl);
+  background-color: var(--color-bg);
 }
 
 /* As bolas na escala do bloco, que é bem menor que o painel do plano: índigo e menta de um lado, vermelho

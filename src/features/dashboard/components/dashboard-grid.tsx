@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ClientsSummary } from "@/features/clients/summary";
@@ -9,6 +9,7 @@ import type { ProjectsSummary } from "@/features/projects/summary";
 import type { QuotesSummary } from "@/features/quotes/summary";
 import type { TasksSummary } from "@/features/tasks/summary";
 import { dashboardBlocks, type DashboardBlockId } from "../blocks";
+import { squircle } from "@/lib/corners";
 import { AchievementsBlock } from "./achievements-block";
 import { ChallengeBlock } from "./challenge-block";
 import { ClientsBlock } from "./clients-block";
@@ -56,14 +57,18 @@ export function DashboardGrid({
 
   return (
     <div className={styles.grid}>
-      {dashboardBlocks.map((block) =>
-        block.bare ? (
-          <div key={block.id} className={styles.bare} data-block={block.id}>
+      {dashboardBlocks.map((block, index) => {
+        // A ordem de leitura vira o atraso da entrada em cascata, lido pelo CSS da grade.
+        const order = { "--index": index } as CSSProperties;
+
+        return block.bare ? (
+          <div key={block.id} className={styles.bare} data-block={block.id} style={order} {...squircle("xl", { clip: true })}>
             {content[block.id]}
           </div>
         ) : (
           <Card
             key={block.id}
+            style={order}
             title={block.title}
             icon={<block.icon />}
             action={
@@ -77,8 +82,8 @@ export function DashboardGrid({
           >
             {content[block.id]}
           </Card>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }

@@ -155,3 +155,32 @@
 .day[data-today] .weekday {
   color: var(--color-label);
 }
+
+/* No celular tudo um degrau menor, para a coluna da meta caber ao lado do azulejo sem apertar: número
+   em título 3, meta em footnote, barra média, bolinhas de 24px e a faixa da semana com menos recuo. */
+@media (max-width: 47.9375rem) {
+  .block .progress .goal > :first-child {
+    font-size: var(--text-title-3);
+  }
+
+  .block .progress .goal > :last-child {
+    font-size: var(--text-footnote);
+  }
+
+  .block .progress .bar {
+    --tick-height: 0.75rem;
+  }
+
+  .week {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .dot {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .flame {
+    height: 2.5rem;
+  }
+}

@@ -111,6 +111,23 @@
   line-height: var(--leading-tight);
 }
 
+/* No celular o bloco de duas linhas tem quase 400px de corpo e a sobra dividida espalhava os campos;
+   aqui eles empilham a partir do topo com 16 entre si, e o título e o valor descem um degrau. */
+@media (max-width: 47.9375rem) {
+  .sheet {
+    gap: var(--space-4);
+    justify-content: flex-start;
+  }
+
+  .heading .title {
+    font-size: var(--text-subheadline);
+  }
+
+  .stack > :first-child {
+    font-size: var(--text-headline);
+  }
+}
+
 /* Sem orçamento: a frase e o convite de criar, centrados no bloco. */
 .empty {
   display: grid;

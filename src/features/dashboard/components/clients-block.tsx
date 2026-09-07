@@ -1,9 +1,8 @@
-import { CaretUpDownIcon } from "@phosphor-icons/react/ssr";
 import { useId } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
+import { ClientMenu } from "@/features/clients/components/client-menu";
 import type { Client, ClientsSummary } from "@/features/clients/summary";
 import { applyPattern } from "@/lib/masks";
 import list from "./block-list.module.css";
@@ -15,20 +14,9 @@ const SHOWN_CLIENTS = 5;
 
 const phoneOf = (client: Client) => (client.phone ? applyPattern("phone", client.phone) : null);
 
-/* Os ícones vão com o peso da casa já escrito: quem os recebe é Client Component, e o que chega lá é o
-   SVG pronto, que o `matchIconWeight` não consegue mais vestir. O menu de opções é o chevron duplo do
-   menu, fantasma como os botões de ícone do cabeçalho. */
-function MoreButton({ name }: { name: string }) {
-  return (
-    <IconButton label={`Mais opções de ${name}`} variant="ghost" size="sm">
-      <CaretUpDownIcon weight="bold" />
-    </IconButton>
-  );
-}
-
 // O cliente mais novo em destaque: a foto grande à esquerda e, à direita, o nome com a etiqueta "Novo
-// cliente" e o menu de mais opções na outra ponta da mesma linha, e a ficha em grade embaixo (e-mail e telefone, cada um com o
-// próprio rótulo). O menu ainda não abre nada.
+// cliente" e o menu de opções do cliente na outra ponta da mesma linha, e a ficha em grade embaixo
+// (e-mail e telefone, cada um com o próprio rótulo).
 function Featured({ client }: { client: Client }) {
   const phone = phoneOf(client);
 
@@ -52,7 +40,7 @@ function Featured({ client }: { client: Client }) {
               Novo cliente
             </Badge>
           </span>
-          <MoreButton name={client.name} />
+          <ClientMenu client={client} historyCount={12} />
         </div>
 
         <dl className={styles.facts}>
@@ -94,13 +82,13 @@ function Row({ client }: { client: Client }) {
           </Text>
         )}
       </span>
-      <MoreButton name={client.name} />
+      <ClientMenu client={client} historyCount={12} />
     </li>
   );
 }
 
 // Quem chegou por último em destaque, e embaixo os outros mais novos, na mesma lista curta do bloco
-// de financeiro: foto, nome e telefone, e o menu de mais opções na ponta.
+// de financeiro: foto, nome e telefone, e o menu de opções do cliente na ponta.
 export function ClientsBlock({ summary }: ClientsBlockProps) {
   const recentId = useId();
   const [latest, ...rest] = summary.clients;

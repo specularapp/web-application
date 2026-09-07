@@ -7,6 +7,11 @@
    cabeçalho correr de borda a borda. */
 .card {
   --card-corner: var(--radius-xl);
+  /* No celular o canto cai para `lg`: com o desenho contínuo do fallback, o de 24px começava a curvar a
+     38px da quina e lia como pílula nos blocos de uma coluna. */
+  @media (max-width: 47.9375rem) {
+    --card-corner: var(--radius-lg);
+  }
   --card-pad: var(--space-4);
   --card-line: 0.0375rem;
   /* Espessura do fio de fora no fallback: 1px cheio, porque a faixa de 0,6px entre duas caixas se perde
@@ -81,7 +86,10 @@
   min-width: 0;
 }
 
+/* O atalho fica com a altura do botão pequeno também no toque: é atalho, e não o alvo do bloco, e com
+   44px ele passava do cabeçalho. */
 .action {
+  --touch-target: var(--control-height-sm);
   display: inline-flex;
   flex-shrink: 0;
   margin-inline-start: auto;

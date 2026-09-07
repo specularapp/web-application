@@ -552,10 +552,20 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--color-bg);
-  /* A lista some por máscara antes de chegar na barra flutuante, em vez de ser cortada pela borda da
-     tela. A faixa cobre a altura da barra mais o respiro dela. */
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-10)), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--space-10)), transparent);
+}
+
+/* A lista some num degradê para a cor do fundo antes de chegar na barra flutuante, em vez de ser cortada
+   pela borda da tela. É uma camada grudada no rodapé da tela que rola, e não máscara na tela inteira:
+   a máscara desbotava o fundo opaco junto e a página aparecia por baixo. A faixa cobre a altura da barra
+   mais o respiro dela e não pega toque. */
+.screen::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  height: var(--space-10);
+  margin-block-start: calc(var(--space-10) * -1);
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--color-bg));
 }
 
 /* A tela cheia entra subindo um degrau e sai pelo mesmo caminho, mais rápido. Com movimento reduzido

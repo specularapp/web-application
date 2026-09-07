@@ -9,8 +9,47 @@
   padding: var(--space-4);
 }
 
+/* O cabeçalho fica grudado no topo de quem rola (a coluna de conteúdo da concha) e desbota para o
+   transparente, como o cabeçalho do site: o fundo é um degradê da cor da página até o nada, e o borrão
+   atrás é desbotado pela mesma máscara, então o que rola por baixo vai ficando nítido conforme desce,
+   sem uma faixa sólida. Sangra o recuo da tela pelos três lados e o devolve por dentro, com uma faixa
+   extra embaixo que é onde o degradê acaba; a grade encosta nessa faixa, e por isso o vão entre os dois
+   é o da tela menos ela. Parado no topo nada aparece, porque não há nada atrás. Só acima dos blocos, e
+   abaixo de qualquer camada flutuante. */
+.top {
+  --fade: var(--space-6);
+  position: sticky;
+  isolation: isolate;
+  inset-block-start: 0;
+  z-index: 1;
+  padding: var(--space-4) var(--space-4) var(--fade);
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) calc(var(--fade) * -1 + var(--space-2));
+}
+
+/* O degradê, o borrão e a máscara vivem numa camada atrás do conteúdo, e não no invólucro: a lista do
+   período nasce dentro do cabeçalho e desce por baixo dele, e uma máscara no invólucro a apagaria. */
+.top::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--color-bg) 0%, transparent 100%);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  /* A máscara desbota a camada inteira de cima para baixo, e não só o pé: com o borrão cheio até perto
+     do fim, o degradê lia como faixa sólida. Assim borrão e cor somem juntos, literalmente até o nada. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 20%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 20%, transparent 100%);
+}
+
 @media (min-width: 48rem) {
   .screen {
     padding: var(--space-6);
+  }
+
+  .top {
+    padding: var(--space-6) var(--space-6) var(--fade);
+    margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) calc(var(--fade) * -1 + var(--space-2));
   }
 }

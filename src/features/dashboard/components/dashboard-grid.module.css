@@ -24,15 +24,57 @@
   min-height: 0;
 }
 
+/* Cada bloco surge com um fade e um deslize curto de baixo para cima, em cascata pela ordem de leitura
+   (`--index`, escrito pela grade): 45ms entre um e outro, então o último dos oito entra 315ms depois do
+   primeiro e a página inteira assenta em pouco mais de meio segundo. Só opacidade e transformação, que o
+   compositor resolve sem layout, e `both` para o bloco não piscar antes do atraso. Movimento reduzido já
+   zera as animações no reset da casa. */
 .grid > * {
   min-width: 0;
   min-height: 0;
+  animation: blockEnter var(--duration-slow) var(--ease-standard) both;
+  animation-delay: calc(var(--index, 0) * 45ms);
 }
 
-/* Bloco sem o cartão padrão: só a área da grade, e quem está dentro desenha a caixa inteira. */
+@keyframes blockEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+/* Bloco sem o cartão padrão: a área da grade com o mesmo fio dos cartões, na mesma receita de duas
+   camadas recortadas do `Card` (a caixa de fora na cor do fio com um recuo da espessura dele, e quem
+   está dentro com a cor do fundo), para o canto sair igual ao dos vizinhos em qualquer navegador; onde o
+   canto nativo existe, o fio volta a ser `border`. Quem está dentro desenha o resto da caixa. */
 .bare {
+  --bare-corner: var(--radius-xl);
+  --bare-frame: 1px;
   display: grid;
   height: 100%;
+  padding: var(--bare-frame);
+  background-color: var(--color-border);
+  border-radius: var(--bare-corner);
+
+  @media (max-width: 47.9375rem) {
+    --bare-corner: var(--radius-lg);
+  }
+}
+
+.bare > * {
+  border-radius: calc(var(--bare-corner) - var(--bare-frame));
+}
+
+@supports (corner-shape: squircle) {
+  .bare {
+    padding: 0;
+    background-color: transparent;
+    border: 0.0375rem solid var(--color-border);
+  }
+
+  .bare > * {
+    border-radius: inherit;
+  }
 }
 
 .grid > [data-block="projects"] {

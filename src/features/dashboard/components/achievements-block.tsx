@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Text } from "@/components/ui/text";
 import type { PointsSummary } from "@/features/gamification/summary";
-import { squircle } from "@/lib/corners";
+import { squircleAuto } from "@/lib/corners";
 import styles from "./achievements-block.module.css";
 import { ClaimSlider } from "./claim-slider";
 
@@ -16,7 +16,7 @@ const number = new Intl.NumberFormat("pt-BR");
 // gamificação no painel.
 export function AchievementsBlock({ summary }: AchievementsBlockProps) {
   return (
-    <section className={styles.block} aria-label="Conquistas" {...squircle("xl", { clip: true })}>
+    <section className={styles.block} aria-label="Conquistas" {...squircleAuto({ clip: true })}>
       <div className={styles.top}>
         <div className={styles.art}>
           <Image src="/bg/logo-gamification.png" alt="" width={415} height={414} className={styles.sticker} priority />

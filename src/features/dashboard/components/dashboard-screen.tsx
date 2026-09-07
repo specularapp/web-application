@@ -4,7 +4,8 @@ import styles from "./dashboard-screen.module.css";
 
 export type DashboardScreenProps = DashboardHeaderProps & DashboardGridProps;
 
-// A tela do painel inteira: cabeçalho em cima e a grade de blocos tomando o que sobra. É o que a
+// A tela do painel inteira: cabeçalho em cima, fixo no topo enquanto a página rola, com vidro atrás, e
+// a grade de blocos tomando o que sobra. É o que a
 // página monta com dados do banco e a prévia monta com dados de exemplo.
 export function DashboardScreen({
   projects,
@@ -19,7 +20,9 @@ export function DashboardScreen({
 }: DashboardScreenProps) {
   return (
     <div className={styles.screen}>
-      <DashboardHeader {...header} />
+      <div className={styles.top}>
+        <DashboardHeader {...header} />
+      </div>
       <DashboardGrid
         projects={projects}
         finance={finance}
