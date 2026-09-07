@@ -81,3 +81,15 @@ export function toCents(value: number | undefined) {
 export function fromCents(cents: number | undefined) {
   return cents === undefined ? undefined : cents / 100;
 }
+
+/** Aplica o padrão da máscara a um valor guardado como dígitos, para mostrar telefone, CPF ou CEP fora de um campo. */
+export function applyPattern(mask: PatternMask, value: string) {
+  const digits = trimToPattern(mask, value);
+  let index = 0;
+  let out = "";
+  for (const slot of patternOf(mask, digits)) {
+    if (index >= digits.length) break;
+    out += slot === "#" ? digits[index++] : slot;
+  }
+  return out;
+}

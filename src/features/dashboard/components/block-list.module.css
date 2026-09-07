@@ -1,0 +1,61 @@
+/* A lista curta que fecha um bloco do painel, a mesma no financeiro e nos clientes: um título pequeno e
+   as linhas, tomando o que sobra do bloco e rolando por dentro no desktop, onde a altura é
+   pré-definida. */
+.recent {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+/* A lista sangra o recuo do corpo pelos lados para o hover de cada linha pintar uma caixa em volta do
+   conteúdo, e não colada nele, no ritmo das linhas do menu. Ela desbota nas pontas por máscara, como
+   as listas que rolam nas camadas do menu: em cima uma faixa curta, embaixo uma maior, e o respiro no
+   fim é para a última linha aparecer inteira quando a rolagem chega ao fundo. */
+.list {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  padding: 0 0 var(--space-4);
+  margin: 0 calc(var(--space-2) * -1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-6)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-2),
+    #000 calc(100% - var(--space-6)),
+    transparent
+  );
+}
+
+/* Quem está do outro lado à esquerda, o texto no meio e o que for da linha na ponta direita. */
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.row:hover {
+  background-color: var(--color-fill-quaternary);
+  transition-duration: var(--duration-base);
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}

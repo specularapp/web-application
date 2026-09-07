@@ -49,9 +49,12 @@ samp {
   }
 }
 
+/* Sete de largura para um polegar de 3 com 2 de folga de cada lado: o polegar pinta só a caixa de
+   dentro da borda transparente, e o trilho recua 2 nas pontas, então a barra nunca encosta em borda
+   nenhuma do que rola (pedido de 2026-09-07). */
 ::-webkit-scrollbar {
-  width: 0.1875rem;
-  height: 0.1875rem;
+  width: 0.4375rem;
+  height: 0.4375rem;
 }
 
 ::-webkit-scrollbar-button {
@@ -65,8 +68,14 @@ samp {
   background: transparent;
 }
 
+::-webkit-scrollbar-track {
+  margin: 0.125rem;
+}
+
 ::-webkit-scrollbar-thumb {
   background-color: var(--color-fill-quaternary);
+  background-clip: padding-box;
+  border: 0.125rem solid transparent;
   border-radius: var(--radius-full);
 }
 

@@ -3,8 +3,12 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Sidebar } from "@/components/layout/sidebar";
 import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { DashboardScreen } from "@/features/dashboard/components/dashboard-screen";
+import { previewClientsSummary } from "@/features/clients/preview";
 import { previewFinanceSummary } from "@/features/finance/preview";
+import { previewWeeklyChallenge } from "@/features/gamification/preview";
+import { previewTeamSummary } from "@/features/organizations/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
+import { previewTasksSummary } from "@/features/tasks/preview";
 import { isHomologation } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
 
@@ -29,6 +33,10 @@ export default function DashboardPreviewPage() {
         period="mes"
         projects={previewProjectsSummary}
         finance={previewFinanceSummary}
+        clients={previewClientsSummary}
+        tasks={previewTasksSummary}
+        team={previewTeamSummary}
+        challenge={previewWeeklyChallenge}
       />
     </AppFrame>
   );

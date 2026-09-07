@@ -37,8 +37,12 @@ import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { PlanSettings } from "@/features/billing/components/plan-settings";
 import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
+import { previewClientsSummary } from "@/features/clients/preview";
 import { previewFinanceSummary } from "@/features/finance/preview";
+import { previewWeeklyChallenge } from "@/features/gamification/preview";
+import { previewTeamSummary } from "@/features/organizations/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
+import { previewTasksSummary } from "@/features/tasks/preview";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
 import { Container } from "@/components/ui/container";
@@ -1246,10 +1250,10 @@ const groups: Group[] = [
       },
       {
         name: "Grade do painel (prévia)",
-        note: "Os sete blocos do painel, cada um com o cabeçalho padrão e só projetos e financeiro com conteúdo por enquanto: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos projetos e conquistas, que dividem a primeira coluna. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
+        note: "Os oito blocos do painel, cada um com o cabeçalho padrão e só conquistas e último orçamento sem conteúdo por enquanto: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos os pares que dividem uma coluna: projetos com conquistas, e equipe com desafio semanal. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
         wide: true,
         layout: "stack",
-        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} />,
+        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} clients={previewClientsSummary} tasks={previewTasksSummary} team={previewTeamSummary} challenge={previewWeeklyChallenge} />,
       },
       {
         name: "Plano e assinatura (prévia)",

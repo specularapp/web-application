@@ -1,0 +1,148 @@
+/* Duas partes a 16px uma da outra: a semana e a faixa da posição. A semana toma toda a altura que
+   sobra, então o bloco não tem espaço em branco em tela nenhuma; no corpo mínimo de 108px as bolinhas
+   ficam perto do piso de 28px, e em linha mais alta crescem até o teto. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+}
+
+/* Sete colunas iguais, cada uma com o dia da semana em cima, a bolinha no meio tomando a sobra e o tempo
+   embaixo. */
+.week {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Dia, bolinha e tempo a 2px um do outro, para a coluna ler como uma peça só. */
+.day {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-half);
+  justify-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.weekday,
+.minutes {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.weekday {
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+}
+
+/* O tempo é o número que importa, como os passos da referência, então vai em footnote semibold; a linha
+   fica reservada mesmo vazia, para os dias que ainda vêm não encurtarem a coluna. */
+.minutes {
+  min-height: calc(var(--text-footnote) * var(--leading-tight));
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+/* A bolinha mede o espaço que sobra na coluna, nas duas direções, e o anel dentro dela fica quadrado no
+   menor dos dois lados, entre um piso e um teto de 2,75rem: por isso a caixa de fora é um container de
+   tamanho, e o anel lê `cqw` e `cqh`. O número de dentro escala com o anel, em 42% dele. */
+.dot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 1.75rem;
+  container-type: size;
+}
+
+/* O anel é um gradiente cônico atrás de uma máscara radial que deixa só a borda: verde até a
+   porcentagem da meta e o trilho cinza no resto. O que fica no meio (o dia do mês, ou o check) vai por
+   cima. */
+.ring {
+  --dot-hue: var(--color-success);
+  --track: var(--color-fill-tertiary);
+  --stroke: 0.25rem;
+  --ring-size: min(100cqw, 100cqh, 2.75rem);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--ring-size);
+  aspect-ratio: 1;
+  font-family: var(--font-body);
+  font-size: clamp(var(--text-caption-1), calc(var(--ring-size) * 0.42), var(--text-title-3));
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-label);
+  border-radius: var(--radius-full);
+}
+
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(var(--dot-hue) calc(var(--progress, 0) * 1%), var(--track) 0);
+  border-radius: var(--radius-full);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke)), #000 calc(100% - var(--stroke) + 0.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--stroke)), #000 calc(100% - var(--stroke) + 0.5px));
+}
+
+/* Meta batida: bolinha cheia no verde com o check em branco, sem anel. */
+.day[data-state="met"] .ring {
+  color: var(--color-on-accent);
+  background-color: var(--dot-hue);
+}
+
+.day[data-state="met"] .ring::before {
+  content: none;
+}
+
+.day[data-state="met"] .ring svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* Hoje ganha um sopro do verde no fundo, para dizer que é o dia em curso. */
+.day[data-state="today"] .ring {
+  background-color: light-dark(
+    color-mix(in oklab, var(--dot-hue) 10%, transparent),
+    color-mix(in oklab, var(--dot-hue) 16%, transparent)
+  );
+}
+
+/* O que ainda vem: só o trilho, com o dia do mês apagado. */
+.day[data-state="upcoming"] .ring {
+  font-weight: var(--weight-medium);
+  color: var(--color-label-tertiary);
+}
+
+.day[data-state="upcoming"] .weekday {
+  color: var(--color-label-tertiary);
+}
+
+.day[data-state="met"] .weekday,
+.day[data-state="today"] .weekday {
+  color: var(--color-label);
+}
+
+/* A faixa da posição toma a largura inteira, com o troféu e o texto alinhados à esquerda como na
+   referência, e o texto encurta por reticências em coluna estreita. A altura deixa de ser a do Badge:
+   recuo de 8 por 12, para a faixa respirar. Duas classes para vencer o `inline-flex` centrado do Badge. */
+.block .rank {
+  flex-shrink: 0;
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  padding: var(--space-2) var(--space-3);
+}

@@ -1,0 +1,81 @@
+/* O destaque fica fixo no topo e a lista toma o que sobra, como no financeiro. A lista é a de
+   `block-list`. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+}
+
+/* A foto à esquerda e, à direita, o nome com o menu e a ficha empilhados. Os dois lados esticam à mesma
+   altura: a foto acompanha a pilha da direita, e não o contrário. */
+.featured {
+  display: flex;
+  gap: var(--space-4);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.sheet {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Retrato em destaque, e não bolinha de lista: largura fixa e altura da pilha ao lado, então a foto sai
+   em pé, com a imagem cobrindo e o rosto gerado centrado no pastel, num canto de cartão. Três classes
+   para vencer `.avatar[data-size]`, de onde saem o tamanho e o raio. O motor lê o raio do
+   `border-radius`, então o squircle segue junto. */
+.block .featured .photo {
+  --avatar-radius: var(--radius-lg);
+  width: 5.5rem;
+  height: auto;
+  align-self: stretch;
+}
+
+/* Nome e etiqueta de um lado e o menu de mais opções na outra ponta, centrados na mesma linha. */
+.identity {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* A etiqueta não encolhe nem quebra: quem cede é o nome, por reticências. */
+.naming {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.naming > :last-child {
+  flex-shrink: 0;
+}
+
+/* A ficha é uma grade de fatos, cada um com rótulo em cima e valor embaixo, em quantas colunas caibam
+   com 7rem cada: duas quando a ficha é larga, uma só na coluna do desktop, onde a foto toma um terço.
+   Fundo do botão secundário, o mesmo do cartão do caixa, com recuo 12 e raio concêntrico ao do bloco. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3);
+  margin: 0;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--card-inner);
+  corner-shape: squircle;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.fact > dd {
+  margin: 0;
+}

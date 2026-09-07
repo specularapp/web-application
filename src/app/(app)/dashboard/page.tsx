@@ -3,8 +3,12 @@ import { greetingFor } from "@/features/dashboard/greetings";
 import { parsePeriod, PERIOD_PARAM } from "@/features/dashboard/period";
 import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { getOnboardingGate } from "@/features/onboarding/guard";
+import { previewClientsSummary } from "@/features/clients/preview";
 import { previewFinanceSummary } from "@/features/finance/preview";
+import { previewWeeklyChallenge } from "@/features/gamification/preview";
+import { previewTeamSummary } from "@/features/organizations/preview";
 import { previewProjectsSummary } from "@/features/projects/preview";
+import { previewTasksSummary } from "@/features/tasks/preview";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -27,6 +31,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         period={period}
         projects={previewProjectsSummary}
         finance={previewFinanceSummary}
+        clients={previewClientsSummary}
+        tasks={previewTasksSummary}
+        team={previewTeamSummary}
+        challenge={previewWeeklyChallenge}
       />
 
       {needsSetup && billing && (

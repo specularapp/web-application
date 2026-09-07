@@ -10,7 +10,9 @@ import { BrandIcon } from "@/components/ui/brand-icon";
 import { Text } from "@/components/ui/text";
 import type { FinanceSummary, Transaction, TransactionKind } from "@/features/finance/summary";
 import { iconButtonCornerRadius, squircle, squirclePx } from "@/lib/corners";
+import { cx } from "@/lib/utils/cx";
 import { formatMoney } from "@/lib/utils/format";
+import list from "./block-list.module.css";
 import styles from "./finance-block.module.css";
 import { RefreshButton } from "./refresh-button";
 
@@ -62,9 +64,9 @@ function Party({ transaction }: { transaction: Transaction }) {
 
 function Row({ transaction }: { transaction: Transaction }) {
   return (
-    <li className={styles.row} data-kind={transaction.kind}>
+    <li className={cx(list.row, styles.row)} data-kind={transaction.kind}>
       <Party transaction={transaction} />
-      <span className={styles.copy}>
+      <span className={list.copy}>
         <Text as="span" variant="subheadline" weight="medium" truncate>
           {transaction.title}
         </Text>
@@ -111,11 +113,11 @@ export function FinanceBlock({ summary }: FinanceBlockProps) {
         </span>
       </div>
 
-      <section className={styles.recent} aria-labelledby={recentId}>
+      <section className={list.recent} aria-labelledby={recentId}>
         <Text as="h3" id={recentId} variant="caption1" weight="medium" tone="secondary">
           Movimentações recentes
         </Text>
-        <ul className={styles.list}>
+        <ul className={list.list}>
           {summary.transactions.slice(0, SHOWN_TRANSACTIONS).map((transaction) => (
             <Row key={transaction.id} transaction={transaction} />
           ))}

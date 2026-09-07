@@ -1,5 +1,5 @@
 /* O cartão do caixa fica fixo no topo e a lista toma o que sobra: no desktop, onde a altura do bloco é
-   pré-definida, é a lista que rola por dentro, nunca o bloco. */
+   pré-definida, é a lista que rola por dentro, nunca o bloco. A lista em si é a de `block-list`. */
 .block {
   display: flex;
   flex-direction: column;
@@ -14,10 +14,13 @@
    raio é `lg` pelo sistema da casa, e não o concêntrico de 8px, por pedido: com o recuo de 16 do bloco
    a conta dava um canto que lia como quadrado num cartão desse tamanho. No fallback o motor recorta,
    porque o cartão já esconde o que transborda. Fundo no preenchimento do botão secundário, o mesmo das
-   caixas do menu. */
+   caixas do menu. A largura é declarada, e não automática: com proporção e teto de altura, largura
+   automática é recalculada a partir da altura quando o teto entra, e no celular o cartão encolhia em
+   vez de tomar a coluna. */
 .card {
   position: relative;
   display: grid;
+  width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr;
   gap: var(--space-4) var(--space-3);
@@ -77,58 +80,6 @@
   justify-self: end;
 }
 
-.recent {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-height: 0;
-}
-
-/* A lista sangra o recuo do corpo pelos lados para o hover de cada linha pintar uma caixa em volta do
-   conteúdo, e não colada nele, no ritmo das linhas do menu. Ela desbota nas pontas por máscara, como
-   as listas que rolam nas camadas do menu: em cima uma faixa curta, embaixo uma maior, e o respiro no
-   fim é para a última linha aparecer inteira quando a rolagem chega ao fundo. */
-.list {
-  display: grid;
-  align-content: start;
-  min-height: 0;
-  padding: 0 0 var(--space-4);
-  margin: 0 calc(var(--space-2) * -1);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  list-style: none;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--space-2),
-    #000 calc(100% - var(--space-6)),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 var(--space-2),
-    #000 calc(100% - var(--space-6)),
-    transparent
-  );
-}
-
-.row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.row:hover {
-  background-color: var(--color-fill-quaternary);
-  transition-duration: var(--duration-base);
-}
-
 /* Um matiz por tipo gera o fundo e a tinta do ícone de reserva, na mesma receita do Badge: recebido em
    verde, por vir no acento, e o que saiu em neutro. O valor em si é sempre neutro. */
 .row[data-kind="income"] {
@@ -176,12 +127,6 @@
 .party[data-glyph] svg {
   width: 1rem;
   height: 1rem;
-}
-
-.copy {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
 }
 
 .amount {
