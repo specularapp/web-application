@@ -162,7 +162,7 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
           </Text>
         </span>
         {file.label && (
-          <Badge tone="success" size="sm" icon={<CheckCircleIcon />}>
+          <Badge tone="success" size="sm" icon={<CheckCircleIcon />} className={styles.fileLabel}>
             {file.label}
           </Badge>
         )}

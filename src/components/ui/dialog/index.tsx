@@ -2,8 +2,9 @@
 
 import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
@@ -33,12 +34,11 @@ export type DialogProps = {
   className?: string;
 };
 
-/* As janelas abertas, na ordem: só a última responde a Escape e prende o Tab, para uma janela por cima
-   de outra (o anexo sobre a ficha) não fechar as duas. */
-const openDialogs: symbol[] = [];
-
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Teto do quanto o dedo precisa arrastar a alça para baixo para a bandeja fechar. */
+const CLOSE_DISTANCE = 120;
 
 const rise = keyframes`
   from {
@@ -229,6 +229,10 @@ const Panel = styled.div`
   }
 `;
 
+/* A alça da bandeja é também o puxador: segurar nela e arrastar para baixo fecha a janela. O desenho
+   continua sendo a barrinha de 4px, mas quem pega o dedo é a área invisível em volta, na medida de toque
+   da casa, porque 4px de altura não se acerta com o polegar. `touch-action: none` para o navegador não
+   rolar a página no meio do arrasto. */
 const Handle = styled.span`
   position: relative;
   z-index: 1;
@@ -239,6 +243,18 @@ const Handle = styled.span`
   margin: var(--space-3) auto 0;
   background-color: var(--color-fill);
   border-radius: var(--radius-full);
+  touch-action: none;
+  cursor: grab;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: calc((var(--touch-target) - 0.25rem) / -2) -1.5rem;
+  }
+
+  &[data-dragging] {
+    cursor: grabbing;
+  }
 `;
 
 // Janela da casa: caixa centralizada, gaveta colada na lateral final ou bandeja subindo do rodapé no
@@ -260,6 +276,12 @@ export function Dialog({
   const { present, state, onAnimationEnd } = usePresence(open);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  const dragRef = useRef<{ pointer: number; startY: number } | null>(null);
+  const layer = useLayer(open);
+  // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
+  // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
+  // menu nasce enquanto quem manda é o menu, então o clique que vem depois não fecha o perfil junto.
+  const armed = useRef(false);
 
   useEffect(() => {
     closeRef.current = onClose;
@@ -269,12 +291,75 @@ export function Dialog({
   // que engole o clique para o que estava embaixo não disparar junto.
   useOutsideDismiss(open && !scrim, [panelRef], () => closeRef.current());
 
+  // Arrasto da alça da bandeja (pedido de 2026-09-08): segurar na barrinha e puxar para baixo fecha a
+  // janela, o gesto que o iOS dá em toda bandeja. O painel segue o dedo por `transform` inline, que
+  // aparece por cima da animação de entrada porque o `to` dela é implícito e vale o valor de baixo.
+  const dragStart = (event: PointerEvent<HTMLSpanElement>) => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    dragRef.current = { pointer: event.pointerId, startY: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.dataset.dragging = "";
+    panel.style.transition = "none";
+  };
+
+  const dragMove = (event: PointerEvent<HTMLSpanElement>) => {
+    const drag = dragRef.current;
+    const panel = panelRef.current;
+    if (!drag || drag.pointer !== event.pointerId || !panel) return;
+    // Só para baixo: puxar para cima não estica a bandeja, ela fica onde está.
+    panel.style.transform = `translateY(${Math.max(0, event.clientY - drag.startY)}px)`;
+  };
+
+  const dragEnd = (event: PointerEvent<HTMLSpanElement>) => {
+    const drag = dragRef.current;
+    const panel = panelRef.current;
+    if (!drag || drag.pointer !== event.pointerId || !panel) return;
+    dragRef.current = null;
+    delete event.currentTarget.dataset.dragging;
+
+    const distance = Math.max(0, event.clientY - drag.startY);
+
+    // Fecha passando de um terço da altura da bandeja, com teto: numa bandeja de 85dvh um terço seria
+    // quase a tela inteira, e o gesto deixaria de fechar.
+    if (distance > Math.min(panel.offsetHeight / 3, CLOSE_DISTANCE)) {
+      // O `transform` fica onde o dedo largou: a animação de saída tem o `from` implícito, então ela
+      // continua daqui até o rodapé em vez de saltar de volta ao lugar antes de descer.
+      panel.style.transition = "";
+      closeRef.current();
+      return;
+    }
+
+    if (distance === 0) {
+      panel.style.transition = "";
+      return;
+    }
+
+    // Não passou: volta para o lugar com a transição curta da casa, e as marcas inline saem no fim.
+    panel.style.transition = "transform var(--duration-base) var(--ease-standard)";
+    panel.style.transform = "";
+    panel.addEventListener(
+      "transitionend",
+      () => {
+        panel.style.transition = "";
+      },
+      { once: true },
+    );
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = () => {
+      armed.current = isTopLayer(layer);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [open, layer]);
+
   useEffect(() => {
     if (!open) return;
 
-    const id = Symbol("dialog");
-    openDialogs.push(id);
-    const onTop = () => openDialogs[openDialogs.length - 1] === id;
+    const onTop = () => isTopLayer(layer);
 
     const panel = panelRef.current;
     const opener = document.activeElement as HTMLElement | null;
@@ -321,11 +406,10 @@ export function Dialog({
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      openDialogs.splice(openDialogs.indexOf(id), 1);
       root.style.overflow = overflow;
       opener?.focus({ preventScroll: true });
     };
-  }, [open, focusOnOpen]);
+  }, [open, focusOnOpen, layer]);
 
   if (!present) return null;
 
@@ -344,7 +428,10 @@ export function Dialog({
           data-state={state}
           data-soft={scrim ? undefined : ""}
           data-clear={glass ? "" : undefined}
-          onClick={() => onClose()}
+          onClick={() => {
+            if (!armed.current) return;
+            onClose();
+          }}
         />
       )}
       <Frame data-mode={mode} data-placement={placement}>
@@ -363,7 +450,15 @@ export function Dialog({
           className={className}
           onAnimationEnd={onAnimationEnd}
         >
-          {sheet && <Handle aria-hidden="true" />}
+          {sheet && (
+            <Handle
+              aria-hidden="true"
+              onPointerDown={dragStart}
+              onPointerMove={dragMove}
+              onPointerUp={dragEnd}
+              onPointerCancel={dragEnd}
+            />
+          )}
           {children}
         </Panel>
       </Frame>

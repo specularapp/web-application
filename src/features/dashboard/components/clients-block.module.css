@@ -33,6 +33,13 @@
   width: 5.5rem;
   height: auto;
   align-self: stretch;
+
+  /* No celular a foto alarga (pedido de 2026-09-08): a ficha é alta na coluna larga do celular e, com
+     5,5rem, o retrato saía fino e comprido. Quem cede é o texto ao lado, que já encurta por reticências.
+     A etiqueta virou só "Novo" no mesmo pedido, e é ela que devolve a largura para o nome. */
+  @media (max-width: 47.9375rem) {
+    width: 7rem;
+  }
 }
 
 /* Nome e etiqueta de um lado e o menu de mais opções na outra ponta, centrados na mesma linha. */
@@ -68,6 +75,12 @@
   background-color: var(--color-fill-quaternary);
   border-radius: var(--card-inner);
   corner-shape: squircle;
+
+  /* Uma coluna no celular: com a foto mais larga sobra pouca largura ao lado, e dois fatos lado a lado
+     viravam duas reticências. Empilhados, cada valor aproveita a faixa inteira. */
+  @media (max-width: 47.9375rem) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .fact {

@@ -441,7 +441,7 @@ const groups: Group[] = [
               description="48 clientes ativos neste trimestre"
               actions={
                 <Button size="sm" iconStart={<PlusIcon />}>
-                  Novo cliente
+                  Novo
                 </Button>
               }
             />

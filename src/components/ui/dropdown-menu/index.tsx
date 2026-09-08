@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { planBadges, type PlanId } from "@/features/billing/plans";
+import { useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
@@ -266,6 +267,11 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
   const { present, state, onAnimationEnd } = usePresence(open && !mobile);
   const position = useAnchoredPosition(open && !mobile, triggerRef, { width: PANEL_WIDTH, height: heightOf(sections), edge: EDGE, gap: GAP });
   const [resolved, setResolved] = useState<Resolved | null>(null);
+
+  // A caixa colada no gatilho entra na mesma fila das janelas: aberta de dentro de uma, é ela quem
+  // responde ao Escape e ao toque fora, e a janela de baixo fica quieta em vez de fechar junto. No
+  // celular quem registra é o `Dialog` da bandeja.
+  useLayer(open && !mobile);
 
   useOutsideDismiss(open && !mobile, [popoverRef, triggerRef], () => setOpen(false));
 

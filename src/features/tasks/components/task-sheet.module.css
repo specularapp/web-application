@@ -114,14 +114,14 @@
   margin: 0;
 }
 
-/* No celular os fatos viram células com o rótulo em cima do valor. As duas colunas só entram quando
-   cabem: com `auto-fit` sobre um piso de 9rem, a tela de 320px fica com uma coluna e a de 375 em
-   diante ganha as duas. Com as duas colunas fixas em toda largura, o valor não cabia na célula e a
-   ficha inteira quebrava. */
+/* No celular os fatos viram uma coluna só, com o rótulo em cima do valor (pedido de 2026-09-08): o
+   valor de quase todo fato aqui é objeto de largura própria, pessoa, chip de projeto ou etiqueta, e em
+   meia coluna cada um caía numa linha, deixando a ficha em escada. Empilhado, cada fato fica numa faixa
+   inteira e a leitura desce em linha reta. */
 @media (max-width: 47.9375rem) {
   .facts {
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-    gap: var(--space-3) var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
   }
 
   .fact {
@@ -130,13 +130,18 @@
     align-items: start;
     min-width: 0;
   }
+}
 
-  /* Fato cujo valor é objeto de largura própria (pessoa, chip de projeto, etiqueta) toma a linha
-     inteira: em meia coluna cada chip caía numa linha e a ficha virava uma escada. Em duas colunas
-     ficam só os fatos de texto simples, que é onde a divisão ajuda. */
-  .facts .wide {
-    grid-column: 1 / -1;
-  }
+/* Os envolvidos numa pílula só, na mesma receita do aviso do menu lateral: as bolinhas sobrepostas com
+   o fio da casa em volta e o "+N" dentro dela. Uma pílula por pessoa empurrava a ficha para várias
+   linhas assim que a tarefa tinha mais de duas. */
+.people {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-half);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
 }
 
 /* Pessoa em chip: a bolinha e o nome, na borda da casa e em pílula, como as etiquetas em pílula. */
@@ -275,6 +280,38 @@
   flex: 1;
   gap: var(--space-half);
   min-width: 0;
+}
+
+.fileLabel {
+  flex-shrink: 0;
+}
+
+/* No celular o cartão vira grade e a etiqueta desce para a coluna do texto, embaixo do nome e do formato
+   (ajuste de 2026-09-08): na mesma linha ela roubava a largura do nome, que sobrava com um punhado de
+   pixels e virava reticência quase inteira. Ícone e seta ficam na linha do nome e se centram por ela. */
+@media (max-width: 47.9375rem) {
+  .file {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
+    align-items: start;
+  }
+
+  .fileIcon,
+  .open {
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .fileCopy {
+    grid-row: 1;
+  }
+
+  .fileLabel {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
 }
 
 /* Atividade: a bolinha de quem fez, o que fez em uma linha e quando, embaixo. */

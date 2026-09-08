@@ -16,8 +16,8 @@ const SHOWN_CLIENTS = 5;
 
 const phoneOf = (client: Client) => (client.phone ? applyPattern("phone", client.phone) : null);
 
-// O cliente mais novo em destaque: a foto grande à esquerda e, à direita, o nome com a etiqueta "Novo
-// cliente" e o menu de opções do cliente na outra ponta da mesma linha, e a ficha em grade embaixo
+// O cliente mais novo em destaque: a foto grande à esquerda e, à direita, o nome com a etiqueta "Novo"
+// e o menu de opções do cliente na outra ponta da mesma linha, e a ficha em grade embaixo
 // (e-mail e telefone, cada um com o próprio rótulo). Clicar abre o perfil do cliente.
 function Featured({ client }: { client: Client }) {
   const phone = phoneOf(client);
@@ -47,7 +47,7 @@ function Featured({ client }: { client: Client }) {
               {client.name}
             </Text>
             <Badge tone="accent" size="sm">
-              Novo cliente
+              Novo
             </Badge>
           </span>
           <ClientMenu client={client} historyCount={12} />

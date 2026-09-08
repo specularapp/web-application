@@ -12,11 +12,11 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { ReactNode } from "react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { squircle } from "@/lib/corners";
-import { cx } from "@/lib/utils/cx";
 import { dueOf, priorityLabels, priorityTones, statusLabels, statusTones } from "../labels";
 import type { Task, TaskPerson } from "../summary";
 import { AttachmentCard } from "./attachment-card";
@@ -27,6 +27,12 @@ export type TaskSheetProps = { task: Task };
 
 /* O aviso no raio `md` da casa, recortado no fallback porque não tem borda. */
 const cardCorner = squircle("md", { clip: true });
+
+/** Quantos rostos a pílula de envolvidos mostra antes de resumir o resto em "+N", o mesmo do aviso do menu. */
+const SHOWN_FACES = 3;
+
+/* Os nomes ligados por "e" para a leitura por voz, como no cartão de tarefa do painel. */
+const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" });
 
 const longDate = (iso: string) => format(parseISO(iso), "EEEE, d 'de' MMM. 'de' yyyy", { locale: ptBR });
 const shortStamp = (iso: string) => format(parseISO(iso), "d MMM., HH:mm", { locale: ptBR });
@@ -49,11 +55,36 @@ function Person({ person }: { person: TaskPerson }) {
   );
 }
 
-/* `wide` marca o fato cujo valor é objeto de largura própria (pessoa, chip, etiqueta): no celular ele
-   toma a linha inteira, e as duas colunas ficam só para os fatos de texto simples. */
-function Fact({ icon: Glyph, label, wide = false, children }: { icon: Icon; label: string; wide?: boolean; children: ReactNode }) {
+/* Quem está envolvido cabe numa pílula só, na receita do aviso do menu lateral: até três bolinhas
+   sobrepostas e o resto em "+N". Uma pílula por pessoa, com o nome ao lado, empurrava a ficha para
+   várias linhas assim que a tarefa tinha mais de duas pessoas. Os nomes seguem inteiros na leitura por
+   voz, porque na pílula só aparecem os rostos. */
+function People({ people }: { people: TaskPerson[] }) {
+  const faces = people.slice(0, SHOWN_FACES);
+  const rest = people.length - faces.length;
+
   return (
-    <div className={cx(styles.fact, wide && styles.wide)}>
+    <>
+      <span className={styles.people}>
+        <AvatarGroup>
+          {faces.map((person) => (
+            <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
+          ))}
+        </AvatarGroup>
+        {rest > 0 && (
+          <Text as="span" variant="caption1" tone="secondary">
+            +{rest}
+          </Text>
+        )}
+      </span>
+      <VisuallyHidden>{nameList.format(people.map((person) => person.name))}</VisuallyHidden>
+    </>
+  );
+}
+
+function Fact({ icon: Glyph, label, children }: { icon: Icon; label: string; children: ReactNode }) {
+  return (
+    <div className={styles.fact}>
       <Text as="dt" variant="subheadline" tone="secondary" className={styles.factLabel}>
         <Glyph aria-hidden="true" />
         {label}
@@ -123,13 +154,11 @@ export function TaskSheet({ task }: TaskSheetProps) {
       )}
 
       <dl className={styles.facts}>
-        <Fact icon={UserCircleIcon} label="Responsável" wide>
+        <Fact icon={UserCircleIcon} label="Responsável">
           <Person person={task.owner} />
         </Fact>
-        <Fact icon={UsersIcon} label="Envolvidos" wide>
-          {task.people.map((person) => (
-            <Person key={person.name} person={person} />
-          ))}
+        <Fact icon={UsersIcon} label="Envolvidos">
+          <People people={task.people} />
         </Fact>
         <Fact icon={CalendarBlankIcon} label="Prazo">
           <Text as="span" variant="subheadline" weight="medium">
@@ -151,7 +180,7 @@ export function TaskSheet({ task }: TaskSheetProps) {
           </Fact>
         )}
         {task.project && (
-          <Fact icon={FolderIcon} label="Projeto" wide>
+          <Fact icon={FolderIcon} label="Projeto">
             <span className={styles.chip}>
               <Text as="span" variant="footnote" tone="secondary">
                 {task.project.reference}
@@ -163,7 +192,7 @@ export function TaskSheet({ task }: TaskSheetProps) {
           </Fact>
         )}
         {task.tags.length > 0 && (
-          <Fact icon={TagIcon} label="Etiquetas" wide>
+          <Fact icon={TagIcon} label="Etiquetas">
             {task.tags.map((tag) => (
               <Badge key={tag} size="md">
                 {tag}

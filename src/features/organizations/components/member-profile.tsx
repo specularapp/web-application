@@ -1,5 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
+  BriefcaseIcon,
   CalendarBlankIcon,
   CrownIcon,
   EnvelopeSimpleIcon,
@@ -43,9 +44,11 @@ const shortStamp = (iso: string) => format(parseISO(iso), "d MMM., HH:mm", { loc
 
 // O perfil de quem é da equipe, sobre o mesmo cartão de perfil do cliente: o papel de acesso e a
 // situação em etiquetas, os pontos de gamificação, o que a pessoa produziu em números, os botões de
-// contato e as seções de apresentação, contato, habilidades, projetos em que está e, depois de um fio,
-// a atividade recente. Sem diretiva de cliente: é estático, e o bloco da equipe, que é cliente, o
-// renderiza dentro da janela.
+// contato e as seções de apresentação, contato, habilidades e, cada uma depois de um fio, os projetos
+// em que está e a atividade recente. A função abre a seção de contato, e não o topo (pedido de
+// 2026-09-08): lá em cima ela dividia a linha com o e-mail, que a própria seção de contato já mostra,
+// então o topo repetia o que vinha logo abaixo. Sem diretiva de cliente: é estático, e o bloco da
+// equipe, que é cliente, o renderiza dentro da janela.
 export function MemberProfile({ member }: MemberProfileProps) {
   const access = accessMeta[member.access];
   const pending = member.status === "pending";
@@ -86,8 +89,6 @@ export function MemberProfile({ member }: MemberProfileProps) {
           </Badge>
         )
       }
-      handle={member.email}
-      subtitle={member.role}
       stats={[
         { label: "Entregues", value: String(member.metrics.deliveredProjects) },
         { label: "Faturamento", value: compactMoney(member.metrics.revenue) },
@@ -112,6 +113,11 @@ export function MemberProfile({ member }: MemberProfileProps) {
 
       <ProfileSection title="Contato">
         <ProfileFacts>
+          <ProfileFact icon={BriefcaseIcon} label="Função">
+            <Text as="span" variant="subheadline" weight="medium">
+              {member.role}
+            </Text>
+          </ProfileFact>
           <ProfileFact icon={EnvelopeSimpleIcon} label="E-mail">
             <Text as="span" variant="subheadline" weight="medium" truncate>
               {member.email}
@@ -155,7 +161,9 @@ export function MemberProfile({ member }: MemberProfileProps) {
       )}
 
       {!pending && (
-        <ProfileSection title="Projetos">
+        <>
+          <ProfileRule />
+          <ProfileSection title="Projetos">
           {member.projects.length === 0 ? (
             <Text variant="footnote" tone="secondary">
               Nenhum projeto no momento
@@ -181,7 +189,8 @@ export function MemberProfile({ member }: MemberProfileProps) {
               })}
             </ProfileList>
           )}
-        </ProfileSection>
+          </ProfileSection>
+        </>
       )}
 
       {member.activity.length > 0 && (

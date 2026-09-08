@@ -68,7 +68,7 @@ export function ClientProfile({ client }: ClientProfileProps) {
         <>
           {isNew && (
             <Badge tone="accent" size="sm">
-              Novo cliente
+              Novo
             </Badge>
           )}
           <Badge tone={client.active ? "success" : "neutral"} size="sm">
