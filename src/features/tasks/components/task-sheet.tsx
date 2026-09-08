@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { squircle } from "@/lib/corners";
-import { dueOf, priorityLabels, priorityTones, statusLabels, statusTones } from "../labels";
+import { dueOf, peopleLabel, priorityLabels, priorityTones, statusLabels, statusTones } from "../labels";
 import type { Task, TaskPerson } from "../summary";
 import { AttachmentCard } from "./attachment-card";
 import { Subtasks } from "./subtasks";
@@ -55,24 +55,28 @@ function Person({ person }: { person: TaskPerson }) {
   );
 }
 
-/* Quem está envolvido cabe numa pílula só, na receita do aviso do menu lateral: até três bolinhas
-   sobrepostas e o resto em "+N". Uma pílula por pessoa, com o nome ao lado, empurrava a ficha para
-   várias linhas assim que a tarefa tinha mais de duas pessoas. Os nomes seguem inteiros na leitura por
-   voz, porque na pílula só aparecem os rostos. */
+/* Quem está envolvido: as bolinhas agrupadas e, ao lado, os primeiros nomes que cabem no orçamento de
+   caracteres, com o resto virando "+N" (pedido de 2026-09-08). O corte é por caractere, em `peopleLabel`,
+   e não por quantidade de gente, senão a linha quebrava com nomes longos e sobrava espaço com nomes
+   curtos. Os nomes completos seguem na leitura por voz, porque na tela eles vêm cortados. */
 function People({ people }: { people: TaskPerson[] }) {
   const faces = people.slice(0, SHOWN_FACES);
-  const rest = people.length - faces.length;
+  const { names, rest } = peopleLabel(people);
 
   return (
     <>
       <span className={styles.people}>
-        <AvatarGroup>
+        <AvatarGroup className={styles.faces}>
           {faces.map((person) => (
             <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
           ))}
         </AvatarGroup>
+        <Text as="span" variant="subheadline" weight="medium" truncate>
+          {names}
+          {rest > 0 && "…"}
+        </Text>
         {rest > 0 && (
-          <Text as="span" variant="caption1" tone="secondary">
+          <Text as="span" variant="subheadline" tone="secondary" className={styles.more}>
             +{rest}
           </Text>
         )}
@@ -126,9 +130,12 @@ export function TaskSheet({ task }: TaskSheetProps) {
               {task.project.name}
             </Text>
           )}
-          <Text as="span" variant="footnote" tone="secondary">
+          {/* O identificador em etiqueta neutra, e não em texto solto (pedido de 2026-09-08): ao lado do
+              nome da pasta ele competia com ela, e a pasta é quem situa a tarefa. Em etiqueta ele lê
+              como código de referência e cede o destaque. */}
+          <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {task.reference}
-          </Text>
+          </Badge>
         </div>
         <Text as="h2" variant="title2" weight="semibold">
           {task.title}

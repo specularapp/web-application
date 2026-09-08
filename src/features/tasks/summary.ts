@@ -14,13 +14,16 @@ export type Subtask = {
   person?: TaskPerson;
 };
 
+/** O que o anexo é, que decide o ícone da lista e como a pré-visualização o mostra. */
+export type TaskAttachmentType = "pdf" | "image" | "figma" | "link";
+
 export type TaskAttachment = {
   id: string;
   name: string;
-  type: "pdf" | "image" | "link";
+  type: TaskAttachmentType;
   /** Onde abre, em nova aba. */
   url: string;
-  /** Tamanho legível, como "937 KB"; link não tem. */
+  /** Tamanho legível, como "937 KB"; link e Figma não têm. */
   size?: string;
   /** Situação do arquivo, como "Assinado" ou "Aprovado". */
   label?: string;

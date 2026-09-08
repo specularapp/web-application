@@ -74,7 +74,8 @@ export const previewTasksSummary: TasksSummary = {
       ],
       attachments: [
         { id: "a1", name: "Diretrizes do sistema", type: "image", url: "/banners/login-2-desktop.png", size: "78 KB" },
-        { id: "a2", name: "Arquivo no Figma", type: "link", url: "https://www.figma.com" },
+        { id: "a2", name: "Design system v2", type: "figma", url: "https://www.figma.com/file/design-system-v2" },
+        { id: "a3", name: "Referências no Behance", type: "link", url: "https://www.behance.net/search/projects/design%20system" },
       ],
       activity: [
         { id: "e1", person: jhon, action: "comentou: \"Falta o estado de erro no seletor.\"", at: at(0, "09:12") },

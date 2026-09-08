@@ -1,22 +1,75 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FileImageIcon, FilePdfIcon, LinkIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FigmaLogoIcon, FileImageIcon, FilePdfIcon, GlobeSimpleIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
+import { BrandIcon } from "@/components/ui/brand-icon";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { squircle } from "@/lib/corners";
-import type { TaskAttachment } from "../summary";
+import type { TaskAttachment, TaskAttachmentType } from "../summary";
 import styles from "./task-sheet.module.css";
 
 export type AttachmentCardProps = { file: TaskAttachment };
 
-const fileIcons: Record<TaskAttachment["type"], Icon> = { pdf: FilePdfIcon, image: FileImageIcon, link: LinkIcon };
-const fileLabels: Record<TaskAttachment["type"], string> = { pdf: "PDF", image: "Imagem", link: "Link" };
+/**
+ * Cada tipo de anexo tem o próprio jeito de aparecer, e é aqui que isso mora, num lugar só: o glifo de
+ * reserva, o nome do formato, se o arquivo pode ser baixado e como o palco o mostra. `stage` é o que
+ * diferencia a pré-visualização: `image` desenha a imagem, `frame` embute o arquivo num iframe e `card`
+ * monta a ficha do endereço, para o que não abre dentro da nossa tela.
+ */
+type AttachmentKind = {
+  icon: Icon;
+  label: string;
+  downloadable: boolean;
+  stage: "image" | "frame" | "card";
+  /** Nome do arquivo em `public/brands` quando a marca diz mais que o glifo. */
+  brand?: string;
+};
+
+const kinds: Record<TaskAttachmentType, AttachmentKind> = {
+  pdf: { icon: FilePdfIcon, label: "PDF", downloadable: true, stage: "frame" },
+  image: { icon: FileImageIcon, label: "Imagem", downloadable: true, stage: "image" },
+  figma: { icon: FigmaLogoIcon, label: "Figma", downloadable: false, stage: "card", brand: "figma" },
+  link: { icon: GlobeSimpleIcon, label: "Link", downloadable: false, stage: "card" },
+};
+
+/* Endereços que a casa reconhece pela marca: o anexo mostra o logo do serviço em vez do globo genérico,
+   e a pessoa sabe para onde vai antes de tocar. Só entram marcas que existem em `public/brands`. */
+const brandHosts: Record<string, string> = {
+  "figma.com": "figma",
+  "behance.net": "behance",
+  "github.com": "github",
+  "gitlab.com": "gitlab",
+  "linkedin.com": "linkedin",
+  "canva.com": "canva",
+  "webflow.com": "webflow",
+  "wordpress.com": "wordpress",
+  "vercel.com": "vercel",
+  "google.com": "google",
+};
+
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+/** A marca do endereço, pelo domínio ou por um subdomínio dele; sem marca conhecida devolve nulo. */
+function brandOf(url: string, fallback?: string) {
+  const host = hostOf(url);
+  if (!host) return fallback ?? null;
+  const exact = brandHosts[host];
+  if (exact) return exact;
+  const parent = Object.keys(brandHosts).find((known) => host.endsWith(`.${known}`));
+  return parent ? brandHosts[parent] : (fallback ?? null);
+}
 
 /* Cartão e chip no raio `md` e `sm` da casa, recortados no fallback porque não têm borda. */
 const cardCorner = squircle("md", { clip: true });
@@ -72,20 +125,50 @@ const Stage = styled.div`
   }
 `;
 
-const LinkPreview = styled.div`
+/* O que não abre dentro da nossa tela (Figma, endereço solto) ganha ficha em vez de moldura vazia: a
+   marca do serviço num azulejo, o nome do anexo, o domínio e a linha que diz para onde o botão leva.
+   Assim cada tipo tem uma cara própria e a pessoa sabe o que vai encontrar antes de sair daqui. */
+const CardPreview = styled.div`
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   place-content: center;
   justify-items: center;
   height: 100%;
   padding: var(--space-6);
   text-align: center;
+`;
+
+/* O azulejo da marca, no fundo da página e no raio da casa, para o logo colorido assentar em qualquer
+   tema. A marca sai do `BrandIcon`, que mede 1.2em, então quem dá o tamanho dela é a fonte daqui. */
+const Mark = styled.span`
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 2.25rem;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
 
   & > svg {
-    width: 2.5rem;
-    height: 2.5rem;
-    color: var(--color-label-tertiary);
+    width: 2.25rem;
+    height: 2.25rem;
+    color: var(--color-label-secondary);
   }
+`;
+
+const Host = styled.span`
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-full);
 `;
 
 /* As ações num container flutuante centrado no rodapé do palco, no mesmo vidro do toast e do menu:
@@ -125,8 +208,11 @@ function absoluteUrl(url: string) {
 export function AttachmentCard({ file }: AttachmentCardProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const Glyph = fileIcons[file.type];
-  const meta = file.size ? `${fileLabels[file.type]}, ${file.size}` : fileLabels[file.type];
+  const kind = kinds[file.type];
+  const Glyph = kind.icon;
+  const brand = kind.stage === "card" ? brandOf(file.url, kind.brand) : null;
+  const host = hostOf(file.url);
+  const meta = file.size ? `${kind.label}, ${file.size}` : (host ?? kind.label);
 
   const download = () => {
     const anchor = document.createElement("a");
@@ -150,8 +236,10 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
   return (
     <>
       <button type="button" className={styles.file} aria-haspopup="dialog" onClick={() => setOpen(true)} {...cardCorner}>
+        {/* O chip mostra a marca do serviço quando a casa a conhece, e o glifo do formato quando não:
+            no meio de uma lista de anexos é o logo que diz na hora o que é cada um. */}
         <span className={styles.fileIcon} aria-hidden="true" {...chipCorner}>
-          <Glyph weight="duotone" />
+          {brand ? <BrandIcon name={brand} color className={styles.fileBrand} /> : <Glyph weight="duotone" />}
         </span>
         <span className={styles.fileCopy}>
           <Text as="span" variant="subheadline" weight="medium" truncate>
@@ -181,22 +269,30 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
           </Head>
 
           <Stage {...stageCorner}>
-            {file.type === "image" && <Image src={file.url} alt={file.name} fill sizes="(max-width: 48rem) 100vw, 40rem" />}
-            {file.type === "pdf" && <iframe src={file.url} title={file.name} />}
-            {file.type === "link" && (
-              <LinkPreview>
-                <LinkIcon weight="duotone" aria-hidden="true" />
-                <Text variant="subheadline" weight="medium">
+            {kind.stage === "image" && <Image src={file.url} alt={file.name} fill sizes="(max-width: 48rem) 100vw, 40rem" />}
+            {kind.stage === "frame" && <iframe src={file.url} title={file.name} />}
+            {kind.stage === "card" && (
+              <CardPreview>
+                <Mark aria-hidden="true">{brand ? <BrandIcon name={brand} color /> : <Glyph weight="duotone" />}</Mark>
+                <Text variant="headline" weight="semibold">
                   {file.name}
                 </Text>
-                <Text variant="footnote" tone="secondary" truncate>
-                  {file.url}
+                {host && (
+                  <Host>
+                    <GlobeSimpleIcon aria-hidden="true" width={14} height={14} />
+                    <Text as="span" variant="footnote" tone="secondary" truncate>
+                      {host}
+                    </Text>
+                  </Host>
+                )}
+                <Text variant="footnote" tone="tertiary">
+                  {file.type === "figma" ? "O arquivo abre no Figma, em outra aba" : "O endereço abre em outra aba"}
                 </Text>
-              </LinkPreview>
+              </CardPreview>
             )}
 
             <Toolbar role="toolbar" aria-label="Ações do anexo" {...toolbarCorner}>
-              {file.type !== "link" && (
+              {kind.downloadable && (
                 <IconButton label="Baixar" variant="ghost" size="sm" onClick={download}>
                   <DownloadSimpleIcon />
                 </IconButton>

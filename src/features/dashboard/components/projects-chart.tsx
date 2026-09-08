@@ -5,7 +5,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, Cell, Tooltip, XAxis, type TooltipContentProps } from "recharts";
-import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import type { ProjectsMonth } from "@/features/projects/summary";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
@@ -14,6 +13,10 @@ export type ProjectsChartProps = { months: ProjectsMonth[] };
 type ChartPoint = ProjectsMonth & { label: string };
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+/* A dica é hover, e hover não existe no toque: a regra da casa é que `:hover` só vale onde há ponteiro
+   de verdade, e aqui vale igual. No celular quem mostra os números é a janela de métricas que o bloco
+   abre ao toque, então a dica sai de cena em vez de ficar presa no último mês tocado. */
+const POINTER_QUERY = "(hover: hover)";
 const BAR_RADIUS = 4;
 /** Quanto os meses fora do apontado apagam enquanto há um mês apontado. */
 const DIMMED = 0.35;
@@ -185,6 +188,7 @@ function ChartTip({ active, payload }: Partial<TooltipContentProps>) {
 // texto oculto ao lado, então o SVG fica fora da árvore acessível.
 export function ProjectsChart({ months }: ProjectsChartProps) {
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const pointer = useMediaQuery(POINTER_QUERY);
   const frameRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -218,22 +222,22 @@ export function ProjectsChart({ months }: ProjectsChartProps) {
             barGap={2}
             barCategoryGap="12%"
             accessibilityLayer={false}
-            onMouseMove={(state) => setHovered(state.isTooltipActive && state.activeLabel != null ? String(state.activeLabel) : null)}
-            onTouchMove={(state) => setHovered(state.isTooltipActive && state.activeLabel != null ? String(state.activeLabel) : null)}
-            onMouseLeave={() => setHovered(null)}
-            onTouchEnd={() => setHovered(null)}
+            onMouseMove={pointer ? (state) => setHovered(state.isTooltipActive && state.activeLabel != null ? String(state.activeLabel) : null) : undefined}
+            onMouseLeave={pointer ? () => setHovered(null) : undefined}
           >
             <XAxis dataKey="month" hide />
-            <Tooltip
-              content={<ChartTip />}
-              cursor={{ radius: 6 }}
-              offset={14}
-              isAnimationActive={!reducedMotion}
-              animationDuration={160}
-              animationEasing="ease-out"
-              allowEscapeViewBox={{ x: false, y: false }}
-              wrapperStyle={{ outline: "none", zIndex: 1, visibility: "visible" }}
-            />
+            {pointer && (
+              <Tooltip
+                content={<ChartTip />}
+                cursor={{ radius: 6 }}
+                offset={14}
+                isAnimationActive={!reducedMotion}
+                animationDuration={160}
+                animationEasing="ease-out"
+                allowEscapeViewBox={{ x: false, y: false }}
+                wrapperStyle={{ outline: "none", zIndex: 1, visibility: "visible" }}
+              />
+            )}
             <Bar
               dataKey="started"
               className="started"
@@ -259,13 +263,6 @@ export function ProjectsChart({ months }: ProjectsChartProps) {
           </BarChart>
         )}
       </Frame>
-      <VisuallyHidden as="ul">
-        {months.map((entry) => (
-          <li key={entry.month}>
-            {monthName(entry.month)}: {entry.started} projetos iniciados e {entry.completed} entregues
-          </li>
-        ))}
-      </VisuallyHidden>
     </>
   );
 }

@@ -51,6 +51,11 @@
   height: 1rem;
 }
 
+/* A etiqueta do identificador não encolhe: quem cede é o nome da pasta, que encurta por reticências. */
+.reference {
+  flex-shrink: 0;
+}
+
 .badges {
   display: flex;
   flex-wrap: wrap;
@@ -132,16 +137,20 @@
   }
 }
 
-/* Os envolvidos numa pílula só, na mesma receita do aviso do menu lateral: as bolinhas sobrepostas com
-   o fio da casa em volta e o "+N" dentro dela. Uma pílula por pessoa empurrava a ficha para várias
-   linhas assim que a tarefa tinha mais de duas. */
+/* Os envolvidos: as bolinhas agrupadas e, ao lado, a fila de nomes que cabe no orçamento de caracteres,
+   com o resto em "+N". As bolinhas e a contagem não encolhem, então quem cede é a fila de nomes, que
+   encurta por reticências antes de empurrar a linha. */
 .people {
   display: inline-flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
   align-items: center;
-  padding: var(--space-half) var(--space-2) var(--space-half) var(--space-half);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.faces,
+.more {
+  flex-shrink: 0;
 }
 
 /* Pessoa em chip: a bolinha e o nome, na borda da casa e em pílula, como as etiquetas em pílula. */
@@ -273,6 +282,11 @@
 .fileIcon svg {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+/* A marca do serviço no lugar do glifo: o `BrandIcon` mede 1.2em, então quem dá o tamanho é a fonte. */
+.fileBrand {
+  font-size: 1.0625rem;
 }
 
 .fileCopy {
