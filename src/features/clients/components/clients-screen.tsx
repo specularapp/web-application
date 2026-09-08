@@ -12,7 +12,8 @@ export type ClientsScreenProps = { page: ClientsListPage; query: ClientsQuery; a
 export function ClientsScreen({ page, query, ai }: ClientsScreenProps) {
   return (
     <div className={styles.screen}>
-      <Topbar ai={ai} />
+      {/* No menu a página se chama "Base de clientes"; no topo dela basta "Clientes". */}
+      <Topbar title="Clientes" ai={ai} />
       <ClientsBoard page={page} query={query} />
     </div>
   );
