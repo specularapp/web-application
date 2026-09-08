@@ -116,31 +116,21 @@ const Popover = styled.div`
 /* Na bandeja do celular a lista fica dentro do Dialog e rola por conta própria: o painel dele esconde o
    que transborda e espera que o conteúdo role, senão a lista era cortada no fim.
 
-   Cada seção vira um bloco próprio, como as listas agrupadas do iOS: caixa no preenchimento da casa,
-   canto pelo sistema de cantos e um vão entre uma e outra, com o título dentro, no topo, em peso maior.
-   Na tela larga o fio entre seções basta, porque a caixa é curta e a lista cabe inteira; na bandeja, com
-   cinco seções rolando, só o fio embaralhava e não dava para discriminar grupo nenhum (relato de
-   2026-09-08). O item marcado também ganha fundo aqui, porque no dedo não há hover para acompanhar o
-   check. */
+   As seções ficam listadas como no desktop, separadas pelo fio, só que com mais ar entre uma e outra e o
+   título em peso maior e na tinta cheia, para dar para discriminar cada grupo numa lista que rola (relato
+   de 2026-09-08; um bloco com fundo por seção durou uma rodada e saiu a pedido). O item marcado ganha
+   fundo aqui, porque no dedo não há hover para acompanhar o check. */
 const Sheet = styled.div`
   --panel-line: 0.0375rem;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   min-height: 0;
-  padding: var(--space-3) var(--space-4) var(--space-5);
+  padding: var(--space-2) var(--space-2) var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
 
   & > [data-section] {
-    padding: var(--space-1);
-    background-color: var(--color-fill-quaternary);
-    border-radius: var(--radius-lg);
-    corner-shape: squircle;
-  }
-
-  & > [data-section] + [data-section] {
-    border-block-start: 0;
+    padding-block: var(--space-3);
   }
 
   & [data-section-label] {

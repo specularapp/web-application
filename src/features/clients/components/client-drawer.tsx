@@ -5,12 +5,10 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { applyPattern } from "@/lib/masks";
 import { compactMoney } from "@/lib/utils/format";
 import { loadClientAction } from "../actions";
 import type { ClientListItem } from "../list-options";
@@ -65,8 +63,6 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
     };
   }, [id]);
 
-  const phone = client?.phone ? applyPattern("phone", client.phone) : null;
-
   return (
     <Dialog
       open={Boolean(client)}
@@ -75,6 +71,7 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
       size="lg"
       placement="end"
       surface="glass"
+      scrim={false}
       focusOnOpen={false}
     >
       {client && (
@@ -86,14 +83,14 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
               <Text as="h2" variant="title3" weight="semibold" truncate>
                 {client.name}
               </Text>
-              <Text variant="caption1" tone="secondary">
+              <Text variant="caption1" tone="secondary" className={styles.since}>
                 Cliente desde {longDate(client.createdAt)}
               </Text>
             </div>
             <div className={styles.headActions}>
-              <Button variant="outline" size="sm" radius="md" iconStart={<PencilSimpleIcon />} className={styles.edit}>
-                Editar
-              </Button>
+              <IconButton label="Editar cliente" variant="ghost" size="sm">
+                <PencilSimpleIcon />
+              </IconButton>
               <IconButton label="Abrir a ficha em tela cheia" variant="ghost" size="sm" href={`/clientes/${client.id}`}>
                 <ArrowSquareOutIcon />
               </IconButton>
@@ -121,9 +118,13 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
                   </Text>
                   {full && <ClientBadges client={full} />}
                 </div>
-                <Text variant="footnote" tone="secondary" truncate>
-                  {[client.email, phone, client.company].filter(Boolean).join("  ·  ")}
-                </Text>
+                {/* Só a empresa e o que ela faz: e-mail e telefone moram na seção de contato logo
+                    abaixo, e repeti-los aqui era dizer a mesma coisa duas vezes (pedido de 2026-09-08). */}
+                {(full?.company || full?.role) && (
+                  <Text variant="footnote" tone="secondary" truncate>
+                    {[full.company, full.role].filter(Boolean).join(", ")}
+                  </Text>
+                )}
               </div>
               {full && (
                 <div className={styles.contact}>

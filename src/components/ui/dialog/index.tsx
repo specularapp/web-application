@@ -283,8 +283,11 @@ export function Dialog({
   const dragRef = useRef<{ pointer: number; startY: number; y: number; frame: number } | null>(null);
   const layer = useLayer(open);
   // Trava a coluna que rola de verdade, e não o documento: na concha da aplicação o documento nunca
-  // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular.
-  useScrollLock(open);
+  // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular. Só trava
+  // quando a janela bloqueia o resto (com escurecimento) ou é a bandeja do celular: uma gaveta avulsa
+  // no desktop deixa a página viva atrás dela, senão a tela inteira parecia travada (relato de
+  // 2026-09-08 ao abrir a ficha do cliente).
+  useScrollLock(open && (scrim || sheet));
   // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
   // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
   // menu nasce enquanto quem manda é o menu, então o clique que vem depois não fecha o perfil junto.

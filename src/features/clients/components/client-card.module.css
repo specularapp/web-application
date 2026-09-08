@@ -20,11 +20,15 @@
   }
 }
 
-/* Selecionado, o fundo de dentro sobe um tom no preenchimento da casa, e o fio fica como está: nada de
-   cor de destaque em volta (o fio azul durou uma rodada e saiu a pedido). O tom é o do preenchimento
-   terciário, um degrau acima do fundo do hover, para o marcado se ver mesmo com o ponteiro em cima. */
+/* Selecionado, o fundo de dentro ganha um véu do acento, e o fio fica como está: nada de cor de destaque
+   em volta (o fio azul durou uma rodada e saiu a pedido). Véu, e não cinza: o preenchimento terciário
+   ficou escuro demais no tema claro (relato de 2026-09-08), e o azul em alfa baixo diz "marcado" sem
+   pesar. No escuro o alfa sobe, porque sobre o preto o mesmo véu sumia. */
 .card[data-selected] .inner {
-  background-color: var(--color-fill-tertiary);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-accent) 10%, transparent),
+    color-mix(in oklab, var(--color-accent) 20%, transparent)
+  );
 }
 
 /* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a

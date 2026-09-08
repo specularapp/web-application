@@ -1,12 +1,19 @@
 /* O nome da página de um lado e o uso da IA do outro, e mais nada: o menu lateral já diz onde a página
-   mora. Recuo igual ao da prancha abaixo, para o nome e a busca começarem na mesma linha. */
+   mora. Recuo igual ao da prancha abaixo, para o nome e a busca começarem na mesma linha. Fica grudado
+   no topo enquanto a página rola (a pedido, 2026-09-08): a coluna de conteúdo da concha é quem rola, e o
+   topo, sendo o primeiro filho da tela, prende nela com fundo sólido para a grade passar por baixo. Só
+   acima do conteúdo; qualquer camada flutuante fica acima dele. */
 .topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
   display: flex;
   gap: var(--space-3);
   align-items: center;
   justify-content: space-between;
   min-height: 3.25rem;
   padding-inline: var(--space-4);
+  background-color: var(--color-bg);
   border-block-end: 0.0375rem solid var(--color-border);
 }
 
