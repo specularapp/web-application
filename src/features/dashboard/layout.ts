@@ -1,14 +1,11 @@
 import { z } from "zod";
-import { cookieString } from "@/lib/cookies";
 import { dashboardBlocks, type DashboardBlockId } from "./blocks";
+import { type DashboardLayout } from "./layout-cookie";
 
-/** Cookie da preferência de layout do painel: ordem dos blocos e quais ficam escondidos. */
-export const LAYOUT_COOKIE = "sp-painel";
-
-export type DashboardLayout = {
-  order: DashboardBlockId[];
-  hidden: DashboardBlockId[];
-};
+/* O nome do cookie, o formato e a escrita no navegador moram em `layout-cookie.ts`, que não carrega
+   zod: a gaveta de personalizar é cliente e só precisa daquela parte. Seguem saindo daqui para quem já
+   os importava deste arquivo. */
+export { LAYOUT_COOKIE, saveDashboardLayout, serializeDashboardLayout, type DashboardLayout } from "./layout-cookie";
 
 const ids = dashboardBlocks.map((block) => block.id) as [DashboardBlockId, ...DashboardBlockId[]];
 const idSchema = z.enum(ids);
@@ -30,15 +27,6 @@ export function parseDashboardLayout(raw: string | undefined): DashboardLayout {
   } catch {
     return defaultLayout;
   }
-}
-
-export function serializeDashboardLayout(layout: DashboardLayout) {
-  return JSON.stringify(layout);
-}
-
-/** Grava a preferência no cookie, no cliente. Vive aqui, fora do componente, porque escrever em `document` de dentro dele o lint barra. */
-export function saveDashboardLayout(layout: DashboardLayout) {
-  document.cookie = cookieString(LAYOUT_COOKIE, serializeDashboardLayout(layout));
 }
 
 /** Verdadeiro quando a pessoa não mexeu em nada: tudo à vista, na ordem de leitura. */

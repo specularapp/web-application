@@ -2,6 +2,7 @@
 
 import styled from "@emotion/styled";
 import { BriefcaseIcon, CaretRightIcon, CurrencyCircleDollarIcon, type Icon } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +11,15 @@ import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, focusRing } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { MemberProfile } from "@/features/organizations/components/member-profile";
 import type { TeamMember, TeamMemberMetrics, TeamMemberStatus, TeamSummary } from "@/features/organizations/summary";
 import { compactMoney } from "@/lib/utils/format";
+
+/* O perfil do membro entra por importação dinâmica (varredura de peso de 2026-09-08): ele não tem
+   diretiva de cliente, mas quem o monta é este bloco, que é cliente, então ele caía no pacote inicial
+   junto com o cartão de perfil da casa e onze ícones, tudo para uma janela que nasce fechada. */
+const MemberProfile = dynamic(() =>
+  import("@/features/organizations/components/member-profile").then((module) => module.MemberProfile),
+);
 
 export type TeamBlockProps = { summary: TeamSummary };
 

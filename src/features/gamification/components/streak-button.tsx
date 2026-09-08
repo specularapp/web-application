@@ -1,10 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DetailsDialog } from "@/components/ui/details-dialog";
 import type { WeeklyChallenge } from "../summary";
-import { StreakSheet } from "./streak-sheet";
+
+/* A ficha da sequência entra por importação dinâmica (varredura de peso de 2026-09-08): ela leva doze
+   funções do date-fns e o calendário inteiro para uma janela que nasce fechada. A `DetailsDialog` não
+   renderiza o conteúdo enquanto está fechada, então o pedaço só é buscado no primeiro clique. */
+const StreakSheet = dynamic(() => import("./streak-sheet").then((module) => module.StreakSheet));
 
 export type StreakButtonProps = { challenge: WeeklyChallenge };
 

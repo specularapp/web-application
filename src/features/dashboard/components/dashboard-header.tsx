@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import type { DashboardLayout } from "../layout";
-import { dashboardPeriods, PERIOD_PARAM, type DashboardPeriod } from "../period";
+import { dashboardPeriods, PERIOD_PARAM, type DashboardPeriod } from "../period-options";
 import { DashboardCustomizer } from "./dashboard-customizer";
 
 export type DashboardUser = { name: string; email: string | null; avatarUrl: string | null };

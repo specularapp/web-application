@@ -2,6 +2,7 @@
 
 import styled from "@emotion/styled";
 import { CaretUpDownIcon, CheckIcon, MagnifyingGlassIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
@@ -16,12 +17,20 @@ import { hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
-import { CREATE_TEAM_PLAN, CreateTeamPanel, type TeamOwner } from "@/features/organizations/components/create-team-panel";
-import { slugify } from "@/features/organizations/schemas";
+import type { TeamOwner } from "@/features/organizations/components/create-team-panel";
+import { CREATE_TEAM_PLAN } from "@/features/organizations/constants";
+import { slugify } from "@/lib/utils/slug";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+
+/* A gaveta de criar equipe entra por importação dinâmica (varredura de peso de 2026-09-08): ela leva o
+   seletor de imagem com o `react-dropzone` e o envio para o Storage, e nasce fechada. A `Dialog` não
+   renderiza o conteúdo enquanto está fechada, então o pedaço só é buscado quando a pessoa escolhe criar. */
+const CreateTeamPanel = dynamic(() =>
+  import("@/features/organizations/components/create-team-panel").then((module) => module.CreateTeamPanel),
+);
 
 /** O plano chega como rótulo pronto: quem traduz o código do banco é o painel que monta o menu. */
 export type SwitcherTeam = { id: string; name: string; plan: string; logoUrl: string | null };

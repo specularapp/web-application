@@ -20,6 +20,7 @@ import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
 import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
 import { inviteMemberAction, saveTeamAction, switchTeamAction } from "../actions";
+import { CREATE_TEAM_PLAN } from "../constants";
 import type { ImageKind, InvitableRole, OrganizationIndustry } from "../schemas";
 import { uploadTeamImage } from "../upload";
 
@@ -39,7 +40,9 @@ type Guest = { id: string; email: string; name: string; role: InvitableRole };
 const empty: Picked = { file: null, preview: null };
 
 /** Plano que libera criar equipe. A etiqueta sai daqui no topo da gaveta e no convite que a abre. */
-export const CREATE_TEAM_PLAN = "alliance" as const;
+/* O código do plano mora em `../constants`, que não carrega componente nenhum: quem só quer o código
+   não precisa levar esta gaveta junto. Segue exportado aqui para quem já o importava daqui. */
+export { CREATE_TEAM_PLAN };
 
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 

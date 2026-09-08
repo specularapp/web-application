@@ -19,7 +19,7 @@ import { hoverMotion } from "@/components/ui/styles";
 import { Dialog } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
-import { slugify } from "@/features/organizations/schemas";
+import { slugify } from "@/lib/utils/slug";
 import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { readCookie } from "@/lib/cookies";

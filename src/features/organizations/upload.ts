@@ -1,12 +1,17 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { attachImageAction, createImageUploadAction } from "./actions";
 import { LOGO_BUCKET, logoContentTypeSchema, type ImageKind } from "./schemas";
 import type { ServiceResult } from "./service";
 
 // O arquivo sobe direto para o Storage com URL assinada pelo servidor: passar a imagem por dentro
 // da Server Action esbarraria no limite de corpo da requisição e ainda ocuparia o processo.
+//
+// O cliente do Supabase entra por importação dinâmica, e não no topo do arquivo (varredura de peso de
+// 2026-09-08): este módulo é puxado pela gaveta de criar equipe e pela configuração inicial, as duas
+// alcançáveis do painel, então a biblioteca inteira, 138 KB comprimidos, viajava em toda carga do painel
+// para o caso de alguém escolher uma imagem. Aqui dentro ela só chega quando há arquivo de verdade
+// subindo, e a função já era `async`, então nada mais muda.
 export async function uploadTeamImage(
   organizationId: string,
   file: File,
@@ -18,6 +23,7 @@ export async function uploadTeamImage(
   const prepared = await createImageUploadAction({ organizationId, contentType: contentType.data, kind });
   if (!prepared.ok) return prepared;
 
+  const { createClient } = await import("@/lib/supabase/client");
   const supabase = createClient();
   const { error } = await supabase.storage
     .from(LOGO_BUCKET)

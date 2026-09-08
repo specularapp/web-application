@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugify } from "@/lib/utils/slug";
 
 export const organizationKindSchema = z.enum(["freelancer", "agency"]);
 export const memberRoleSchema = z.enum(["owner", "admin", "member"]);
@@ -109,16 +110,9 @@ export const imageAttachSchema = z.object({
 export const organizationIdSchema = z.object({ organizationId: z.uuid() });
 
 // Acento vira letra simples antes do corte para "Ateliê Três" virar "atelie-tres", e não "atelie-tr-s".
-export function slugify(value: string, limit = 40) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, limit)
-    .replace(/-+$/g, "");
-}
+/* `slugify` mudou para `lib/utils/slug.ts` e continua saindo daqui para quem já a importava do domínio.
+   Componente de cliente importa direto de lá, senão leva o zod deste arquivo junto para o navegador. */
+export { slugify };
 
 // O endereço deixou de ser campo e sai do nome, então precisa nascer válido mesmo com nome curto
 // ou só de símbolo. Sobra espaço para o sufixo que resolve nome repetido.
