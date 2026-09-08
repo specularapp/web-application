@@ -22,7 +22,8 @@ export type NavFolder = { label: string; icon: Icon; hue: string; items: NavLink
 
 export type NavEntry = NavLink | NavFolder;
 
-export type NavGroup = { title: string; hue: string; entries: NavEntry[] };
+/** O glifo do grupo acompanha o nome no caminho que o topo da página mostra. */
+export type NavGroup = { title: string; icon: Icon; hue: string; entries: NavEntry[] };
 
 export function isFolder(entry: NavEntry): entry is NavFolder {
   return "items" in entry;
@@ -33,13 +34,16 @@ export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Onde a página mora no menu: a seção à esquerda do topo, o nome no meio e as irmãs para o chevron. */
+/** Um degrau do caminho que o topo mostra: o nome e o glifo que o acompanha. */
+export type NavCrumb = { label: string; icon: Icon };
+
+/** Onde a página mora no menu: o caminho até ela à esquerda do topo e o nome dela no meio. */
 export type NavLocation = {
-  section: string;
-  icon: Icon;
+  /** O grupo do menu onde a página mora. */
+  group: NavCrumb;
+  /** A pasta, quando a página mora numa; a rota solta não tem. */
+  folder?: NavCrumb;
   page: NavLink;
-  /** As páginas da mesma pasta; vazio quando a rota não mora numa. */
-  siblings: NavLink[];
 };
 
 /**
@@ -54,15 +58,17 @@ export function navLocation(pathname: string): NavLocation | null {
   const found: NavLocation[] = [];
 
   for (const group of navGroups) {
+    const crumb: NavCrumb = { label: group.title, icon: group.icon };
+
     for (const entry of group.entries) {
       if (isFolder(entry)) {
         for (const item of entry.items) {
           if (isCurrent(pathname, item.href)) {
-            found.push({ section: entry.label, icon: entry.icon, page: item, siblings: entry.items });
+            found.push({ group: crumb, folder: { label: entry.label, icon: entry.icon }, page: item });
           }
         }
       } else if (isCurrent(pathname, entry.href)) {
-        found.push({ section: group.title, icon: entry.icon, page: entry, siblings: [] });
+        found.push({ group: crumb, page: entry });
       }
     }
   }
@@ -81,6 +87,7 @@ export type NavHighlight = NavLink & { hue: string };
 export const navGroups: NavGroup[] = [
   {
     title: "Área de trabalho",
+    icon: SquaresFourIcon,
     hue: "var(--sys-blue)",
     entries: [
       { label: "Espaço de trabalho", href: "/dashboard", icon: SquaresFourIcon },
@@ -126,6 +133,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     title: "Organização",
+    icon: UsersThreeIcon,
     hue: "var(--sys-brown)",
     entries: [
       {
@@ -142,6 +150,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     title: "Gestão",
+    icon: GearSixIcon,
     hue: "var(--sys-purple)",
     entries: [
       { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },

@@ -1,10 +1,9 @@
 "use client";
 
-import { CaretUpDownIcon, SparkleIcon } from "@phosphor-icons/react";
+import { SparkleIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { aiShare, type AiUsage } from "@/features/ai/summary";
@@ -21,47 +20,43 @@ export type TopbarProps = {
 const share = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 0 });
 
 // O topo padrão de toda página da aplicação, menos o painel, que abre com a pessoa e não se enquadra:
-// à esquerda onde a página mora, no meio o nome dela e na ponta direita o quanto da IA já foi usado. A
-// seção e o nome saem de `navLocation`, então página que nasce no menu ganha o topo de graça e não há um
-// segundo mapa de rotas para sair de sincronia. Quando a pasta tem irmãs, a seção vira menu e pula
-// direto para elas, que é o atalho que o menu lateral dá em dois toques.
+// à esquerda o caminho até a página, no meio o nome dela e na ponta direita o quanto da IA já foi usado.
+// O caminho e o nome saem de `navLocation`, então página que nasce no menu ganha o topo de graça e não
+// há um segundo mapa de rotas para sair de sincronia.
 export function Topbar({ title, ai }: TopbarProps) {
   const pathname = usePathname();
   const location = navLocation(pathname);
 
   if (!location) return null;
 
-  const { section, icon: Glyph, page, siblings } = location;
+  const { group, folder, page } = location;
   const name = title ?? page.label;
-  const others = siblings.filter((item) => item.href !== page.href);
+  // O caminho vai até a pasta, e não até a página: o nome dela já está no meio da barra, e repetir ali
+  // seria dizer a mesma coisa duas vezes na mesma linha.
+  const crumbs = [group, ...(folder ? [folder] : [])];
 
   return (
     <header className={styles.topbar}>
-      <div className={styles.route}>
-        <Glyph aria-hidden="true" className={styles.routeIcon} />
-        <Text as="span" variant="subheadline" weight="medium" truncate>
-          {section}
-        </Text>
-        {others.length > 0 && (
-          <DropdownMenu
-            label={`Páginas de ${section}`}
-            triggerLabel={`Ir para outra página de ${section}`}
-            icon={<CaretUpDownIcon />}
-            sections={[
-              {
-                id: "siblings",
-                items: siblings.map((item) => ({
-                  id: item.href,
-                  label: item.label,
-                  icon: item.icon,
-                  href: item.href,
-                  selected: item.href === page.href,
-                })),
-              },
-            ]}
-          />
-        )}
-      </div>
+      {/* Só o caminho, sem menu nem link: ele diz onde a pessoa está, e quem leva a outro lugar é o
+          menu lateral. Lista ordenada porque é isso que uma trilha é, e o leitor de tela anuncia a
+          ordem dos degraus. */}
+      <nav className={styles.route} aria-label="Caminho da página">
+        <ol className={styles.crumbs}>
+          {crumbs.map(({ label, icon: Glyph }, index) => (
+            <li key={label} className={styles.crumb}>
+              {index > 0 && (
+                <span className={styles.separator} aria-hidden="true">
+                  /
+                </span>
+              )}
+              <Glyph aria-hidden="true" className={styles.crumbIcon} />
+              <Text as="span" variant="footnote" tone="secondary" truncate>
+                {label}
+              </Text>
+            </li>
+          ))}
+        </ol>
+      </nav>
 
       {/* O nome fica no centro óptico da barra, e não depois da seção: é o que a pessoa lê primeiro ao
           chegar. Como `h1`, porque é o título da página. */}

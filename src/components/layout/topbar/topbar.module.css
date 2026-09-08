@@ -17,19 +17,48 @@
   }
 }
 
+/* O caminho até a página: os degraus separados por barra, cada um com o glifo do menu na frente. Não é
+   link nem menu, é só onde a pessoa está; quem leva a outro lugar é o menu lateral. */
 .route {
+  display: flex;
+  min-width: 0;
+}
+
+.crumbs {
   display: flex;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
-  color: var(--color-label);
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
-.routeIcon {
+.crumb {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O último degrau é o que cede: os de cima ficam inteiros, e o mais perto da página encurta primeiro. */
+.crumb:not(:last-child) {
   flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  color: var(--color-label-secondary);
+}
+
+.crumbIcon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+/* A barra separa sem pesar: um degrau mais apagada que o texto dos degraus. */
+.separator {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
 }
 
 /* O nome não encolhe até as pontas terem cedido, então ele é a última coisa a virar reticência. */
