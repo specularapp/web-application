@@ -1,0 +1,143 @@
+/* O cabeçalho fica fixo no topo da gaveta e quem rola é o corpo: o nome do cliente é a referência de
+   onde a pessoa está, e some junto com o resto se rolar com ele. */
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O vão das ações é o do menu, 4px, e elas não encolhem: quem cede é o título, por reticências. */
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* No celular o botão de editar vira só o resto da fila: o nome precisa da largura. */
+@media (max-width: 47.9375rem) {
+  .head {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .edit {
+    display: none;
+  }
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+/* A foto, quem é a pessoa e os botões de contato na outra ponta. */
+.identity {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.naming {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.contact {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* No celular os botões de contato descem para a linha de baixo, de ponta a ponta: na mesma linha da
+   foto eles roubavam a largura do nome e do e-mail. */
+@media (max-width: 47.9375rem) {
+  .identity {
+    flex-wrap: wrap;
+  }
+
+  .contact {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Os números da relação em azulejos com fio, o rótulo em cima e o valor embaixo: é a faixa de fatos da
+   referência. Quatro cabem no desktop e dois no celular, sem nunca espremer o valor. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.tile {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.tileValue {
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+/* O miolo compartilhado com o cartão de perfil, com o vão das seções da casa. */
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .sections {
+    gap: var(--space-4);
+  }
+}
+
+/* Enquanto a ficha vem, o giro toma o lugar do miolo: o cabeçalho já mostra o que o cartão sabia, então
+   a gaveta nunca abre vazia. */
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+}
