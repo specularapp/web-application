@@ -91,6 +91,12 @@ const Scroll = styled.div`
   padding-block: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
+
+  /* No celular criar e sair estão na barra flutuante, acima da bandeja: o corpo leva a folga dela embaixo,
+     para a última linha fechar acima da barra. */
+  @media (max-width: 47.9375rem) {
+    padding-block-end: var(--floating-bar-inset);
+  }
 `;
 
 /* A gaveta é coluna estreita: o banner deita mais e a bola encolhe, senão ela cobre quase toda a

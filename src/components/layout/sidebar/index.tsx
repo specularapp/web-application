@@ -484,7 +484,7 @@ export function Sidebar(props: SidebarProps) {
       {/* Menu aberto encolhe a barra até sobrar só o X: o grupo de busca e sino recolhe pela trilha da
           grade, que anima de 1fr a 0fr, e a barra vira bolinha. A chave no botão remonta o glifo a cada
           troca, e a entrada dele gira, porque X e três linhas não se transformam um no outro. */}
-      <div className={styles.bar} data-collapsed={open || undefined}>
+      <div className={styles.bar} data-collapsed={open || undefined} data-actions={actions ? "" : undefined}>
         <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
             <span className={styles.barMode} data-active={actions ? undefined : ""} inert={actions ? true : undefined}>

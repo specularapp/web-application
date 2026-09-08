@@ -188,9 +188,9 @@
   --topbar-height: 3.25rem;
   --content-max: 80rem;
   /* Quanto a barra flutuante do celular toma do rodapé quando está com ações (salvar e sair) e sobe para
-     cima das janelas: a altura dela mais o recuo de baixo e um respiro. Toda bandeja aberta nessa situação
-     ganha essa folga embaixo, senão as últimas linhas ficavam atrás da barra e não dava para tocar. */
-  --floating-bar-inset: calc(var(--control-height-md) + var(--space-2) + var(--space-4) * 2);
+     cima das janelas: a altura dela mais o recuo de baixo e um respiro. O conteúdo que rola dentro de uma
+     janela aberta nessa situação leva essa folga embaixo, para o último item fechar acima da barra. */
+  --floating-bar-inset: calc(var(--control-height-md) + var(--space-2) + var(--space-4) * 2 + env(safe-area-inset-bottom));
 }
 
 :root[data-theme="light"] {

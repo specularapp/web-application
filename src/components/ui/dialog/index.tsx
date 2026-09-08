@@ -77,12 +77,6 @@ const Backdrop = styled.div`
   background-color: var(--color-scrim);
   animation: ${fadeIn} var(--duration-base) var(--ease-standard) both;
 
-  /* Com a barra flutuante do celular em modo de ações, a janela desce para logo abaixo dela: a barra fica
-     no lugar de sempre e é quem salva e sai, e a página atrás continua bloqueada por este fundo. */
-  html[data-floating-actions] & {
-    z-index: calc(var(--z-floating-bar) - 1);
-  }
-
   /* Véu leve: a bandeja do celular sempre separa a janela da página, mesmo quando a janela dispensa o
      escurecimento cheio. Sem nada atrás dela, ela lia como parte do conteúdo. */
   &[data-soft] {
@@ -111,10 +105,6 @@ const Frame = styled.div`
   place-items: center;
   padding: var(--space-4);
   pointer-events: none;
-
-  html[data-floating-actions] & {
-    z-index: calc(var(--z-floating-bar) - 1);
-  }
 
   &[data-placement="end"] {
     align-items: stretch;
@@ -174,13 +164,6 @@ const Panel = styled.div`
 
   &[data-mode="sheet"][data-surface="glass"] {
     background-color: var(--glass-sheet-bg);
-  }
-
-  /* Com a barra flutuante do celular em modo de ações (salvar e sair), ela fica acima das janelas: toda
-     bandeja ganha a folga dela embaixo, senão as últimas linhas ficavam atrás da barra e não dava para
-     tocar. A marca vem do html, posta pelo provedor de ações; nenhuma bandeja precisa saber da barra. */
-  html[data-floating-actions] &[data-mode="sheet"] {
-    padding-block-end: calc(var(--floating-bar-inset) + env(safe-area-inset-bottom));
   }
 
   /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo

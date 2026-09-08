@@ -481,6 +481,13 @@
   display: contents;
 }
 
+/* Com uma janela de formulário aberta, a barra sobe para cima dela: é ali que moram salvar e sair no
+   celular, e a bandeja da janela cobriria a barra no lugar de sempre. Quem abre nessa situação dá ao
+   próprio conteúdo a folga de `--floating-bar-inset` embaixo, para o último item fechar acima da barra. */
+.bar[data-actions] {
+  z-index: calc(var(--z-modal) + 1);
+}
+
 /* O botão principal da janela na barra toma o que sobra do modo, e o nome cede por reticências antes de a
    barra passar da largura da tela. */
 .barPrimary {

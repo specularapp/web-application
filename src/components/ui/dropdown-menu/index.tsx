@@ -131,6 +131,12 @@ const Sheet = styled.div`
   overflow-y: auto;
   overscroll-behavior: contain;
 
+  /* Aberta por cima de uma janela com ações na barra flutuante, a lista leva a folga da barra embaixo,
+     dentro do que rola: o último item fecha acima dela, em vez de ficar atrás sem dar para tocar. */
+  html[data-floating-actions] & {
+    padding-block-end: var(--floating-bar-inset);
+  }
+
   & > [data-section] {
     padding-block: var(--space-3);
   }
