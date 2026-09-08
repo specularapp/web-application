@@ -83,17 +83,6 @@
   appearance: none;
 }
 
-/* Os menus rápidos, no mesmo vão da linha. No celular somem: as seções deles vão para dentro do funil. */
-.quick {
-  display: contents;
-}
-
-@media (max-width: 47.9375rem) {
-  .quick {
-    display: none;
-  }
-}
-
 .funnel {
   position: relative;
   display: inline-flex;

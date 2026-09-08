@@ -56,18 +56,6 @@ export const sortOptions: ListboxOption<ClientsSort>[] = [
   { value: "antigos", label: "Mais antigos" },
 ];
 
-export const favoriteOptions: ListboxOption<ClientsFavorite>[] = [
-  { value: "todos", label: "Todos" },
-  { value: "favoritos", label: "Só favoritos" },
-  { value: "outros", label: "Só não favoritos" },
-];
-
-export const statusOptions: ListboxOption<ClientsStatus>[] = [
-  { value: "todos", label: "Todos" },
-  { value: "ativos", label: "Só ativos" },
-  { value: "inativos", label: "Só inativos" },
-];
-
 export const periodOptions: ListboxOption<ClientsPeriod>[] = [
   { value: "7", label: "Últimos 7 dias" },
   { value: "30", label: "Últimos 30 dias" },
@@ -101,16 +89,16 @@ export const defaultQuery: ClientsQuery = {
   page: 1,
 };
 
-/**
- * Quantos filtros do funil saíram do padrão, para a etiqueta na quina dele. Ordem e período ficam em
- * conta própria porque no desktop estão à vista na barra e só no celular entram no funil.
- */
-export function countMenuFilters(query: ClientsQuery) {
-  return [query.favorite !== defaultQuery.favorite, query.status !== defaultQuery.status, query.withEmail, query.withPhone].filter(Boolean).length;
-}
-
-export function countQuickFilters(query: ClientsQuery) {
-  return [query.sort !== defaultQuery.sort, query.period !== defaultQuery.period].filter(Boolean).length;
+/** Quantos filtros saíram do padrão, para a etiqueta na quina do botão de filtros. */
+export function countActiveFilters(query: ClientsQuery) {
+  return [
+    query.sort !== defaultQuery.sort,
+    query.period !== defaultQuery.period,
+    query.favorite !== defaultQuery.favorite,
+    query.status !== defaultQuery.status,
+    query.withEmail,
+    query.withPhone,
+  ].filter(Boolean).length;
 }
 
 /** Tudo de volta ao padrão, menos a busca: é o que "Limpar filtros" faz. */

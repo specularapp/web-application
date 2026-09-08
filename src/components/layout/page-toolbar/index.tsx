@@ -3,9 +3,8 @@
 import { MagnifyingGlassIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, type DropdownMenuProps, type DropdownSection, type DropdownTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, type DropdownSection, type DropdownTrigger } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
-import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import styles from "./page-toolbar.module.css";
 
@@ -17,19 +16,11 @@ export type PageToolbarSearch = {
   label: string;
 };
 
-/** Um menu rápido à vista na barra, como ordem ou período: a barra é quem o veste. */
-export type PageToolbarMenu = Omit<DropdownMenuProps, "trigger" | "size">;
-
 export type PageToolbarProps = {
   search: PageToolbarSearch;
-  /** Menus que ficam à vista ao lado da busca no desktop, como ordem e período, só com o ícone. No
-   *  celular eles entram dentro do funil. */
-  quickFilters?: PageToolbarMenu[];
-  /** Quantos menus rápidos saíram do padrão: no celular somam à etiqueta do funil, que é onde eles estão. */
-  activeQuickFilters?: number;
-  /** As seções do menu de filtros, que abre no funil; sem elas o funil não aparece. */
+  /** As seções do menu de filtros, que abre no botão ao lado da busca; sem elas o botão não aparece. */
   filters?: DropdownSection[];
-  /** Quantos filtros do menu saíram do padrão, para a etiqueta na quina do funil. */
+  /** Quantos filtros saíram do padrão, para a etiqueta na quina do botão. */
   activeFilters?: number;
   /** A ação principal da página, como "Novo cliente". */
   action?: ReactNode;
@@ -38,17 +29,11 @@ export type PageToolbarProps = {
 /** A tecla que leva o foco à busca de qualquer lugar da página, como nas ferramentas de trabalho. */
 const SEARCH_KEY = "/";
 
-/* Os botões da barra vestidos como o campo ao lado, literalmente: só o fio, sem preenchimento (o do botão
+/* O botão da barra vestido como o campo ao lado, literalmente: só o fio, sem preenchimento (o do botão
    secundário durou uma rodada e saiu a pedido, porque o fio sozinho lê melhor), na espessura do fio do
    campo por `--button-line`, declarado na barra; o canto `md` pelo sistema de cantos da casa e o glifo na
    mesma tinta secundária da lupa. */
 const FIELD_TRIGGER: DropdownTrigger = { variant: "outline", radius: "md", foreground: "var(--color-label-secondary)" };
-
-/* Dentro da bandeja do celular, escolher ordem ou período não fecha, como os outros filtros: a pessoa
-   ajusta tudo de uma vez e sai. */
-function keepOpen(section: DropdownSection): DropdownSection {
-  return { ...section, items: section.items.map((item) => (item.kind === "toggle" ? item : { ...item, keepOpen: true })) };
-}
 
 /* Quem está digitando em outro campo não perde a barra para o atalho. */
 function isTyping(target: EventTarget | null) {
@@ -58,24 +43,12 @@ function isTyping(target: EventTarget | null) {
 
 // A barra logo abaixo do topo em toda página da aplicação: a busca tomando toda a largura que sobra, no
 // mesmo desenho do campo de busca do menu lateral (fio fino, raio `md`, lupa e a tecla de atalho na
-// ponta), e colados a ela, a 4px, os menus rápidos e o funil de filtros, cada um um botão vestido como o
-// campo (mesmo fio, mesmo canto, glifo na mesma tinta, com um preenchimento leve para o botão se ver) e
-// abrindo o menu de vidro do chevron duplo das listas. A ação principal da página fecha a linha.
-//
-// No celular sobram três peças: a busca, o botão de filtros e a ação. Os menus rápidos somem da linha por
-// CSS e as seções deles entram no começo do menu de filtros, que ali é a bandeja de vidro com cada seção
-// num bloco próprio; a etiqueta do botão passa a contar tudo o que está lá dentro. A tecla de atalho some
-// junto, porque não há teclado.
-export function PageToolbar({
-  search,
-  quickFilters,
-  activeQuickFilters = 0,
-  filters,
-  activeFilters = 0,
-  action,
-}: PageToolbarProps) {
+// ponta); colado a ela, a 4px, o botão de filtros vestido como o campo (mesmo fio, mesmo canto, glifo na
+// mesma tinta), que abre o menu de vidro do chevron duplo das listas com todos os filtros da página; e a
+// ação principal fechando a linha. Três peças em qualquer largura; no celular a tecla some, porque não há
+// teclado, e o menu vira bandeja.
+export function PageToolbar({ search, filters, activeFilters = 0, action }: PageToolbarProps) {
   const input = useRef<HTMLInputElement>(null);
-  const mobile = useMediaQuery(MOBILE_QUERY);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -87,12 +60,6 @@ export function PageToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
-
-  // O conteúdo do menu só é montado quando ele abre, depois da hidratação, então ler a largura aqui não
-  // faz o servidor e o cliente discordarem: o botão é o mesmo nos dois.
-  const funnelSections = mobile ? [...(quickFilters ?? []).flatMap((menu) => menu.sections.map(keepOpen)), ...(filters ?? [])] : (filters ?? []);
-  const funnelCount = mobile ? activeFilters + activeQuickFilters : activeFilters;
-  const showFunnel = filters || (mobile && quickFilters);
 
   return (
     <div className={styles.toolbar}>
@@ -113,26 +80,18 @@ export function PageToolbar({
         <Kbd aria-hidden="true">{SEARCH_KEY}</Kbd>
       </label>
 
-      {quickFilters && (
-        <span className={styles.quick}>
-          {quickFilters.map((menu) => (
-            <DropdownMenu key={menu.label} {...menu} trigger={FIELD_TRIGGER} />
-          ))}
-        </span>
-      )}
-
-      {showFunnel && (
+      {filters && (
         <span className={styles.funnel}>
           <DropdownMenu
             label="Filtros"
-            triggerLabel={funnelCount > 0 ? `Filtros, ${funnelCount} em vigor` : "Filtros"}
-            sections={funnelSections}
+            triggerLabel={activeFilters > 0 ? `Filtros, ${activeFilters} em vigor` : "Filtros"}
+            sections={filters}
             icon={<SlidersHorizontalIcon />}
             trigger={FIELD_TRIGGER}
           />
-          {funnelCount > 0 && (
+          {activeFilters > 0 && (
             <Badge tone="accent" size="sm" shape="pill" className={styles.count} aria-hidden="true">
-              {funnelCount}
+              {activeFilters}
             </Badge>
           )}
         </span>

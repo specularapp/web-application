@@ -2,17 +2,12 @@
 
 import {
   ArrowCounterClockwiseIcon,
-  ArrowsDownUpIcon,
-  CalendarBlankIcon,
   CheckCircleIcon,
   EnvelopeSimpleIcon,
   MinusCircleIcon,
   PhoneIcon,
   PlusIcon,
-  ProhibitIcon,
   StarIcon,
-  UsersIcon,
-  type Icon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
@@ -33,18 +28,13 @@ import {
   SORT_PARAM,
   STATUS_PARAM,
   clearedFilters,
-  countMenuFilters,
-  countQuickFilters,
+  countActiveFilters,
   defaultQuery,
-  favoriteOptions,
   periodOptions,
   sortOptions,
-  statusOptions,
   type ClientListItem,
-  type ClientsFavorite,
   type ClientsListPage,
   type ClientsQuery,
-  type ClientsStatus,
 } from "../list-options";
 import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
@@ -55,15 +45,11 @@ export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery };
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
 
-/* Um glifo por opção, para cada uma se reconhecer antes de ler: todos, os marcados e os de fora. */
-const favoriteIcons: Record<ClientsFavorite, Icon> = { todos: UsersIcon, favoritos: StarIcon, outros: ProhibitIcon };
-const statusIcons: Record<ClientsStatus, Icon> = { todos: UsersIcon, ativos: CheckCircleIcon, inativos: MinusCircleIcon };
-
 // A tela de clientes: a barra de busca e filtros em cima, a grade de cartões no meio e a paginação
 // embaixo. O filtro vive na URL e quem faz o trabalho é o servidor, então a página é compartilhável e
-// volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, e a
-// espera do campo de busca. Trocar qualquer filtro leva de volta para a primeira página, senão a pessoa cairia
-// numa página que o novo filtro nem tem.
+// volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, a
+// espera do campo de busca e o filtro adiantado. Trocar qualquer filtro leva de volta para a primeira
+// página, senão a pessoa cairia numa página que o novo filtro nem tem.
 export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const router = useRouter();
   const [search, setSearch] = useState(query.search);
@@ -114,37 +100,65 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     setSelected((current) => (on ? [...current, id] : current.filter((entry) => entry !== id)));
 
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
-  const menuFilters = countMenuFilters(live);
-  const quickFilters = countQuickFilters(live);
+  const active = countActiveFilters(live);
 
-  /* O menu de filtros: cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar
-     mais de uma coisa antes de sair. Favoritos e situação são escolha única, marcada pelo check; e-mail
-     e telefone são interruptores; e limpar volta tudo ao padrão, ordem e período inclusive, porque no
-     celular eles moram dentro deste mesmo menu. */
+  /* O menu de filtros, tudo num lugar só (a pedido, 2026-09-08): ordem e período em escolha única,
+     marcada pelo check; favorito, ativo e inativo em interruptor, porque são sim ou não; e-mail e
+     telefone também. Cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar mais
+     de uma coisa antes de sair; limpar volta tudo ao padrão e só aparece com algo em vigor. */
   const filterSections: DropdownSection[] = [
     {
-      id: "favorite",
-      label: "Favoritos",
-      items: favoriteOptions.map((option) => ({
-        id: `favorite-${option.value}`,
+      id: "sort",
+      label: "Ordem",
+      items: sortOptions.map((option) => ({
+        id: `sort-${option.value}`,
         label: option.label,
-        icon: favoriteIcons[option.value],
-        selected: live.favorite === option.value,
+        selected: live.sort === option.value,
         keepOpen: true,
-        onSelect: () => go({ favorite: option.value, page: 1 }),
+        onSelect: () => go({ sort: option.value, page: 1 }),
       })),
     },
     {
-      id: "status",
-      label: "Situação",
-      items: statusOptions.map((option) => ({
-        id: `status-${option.value}`,
+      id: "period",
+      label: "Período de entrada",
+      items: periodOptions.map((option) => ({
+        id: `period-${option.value}`,
         label: option.label,
-        icon: statusIcons[option.value],
-        selected: live.status === option.value,
+        selected: live.period === option.value,
         keepOpen: true,
-        onSelect: () => go({ status: option.value, page: 1 }),
+        onSelect: () => go({ period: option.value, page: 1 }),
       })),
+    },
+    {
+      id: "client",
+      label: "Cliente",
+      items: [
+        {
+          kind: "toggle",
+          id: "favorite",
+          label: "Só favoritos",
+          icon: StarIcon,
+          checked: live.favorite === "favoritos",
+          onChange: (on) => go({ favorite: on ? "favoritos" : "todos", page: 1 }),
+        },
+        /* Ativo e inativo são um estado só, então ligar um desliga o outro. */
+        {
+          kind: "toggle",
+          id: "active",
+          label: "Só ativos",
+          icon: CheckCircleIcon,
+          checked: live.status === "ativos",
+          onChange: (on) => go({ status: on ? "ativos" : "todos", page: 1 }),
+        },
+        {
+          kind: "toggle",
+          id: "inactive",
+          label: "Só inativos",
+          icon: MinusCircleIcon,
+          checked: live.status === "inativos",
+          onChange: (on) => go({ status: on ? "inativos" : "todos", page: 1 }),
+        },
+      ],
     },
     {
       id: "contact",
@@ -168,7 +182,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         },
       ],
     },
-    ...(menuFilters + quickFilters > 0
+    ...(active > 0
       ? [{ id: "reset", items: [{ id: "reset", label: "Limpar filtros", icon: ArrowCounterClockwiseIcon, onSelect: () => go(clearedFilters) }] }]
       : []),
   ];
@@ -182,48 +196,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
           placeholder: "Buscar clientes",
           label: "Buscar cliente",
         }}
-        quickFilters={[
-          /* Ordem e período ficam à vista, só no ícone: são os que a pessoa troca toda hora ao varrer a
-             base. O escolhido vai marcado e no nome acessível do gatilho, e escolher fecha, como o
-             período do painel. Quem veste o botão é a barra. */
-          {
-            label: "Ordem dos clientes",
-            triggerLabel: `Ordem: ${sortOptions.find((option) => option.value === live.sort)?.label ?? ""}`,
-            icon: <ArrowsDownUpIcon />,
-            sections: [
-              {
-                id: "sort",
-                label: "Ordem",
-                items: sortOptions.map((option) => ({
-                  id: option.value,
-                  label: option.label,
-                  selected: option.value === live.sort,
-                  onSelect: () => go({ sort: option.value, page: 1 }),
-                })),
-              },
-            ],
-          },
-          {
-            label: "Período de entrada",
-            triggerLabel: `Período: ${periodOptions.find((option) => option.value === live.period)?.label ?? ""}`,
-            icon: <CalendarBlankIcon />,
-            sections: [
-              {
-                id: "period",
-                label: "Período",
-                items: periodOptions.map((option) => ({
-                  id: option.value,
-                  label: option.label,
-                  selected: option.value === live.period,
-                  onSelect: () => go({ period: option.value, page: 1 }),
-                })),
-              },
-            ],
-          },
-        ]}
-        activeQuickFilters={quickFilters}
         filters={filterSections}
-        activeFilters={menuFilters}
+        activeFilters={active}
         action={
           <>
             <span className={styles.wide}>
