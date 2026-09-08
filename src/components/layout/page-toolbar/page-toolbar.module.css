@@ -1,0 +1,112 @@
+/* Busca de um lado, filtros no meio e ações na outra ponta. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.search {
+  display: flex;
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.search > * {
+  width: 100%;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O vão das ações é o do menu, 4px, o mesmo do cabeçalho de página: com 8 os ícones leem como soltos. */
+.actions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* O botão de filtros só existe no celular: no desktop os menus estão na própria barra. */
+.filterButton {
+  position: relative;
+  display: none;
+}
+
+/* A contagem de filtros fora do padrão fica na quina do botão, sem tomar linha. */
+.filterCount {
+  position: absolute;
+  inset-block-start: calc(var(--space-1) * -1);
+  inset-inline-end: calc(var(--space-1) * -1);
+  pointer-events: none;
+}
+
+.selection {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+@media (max-width: 47.9375rem) {
+  /* No celular a barra é uma linha só e não quebra: busca, filtros e criar. Os menus saem da barra e
+     vão para a janela, porque três lado a lado viravam rolagem lateral numa tela estreita. */
+  .toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .search {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .filters {
+    display: none;
+  }
+
+  .filterButton {
+    display: inline-flex;
+  }
+
+  /* Sem nada marcado, o grupo de seleção sai da linha: botão desligado ali só roubaria espaço da busca. */
+  .selection:not([data-selecting]) {
+    display: none;
+  }
+}
+
+/* Dentro da janela os menus viram uma coluna, cada um tomando a linha inteira. */
+.sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.sheetHead {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.sheetBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Na janela o gatilho de cada menu ocupa a linha, senão eles ficariam encolhidos à esquerda. */
+.sheetBody > * {
+  width: 100%;
+}

@@ -21,7 +21,7 @@
 }
 
 /* Selecionado, o fio acende na cor de destaque, e é ele que muda, não o fundo: a foto e o nome ficam
-   como estavam e o cartão inteiro não pisca. */
+   como estavam e o cartão inteiro não pisca a cada marcação numa grade cheia. */
 .card[data-selected] {
   background-color: var(--color-accent);
 }
@@ -34,20 +34,38 @@
   align-content: start;
   min-width: 0;
   padding: var(--space-2) var(--space-2) var(--space-5);
+  cursor: pointer;
   background-color: var(--color-bg);
   border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-/* Mesmo desvio do `Card` no Safari do iPhone: lá as duas caixas voltam ao canto redondo, senão o fio
-   some nas quinas superelípticas. */
-@supports (-webkit-touch-callout: none) {
-  .card[data-squircle],
-  .card .inner[data-squircle] {
-    corner-shape: round;
+/* No desktop o cartão respira: com o recuo do celular ele ficava apertado na largura maior. */
+@media (min-width: 48rem) {
+  .inner {
+    gap: var(--space-5);
+    padding: var(--space-3) var(--space-3) var(--space-6);
   }
 }
 
-/* Seleção e estrela de um lado, o leque na outra ponta. */
+/* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado (`focus-visible`):
+   marcar a seleção ou abrir o leque com o dedo ou o mouse não acende anel nenhum. */
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Seleção de um lado, o leque na outra ponta. */
 .head {
   display: flex;
   gap: var(--space-1);
@@ -57,48 +75,6 @@
 
 .menu {
   margin-inline-start: auto;
-}
-
-.star {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: var(--control-height-sm);
-  height: var(--control-height-sm);
-  padding: 0;
-  color: var(--color-label-tertiary);
-  cursor: pointer;
-  background-color: transparent;
-  border: 0;
-  transition:
-    color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
-}
-
-/* Favoritado é a única cor do cartão: o amarelo da paleta, o mesmo da etiqueta de favorito na ficha. */
-.star[data-on] {
-  color: var(--sys-yellow);
-}
-
-.star svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-@media (hover: hover) {
-  .star:hover {
-    color: var(--color-label);
-    background-color: var(--color-fill-quaternary);
-  }
-
-  .star[data-on]:hover {
-    color: var(--sys-yellow);
-  }
-
-  .star:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
 }
 
 /* A identidade centrada, com a foto grande em cima: é ela que a pessoa varre com o olho na grade. */
@@ -116,6 +92,12 @@
 .card .identity .photo {
   --avatar-size: 4.5rem;
   margin-block-end: var(--space-3);
+}
+
+@media (min-width: 48rem) {
+  .card .identity .photo {
+    --avatar-size: 5.5rem;
+  }
 }
 
 .name {

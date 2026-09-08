@@ -32,7 +32,7 @@ import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
 import { Notifications, type AppNotification } from "../notifications";
-import { isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
+import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import styles from "./sidebar.module.css";
 
@@ -76,10 +76,6 @@ function scrollRegion(node: HTMLElement | null) {
     current = current.parentElement;
   }
   return null;
-}
-
-function isCurrent(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function folderIsCurrent(pathname: string, folder: NavFolder) {

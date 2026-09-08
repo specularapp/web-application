@@ -15,43 +15,32 @@
   }
 }
 
-/* A barra corre numa linha só no desktop: busca à esquerda, filtros no meio e as ações na outra ponta.
-   Em tela estreita ela quebra, com a busca tomando a linha inteira e os filtros logo abaixo. */
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  align-items: center;
-  padding-block-end: var(--space-4);
-  border-block-end: 0.0375rem solid var(--color-border);
+/* O botão de criar leva texto no desktop e vira só ícone no celular, por CSS e não por media query em
+   JS, para a marcação não saltar na hidratação: os dois existem e cada largura mostra um. */
+.wide {
+  display: contents;
 }
 
-.search {
-  flex: 1 1 16rem;
-  min-width: 0;
-  max-width: 22rem;
+.narrow {
+  display: none;
 }
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
 }
 
-/* As ações vão para a outra ponta da barra, e ficam juntas: o vão delas é o do menu, 4px, o mesmo do
-   cabeçalho de página, porque com 8 os ícones leem como soltos. */
-.actions {
-  display: flex;
-  gap: var(--space-1);
-  align-items: center;
-  margin-inline-start: auto;
-}
+/* A grade enche a largura com quantos cartões couberem. `auto-fill`, e não `auto-fit`: com poucos
+   clientes os cartões ficam do tamanho dos outros, em vez de esticarem para ocupar a linha.
 
-/* A grade enche a largura com quantos cartões couberem, de 8,5rem cada: duas colunas em 320px, seis na
-   largura da referência. `auto-fill`, e não `auto-fit`: com poucos clientes os cartões ficam do tamanho
-   dos outros, em vez de esticarem para ocupar a linha. */
+   O piso da coluna muda por largura de propósito: 8,5rem no celular é o maior que ainda dá duas colunas
+   em 320px, e 10,5rem daí para cima deixa o cartão respirar, porque no desktop ele estava miúdo demais
+   para o retrato que carrega. */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
@@ -63,6 +52,7 @@
 
 @media (min-width: 48rem) {
   .grid {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
     gap: var(--space-5);
   }
 }

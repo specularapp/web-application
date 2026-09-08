@@ -1,0 +1,8 @@
+/* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra.
+   A coluna é `minmax(0, 1fr)` porque a grade de cartões alargaria a página numa trilha automática. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  min-height: 100%;
+}

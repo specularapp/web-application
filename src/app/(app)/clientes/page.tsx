@@ -1,3 +1,4 @@
+import { previewAiUsage } from "@/features/ai/preview";
 import { ClientsScreen } from "@/features/clients/components/clients-screen";
 import { listClients, parseClientsQuery } from "@/features/clients/list";
 import { previewClientsList } from "@/features/clients/list-preview";
@@ -25,5 +26,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clientes
   // fora e não sabe de onde ela veio.
   const page = listClients(previewClientsList, query);
 
-  return <ClientsScreen page={page} query={query} />;
+  // O uso da IA vem de `features/ai/preview.ts` enquanto o domínio não existe no banco, no mesmo
+  // contrato dos blocos do painel: o widget recebe por prop e não sabe de onde vem.
+  return <ClientsScreen page={page} query={query} ai={previewAiUsage} />;
 }

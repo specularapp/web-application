@@ -28,6 +28,48 @@ export function isFolder(entry: NavEntry): entry is NavFolder {
   return "items" in entry;
 }
 
+/** A página em vigor é a própria rota ou qualquer coisa abaixo dela: `/clientes/abc` é `/clientes`. */
+export function isCurrent(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Onde a página mora no menu: a seção à esquerda do topo, o nome no meio e as irmãs para o chevron. */
+export type NavLocation = {
+  section: string;
+  icon: Icon;
+  page: NavLink;
+  /** As páginas da mesma pasta; vazio quando a rota não mora numa. */
+  siblings: NavLink[];
+};
+
+/**
+ * Acha no menu onde a rota está, para o topo da página dizer a mesma coisa que o menu diz. Sai daqui, e
+ * não de um mapa novo, porque `navGroups` já é a fonte única das rotas: página que nasce no menu ganha o
+ * topo de graça, e página que não está lá não inventa um nome.
+ *
+ * Entre duas rotas que casam, ganha a mais específica: `/orcamentos/novo` é "Gerar orçamento", e não
+ * "Acompanhar", que também casaria por prefixo.
+ */
+export function navLocation(pathname: string): NavLocation | null {
+  const found: NavLocation[] = [];
+
+  for (const group of navGroups) {
+    for (const entry of group.entries) {
+      if (isFolder(entry)) {
+        for (const item of entry.items) {
+          if (isCurrent(pathname, item.href)) {
+            found.push({ section: entry.label, icon: entry.icon, page: item, siblings: entry.items });
+          }
+        }
+      } else if (isCurrent(pathname, entry.href)) {
+        found.push({ section: group.title, icon: entry.icon, page: entry, siblings: [] });
+      }
+    }
+  }
+
+  return found.sort((a, b) => b.page.href.length - a.page.href.length)[0] ?? null;
+}
+
 /** Página do menu já achatada, com o nome de onde ela mora, para a busca mostrar o contexto. */
 export type NavResult = NavLink & { section: string; hue: string };
 

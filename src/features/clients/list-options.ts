@@ -17,8 +17,13 @@ export type ClientListItem = Pick<
   "id" | "reference" | "name" | "email" | "phone" | "avatarUrl" | "createdAt" | "company" | "active" | "favorite"
 >;
 
-/** Quantos cartões cabem numa página. Múltiplo de 2, 3 e 6, que são as colunas que a grade forma. */
-export const CLIENTS_PER_PAGE = 12;
+/**
+ * Quantos cartões cabem numa página: quatro linhas cheias da grade na largura de trabalho, que é onde a
+ * lista ainda se varre com o olho sem virar rolagem sem fim. É múltiplo de 2, 3, 4 e 6, as colunas que a
+ * grade forma nas larguras da casa, então a última linha raramente fica pela metade. A barra de
+ * paginação só aparece passando disso: com menos, ela seria uma faixa sem função no pé da tela.
+ */
+export const CLIENTS_PER_PAGE = 24;
 
 export const QUERY_PARAM = "busca";
 export const SORT_PARAM = "ordem";

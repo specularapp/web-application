@@ -1,0 +1,114 @@
+/* Três colunas com as pontas do mesmo tamanho, e não um flex de três partes: assim o nome fica no
+   centro da barra mesmo quando a seção e o widget têm larguras diferentes, que é o que dá o alinhamento
+   da referência. As pontas cedem primeiro, e o nome é o último a encurtar. */
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 3.25rem;
+  padding-inline: var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+@media (min-width: 48rem) {
+  .topbar {
+    padding-inline: var(--space-6);
+  }
+}
+
+.route {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--color-label);
+}
+
+.routeIcon {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+/* O nome não encolhe até as pontas terem cedido, então ele é a última coisa a virar reticência. */
+.title {
+  justify-self: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.end {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* O widget da IA: o glifo, o rótulo e a barrinha de uso, tudo numa linha e sem caixa, porque ele mora
+   na moldura e não é um botão da tela. */
+.ai {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding-inline: var(--space-2);
+  color: var(--color-label);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .ai:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .ai:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.aiIcon {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--sys-purple);
+}
+
+/* A trilha vazia por baixo e o quanto foi usado por cima, no roxo da IA, que é o mesmo do painel. */
+.aiTrack {
+  position: relative;
+  flex-shrink: 0;
+  width: 3rem;
+  height: 0.25rem;
+  overflow: hidden;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+.aiTrack::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--used);
+  background-color: var(--sys-purple);
+  border-radius: inherit;
+}
+
+/* No celular a barrinha sai e sobra o glifo com o rótulo: a barra do topo tem três partes e a do meio é
+   o nome da página, que não pode ceder para um indicador. */
+@media (max-width: 47.9375rem) {
+  .aiLabel,
+  .aiTrack {
+    display: none;
+  }
+
+  .ai {
+    padding-inline: var(--space-1);
+  }
+}
