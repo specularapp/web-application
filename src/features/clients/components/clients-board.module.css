@@ -1,0 +1,85 @@
+/* A tela é uma coluna: barra, grade e paginação. A coluna é `minmax(0, 1fr)` porque trilha automática
+   tem o min-content como piso, e a grade de cartões alargaria a página. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .board {
+    padding: var(--space-6);
+  }
+}
+
+/* A barra corre numa linha só no desktop: busca à esquerda, filtros no meio e as ações na outra ponta.
+   Em tela estreita ela quebra, com a busca tomando a linha inteira e os filtros logo abaixo. */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding-block-end: var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.search {
+  flex: 1 1 16rem;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* As ações vão para a outra ponta da barra, e ficam juntas: o vão delas é o do menu, 4px, o mesmo do
+   cabeçalho de página, porque com 8 os ícones leem como soltos. */
+.actions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* A grade enche a largura com quantos cartões couberem, de 8,5rem cada: duas colunas em 320px, seis na
+   largura da referência. `auto-fill`, e não `auto-fit`: com poucos clientes os cartões ficam do tamanho
+   dos outros, em vez de esticarem para ocupar a linha. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .grid {
+    gap: var(--space-5);
+  }
+}
+
+/* Sem resultado, a frase ocupa o lugar da grade, centrada na altura que sobra. */
+.empty {
+  display: grid;
+  gap: var(--space-1);
+  place-content: center;
+  justify-items: center;
+  min-height: 16rem;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+  padding-block-start: var(--space-2);
+}

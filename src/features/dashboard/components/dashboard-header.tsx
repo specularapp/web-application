@@ -1,10 +1,9 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { CalendarBlankIcon, MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, PlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CommandPalette } from "@/components/layout/command-palette";
 import { PageHeader } from "@/components/layout/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,20 +44,13 @@ const Narrow = styled.span`
 `;
 
 // Cabeçalho do painel: a pessoa à esquerda e, à direita, o que ela faz todo dia. Só ícones, menos o
-// de criar orçamento, que é a ação principal e leva texto. Buscar abre a mesma busca do menu; o
-// período abre o menu de opções da casa com o escolhido marcado e vai para a URL, que é de onde os
-// blocos do painel vão ler; a engrenagem abre a gaveta de personalizar a grade.
+// de criar orçamento, que é a ação principal e leva texto. O período abre o menu de opções da casa
+// com o escolhido marcado e vai para a URL, que é de onde os blocos do painel vão ler; a engrenagem
+// abre a gaveta de personalizar a grade.
 export function DashboardHeader({ user, greeting, period, layout, demo = false }: DashboardHeaderProps) {
   const router = useRouter();
-  const [searching, setSearching] = useState(false);
-  const [searchKey, setSearchKey] = useState(0);
   const [local, setLocal] = useState(period);
   const current = demo ? local : period;
-
-  const openSearch = () => {
-    setSearchKey((key) => key + 1);
-    setSearching(true);
-  };
 
   const changePeriod = (next: DashboardPeriod) => {
     if (demo) {
@@ -69,49 +61,43 @@ export function DashboardHeader({ user, greeting, period, layout, demo = false }
   };
 
   return (
-    <>
-      <PageHeader
-        compact
-        leading={<Avatar name={user.name} src={user.avatarUrl ?? undefined} seed={user.email ?? user.name} size="md" />}
-        title={user.name}
-        description={greeting}
-        actions={
-          <>
-            <IconButton label="Buscar" variant="ghost" size="sm" onClick={openSearch}>
-              <MagnifyingGlassIcon />
+    <PageHeader
+      compact
+      leading={<Avatar name={user.name} src={user.avatarUrl ?? undefined} seed={user.email ?? user.name} size="md" />}
+      title={user.name}
+      description={greeting}
+      actions={
+        <>
+          <DropdownMenu
+            label="Período do painel"
+            triggerLabel={`Período: ${dashboardPeriods.find((option) => option.value === current)?.label ?? ""}`}
+            icon={<CalendarBlankIcon />}
+            sections={[
+              {
+                id: "periods",
+                label: "Período",
+                items: dashboardPeriods.map((option) => ({
+                  id: option.value,
+                  label: option.label,
+                  selected: option.value === current,
+                  onSelect: () => changePeriod(option.value),
+                })),
+              },
+            ]}
+          />
+          <DashboardCustomizer layout={layout} />
+          <Wide>
+            <Button href="/orcamentos/novo" size="sm" iconStart={<PlusIcon />}>
+              Criar orçamento
+            </Button>
+          </Wide>
+          <Narrow>
+            <IconButton label="Criar orçamento" href="/orcamentos/novo" size="sm">
+              <PlusIcon />
             </IconButton>
-            <DropdownMenu
-              label="Período do painel"
-              triggerLabel={`Período: ${dashboardPeriods.find((option) => option.value === current)?.label ?? ""}`}
-              icon={<CalendarBlankIcon />}
-              sections={[
-                {
-                  id: "periods",
-                  label: "Período",
-                  items: dashboardPeriods.map((option) => ({
-                    id: option.value,
-                    label: option.label,
-                    selected: option.value === current,
-                    onSelect: () => changePeriod(option.value),
-                  })),
-                },
-              ]}
-            />
-            <DashboardCustomizer layout={layout} />
-            <Wide>
-              <Button href="/orcamentos/novo" size="sm" iconStart={<PlusIcon />}>
-                Criar orçamento
-              </Button>
-            </Wide>
-            <Narrow>
-              <IconButton label="Criar orçamento" href="/orcamentos/novo" size="sm">
-                <PlusIcon />
-              </IconButton>
-            </Narrow>
-          </>
-        }
-      />
-      <CommandPalette key={searchKey} open={searching} onClose={() => setSearching(false)} />
-    </>
+          </Narrow>
+        </>
+      }
+    />
   );
 }

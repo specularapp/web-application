@@ -19,7 +19,8 @@ import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-men
 import type { Client } from "@/features/clients/summary";
 
 export type ClientMenuProps = {
-  client: Client;
+  /** Só o que o menu usa: a ficha inteira serve, mas o cartão da listagem não precisa carregá-la. */
+  client: Pick<Client, "id" | "name" | "phone">;
   /** Quantas entradas o histórico do cliente tem, para a contagem na linha. */
   historyCount?: number;
 };
