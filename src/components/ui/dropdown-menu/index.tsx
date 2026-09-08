@@ -4,7 +4,8 @@ import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import { CaretRightIcon, CaretUpDownIcon, CheckIcon, type Icon } from "@phosphor-icons/react";
 import type { Route } from "next";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { planBadges, type PlanId } from "@/features/billing/plans";
@@ -17,6 +18,7 @@ import { Badge } from "../badge";
 import type { ButtonProps } from "../button";
 import { Dialog } from "../dialog";
 import { IconButton } from "../icon-button";
+import { Spinner } from "../spinner";
 import { hoverMotion, layerMotion } from "../styles";
 import { Switch } from "../switch";
 import { Text } from "../text";
@@ -273,6 +275,23 @@ const Trigger = styled.span`
   flex-shrink: 0;
 `;
 
+/* O giro no fim da linha enquanto o link ainda leva para a página, e o aviso de que chegou: a linha de
+   rota não fecha o menu ao clicar, porque fechar antes deixava a pessoa sem saber se o clique pegou. */
+function LinkPending({ onDone }: { onDone: () => void }) {
+  const { pending } = useLinkStatus();
+  const [seen, setSeen] = useState(false);
+  if (pending && !seen) setSeen(true);
+  if (!pending && seen) {
+    setSeen(false);
+    onDone();
+  }
+  return pending ? (
+    <Trailing>
+      <Spinner size="sm" label="" />
+    </Trailing>
+  ) : null;
+}
+
 const MENU_ITEMS = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
 
 function heightOf(sections: DropdownSection[]) {
@@ -294,6 +313,14 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const mobile = useMediaQuery(MOBILE_QUERY);
+  // Trocar de página fecha o menu, ajustado durante o render: é a garantia para a linha de rota, que não
+  // fecha ao clicar e espera a navegação terminar.
+  const pathname = usePathname();
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    setOpen(false);
+  }
   const { present, state, onAnimationEnd } = usePresence(open && !mobile);
   const position = useAnchoredPosition(open && !mobile, triggerRef, { width: PANEL_WIDTH, height: heightOf(sections), edge: EDGE, gap: GAP });
   const [resolved, setResolved] = useState<Resolved | null>(null);
@@ -428,8 +455,9 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
 
     if (item.href) {
       return (
-        <ActionLink key={item.id} role={role} aria-checked={checked} href={item.href as Route} data-tone={item.tone} onClick={select} tabIndex={-1}>
+        <ActionLink key={item.id} role={role} aria-checked={checked} href={item.href as Route} data-tone={item.tone} onClick={item.onSelect} tabIndex={-1}>
           {content}
+          <LinkPending onDone={() => setOpen(false)} />
         </ActionLink>
       );
     }

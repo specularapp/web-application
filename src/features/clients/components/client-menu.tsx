@@ -23,6 +23,8 @@ export type ClientMenuProps = {
   client: Pick<Client, "id" | "name" | "phone">;
   /** Quantas entradas o histórico do cliente tem, para a contagem na linha. */
   historyCount?: number;
+  /** Abre a edição no lugar, sem navegar: a base de clientes passa, o painel deixa o endereço fazer. */
+  onEdit?: () => void;
 };
 
 /** Os documentos gerados a partir do cliente pedem o plano Pro. */
@@ -32,7 +34,7 @@ const DOCUMENTS_PLAN = "pro";
 // libera), chamar no WhatsApp, o acompanhamento, os interruptores de ativo e favorito e, por último e
 // em vermelho, excluir. Editar leva à tela da ficha; histórico, mapa e excluir ainda não têm tela nem
 // regra: fecham o menu e nada mais. Ativo e favorito trocam só na tela.
-export function ClientMenu({ client, historyCount = 0 }: ClientMenuProps) {
+export function ClientMenu({ client, historyCount = 0, onEdit }: ClientMenuProps) {
   const [active, setActive] = useState(true);
   const [favorite, setFavorite] = useState(false);
 
@@ -41,7 +43,9 @@ export function ClientMenu({ client, historyCount = 0 }: ClientMenuProps) {
       id: "actions",
       items: [
         { id: "view", label: "Visualizar", icon: EyeIcon, href: "/clientes" },
-        { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}` as Route },
+        onEdit
+          ? { id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit }
+          : { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}` as Route },
         {
           id: "quote",
           label: "Gerar orçamento",

@@ -1,22 +1,9 @@
 "use client";
 
-import {
-  BriefcaseIcon,
-  BuildingsIcon,
-  CheckIcon,
-  EnvelopeSimpleIcon,
-  GlobeIcon,
-  IdentificationCardIcon,
-  MapPinIcon,
-  NotePencilIcon,
-  PhoneIcon,
-  UploadSimpleIcon,
-  UserIcon,
-  XIcon,
-  type Icon,
-} from "@phosphor-icons/react";
+import { BuildingsIcon, CheckIcon, IdentificationCardIcon, NotePencilIcon, PhoneIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -24,20 +11,29 @@ import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { TagInput } from "@/components/ui/tag-input";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
-import { saveClientAction } from "../actions";
+import { loadClientAction, saveClientAction } from "../actions";
+import type { ClientListItem } from "../list-options";
 import type { ClientFormInput } from "../schemas";
 import type { Client } from "../summary";
 import styles from "./client-form-dialog.module.css";
 
-/** O que a janela edita: uma ficha, ou `"new"` para criar. Nulo fecha. */
-export type ClientEditor = Client | "new" | null;
+/** O que a janela edita: a ficha completa, o item da lista (a ficha vem em seguida) ou `"new"` para criar. Nulo fecha. */
+export type ClientEditor = Client | ClientListItem | "new" | null;
+
+/* A ficha completa tem etiquetas; o item da lista, não. */
+function isFull(editor: Client | ClientListItem): editor is Client {
+  return "tags" in editor;
+}
 
 export type ClientFormDialogProps = {
   editor: ClientEditor;
@@ -75,24 +71,19 @@ function revokeLocal(url: string | null) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
 }
 
-/* Um bloco do formulário: o título numa faixa no preenchimento da casa, com o glifo e uma linha de apoio,
-   e os campos soltos embaixo. A faixa é o que separa um bloco do outro na rolagem. */
-function Section({ icon: Glyph, title, description, children }: { icon: Icon; title: string; description: string; children: ReactNode }) {
+/* Um bloco do formulário: o glifo e o título numa linha, e os campos embaixo. Quem separa um bloco do
+   outro é o fio, de ponta a ponta, como na gaveta de criar equipe. */
+function Section({ icon: Glyph, title, children }: { icon: Icon; title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section className={styles.section} aria-labelledby={id}>
-      <header className={styles.heading} {...squircle("md")}>
+      <div className={styles.heading}>
         <Glyph aria-hidden="true" />
-        <div className={styles.headingCopy}>
-          <Text as="h3" id={id} variant="subheadline" weight="semibold">
-            {title}
-          </Text>
-          <Text variant="caption1" tone="secondary">
-            {description}
-          </Text>
-        </div>
-      </header>
-      <div className={styles.fields}>{children}</div>
+        <Text as="h3" id={id} variant="subheadline" weight="semibold">
+          {title}
+        </Text>
+      </div>
+      {children}
     </section>
   );
 }
@@ -118,7 +109,7 @@ function ImageField({
         {preview ? <Image src={preview} alt="" fill sizes="3.5rem" unoptimized className={styles.imagePreview} /> : fallback}
       </span>
       <div className={styles.imageCopy}>
-        <Text as="span" variant="footnote" weight="medium">
+        <Text as="span" variant="footnote" weight="medium" truncate>
           {label}
         </Text>
         <div className={styles.imageActions}>
@@ -126,9 +117,9 @@ function ImageField({
             {preview ? "Trocar" : "Enviar"}
           </Button>
           {preview && (
-            <Button variant="ghost" size="sm" radius="md" onClick={() => onSelect(null)}>
-              Remover
-            </Button>
+            <IconButton label={`Remover ${label.toLowerCase()}`} variant="ghost" size="sm" radius="md" onClick={() => onSelect(null)}>
+              <XIcon />
+            </IconButton>
           )}
         </div>
       </div>
@@ -152,17 +143,59 @@ function ImageField({
   );
 }
 
-// A ficha do cliente para criar e para editar, na janela da casa: grande e sólida no desktop, bandeja no
-// celular, com o título e o X grudados no topo, o formulário rolando no meio e Cancelar e Salvar fixos no
-// rodapé. Três blocos, identidade, contato e detalhes, cada um com o título numa faixa e os campos soltos
-// embaixo, um por linha e com o glifo na frente. O estado é local e o envio é a action, que valida com
-// zod de novo no servidor; erro de campo volta para o campo, e sucesso avisa e fecha. A foto e a logo
-// entram na prévia na hora; o envio do arquivo chega com o storage.
+// A ficha do cliente para criar e para editar, na gaveta lateral da casa, a mesma de criar equipe: 30rem
+// na direita no desktop e bandeja no celular, com o título e o X grudados no topo, o formulário rolando no
+// meio e Cancelar e Salvar fixos no rodapé. No celular o rodapé some e salvar e sair vão para a barra
+// flutuante do menu. Três blocos separados por fio, identidade, contato e detalhes, com os campos no
+// padrão da casa e em pares onde cabem. O estado é local e o envio é a action, que valida com zod de novo
+// no servidor; erro de campo volta para o campo, e sucesso avisa e fecha. A foto e a logo entram na prévia
+// na hora; o envio do arquivo chega com o storage.
 export function ClientFormDialog({ editor, onClose, onSaved }: ClientFormDialogProps) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+
   return (
-    <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? "Novo cliente" : "Editar cliente"} size="lg" focusOnOpen={false}>
-      {editor !== null && <ClientForm client={editor === "new" ? undefined : editor} onClose={onClose} onSaved={onSaved} />}
+    // Sem escurecimento no desktop, como a gaveta de criar equipe: a página segue viva atrás. No celular
+    // o escurecimento entra, senão o toque na barra flutuante, que fica acima da bandeja, fecharia a janela
+    // como toque fora.
+    <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? "Novo cliente" : "Editar cliente"} size="md" placement="end" surface="glass" scrim={mobile} focusOnOpen={false}>
+      {editor === "new" && <ClientForm onClose={onClose} onSaved={onSaved} />}
+      {editor !== null && editor !== "new" && (isFull(editor) ? <ClientForm client={editor} onClose={onClose} onSaved={onSaved} /> : <ClientLoader item={editor} onClose={onClose} onSaved={onSaved} />)}
     </Dialog>
+  );
+}
+
+/* Aberta a partir do cartão, a gaveta só sabe o que o cartão sabia: mostra o nome no topo e o giro no meio
+   enquanto a ficha completa chega, e aí o formulário entra já preenchido. É o mesmo desenho da gaveta de
+   ficha, e é o que dá resposta ao clique na hora. */
+function ClientLoader({ item, onClose, onSaved }: { item: ClientListItem; onClose: () => void; onSaved: () => void }) {
+  const [full, setFull] = useState<Client | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    void loadClientAction(item.id).then((data) => {
+      if (current) setFull(data);
+    });
+    return () => {
+      current = false;
+    };
+  }, [item.id]);
+
+  if (full) return <ClientForm client={full} onClose={onClose} onSaved={onSaved} />;
+
+  return (
+    <div className={styles.dialog}>
+      <header className={styles.head}>
+        <Text as="h2" variant="headline" weight="semibold" truncate>
+          Editar cliente
+        </Text>
+        <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
+          <XIcon />
+        </IconButton>
+      </header>
+      <div className={styles.loading}>
+        <Spinner size="md" label={`Carregando a ficha de ${item.name}`} />
+      </div>
+    </div>
   );
 }
 
@@ -175,6 +208,14 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
   const [saving, setSaving] = useState(false);
   const editing = Boolean(client);
   const titleId = useId();
+  const form = useRef<HTMLFormElement>(null);
+
+  // No celular salvar e sair moram na barra flutuante do menu, acima da bandeja, e o rodapé some. O disparo
+  // é o mesmo envio do formulário, então a validação e a action valem igual.
+  useFloatingActionsRegistration({
+    primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Criar", loading: saving, onClick: () => form.current?.requestSubmit() },
+    cancel: { label: "Cancelar", onClick: onClose },
+  });
 
   // O endereço local da imagem escolhida é desfeito quando outro o substitui ou a janela fecha: o efeito
   // só limpa, sem escrever estado.
@@ -237,7 +278,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
   const companyInitial = values.company.trim().charAt(0).toUpperCase();
 
   return (
-    <form className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
+    <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
       <header className={styles.head}>
         <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
           {editing ? "Editar cliente" : "Novo cliente"}
@@ -248,8 +289,8 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
       </header>
 
       <div className={styles.body}>
-        <Section icon={IdentificationCardIcon} title="Identidade" description="Quem é a pessoa e onde trabalha">
-          <div className={styles.images}>
+        <Section icon={IdentificationCardIcon} title="Identidade">
+          <div className={styles.pair}>
             <ImageField
               label="Foto"
               preview={photoUrl}
@@ -268,25 +309,27 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
             />
           </div>
           <Field label="Nome" required error={errorOf("name")}>
-            <Input type="text" name="name" value={values.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} iconStart={<UserIcon />} onChange={(event) => set("name", event.target.value)} />
+            <Input type="text" name="name" value={values.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
           <div className={styles.pair}>
             <Field label="Empresa" error={errorOf("company")}>
-              <Input type="text" name="company" value={values.company} placeholder="Onde trabalha" autoComplete="organization" disabled={saving} iconStart={<BuildingsIcon />} onChange={(event) => set("company", event.target.value)} />
+              <Input type="text" name="company" value={values.company} placeholder="Onde trabalha" autoComplete="organization" disabled={saving} onChange={(event) => set("company", event.target.value)} />
             </Field>
             <Field label="Área" error={errorOf("role")}>
-              <Input type="text" name="role" value={values.role} placeholder="O que a empresa faz" disabled={saving} iconStart={<BriefcaseIcon />} onChange={(event) => set("role", event.target.value)} />
+              <Input type="text" name="role" value={values.role} placeholder="O que a empresa faz" disabled={saving} onChange={(event) => set("role", event.target.value)} />
             </Field>
           </div>
         </Section>
 
-        <Section icon={PhoneIcon} title="Contato" description="Por onde falar com o cliente">
+        <Separator className={styles.divider} />
+
+        <Section icon={PhoneIcon} title="Contato">
           <div className={styles.pair}>
             <Field label="E-mail" error={errorOf("email")}>
-              <Input type="email" name="email" value={values.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} iconStart={<EnvelopeSimpleIcon />} onChange={(event) => set("email", event.target.value)} />
+              <Input type="email" name="email" value={values.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} onChange={(event) => set("email", event.target.value)} />
             </Field>
             <Field label="Telefone" error={errorOf("phone")}>
-              <Input type="tel" name="phone" mask="phone" value={values.phone} placeholder="(11) 99999-9999" autoComplete="tel-national" disabled={saving} iconStart={<PhoneIcon />} onChange={(event) => set("phone", onlyDigits(event.target.value))} />
+              <Input type="tel" name="phone" mask="phone" value={values.phone} placeholder="(11) 99999-9999" autoComplete="tel-national" disabled={saving} onChange={(event) => set("phone", onlyDigits(event.target.value))} />
             </Field>
           </div>
           <div className={styles.pair}>
@@ -300,27 +343,24 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
                 inputMode="url"
                 spellCheck={false}
                 disabled={saving}
-                iconStart={
-                  <>
-                    <GlobeIcon />
-                    <FieldAffix data-tone="muted">https://</FieldAffix>
-                  </>
-                }
+                iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
                 onChange={(event) => set("website", event.target.value.replace(/^https?:\/\//i, ""))}
               />
             </Field>
             <Field label="Cidade" error={errorOf("city")}>
-              <Input type="text" name="city" value={values.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} iconStart={<MapPinIcon />} onChange={(event) => set("city", event.target.value)} />
+              <Input type="text" name="city" value={values.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} onChange={(event) => set("city", event.target.value)} />
             </Field>
           </div>
         </Section>
 
-        <Section icon={NotePencilIcon} title="Detalhes" description="Anotações, etiquetas e situação">
+        <Separator className={styles.divider} />
+
+        <Section icon={NotePencilIcon} title="Detalhes">
           <Field label="Anotações" error={errorOf("about")}>
             <Textarea name="about" value={values.about} rows={3} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
           </Field>
-          <Field label="Etiquetas" hint="Enter ou vírgula adiciona" error={errorOf("tags")}>
-            <TagInput value={values.tags} placeholder="Site institucional, Indicação" max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
+          <Field label="Etiquetas" error={errorOf("tags")}>
+            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
           <div className={styles.toggles}>
             <Switch checked={values.active} disabled={saving} onChange={(event) => set("active", event.target.checked)}>
@@ -333,7 +373,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
         </Section>
 
         {error && !error.field && (
-          <Text variant="footnote" tone="danger" role="alert">
+          <Text variant="footnote" tone="danger" role="alert" className={styles.alert}>
             {error.message}
           </Text>
         )}

@@ -1,8 +1,9 @@
 "use client";
 
+import Link, { useLinkStatus } from "next/link";
 import styled from "@emotion/styled";
 import { LockIcon } from "@phosphor-icons/react";
-import type { ComponentPropsWithoutRef, CSSProperties, ReactNode, Ref } from "react";
+import type { ComponentPropsWithoutRef, ComponentType, CSSProperties, ReactNode, Ref } from "react";
 import {
   concentric,
   cornerRadius,
@@ -242,8 +243,20 @@ const Root = styled.button`
   }
 `;
 
-// Mesmo estilo do botão num âncora, para chamada que navega (site de divulgação) sem duplicar CSS.
-const Anchor = Root.withComponent("a");
+/* Mesmo estilo do botão num link, para chamada que navega sem duplicar CSS. Link da casa, e não `<a>` cru: navegação de cliente com prefetch, e o estado pendente do próprio link
+   para o giro aparecer enquanto a página de destino não chega (2026-09-08; até então cada botão com
+   endereço era recarga inteira, e parecia travado). */
+type AnchorProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & { href: string };
+/* O endereço chega como texto, e não como rota tipada: o botão é genérico e serve a qualquer link, e o
+   `Link` por baixo aceita o texto normalmente. */
+const Anchor = Root.withComponent(Link) as unknown as ComponentType<AnchorProps>;
+
+/* Dentro do link, quem sabe se a navegação está andando é o `useLinkStatus`: o corpo é desenhado de novo
+   com o giro no lugar do glifo enquanto ela não termina. */
+function LinkBody({ render }: { render: (busy: boolean) => ReactNode }) {
+  const { pending } = useLinkStatus();
+  return <>{render(pending)}</>;
+}
 
 const Plan = styled.span`
   display: inline-flex;
@@ -313,16 +326,16 @@ export function Button({
     ...cornerAttributes(radius, size, iconOnly),
   };
 
-  const content = (
+  const renderContent = (busy: boolean) => (
     <>
-      {loading && (
+      {busy && (
         <span data-button-icon>
           <Spinner size="sm" label="" />
         </span>
       )}
-      {iconStart && !loading && <span data-button-icon>{matchTextWeight(iconStart)}</span>}
+      {iconStart && !busy && <span data-button-icon>{matchTextWeight(iconStart)}</span>}
       {/* Só ícone carregando: o giro toma o lugar do glifo, senão os dois apareciam lado a lado. */}
-      {iconOnly ? !loading && <span data-button-icon>{matchTextWeight(children)}</span> : children}
+      {iconOnly ? !busy && <span data-button-icon>{matchTextWeight(children)}</span> : children}
       {iconEnd && <span data-button-icon>{matchTextWeight(iconEnd)}</span>}
       {locked && (
         <Plan style={planStyle} {...squirclePx(planCorner(radius, size))}>
@@ -337,14 +350,14 @@ export function Button({
   if (href) {
     return (
       <Anchor href={href} {...shared} {...(props as ComponentPropsWithoutRef<"a">)}>
-        {content}
+        <LinkBody render={(pending) => renderContent(loading || pending)} />
       </Anchor>
     );
   }
 
   return (
     <Root type={type} disabled={disabled || loading} {...shared} {...props}>
-      {content}
+      {renderContent(loading)}
     </Root>
   );
 }

@@ -14,6 +14,7 @@ export type ClientCardProps = {
   selected: boolean;
   onSelectedChange: (selected: boolean) => void;
   onOpen: () => void;
+  onEdit: () => void;
 };
 
 /* Controles com ação própria dentro do cartão: clique que nasce neles não abre a lateral. `label` entra
@@ -24,7 +25,7 @@ const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']
 // nome e a empresa. O cartão inteiro abre a lateral com a ficha do cliente; marcar a seleção ou abrir o
 // leque não abre nada, porque cada um tem ação própria. O fio da caixa é o mesmo do `Card`, em duas
 // camadas, para o canto sair em superelipse também onde não há `corner-shape`.
-export function ClientCard({ client, selected, onSelectedChange, onOpen }: ClientCardProps) {
+export function ClientCard({ client, selected, onSelectedChange, onOpen, onEdit }: ClientCardProps) {
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
     if (control && control !== event.currentTarget) return;
@@ -60,7 +61,7 @@ export function ClientCard({ client, selected, onSelectedChange, onOpen }: Clien
             aria-label={`Selecionar ${client.name}`}
           />
           <span className={styles.menu}>
-            <ClientMenu client={client} />
+            <ClientMenu client={client} onEdit={onEdit} />
           </span>
         </div>
 

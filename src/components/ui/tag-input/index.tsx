@@ -27,8 +27,16 @@ const Shell = styled.span`
   gap: var(--space-1);
   align-items: center;
   width: 100%;
+  min-width: 0;
   min-height: var(--control-height-md);
   padding: var(--space-1) var(--space-3);
+  box-sizing: border-box;
+
+  /* A etiqueta nunca passa da caixa: o Badge é um span e cede antes de estourar a linha no celular. */
+  & > span {
+    min-width: 0;
+    max-width: 100%;
+  }
   color: var(--color-label);
   cursor: text;
   background-color: transparent;
@@ -50,9 +58,12 @@ const Shell = styled.span`
   }
 `;
 
+/* O campo de digitar toma o que sobra da linha e desce para a de baixo quando não cabe, em vez de esticar
+   a caixa: é isso que segurava a quebra no celular. */
 const Control = styled.input`
-  flex: 1;
-  min-width: 8rem;
+  flex: 1 1 5rem;
+  min-width: 0;
+  max-width: 100%;
   min-height: calc(var(--control-height-md) - var(--space-2));
   padding: 0;
   font: inherit;

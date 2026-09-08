@@ -1,7 +1,7 @@
-/* Cabeçalho e rodapé fixos, o meio rola: a janela tem teto de altura e a ficha é longa. Os fios seguem o
-   menu, 0,6px em `--color-border`. */
+/* Cabeçalho e rodapé fixos, o meio rola: a gaveta tem a altura da tela e a ficha é longa. Os fios seguem o
+   menu, 0,6px em `--color-border`, nascendo aqui e descendo por cascata para cabeçalho, divisor e rodapé. */
 .dialog {
-  --dialog-line: 0.0375rem;
+  --panel-line: 0.0375rem;
 
   display: flex;
   flex-direction: column;
@@ -12,44 +12,55 @@
 .head {
   display: flex;
   flex-shrink: 0;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
-  border-block-end: var(--dialog-line) solid var(--color-border);
+  border-block-end: var(--panel-line) solid var(--color-border);
 }
 
+/* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
+   ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
 .body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: var(--space-5);
   min-height: 0;
-  padding: var(--space-5);
+  padding-block: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
+/* No celular o rodapé some e a folga do fim é para a barra flutuante, que fica acima da bandeja. */
 @media (max-width: 47.9375rem) {
   .body {
     gap: var(--space-4);
-    padding: var(--space-4);
+    padding-block: var(--space-4) calc(var(--touch-target) + var(--space-8));
   }
 }
 
-/* Um bloco: a faixa do título e os campos soltos embaixo. */
 .section {
   display: grid;
-  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: var(--space-5);
 }
 
-/* A faixa do título no preenchimento da casa, canto `md`: é o que separa um bloco do outro na rolagem,
-   sem fechar os campos numa caixa. */
+@media (max-width: 47.9375rem) {
+  .section {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* O glifo e o título do bloco, na cor do título, herdada. */
 .heading {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
-  padding: var(--space-2) var(--space-3);
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
+  padding-block-end: var(--space-1);
 }
 
 .heading > svg {
@@ -59,32 +70,23 @@
   color: var(--color-label-secondary);
 }
 
-.headingCopy {
-  display: grid;
-  gap: 0;
-  min-width: 0;
+/* O divisor no fio da casa: o `Separator` puro traz `--color-separator`, quase três vezes mais opaco, que
+   numa coluna estreita vira um risco no meio do formulário. */
+.divider.divider {
+  height: var(--panel-line);
+  background-color: var(--color-border);
 }
 
-.fields {
-  display: grid;
-  gap: var(--space-4);
-  padding-inline: var(--space-1);
-}
-
-/* Dois campos lado a lado, quebrando para um por linha quando não cabem. */
+/* Dois campos lado a lado, também no celular: a coluna é `minmax(0, 1fr)` para os campos encolherem em
+   vez de alargar a gaveta. */
 .pair {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
 }
 
-/* A foto e a logo, lado a lado quando cabem. */
-.images {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: var(--space-3) var(--space-5);
-}
-
+/* A foto ou a logo: a moldura de 3,5rem e, ao lado, o rótulo com os botões embaixo. */
 .image {
   display: flex;
   gap: var(--space-3);
@@ -92,7 +94,6 @@
   min-width: 0;
 }
 
-/* A moldura da imagem: 3,5rem, canto `lg` e o preenchimento leve por trás do que não tem imagem. */
 .imageFrame {
   position: relative;
   display: grid;
@@ -136,7 +137,6 @@
 
 .imageActions {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-1);
   align-items: center;
 }
@@ -151,29 +151,38 @@
   white-space: nowrap;
 }
 
-/* Os dois interruptores lado a lado, quebrando quando não cabem. */
+/* Os dois interruptores lado a lado. */
 .toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
-/* Cancelar e salvar fixos no rodapé, à direita. */
+.alert {
+  padding-inline: var(--space-5);
+}
+
+/* Enquanto a ficha vem, o giro toma o meio da gaveta. */
+.loading {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 12rem;
+}
+
+/* Cancelar e salvar fixos no rodapé, à direita. No celular o rodapé some: os dois moram na barra
+   flutuante do menu. */
 .foot {
   display: flex;
   flex-shrink: 0;
   gap: var(--space-2);
   justify-content: flex-end;
   padding: var(--space-3) var(--space-5);
-  border-block-start: var(--dialog-line) solid var(--color-border);
+  border-block-start: var(--panel-line) solid var(--color-border);
 }
 
 @media (max-width: 47.9375rem) {
   .foot {
-    padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
-  }
-
-  .foot > * {
-    flex: 1;
+    display: none;
   }
 }

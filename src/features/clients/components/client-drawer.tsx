@@ -26,6 +26,8 @@ export type ClientDrawerProps = {
   /** O cliente aberto; nulo mantém a gaveta montada e fechada, para a saída animar. */
   client: ClientListItem | null;
   onClose: () => void;
+  /** Abre a edição do cliente aberto, no lugar. */
+  onEdit: () => void;
 };
 
 const longDate = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy", { locale: ptBR });
@@ -41,7 +43,7 @@ const external = { target: "_blank", rel: "noreferrer" };
 // A ficha completa é buscada ao abrir, e não mandada junto da listagem: ela tem anotações, orçamentos e
 // projetos, e vinte e quatro delas por página encheriam a carga com o que a grade nem desenha. Enquanto
 // vem, o cabeçalho já mostra o que o cartão sabia, então a gaveta nunca abre vazia.
-export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
+export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
   const [full, setFull] = useState<Client | null>(null);
   const [asked, setAsked] = useState<string | null>(null);
   const id = client?.id;
@@ -92,10 +94,10 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
               </Text>
             </div>
             <div className={styles.headActions}>
-              <IconButton label="Editar cliente" variant="ghost" size="sm" href={`/clientes/${client.id}`}>
+              <IconButton label="Editar cliente" variant="ghost" size="sm" onClick={onEdit}>
                 <PencilSimpleIcon />
               </IconButton>
-              {full && <ClientMenu client={full} historyCount={12} />}
+              {full && <ClientMenu client={full} historyCount={12} onEdit={onEdit} />}
               <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
                 <XIcon />
               </IconButton>

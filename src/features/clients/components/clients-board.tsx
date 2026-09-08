@@ -97,6 +97,13 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
 
   const editorPath = (next: ClientEditor) => (next === null ? "/clientes" : next === "new" ? "/clientes/novo" : `/clientes/${next.id}`);
 
+  // Editar quem já está na tela abre no lugar, com a ficha completa chegando dentro da gaveta: sem ida
+  // ao servidor pela página, o que era o que deixava o clique sem resposta.
+  const editClient = (item: ClientListItem) => {
+    setOpen(null);
+    openEditor(item);
+  };
+
   const openEditor = (next: ClientEditor) => {
     setEditor(next);
     window.history.pushState(null, "", `${editorPath(next)}${window.location.search}`);
@@ -320,6 +327,7 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
               selected={selected.includes(client.id)}
               onSelectedChange={(on) => toggle(client.id, on)}
               onOpen={() => setOpen(client)}
+              onEdit={() => editClient(client)}
             />
           ))}
         </ul>
@@ -338,7 +346,7 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
         </div>
       )}
 
-      <ClientDrawer client={open} onClose={() => setOpen(null)} />
+      <ClientDrawer client={open} onClose={() => setOpen(null)} onEdit={() => open && editClient(open)} />
       <DeleteClientsDialog clients={selectedClients} open={confirming} pending={deleting} onClose={() => setConfirming(false)} onConfirm={removeSelected} />
       <ClientFormDialog
         editor={editor}
