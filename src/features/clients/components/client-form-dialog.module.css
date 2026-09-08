@@ -1,0 +1,179 @@
+/* Cabeçalho e rodapé fixos, o meio rola: a janela tem teto de altura e a ficha é longa. Os fios seguem o
+   menu, 0,6px em `--color-border`. */
+.dialog {
+  --dialog-line: 0.0375rem;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--dialog-line) solid var(--color-border);
+}
+
+.body {
+  display: grid;
+  gap: var(--space-5);
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+/* Um bloco: a faixa do título e os campos soltos embaixo. */
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* A faixa do título no preenchimento da casa, canto `md`: é o que separa um bloco do outro na rolagem,
+   sem fechar os campos numa caixa. */
+.heading {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.heading > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+.headingCopy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+  padding-inline: var(--space-1);
+}
+
+/* Dois campos lado a lado, quebrando para um por linha quando não cabem. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+}
+
+/* A foto e a logo, lado a lado quando cabem. */
+.images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.image {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A moldura da imagem: 3,5rem, canto `lg` e o preenchimento leve por trás do que não tem imagem. */
+.imageFrame {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  overflow: hidden;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+.imagePreview {
+  object-fit: cover;
+}
+
+/* O rosto gerado toma a moldura inteira. Três classes para vencer o tamanho do `Avatar`. */
+.imageFrame .avatar.avatar {
+  --avatar-size: 3.5rem;
+}
+
+/* A inicial da empresa em título, ou o prédio quando ainda não há nome. */
+.initial {
+  display: grid;
+  place-items: center;
+  font-size: var(--text-headline);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.initial svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.imageCopy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.imageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O campo de arquivo fica fora da vista, mas não fora da árvore: o botão ao lado é quem o abre. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Os dois interruptores lado a lado, quebrando quando não cabem. */
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+/* Cancelar e salvar fixos no rodapé, à direita. */
+.foot {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: var(--dialog-line) solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
+  }
+
+  .foot > * {
+    flex: 1;
+  }
+}

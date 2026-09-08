@@ -10,6 +10,7 @@ import {
   StarIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
@@ -40,12 +41,14 @@ import {
   type ClientsListPage,
   type ClientsQuery,
 } from "../list-options";
+import type { Client } from "../summary";
 import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
+import { ClientFormDialog, type ClientEditor } from "./client-form-dialog";
 import { DeleteClientsDialog } from "./delete-clients-dialog";
 import styles from "./clients-board.module.css";
 
-export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery };
+export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery; editing?: Client | "new" };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
@@ -55,7 +58,7 @@ const TYPING_PAUSE = 320;
 // volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, a
 // espera do campo de busca e o filtro adiantado. Trocar qualquer filtro leva de volta para a primeira
 // página, senão a pessoa cairia numa página que o novo filtro nem tem.
-export function ClientsBoard({ page, query }: ClientsBoardProps) {
+export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState(query.search);
@@ -76,7 +79,28 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
   // Uma gaveta só para a tela inteira, guardando quem está aberto: assim vinte e quatro cartões não
   // montam vinte e quatro janelas. Fica montada e vazia depois de fechar, para a saída animar.
   const [open, setOpen] = useState<ClientListItem | null>(null);
+  // A ficha em edição na janela. Nasce do que a URL pediu (`/clientes/novo` ou `/clientes/<id>`), e daí em
+  // diante troca só a URL, sem sair da tela: `pushState` conversa com o roteador sem refazer nada no
+  // servidor, e o botão de voltar do navegador fecha a janela pelo `popstate`.
+  const [editor, setEditor] = useState<ClientEditor>(editing ?? null);
   const typing = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const [, , segment] = window.location.pathname.split("/");
+      if (!segment) setEditor(null);
+      else if (segment === "novo") setEditor("new");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const editorPath = (next: ClientEditor) => (next === null ? "/clientes" : next === "new" ? "/clientes/novo" : `/clientes/${next.id}`);
+
+  const openEditor = (next: ClientEditor) => {
+    setEditor(next);
+    window.history.pushState(null, "", `${editorPath(next)}${window.location.search}`);
+  };
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
@@ -95,7 +119,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
 
     const search = params.toString();
-    startTransition(() => router.replace(search ? `/clientes?${search}` : "/clientes", { scroll: false }));
+    const base = editorPath(editor);
+    startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
   };
 
   // Cada tecla refaz a página no servidor, então o campo espera a pessoa parar de digitar: sem isso
@@ -262,12 +287,12 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         action={
           <>
             <span className={styles.wide}>
-              <Button href="/clientes/novo" size="sm" radius="md" iconStart={<PlusIcon />}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
                 Novo cliente
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Novo cliente" href="/clientes/novo" size="sm" radius="md">
+              <IconButton label="Novo cliente" size="sm" radius="md" onClick={() => openEditor("new")}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -315,6 +340,14 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
 
       <ClientDrawer client={open} onClose={() => setOpen(null)} />
       <DeleteClientsDialog clients={selectedClients} open={confirming} pending={deleting} onClose={() => setConfirming(false)} onConfirm={removeSelected} />
+      <ClientFormDialog
+        editor={editor}
+        onClose={() => openEditor(null)}
+        onSaved={() => {
+          openEditor(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

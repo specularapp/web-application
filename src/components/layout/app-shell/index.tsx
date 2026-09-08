@@ -4,7 +4,6 @@ import { getOnboardingBilling } from "@/features/billing/queries";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
-import { FloatingActionsProvider } from "../floating-actions";
 import { previewNotifications } from "../notifications/preview";
 import { Sidebar } from "../sidebar";
 import { pickAlert, previewAlerts } from "../alerts";
@@ -54,15 +53,13 @@ export async function AppShell({ children }: { children: ReactNode }) {
  *  a prévia do painel, com dados de exemplo. */
 export function AppFrame({ sidebar, children }: { sidebar: ReactNode; children: ReactNode }) {
   return (
-    <FloatingActionsProvider>
-      <div className={styles.shell}>
-        {sidebar}
-        {/* Quem rola na aplicação é esta coluna, e não o documento: a concha tem a altura do visor. O
-            atributo é o que as camadas procuram para travar a rolagem certa ao abrir. */}
-        <main className={styles.content} {...{ [SCROLL_CONTAINER]: "" }}>
-          {children}
-        </main>
-      </div>
-    </FloatingActionsProvider>
+    <div className={styles.shell}>
+      {sidebar}
+      {/* Quem rola na aplicação é esta coluna, e não o documento: a concha tem a altura do visor. O
+          atributo é o que as camadas procuram para travar a rolagem certa ao abrir. */}
+      <main className={styles.content} {...{ [SCROLL_CONTAINER]: "" }}>
+        {children}
+      </main>
+    </div>
   );
 }

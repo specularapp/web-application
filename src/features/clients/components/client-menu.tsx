@@ -41,7 +41,7 @@ export function ClientMenu({ client, historyCount = 0 }: ClientMenuProps) {
       id: "actions",
       items: [
         { id: "view", label: "Visualizar", icon: EyeIcon, href: "/clientes" },
-        { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}/editar` as Route },
+        { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}` as Route },
         {
           id: "quote",
           label: "Gerar orçamento",

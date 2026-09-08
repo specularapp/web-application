@@ -92,7 +92,7 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
               </Text>
             </div>
             <div className={styles.headActions}>
-              <IconButton label="Editar cliente" variant="ghost" size="sm" href={`/clientes/${client.id}/editar`}>
+              <IconButton label="Editar cliente" variant="ghost" size="sm" href={`/clientes/${client.id}`}>
                 <PencilSimpleIcon />
               </IconButton>
               {full && <ClientMenu client={full} historyCount={12} />}
