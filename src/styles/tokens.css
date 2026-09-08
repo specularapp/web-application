@@ -144,6 +144,9 @@
   --shadow-md: 0 4px 16px light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.6));
   --shadow-lg: 0 12px 40px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.7));
 
+  /* A barra flutuante do celular: acima da tela cheia do menu (50) e abaixo de tudo o mais. Com ela em
+     modo de ações, as janelas descem para logo abaixo dela, em vez de a barra subir. */
+  --z-floating-bar: 60;
   --z-dropdown: 100;
   --z-sticky: 200;
   --z-overlay: 300;

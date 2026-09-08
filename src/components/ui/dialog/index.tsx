@@ -6,7 +6,6 @@ import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
@@ -27,7 +26,8 @@ export type DialogProps = {
   placement?: DialogPlacement;
   /** `glass` troca a superfície opaca pelo vidro: quase transparente, com o borrão desenhando a caixa. */
   surface?: DialogSurface;
-  /** Sem o fundo que escurece a janela deixa de bloquear o resto e passa a fechar ao tocar fora. */
+  /** Sem o fundo que escurece a página atrás continua à vista, mas segue bloqueada: toda janela é modal, e
+   *  tocar fora dela só fecha. */
   scrim?: boolean;
   /** Desligado, o foco para na própria janela: no celular, focar um campo abre o teclado sozinho. */
   focusOnOpen?: boolean;
@@ -77,6 +77,12 @@ const Backdrop = styled.div`
   background-color: var(--color-scrim);
   animation: ${fadeIn} var(--duration-base) var(--ease-standard) both;
 
+  /* Com a barra flutuante do celular em modo de ações, a janela desce para logo abaixo dela: a barra fica
+     no lugar de sempre e é quem salva e sai, e a página atrás continua bloqueada por este fundo. */
+  html[data-floating-actions] & {
+    z-index: calc(var(--z-floating-bar) - 1);
+  }
+
   /* Véu leve: a bandeja do celular sempre separa a janela da página, mesmo quando a janela dispensa o
      escurecimento cheio. Sem nada atrás dela, ela lia como parte do conteúdo. */
   &[data-soft] {
@@ -105,6 +111,10 @@ const Frame = styled.div`
   place-items: center;
   padding: var(--space-4);
   pointer-events: none;
+
+  html[data-floating-actions] & {
+    z-index: calc(var(--z-floating-bar) - 1);
+  }
 
   &[data-placement="end"] {
     align-items: stretch;
@@ -290,11 +300,9 @@ export function Dialog({
   const dragRef = useRef<{ pointer: number; startY: number; y: number; frame: number } | null>(null);
   const layer = useLayer(open);
   // Trava a coluna que rola de verdade, e não o documento: na concha da aplicação o documento nunca
-  // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular. Só trava
-  // quando a janela bloqueia o resto (com escurecimento) ou é a bandeja do celular: uma gaveta avulsa
-  // no desktop deixa a página viva atrás dela, senão a tela inteira parecia travada (relato de
-  // 2026-09-08 ao abrir a ficha do cliente).
-  useScrollLock(open && (scrim || sheet));
+  // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular. Toda janela
+  // trava, porque toda janela bloqueia a página atrás (decisão de 2026-09-08).
+  useScrollLock(open);
   // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
   // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
   // menu nasce enquanto quem manda é o menu, então o clique que vem depois não fecha o perfil junto.
@@ -303,16 +311,6 @@ export function Dialog({
   useEffect(() => {
     closeRef.current = onClose;
   });
-
-  // Sem o fundo que escurece não há onde clicar para fechar, então quem fecha é o toque fora da caixa,
-  // que engole o clique para o que estava embaixo não disparar junto. Só quando esta janela é a camada de
-  // cima: com um menu aberto por dentro dela, o toque fora do menu é do menu, e a janela fica de pé.
-  useOutsideDismiss(
-    open && !scrim,
-    [panelRef],
-    () => closeRef.current(),
-    () => isTopLayer(layer),
-  );
 
   // Arrasto da alça da bandeja (pedido de 2026-09-08): segurar na barrinha e puxar para baixo fecha a
   // janela, o gesto que o iOS dá em toda bandeja.
@@ -448,24 +446,26 @@ export function Dialog({
   if (!present) return null;
 
   const mode = sheet ? "sheet" : "window";
-  // A bandeja do celular sempre põe alguma coisa atrás de si: cheio quando a janela bloqueia o resto,
-  // leve quando ela é avulsa. No desktop, dispensar o escurecimento continua deixando a tela limpa.
-  const veil = scrim || sheet;
+  // O fundo existe sempre, porque toda janela bloqueia a página atrás (decisão de 2026-09-08: com uma
+  // janela aberta, a tela de trás nunca responde): cheio com escurecimento, véu leve na bandeja avulsa e
+  // transparente na janela avulsa do desktop, que deixa a página à vista sem deixar tocar. É o fundo que
+  // fecha ao toque fora, e só quando esta janela era a camada de cima no começo do toque.
+  const veilDark = scrim || sheet;
   // Janela de vidro carrega a própria escuridão na sombra; o fundo fica transparente e só pega o clique.
   // O vidro só nas janelas leves (a pedido, 2026-09-08): gaveta lateral e janela grande borram uma área
   // enorme da tela a cada quadro, e no celular e em máquina fraca isso pesava a página inteira. Quem
   // pede vidro numa dessas recebe o sólido, sem precisar saber.
   const heavy = placement === "end" || size === "lg";
   const glass = surface === "glass" && !heavy;
-  const veilKind = veil && glass ? (scrim ? "full" : "soft") : undefined;
+  const veilKind = veilDark && glass ? (scrim ? "full" : "soft") : undefined;
 
   return createPortal(
     <>
-      {veil && (
+      {(
         <Backdrop
           data-state={state}
-          data-soft={scrim ? undefined : ""}
-          data-clear={glass ? "" : undefined}
+          data-soft={!scrim && sheet ? "" : undefined}
+          data-clear={glass || !veilDark ? "" : undefined}
           onClick={() => {
             if (!armed.current) return;
             onClose();
@@ -477,7 +477,7 @@ export function Dialog({
           ref={panelRef}
           role="dialog"
           tabIndex={-1}
-          aria-modal={scrim || undefined}
+          aria-modal
           aria-label={label}
           data-mode={mode}
           data-placement={placement}

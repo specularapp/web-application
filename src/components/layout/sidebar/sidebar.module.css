@@ -391,7 +391,7 @@
   left: 50%;
   /* Acima da tela do menu (50): o menu aberto reserva o rodapé para a barra, e é nela que mora o X
      que fecha. Abaixo dela, o menu abria e ninguém fechava. */
-  z-index: 60;
+  z-index: var(--z-floating-bar);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -481,48 +481,47 @@
   display: contents;
 }
 
-/* Com uma janela de formulário aberta, a barra sobe para cima dela: é ali que moram salvar e sair no
-   celular, e a bandeja da janela cobriria a barra no lugar de sempre. */
-.bar[data-actions] {
-  z-index: calc(var(--z-modal) + 1);
-}
-
-/* O botão principal da janela na barra: o nome cede e encurta por reticências antes de a barra passar da
-   largura da tela. */
+/* O botão principal da janela na barra toma o que sobra do modo, e o nome cede por reticências antes de a
+   barra passar da largura da tela. */
 .barPrimary {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-/* Cada modo da barra (busca e sino, ou salvar e sair) entra desbotando e subindo um fio, com a curva que
-   assenta: a troca é remontar o conteúdo, e sem isso ele piscava de um para o outro. Só `opacity` e
-   `transform`, que o compositor resolve sozinho. */
+/* Os dois modos da barra (busca e sino, ou salvar e sair) ficam montados na mesma cela da grade, um sobre
+   o outro, e a troca é um fundido de verdade: o que sai desbota e encolhe um fio enquanto o que entra
+   aparece, com a curva que assenta. A cela tem a largura do maior, então a caixa da barra não muda de
+   tamanho na troca, que é a regra de fluidez dela; cada modo estica o próprio conteúdo para preencher. O
+   modo apagado não pega toque nem foco (`inert`). */
+.barGroupInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .barMode {
   display: flex;
+  grid-area: 1 / 1;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
-  animation: barModeIn var(--duration-base) var(--ease-settle) both;
+  transition:
+    opacity var(--duration-base) var(--ease-settle),
+    transform var(--duration-base) var(--ease-settle);
 }
 
-@keyframes barModeIn {
-  from {
-    opacity: 0;
-    transform: translateY(0.25rem) scale(0.96);
-  }
+.barMode:not([data-active]) {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(0.25rem) scale(0.96);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .barMode {
-    animation: none;
+    transition: none;
   }
-}
-
-.barGroupInner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  overflow: hidden;
 }
 
 /* O glifo do botão gira ao entrar: X e três linhas não se transformam um no outro, então a troca é
@@ -551,6 +550,7 @@
    e o texto cortar por reticências, em vez de espremer o ícone junto. */
 .search {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
