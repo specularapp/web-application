@@ -4,8 +4,8 @@ import { FunnelSimpleIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
+import { squircle } from "@/lib/corners";
 import styles from "./page-toolbar.module.css";
 
 export type PageToolbarSearch = {
@@ -18,16 +18,12 @@ export type PageToolbarSearch = {
 
 export type PageToolbarProps = {
   search: PageToolbarSearch;
-  /** Filtros que ficam à vista na barra, como período e ordem: os que a pessoa troca toda hora. */
+  /** Menus que ficam à vista ao lado da busca, como ordem e período: `DropdownMenu` só com o ícone. */
   quickFilters?: ReactNode;
-  /** As seções do menu de filtros, que abre no botão do funil; sem elas o botão não aparece. */
+  /** As seções do menu de filtros, que abre no funil; sem elas o funil não aparece. */
   filters?: DropdownSection[];
-  /** Quantos filtros do menu saíram do padrão, para a etiqueta na quina do botão. */
+  /** Quantos filtros do menu saíram do padrão, para a etiqueta na quina do funil. */
   activeFilters?: number;
-  /** O que age sobre a seleção, como excluir e exportar. */
-  selection?: ReactNode;
-  /** Sem nada marcado, o grupo de seleção sai da barra no celular. */
-  selectedCount?: number;
   /** A ação principal da página, como "Novo cliente". */
   action?: ReactNode;
 };
@@ -41,21 +37,12 @@ function isTyping(target: EventTarget | null) {
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
-// A barra logo abaixo do topo em toda página da aplicação, sobre uma referência do usuário: a busca
-// tomando toda a largura que sobra, com a tecla de atalho na ponta; os filtros rápidos à vista; o botão
-// de filtros, que abre o menu de vidro da casa com os demais e leva a contagem dos que estão em vigor; o
-// que age sobre a seleção; e a ação principal da página na outra ponta. No celular a barra vira duas
-// linhas: busca e ação em cima, filtros embaixo, porque numa linha só a busca ficava do tamanho de um
-// botão. O menu de filtros já vira bandeja sozinho, então a barra não precisa de janela própria.
-export function PageToolbar({
-  search,
-  quickFilters,
-  filters,
-  activeFilters = 0,
-  selection,
-  selectedCount = 0,
-  action,
-}: PageToolbarProps) {
+// A barra logo abaixo do topo em toda página da aplicação: a busca tomando toda a largura que sobra, no
+// mesmo desenho do campo de busca do menu lateral (fio fino, raio `md`, lupa e a tecla de atalho na
+// ponta), e colados a ela, a 4px, os menus rápidos e o funil de filtros, todos no botão fantasma que o
+// chevron duplo das listas usa, abrindo o mesmo menu de vidro. A ação principal da página fecha a linha.
+// Uma linha só em qualquer largura: cada peça tem a altura do controle pequeno, e a tecla some no celular.
+export function PageToolbar({ search, quickFilters, filters, activeFilters = 0, action }: PageToolbarProps) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,48 +58,40 @@ export function PageToolbar({
 
   return (
     <div className={styles.toolbar}>
-      <div className={styles.search}>
-        <Input
+      {/* O `label` é a caixa inteira, então clicar em qualquer ponto dela foca o campo, e o nome fica
+          no `aria-label` porque o texto visível é só o placeholder. */}
+      <label className={styles.find} {...squircle("md")}>
+        <MagnifyingGlassIcon aria-hidden="true" />
+        <input
           ref={input}
           type="search"
-          size="sm"
+          className={styles.input}
           value={search.value}
           onChange={(event) => search.onChange(event.target.value)}
           placeholder={search.placeholder}
           aria-label={search.label}
           aria-keyshortcuts={SEARCH_KEY}
-          iconStart={<MagnifyingGlassIcon />}
-          iconEnd={<Kbd aria-hidden="true">{SEARCH_KEY}</Kbd>}
         />
-      </div>
+        <Kbd aria-hidden="true">{SEARCH_KEY}</Kbd>
+      </label>
 
-      <div className={styles.tools}>
-        {quickFilters}
+      {quickFilters}
 
-        {filters && (
-          <span className={styles.filterButton}>
-            <DropdownMenu
-              label="Filtros"
-              triggerLabel={activeFilters > 0 ? `Filtros, ${activeFilters} em vigor` : "Filtros"}
-              sections={filters}
-              icon={<FunnelSimpleIcon />}
-              variant="outline"
-              radius="md"
-            />
-            {activeFilters > 0 && (
-              <Badge tone="accent" size="sm" shape="pill" className={styles.filterCount} aria-hidden="true">
-                {activeFilters}
-              </Badge>
-            )}
-          </span>
-        )}
-
-        {selection && (
-          <span className={styles.selection} data-selecting={selectedCount > 0 || undefined}>
-            {selection}
-          </span>
-        )}
-      </div>
+      {filters && (
+        <span className={styles.funnel}>
+          <DropdownMenu
+            label="Filtros"
+            triggerLabel={activeFilters > 0 ? `Filtros, ${activeFilters} em vigor` : "Filtros"}
+            sections={filters}
+            icon={<FunnelSimpleIcon />}
+          />
+          {activeFilters > 0 && (
+            <Badge tone="accent" size="sm" shape="pill" className={styles.count} aria-hidden="true">
+              {activeFilters}
+            </Badge>
+          )}
+        </span>
+      )}
 
       {action && <div className={styles.action}>{action}</div>}
     </div>

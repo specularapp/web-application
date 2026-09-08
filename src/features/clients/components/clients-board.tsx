@@ -2,21 +2,20 @@
 
 import {
   ArrowCounterClockwiseIcon,
+  ArrowsDownUpIcon,
+  CalendarBlankIcon,
   CheckCircleIcon,
   EnvelopeSimpleIcon,
   PhoneIcon,
   PlusIcon,
   StarIcon,
-  TrashIcon,
-  UploadSimpleIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
-import type { DropdownSection } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { Listbox } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import {
@@ -50,12 +49,13 @@ const TYPING_PAUSE = 320;
 
 // A tela de clientes: a barra de busca e filtros em cima, a grade de cartões no meio e a paginação
 // embaixo. O filtro vive na URL e quem faz o trabalho é o servidor, então a página é compartilhável e
-// volta igual pelo histórico do navegador; aqui ficam só a seleção, que é da sessão, e a espera do
-// campo de busca. Trocar qualquer filtro leva de volta para a primeira página, senão a pessoa cairia
+// volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, e a
+// espera do campo de busca. Trocar qualquer filtro leva de volta para a primeira página, senão a pessoa cairia
 // numa página que o novo filtro nem tem.
 export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const router = useRouter();
   const [search, setSearch] = useState(query.search);
+  // Quem está marcado na grade. As ações sobre a seleção ainda não existem; a marcação fica para elas.
   const [selected, setSelected] = useState<string[]>([]);
   // Uma gaveta só para a tela inteira, guardando quem está aberto: assim vinte e quatro cartões não
   // montam vinte e quatro janelas. Fica montada e vazia depois de fechar, para a saída animar.
@@ -91,7 +91,6 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const toggle = (id: string, on: boolean) =>
     setSelected((current) => (on ? [...current, id] : current.filter((entry) => entry !== id)));
 
-  const count = selected.length;
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
   const menuFilters = countMenuFilters(query);
 
@@ -176,53 +175,52 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         search={{
           value: search,
           onChange: onSearch,
-          placeholder: "Buscar por nome, empresa, e-mail ou telefone",
+          placeholder: "Buscar clientes",
           label: "Buscar cliente",
         }}
         quickFilters={
-          /* Ordem e período ficam à vista: são os que a pessoa troca toda hora ao varrer a base. */
+          /* Ordem e período ficam à vista, só no ícone, no mesmo botão fantasma e no mesmo menu de vidro
+             do chevron duplo das listas: são os que a pessoa troca toda hora ao varrer a base. O
+             escolhido vai marcado e no nome acessível do gatilho. */
           <>
-            <Listbox
-              label="Ordenar clientes"
-              prefix="Ordem"
-              options={sortOptions}
-              value={query.sort}
-              onChange={(sort) => go({ sort, page: 1 })}
+            <DropdownMenu
+              label="Ordem dos clientes"
+              triggerLabel={`Ordem: ${sortOptions.find((option) => option.value === query.sort)?.label ?? ""}`}
+              icon={<ArrowsDownUpIcon />}
+              sections={[
+                {
+                  id: "sort",
+                  label: "Ordem",
+                  items: sortOptions.map((option) => ({
+                    id: option.value,
+                    label: option.label,
+                    selected: option.value === query.sort,
+                    onSelect: () => go({ sort: option.value, page: 1 }),
+                  })),
+                },
+              ]}
             />
-            <Listbox
+            <DropdownMenu
               label="Período de entrada"
-              prefix="Período"
-              options={periodOptions}
-              value={query.period}
-              onChange={(period) => go({ period, page: 1 })}
+              triggerLabel={`Período: ${periodOptions.find((option) => option.value === query.period)?.label ?? ""}`}
+              icon={<CalendarBlankIcon />}
+              sections={[
+                {
+                  id: "period",
+                  label: "Período",
+                  items: periodOptions.map((option) => ({
+                    id: option.value,
+                    label: option.label,
+                    selected: option.value === query.period,
+                    onSelect: () => go({ period: option.value, page: 1 }),
+                  })),
+                },
+              ]}
             />
           </>
         }
         filters={filterSections}
         activeFilters={menuFilters}
-        selectedCount={count}
-        selection={
-          /* Agem sobre o que está marcado, então ficam desligados sem seleção: botão que não faz nada
-             ao ser apertado é pior que botão desligado. A contagem vai no nome para o leitor de tela. */
-          <>
-            <IconButton
-              label={count > 0 ? `Excluir ${count} selecionados` : "Excluir selecionados"}
-              variant="ghost"
-              size="sm"
-              disabled={count === 0}
-            >
-              <TrashIcon />
-            </IconButton>
-            <IconButton
-              label={count > 0 ? `Exportar ${count} selecionados` : "Exportar selecionados"}
-              variant="ghost"
-              size="sm"
-              disabled={count === 0}
-            >
-              <UploadSimpleIcon />
-            </IconButton>
-          </>
-        }
         action={
           <>
             <span className={styles.wide}>

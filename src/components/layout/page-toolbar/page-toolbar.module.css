@@ -1,100 +1,103 @@
-/* Uma linha só no desktop: a busca toma o que sobra, e os filtros e a ação ficam do tamanho que têm. No
-   celular a mesma marcação vira duas linhas por áreas de grade, com a ação ao lado da busca e os filtros
-   embaixo, porque numa linha só a busca encolhia até o tamanho de um botão. */
+/* Uma linha só: a busca toma o que sobra e os botões ficam colados a ela no vão do menu, 4px, para a
+   fileira ler como uma peça. Toda peça tem a altura do controle pequeno. */
 .toolbar {
-  display: grid;
-  grid-template-areas:
-    "search action"
-    "tools tools";
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2) var(--space-3);
-  align-items: center;
-}
-
-@media (min-width: 48rem) {
-  .toolbar {
-    grid-template-areas: "search tools action";
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
-}
-
-.search {
   display: flex;
-  grid-area: search;
-  min-width: 0;
-}
-
-.search > * {
-  width: 100%;
-}
-
-/* Os filtros rápidos, o botão de filtros e a seleção, no vão das ações do menu: 4px. Os gatilhos dos
-   menus rápidos ganham a mesma altura, o mesmo canto e o mesmo fio do botão de filtros ao lado, então a
-   fileira lê como uma família só. */
-.tools {
-  display: flex;
-  grid-area: tools;
-  flex-wrap: wrap;
   gap: var(--space-1);
   align-items: center;
   min-width: 0;
-
-  --listbox-trigger-height: var(--control-height-sm);
-  --listbox-trigger-radius: var(--radius-md);
-  --listbox-trigger-background: transparent;
-  --listbox-trigger-border: var(--color-border);
-  --listbox-trigger-font-size: var(--text-footnote);
-  --listbox-trigger-weight: var(--weight-medium);
 }
 
-/* No celular os filtros rápidos podem passar da largura, e aí rolam na horizontal em vez de quebrar em
-   três linhas. */
-@media (max-width: 47.9375rem) {
-  .tools {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-block: var(--space-half);
-  }
+/* O campo de busca do menu lateral, na mesma receita: fio fino em `--color-border`, raio `md`, fundo
+   transparente que ganha o preenchimento da casa no hover, lupa de 1rem e a tecla de atalho na ponta. */
+.find {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  cursor: text;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
 
-  .tools::-webkit-scrollbar {
-    display: none;
+@media (hover: hover) {
+  .find:hover {
+    background-color: var(--color-fill-quaternary);
+    transition-duration: var(--duration-base);
   }
 }
 
-.filterButton {
+/* Com foco, a caixa acende como o hover e o fio sobe um tom: é o único sinal, na mesma decisão dos
+   campos da casa, que não levam anel. */
+.find:focus-within {
+  background-color: var(--color-fill-quaternary);
+  border-color: var(--color-label-tertiary);
+}
+
+/* Em ponteiro grosso os botões ao lado sobem para o alvo de toque, e o campo acompanha para a linha
+   seguir reta. */
+@media (pointer: coarse) {
+  .find {
+    height: max(var(--control-height-sm), var(--touch-target));
+  }
+}
+
+.find > svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* O campo cru, sem caixa própria: quem desenha é o invólucro. Piso de 16px na fonte, senão o iPhone dá
+   zoom ao focar. */
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-size: max(16px, var(--text-subheadline));
+  color: var(--color-label);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-label-secondary);
+}
+
+/* O X que o navegador põe no `type="search"` sai: a limpeza é apagar o texto, como em todo campo. */
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
+  appearance: none;
+}
+
+.funnel {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
 }
 
-/* A contagem de filtros em vigor fica na quina do botão, sem tomar linha. */
-.filterCount {
+/* A contagem de filtros em vigor na quina do funil, sem tomar linha. */
+.count {
   position: absolute;
   inset-block-start: calc(var(--space-1) * -1);
   inset-inline-end: calc(var(--space-1) * -1);
   pointer-events: none;
 }
 
-.selection {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-1);
-  align-items: center;
-}
-
-/* Sem nada marcado, o grupo de seleção sai da linha no celular: botão desligado ali só roubaria espaço. */
-@media (max-width: 47.9375rem) {
-  .selection:not([data-selecting]) {
-    display: none;
-  }
-}
-
+/* A ação fica um passo afastada dos botões fantasma: ela é outra coisa, e colada leria como o quarto. */
 .action {
   display: flex;
-  grid-area: action;
   flex-shrink: 0;
-  gap: var(--space-1);
   align-items: center;
-  justify-content: flex-end;
+  margin-inline-start: var(--space-1);
 }
