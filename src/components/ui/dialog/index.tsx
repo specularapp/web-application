@@ -439,7 +439,11 @@ export function Dialog({
   // leve quando ela é avulsa. No desktop, dispensar o escurecimento continua deixando a tela limpa.
   const veil = scrim || sheet;
   // Janela de vidro carrega a própria escuridão na sombra; o fundo fica transparente e só pega o clique.
-  const glass = surface === "glass";
+  // O vidro só nas janelas leves (a pedido, 2026-09-08): gaveta lateral e janela grande borram uma área
+  // enorme da tela a cada quadro, e no celular e em máquina fraca isso pesava a página inteira. Quem
+  // pede vidro numa dessas recebe o sólido, sem precisar saber.
+  const heavy = placement === "end" || size === "lg";
+  const glass = surface === "glass" && !heavy;
   const veilKind = veil && glass ? (scrim ? "full" : "soft") : undefined;
 
   return createPortal(
@@ -465,7 +469,7 @@ export function Dialog({
           data-mode={mode}
           data-placement={placement}
           data-size={size}
-          data-surface={surface}
+          data-surface={glass ? "glass" : "solid"}
           data-veil={veilKind}
           data-state={state}
           className={className}
