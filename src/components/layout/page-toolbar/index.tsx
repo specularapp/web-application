@@ -1,14 +1,12 @@
 "use client";
 
 import { MagnifyingGlassIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, type DropdownMenuProps, type DropdownSection, type DropdownTrigger } from "@/components/ui/dropdown-menu";
-import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
-import { FilterSheet } from "./filter-sheet";
 import styles from "./page-toolbar.module.css";
 
 export type PageToolbarSearch = {
@@ -40,10 +38,17 @@ export type PageToolbarProps = {
 /** A tecla que leva o foco à busca de qualquer lugar da página, como nas ferramentas de trabalho. */
 const SEARCH_KEY = "/";
 
-/* Os botões da barra vestidos como o campo ao lado, literalmente: o preenchimento e o fio do botão
-   secundário (o fio fino vem de `--button-line`, declarado na barra), o canto `md` pelo sistema de
-   cantos da casa e o glifo na mesma tinta secundária da lupa. */
-const FIELD_TRIGGER: DropdownTrigger = { variant: "secondary", radius: "md", foreground: "var(--color-label-secondary)" };
+/* Os botões da barra vestidos como o campo ao lado, literalmente: só o fio, sem preenchimento (o do botão
+   secundário durou uma rodada e saiu a pedido, porque o fio sozinho lê melhor), na espessura do fio do
+   campo por `--button-line`, declarado na barra; o canto `md` pelo sistema de cantos da casa e o glifo na
+   mesma tinta secundária da lupa. */
+const FIELD_TRIGGER: DropdownTrigger = { variant: "outline", radius: "md", foreground: "var(--color-label-secondary)" };
+
+/* Dentro da bandeja do celular, escolher ordem ou período não fecha, como os outros filtros: a pessoa
+   ajusta tudo de uma vez e sai. */
+function keepOpen(section: DropdownSection): DropdownSection {
+  return { ...section, items: section.items.map((item) => (item.kind === "toggle" ? item : { ...item, keepOpen: true })) };
+}
 
 /* Quem está digitando em outro campo não perde a barra para o atalho. */
 function isTyping(target: EventTarget | null) {
@@ -58,9 +63,9 @@ function isTyping(target: EventTarget | null) {
 // abrindo o menu de vidro do chevron duplo das listas. A ação principal da página fecha a linha.
 //
 // No celular sobram três peças: a busca, o botão de filtros e a ação. Os menus rápidos somem da linha por
-// CSS e as seções deles entram no começo da bandeja de filtros (`FilterSheet`), que arruma tudo em grupos
-// de fichas em vez da lista corrida do menu; a etiqueta do botão passa a contar tudo o que está lá
-// dentro. A tecla de atalho some junto, porque não há teclado.
+// CSS e as seções deles entram no começo do menu de filtros, que ali é a bandeja de vidro com cada seção
+// num bloco próprio; a etiqueta do botão passa a contar tudo o que está lá dentro. A tecla de atalho some
+// junto, porque não há teclado.
 export function PageToolbar({
   search,
   quickFilters,
@@ -71,7 +76,6 @@ export function PageToolbar({
 }: PageToolbarProps) {
   const input = useRef<HTMLInputElement>(null);
   const mobile = useMediaQuery(MOBILE_QUERY);
-  const [sheet, setSheet] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -84,9 +88,9 @@ export function PageToolbar({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // A bandeja só é montada quando abre, depois da hidratação, então ler a largura aqui não faz o
-  // servidor e o cliente discordarem: o botão é o mesmo nos dois.
-  const sheetSections = [...(quickFilters ?? []).flatMap((menu) => menu.sections), ...(filters ?? [])];
+  // O conteúdo do menu só é montado quando ele abre, depois da hidratação, então ler a largura aqui não
+  // faz o servidor e o cliente discordarem: o botão é o mesmo nos dois.
+  const funnelSections = mobile ? [...(quickFilters ?? []).flatMap((menu) => menu.sections.map(keepOpen)), ...(filters ?? [])] : (filters ?? []);
   const funnelCount = mobile ? activeFilters + activeQuickFilters : activeFilters;
   const showFunnel = filters || (mobile && quickFilters);
 
@@ -119,29 +123,13 @@ export function PageToolbar({
 
       {showFunnel && (
         <span className={styles.funnel}>
-          {mobile ? (
-            <>
-              <IconButton
-                label={funnelCount > 0 ? `Filtros, ${funnelCount} em vigor` : "Filtros"}
-                size="sm"
-                aria-haspopup="dialog"
-                aria-expanded={sheet}
-                onClick={() => setSheet(true)}
-                {...FIELD_TRIGGER}
-              >
-                <SlidersHorizontalIcon />
-              </IconButton>
-              <FilterSheet open={sheet} onClose={() => setSheet(false)} sections={sheetSections} />
-            </>
-          ) : (
-            <DropdownMenu
-              label="Filtros"
-              triggerLabel={funnelCount > 0 ? `Filtros, ${funnelCount} em vigor` : "Filtros"}
-              sections={filters ?? []}
-              icon={<SlidersHorizontalIcon />}
-              trigger={FIELD_TRIGGER}
-            />
-          )}
+          <DropdownMenu
+            label="Filtros"
+            triggerLabel={funnelCount > 0 ? `Filtros, ${funnelCount} em vigor` : "Filtros"}
+            sections={funnelSections}
+            icon={<SlidersHorizontalIcon />}
+            trigger={FIELD_TRIGGER}
+          />
           {funnelCount > 0 && (
             <Badge tone="accent" size="sm" shape="pill" className={styles.count} aria-hidden="true">
               {funnelCount}
