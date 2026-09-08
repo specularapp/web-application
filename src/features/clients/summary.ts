@@ -38,6 +38,8 @@ export type Client = {
   createdAt: string;
   /** Empresa ou negócio da pessoa, quando há. */
   company?: string;
+  /** Logo da empresa, que entra pequena na quina da foto da pessoa; sem ela vale a inicial do nome. */
+  companyLogoUrl?: string | null;
   /** O que ela faz, em poucas palavras: "Design de interiores". */
   role?: string;
   city?: string;

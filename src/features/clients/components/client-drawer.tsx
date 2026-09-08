@@ -1,6 +1,7 @@
 "use client";
 
 import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
+import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { compactMoney } from "@/lib/utils/format";
 import { loadClientAction } from "../actions";
@@ -103,13 +105,18 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
           <div className={styles.body}>
             {/* A identidade com os botões de contato na outra ponta, como na referência. */}
             <section className={styles.identity}>
-              <Avatar
-                name={client.name}
-                src={client.avatarUrl ?? undefined}
-                seed={client.email ?? client.name}
-                size="lg"
-                shape="squircle"
-              />
+              {/* A foto da pessoa com a marca da empresa pequena na quina de baixo, à direita: duas
+                  identidades, a pessoa em cima e a empresa como carimbo, sem disputar espaço. */}
+              <span className={styles.portrait}>
+                <Avatar
+                  name={client.name}
+                  src={client.avatarUrl ?? undefined}
+                  seed={client.email ?? client.name}
+                  size="lg"
+                  shape="squircle"
+                />
+                {full?.company && <CompanyMark name={full.company} src={full.companyLogoUrl} />}
+              </span>
               <div className={styles.who}>
                 <div className={styles.naming}>
                   <Text as="p" variant="headline" weight="semibold" truncate>
@@ -179,6 +186,21 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
         </>
       )}
     </Dialog>
+  );
+}
+
+/* A marca da empresa: a logo quando há, e a inicial do nome quando não há. É empresa, e não pessoa, então
+   a inicial vale: a regra de nunca usar iniciais é do rosto de gente. A imagem vai sem otimizador porque o
+   endereço da logo virá de fora e não há domínio para liberar. */
+function CompanyMark({ name, src }: { name: string; src?: string | null }) {
+  return (
+    <span className={styles.company} role="img" aria-label={`Empresa: ${name}`} title={name} {...squircle("sm", { clip: true })}>
+      {src ? (
+        <Image src={src} alt="" width={22} height={22} unoptimized className={styles.companyImage} />
+      ) : (
+        <span aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
+      )}
+    </span>
   );
 }
 

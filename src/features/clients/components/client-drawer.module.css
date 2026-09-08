@@ -63,6 +63,39 @@
   min-width: 0;
 }
 
+/* A foto e, presa na quina de baixo à direita, a marca da empresa. */
+.portrait {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* A marca é um carimbo pequeno, 22px sobre a foto de 52, com um anel na cor do fundo para se soltar da
+   foto e o fio da casa em volta. A inicial vai em caption 2 semibold quando não há logo. */
+.company {
+  position: absolute;
+  inset-block-end: -0.1875rem;
+  inset-inline-end: -0.1875rem;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  color: var(--color-label);
+  background-color: var(--color-bg-tertiary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 0.125rem var(--color-bg);
+}
+
+.companyImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .who {
   display: grid;
   flex: 1;
