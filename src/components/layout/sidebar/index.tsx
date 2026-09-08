@@ -27,7 +27,7 @@ import { Text } from "@/components/ui/text";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { cornerRadius, squircle, squirclePx } from "@/lib/corners";
+import { squircle } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
@@ -59,10 +59,6 @@ export type SidebarProps = {
   /** O aviso mais urgente, escolhido no servidor: reunião, entrega, cobrança ou tarefa. Sem aviso, sem cartão. */
   alert?: SidebarAlert;
 };
-
-/* Canto da barra flutuante: o raio dos botões de dentro mais o recuo que os separa da borda, que é a
-   conta concêntrica lida ao contrário, do filho para o pai. */
-const BAR_CORNER = cornerRadius.md + 4;
 
 /* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
 const ALERT_FACES = 3;
@@ -482,7 +478,7 @@ export function Sidebar(props: SidebarProps) {
       {/* Menu aberto encolhe a barra até sobrar só o X: o grupo de busca e sino recolhe pela trilha da
           grade, que anima de 1fr a 0fr, e a barra vira bolinha. A chave no botão remonta o glifo a cada
           troca, e a entrada dele gira, porque X e três linhas não se transformam um no outro. */}
-      <div className={styles.bar} data-collapsed={open || undefined} {...squirclePx(BAR_CORNER)}>
+      <div className={styles.bar} data-collapsed={open || undefined}>
         <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
             <button type="button" className={styles.search} onClick={openSearch}>

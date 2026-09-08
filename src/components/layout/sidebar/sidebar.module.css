@@ -371,8 +371,20 @@
 /* Barra flutuante do celular, no rodapé e ao centro: buscar de um lado, abrir o menu do outro. */
 /* A barra vive fora de `.panel`, então o fio precisa nascer de novo aqui: var() de variável que não
    existe apaga a declaração inteira, e a borda e o risco sumiam sem erro nenhum. */
+/* A caixa da barra nunca muda de tamanho, e é isso que deixa a troca fluida (acerto de 2026-09-08).
+   Antes ela encolhia de verdade, animando trilha de grade, vão e raio: três propriedades de layout e
+   pintura, na thread principal, embaixo de um borrão, no mesmo instante em que o React monta a tela
+   cheia do menu. Enquanto essa montagem segurava a thread, a animação perdia quadros e a barra parecia
+   travar. Agora só andam `opacity` e `translate`, que o compositor resolve sozinho: mesmo com a thread
+   principal ocupada, a troca sai lisa.
+
+   Quem desenha a barra são duas camadas irmãs que se cruzam: a pílula em `::before` e a bolinha em
+   `::after`. A caixa segue larga quando recolhida, invisível, e por isso não pega toque; quem pega são
+   os filhos. */
 .bar {
   --menu-line: 0.0375rem;
+  /* O lado da bolinha: o botão do tamanho médio mais o recuo dos dois lados. */
+  --bar-bubble: calc(var(--control-height-md) + var(--space-1) * 2);
 
   position: fixed;
   bottom: max(var(--space-4), env(safe-area-inset-bottom));
@@ -386,40 +398,75 @@
   width: max-content;
   max-width: calc(100vw - var(--space-8));
   padding: var(--space-1);
-  /* Vidro da casa, o mesmo do painel do login: o fundo some e quem desenha a barra é o blur. */
+  pointer-events: none;
+  translate: -50% 0;
+  transition: translate var(--duration-base) var(--ease-standard);
+}
+
+.bar > * {
+  pointer-events: auto;
+}
+
+/* A pílula: vidro da casa, o mesmo do painel do login, com o fundo em 0% e o blur desenhando a barra.
+   O canto é concêntrico com os botões de dentro, o raio deles mais o recuo que os separa da borda; com
+   32 a curva passava da metade da altura e a barra fechava em pílula. `corner-shape` declarado direto,
+   porque pseudo-elemento não recebe atributo. */
+.bar::before,
+.bar::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
   background-color: var(--glass-bg);
   border: var(--menu-line) solid var(--color-border);
-  /* Concêntrico com os botões de dentro: o raio deles mais o recuo que os separa da borda. Com 32 a
-     curva passava da metade da altura e a barra fechava em pílula. */
-  border-radius: calc(var(--radius-md) + var(--space-1));
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  translate: -50% 0;
-  transition:
-    gap var(--duration-slow) var(--ease-standard),
-    border-radius var(--duration-slow) var(--ease-standard);
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
-/* Menu aberto: a barra encolhe até sobrar só o botão e vira bolinha. O vão fecha junto, senão ficava
-   um vazio entre o grupo recolhido e o X. */
-.bar[data-collapsed] {
-  gap: 0;
+.bar::before {
+  inset: 0;
+  border-radius: calc(var(--radius-md) + var(--space-1));
+  corner-shape: squircle;
+}
+
+/* A bolinha mora na ponta da barra, do tamanho do botão mais o recuo, e nasce apagada. */
+.bar::after {
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--bar-bubble);
   border-radius: var(--radius-full);
+  opacity: 0;
 }
 
-/* O grupo recolhe pela trilha da grade, de 1fr a 0fr, que o navegador anima como número: largura
-   "auto" não anima, trilha anima. O filho tem largura mínima zero e recorta, então some sem quebrar. */
+/* Menu aberto: a pílula apaga, a bolinha acende e a barra desliza para a bolinha ficar no centro da
+   tela. O deslocamento sai da própria largura da caixa: metade dela menos metade da bolinha, que em
+   porcentagem de si mesma é `-100%` mais meia bolinha. Sem medir nada em JavaScript. */
+.bar[data-collapsed] {
+  translate: calc(-100% + var(--bar-bubble) / 2) 0;
+}
+
+.bar[data-collapsed]::before {
+  opacity: 0;
+}
+
+.bar[data-collapsed]::after {
+  opacity: 1;
+}
+
+/* O grupo apaga encolhendo na direção do botão, em vez de fechar a trilha da grade: `opacity` e
+   `transform` não pedem layout nenhum. Ele continua ocupando o lugar, mas invisível e sem toque. */
 .barGroup {
   display: grid;
   grid-template-columns: 1fr;
+  transform-origin: right center;
   transition:
-    grid-template-columns var(--duration-slow) var(--ease-standard),
-    opacity var(--duration-base) var(--ease-standard);
+    opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
 }
 
 .bar[data-collapsed] .barGroup {
-  grid-template-columns: 0fr;
   opacity: 0;
+  transform: scale(0.92);
   pointer-events: none;
 }
 
@@ -580,12 +627,17 @@
 
 /* A tela cheia entra subindo um degrau e sai pelo mesmo caminho, mais rápido. Com movimento reduzido
    sobra o fade, que não desloca nada. */
+/* Camada própria enquanto a tela existe: ela é do tamanho do visor e leva o menu inteiro dentro, então
+   sem a promoção o navegador repintaria tudo a cada quadro do fade. Com ela, a entrada e a saída viram
+   trabalho de compositor, e a rolagem de dentro melhora junto. */
 .screen[data-state="open"] {
+  will-change: opacity, transform;
   animation: screenIn var(--duration-base) var(--ease-standard) both;
 }
 
 .screen[data-state="closed"] {
   pointer-events: none;
+  will-change: opacity, transform;
   animation: screenOut var(--duration-fast) var(--ease-standard) both;
 }
 
