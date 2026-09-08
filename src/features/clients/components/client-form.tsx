@@ -1,6 +1,20 @@
 "use client";
 
-import { BuildingsIcon, CheckIcon, IdentificationCardIcon, NotePencilIcon, PhoneIcon, TagIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import {
+  BriefcaseIcon,
+  BuildingsIcon,
+  CheckIcon,
+  EnvelopeSimpleIcon,
+  GlobeIcon,
+  IdentificationCardIcon,
+  MapPinIcon,
+  NotePencilIcon,
+  PhoneIcon,
+  TagIcon,
+  UploadSimpleIcon,
+  UserIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -52,12 +66,13 @@ function revokeLocal(url: string | null) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
 }
 
-/* Um bloco do formulário, na moldura da referência: à esquerda o que a seção é e para que serve, à
-   direita o painel com os campos. No celular os dois empilham. */
-function Section({ icon: Glyph, title, description, children }: { icon: typeof BuildingsIcon; title: string; description: string; children: ReactNode }) {
+/* Um bloco do formulário, na moldura da referência: uma faixa no fundo secundário com a explicação à
+   esquerda (glifo, título e uma linha) e, à direita, o cartão claro com os campos. No celular e no tablet
+   os dois empilham, a explicação em cima. */
+function Section({ icon: Glyph, title, description, children }: { icon: Icon; title: string; description: string; children: ReactNode }) {
   const id = useId();
   return (
-    <section className={styles.section} aria-labelledby={id}>
+    <section className={styles.section} aria-labelledby={id} {...squircle("xl")}>
       <div className={styles.intro}>
         <div className={styles.introTitle}>
           <Glyph aria-hidden="true" />
@@ -69,25 +84,22 @@ function Section({ icon: Glyph, title, description, children }: { icon: typeof B
           {description}
         </Text>
       </div>
-      <div className={styles.panel} {...squircle("xl")}>
+      <div className={styles.panel} {...squircle("md")}>
         {children}
       </div>
     </section>
   );
 }
 
-/* A foto ou a logo com o botão de trocar ao lado, como na referência: a imagem escolhida entra na hora,
-   por endereço local, e sobe junto com a ficha ao salvar. Sem imagem, a foto mostra o rosto gerado e a
-   logo mostra a inicial da empresa. */
+/* A foto ou a logo com os botões embaixo: a imagem escolhida entra na hora, por endereço local. Sem
+   imagem, a foto mostra o rosto gerado e a logo mostra a inicial da empresa. */
 function ImageField({
   label,
-  hint,
   preview,
   fallback,
   onSelect,
 }: {
   label: string;
-  hint: string;
   preview: string | null;
   fallback: ReactNode;
   onSelect: (file: File | null, message?: string) => void;
@@ -96,16 +108,13 @@ function ImageField({
 
   return (
     <div className={styles.image}>
-      <span className={styles.imageFrame} {...squircle("lg", { clip: true })}>
-        {preview ? <Image src={preview} alt="" fill sizes="5rem" unoptimized className={styles.imagePreview} /> : fallback}
-      </span>
-      <div className={styles.imageCopy}>
-        <Text variant="subheadline" weight="medium">
-          {label}
-        </Text>
-        <Text variant="caption1" tone="secondary">
-          {hint}
-        </Text>
+      <Text as="span" variant="footnote" weight="medium" tone="secondary">
+        {label}
+      </Text>
+      <div className={styles.imageRow}>
+        <span className={styles.imageFrame} {...squircle("lg", { clip: true })}>
+          {preview ? <Image src={preview} alt="" fill sizes="4rem" unoptimized className={styles.imagePreview} /> : fallback}
+        </span>
         <div className={styles.imageActions}>
           <Button variant="outline" size="sm" radius="md" iconStart={<UploadSimpleIcon />} onClick={() => input.current?.click()}>
             {preview ? "Trocar" : "Enviar"}
@@ -137,11 +146,11 @@ function ImageField({
   );
 }
 
-// A ficha do cliente para criar e para editar, no mesmo formulário: identidade, contato, anotações,
-// etiquetas e situação, cada um num bloco com a explicação à esquerda e os campos à direita. O estado é
-// local e o envio é a action, que valida com zod de novo no servidor; erro de campo volta para o campo, e
-// sucesso leva de volta à base com um aviso. A foto e a logo entram na prévia na hora; o envio do arquivo
-// chega com o storage.
+// A ficha do cliente para criar e para editar, no mesmo formulário: três blocos, identidade, contato e
+// detalhes, cada um com a explicação à esquerda e os campos à direita, um por linha e com o glifo na
+// frente, como na referência. O estado é local e o envio é a action, que valida com zod de novo no
+// servidor; erro de campo volta para o campo, e sucesso leva de volta à base com um aviso. A foto e a logo
+// entram na prévia na hora; o envio do arquivo chega com o storage.
 export function ClientForm({ client }: ClientFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -150,8 +159,8 @@ export function ClientForm({ client }: ClientFormProps) {
   const [saving, setSaving] = useState(false);
   const editing = Boolean(client);
 
-  // O endereço local da imagem escolhida entra na hora, e é desfeito quando outro o substitui ou o
-  // formulário sai: o efeito só limpa, sem escrever estado. O envio do arquivo em si entra com o storage.
+  // O endereço local da imagem escolhida é desfeito quando outro o substitui ou o formulário sai: o efeito
+  // só limpa, sem escrever estado.
   const [photoUrl, setPhotoUrl] = useState<string | null>(client?.avatarUrl ?? null);
   const [logoUrl, setLogoUrl] = useState<string | null>(client?.companyLogoUrl ?? null);
   useEffect(() => () => revokeLocal(photoUrl), [photoUrl]);
@@ -215,18 +224,16 @@ export function ClientForm({ client }: ClientFormProps) {
 
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
-      <Section icon={IdentificationCardIcon} title="Identidade" description="Quem é a pessoa, onde trabalha e as imagens que aparecem na ficha e na listagem.">
+      <Section icon={IdentificationCardIcon} title="Identidade" description="Quem é a pessoa e onde trabalha.">
         <div className={styles.images}>
           <ImageField
             label="Foto"
-            hint="PNG, JPG ou WebP até 2 MB. Sem foto, entra o rosto gerado."
             preview={photoUrl}
             fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" shape="squircle" className={styles.avatar} />}
             onSelect={pickImage(setPhotoUrl)}
           />
           <ImageField
             label="Logo da empresa"
-            hint="Entra pequena na quina da foto. Sem logo, vale a inicial."
             preview={logoUrl}
             fallback={
               <span className={styles.initial} aria-hidden="true">
@@ -238,82 +245,60 @@ export function ClientForm({ client }: ClientFormProps) {
         </div>
 
         <Field label="Nome" required error={errorOf("name")}>
-          <Input type="text" name="name" value={values.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
+          <Input type="text" name="name" value={values.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} iconStart={<UserIcon />} onChange={(event) => set("name", event.target.value)} />
         </Field>
-
-        <div className={styles.pair}>
-          <Field label="Empresa" error={errorOf("company")}>
-            <Input type="text" name="company" value={values.company} placeholder="Onde a pessoa trabalha" autoComplete="organization" disabled={saving} onChange={(event) => set("company", event.target.value)} />
-          </Field>
-          <Field label="Área" hint="O que a empresa faz, em poucas palavras" error={errorOf("role")}>
-            <Input type="text" name="role" value={values.role} placeholder="Design de interiores" disabled={saving} onChange={(event) => set("role", event.target.value)} />
-          </Field>
-        </div>
+        <Field label="Empresa" error={errorOf("company")}>
+          <Input type="text" name="company" value={values.company} placeholder="Onde a pessoa trabalha" autoComplete="organization" disabled={saving} iconStart={<BuildingsIcon />} onChange={(event) => set("company", event.target.value)} />
+        </Field>
+        <Field label="Área" error={errorOf("role")}>
+          <Input type="text" name="role" value={values.role} placeholder="O que a empresa faz" disabled={saving} iconStart={<BriefcaseIcon />} onChange={(event) => set("role", event.target.value)} />
+        </Field>
       </Section>
 
-      <Section icon={PhoneIcon} title="Contato" description="Por onde falar com a pessoa. É o que os botões de WhatsApp, e-mail e ligar usam.">
-        <div className={styles.pair}>
-          <Field label="E-mail" error={errorOf("email")}>
-            <Input type="email" name="email" value={values.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} onChange={(event) => set("email", event.target.value)} />
-          </Field>
-          <Field label="Telefone" hint="Com DDD" error={errorOf("phone")}>
-            <Input type="tel" name="phone" mask="phone" value={values.phone} placeholder="(11) 99999-9999" autoComplete="tel-national" disabled={saving} onChange={(event) => set("phone", onlyDigits(event.target.value))} />
-          </Field>
-        </div>
-        <div className={styles.pair}>
-          <Field label="Site" error={errorOf("website")}>
-            <Input
-              type="text"
-              name="website"
-              value={values.website}
-              placeholder="empresa.com.br"
-              autoComplete="url"
-              inputMode="url"
-              spellCheck={false}
-              disabled={saving}
-              iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
-              onChange={(event) => set("website", event.target.value.replace(/^https?:\/\//i, ""))}
-            />
-          </Field>
-          <Field label="Cidade" error={errorOf("city")}>
-            <Input type="text" name="city" value={values.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} onChange={(event) => set("city", event.target.value)} />
-          </Field>
-        </div>
+      <Section icon={PhoneIcon} title="Contato" description="Por onde falar com o cliente.">
+        <Field label="E-mail" error={errorOf("email")}>
+          <Input type="email" name="email" value={values.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} iconStart={<EnvelopeSimpleIcon />} onChange={(event) => set("email", event.target.value)} />
+        </Field>
+        <Field label="Telefone" error={errorOf("phone")}>
+          <Input type="tel" name="phone" mask="phone" value={values.phone} placeholder="(11) 99999-9999" autoComplete="tel-national" disabled={saving} iconStart={<PhoneIcon />} onChange={(event) => set("phone", onlyDigits(event.target.value))} />
+        </Field>
+        <Field label="Site" error={errorOf("website")}>
+          <Input
+            type="text"
+            name="website"
+            value={values.website}
+            placeholder="empresa.com.br"
+            autoComplete="url"
+            inputMode="url"
+            spellCheck={false}
+            disabled={saving}
+            iconStart={
+              <>
+                <GlobeIcon />
+                <FieldAffix data-tone="muted">https://</FieldAffix>
+              </>
+            }
+            onChange={(event) => set("website", event.target.value.replace(/^https?:\/\//i, ""))}
+          />
+        </Field>
+        <Field label="Cidade" error={errorOf("city")}>
+          <Input type="text" name="city" value={values.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} iconStart={<MapPinIcon />} onChange={(event) => set("city", event.target.value)} />
+        </Field>
       </Section>
 
-      <Section icon={NotePencilIcon} title="Sobre" description="Anotações da equipe: como chegou, o que pediu, como prefere ser atendido.">
+      <Section icon={NotePencilIcon} title="Detalhes" description="Anotações, etiquetas e situação.">
         <Field label="Anotações" error={errorOf("about")}>
-          <Textarea name="about" value={values.about} rows={5} placeholder="Chegou por indicação e pediu um site institucional para o mês que vem." disabled={saving} onChange={(event) => set("about", event.target.value)} />
+          <Textarea name="about" value={values.about} rows={4} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
         </Field>
-      </Section>
-
-      <Section icon={TagIcon} title="Etiquetas" description="Serviços contratados, segmento, origem. Aparecem na ficha e ajudam a achar depois.">
-        <Field label="Etiquetas" hint="Separe por vírgula" error={errorOf("tags")}>
-          <Input type="text" name="tags" value={values.tags} placeholder="Site institucional, Indicação" disabled={saving} onChange={(event) => set("tags", event.target.value)} />
+        <Field label="Etiquetas" error={errorOf("tags")}>
+          <Input type="text" name="tags" value={values.tags} placeholder="Site institucional, Indicação" disabled={saving} iconStart={<TagIcon />} onChange={(event) => set("tags", event.target.value)} />
         </Field>
-      </Section>
-
-      <Section icon={CheckIcon} title="Situação" description="Cliente inativo continua na base, só sai dos filtros do dia a dia. Favorito sobe na lista.">
         <div className={styles.toggles}>
           <Switch checked={values.active} disabled={saving} onChange={(event) => set("active", event.target.checked)}>
-            <span className={styles.toggleCopy}>
-              <Text as="span" variant="subheadline" weight="medium">
-                Cliente ativo
-              </Text>
-              <Text as="span" variant="caption1" tone="secondary">
-                Aparece nos filtros padrão e nas sugestões
-              </Text>
-            </span>
+            Cliente ativo
           </Switch>
           <Switch checked={values.favorite} disabled={saving} onChange={(event) => set("favorite", event.target.checked)}>
-            <span className={styles.toggleCopy}>
-              <Text as="span" variant="subheadline" weight="medium">
-                Favorito
-              </Text>
-              <Text as="span" variant="caption1" tone="secondary">
-                Ganha a estrela na ficha e o filtro próprio
-              </Text>
-            </span>
+            Favorito
           </Switch>
         </div>
       </Section>
