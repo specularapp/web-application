@@ -6,7 +6,7 @@ export type PresenceState = "open" | "closed";
 
 /* Se o fim da animação não chegar (pai escondido, animação desligada pelo sistema), a camada sai
    mesmo assim depois disso. Maior que a saída mais longa da casa. */
-const FALLBACK_MS = 400;
+const FALLBACK_MS = 480;
 
 /**
  * Mantém uma camada montada enquanto ela anima a saída. `open` é a intenção; `present` é se ela ainda

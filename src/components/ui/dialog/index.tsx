@@ -89,9 +89,11 @@ const Backdrop = styled.div`
     background-color: transparent;
   }
 
+  /* O fundo desbota no mesmo tempo da janela: sumindo antes dela, a janela ainda em movimento ficava solta
+     sobre a página e a saída lia como seca. */
   &[data-state="closed"] {
     pointer-events: none;
-    animation: ${fadeOut} var(--duration-fast) var(--ease-standard) both;
+    animation: ${fadeOut} var(--duration-slow) var(--ease-leave) both;
   }
 `;
 
@@ -195,8 +197,10 @@ const Panel = styled.div`
     animation: ${slideIn} var(--duration-glide) var(--ease-settle) both;
   }
 
+  /* A saída anda em 320ms com a curva de sair: mais curta que a entrada (420), como manda a regra, mas
+     com corpo para a gaveta ser vista indo embora em vez de sumir num tranco. */
   &[data-placement="end"][data-state="closed"] {
-    animation: ${slideOut} var(--duration-base) var(--ease-settle) both;
+    animation: ${slideOut} var(--duration-slow) var(--ease-leave) both;
   }
 
   /* A bandeja vem depois da gaveta de propósito: quando as duas regras casam, no celular, é ela que
@@ -217,7 +221,7 @@ const Panel = styled.div`
   }
 
   &[data-mode="sheet"][data-state="closed"] {
-    animation: ${fall} var(--duration-base) var(--ease-settle) both;
+    animation: ${fall} var(--duration-slow) var(--ease-leave) both;
   }
 
   @media (prefers-reduced-motion: reduce) {

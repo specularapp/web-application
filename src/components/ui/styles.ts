@@ -23,7 +23,8 @@ export const fadeOut = keyframes`
 
 /* Gênio da lâmpada, na versão que o CSS alcança: a camada nasce menor e mais perto de quem a abriu
    (`--genie-x` e `--genie-y` dizem de onde) e cresce até o lugar com uma mola curta; ao fechar volta
-   pelo mesmo caminho, mais rápido e sem mola, porque saída não pede atenção. */
+   pelo mesmo caminho, mais rápido e sem mola, porque saída não pede atenção; em 200ms e com a curva de
+   sair, porque em 120 e com a curva padrão sumia num tranco (2026-09-08). */
 export const genieIn = keyframes`
   from {
     opacity: 0;
@@ -48,7 +49,7 @@ export const layerMotion = css`
 
   &[data-state="closed"] {
     pointer-events: none;
-    animation: ${genieOut} var(--duration-fast) var(--ease-standard) both;
+    animation: ${genieOut} var(--duration-base) var(--ease-leave) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
