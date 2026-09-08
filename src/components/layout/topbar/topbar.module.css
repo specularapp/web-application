@@ -1,9 +1,6 @@
-/* Flex com o nome preso no meio por posição absoluta, e não uma grade de três: com as pontas mandando
-   no espaço, uma trilha longa de um lado e um widget curto do outro empurravam o nome para fora do
-   centro do container, que é justamente onde ele tem que estar. Absoluto, ele fica no meio da barra
-   independente do que as pontas fizerem. */
+/* A trilha de um lado, o widget da IA do outro, e nada preso no meio: o nome da página é o último degrau
+   da trilha, como na referência, então a barra não precisa de um segundo lugar para ele. */
 .topbar {
-  position: relative;
   display: flex;
   gap: var(--space-3);
   align-items: center;
@@ -18,8 +15,8 @@
   }
 }
 
-/* O caminho até a página: os degraus separados por barra, cada um com o glifo do menu na frente. Não é
-   link nem menu, é só onde a pessoa está; quem leva a outro lugar é o menu lateral. */
+/* O caminho até a página: os degraus separados por barra, do contexto largo ao lugar exato. Não é link
+   nem menu, é só onde a pessoa está; quem leva a outro lugar é o menu lateral. */
 .route {
   display: flex;
   flex: 1;
@@ -46,6 +43,25 @@
 /* O último degrau é o que cede: os de cima ficam inteiros, e o mais perto da página encurta primeiro. */
 .crumb:not(:last-child) {
   flex-shrink: 0;
+}
+
+/* Três tintas, do mais apagado ao mais escuro, como na referência: a área é contexto largo e sai em
+   secundário; a pasta, onde a página mora, sobe para quase cheio; a página, que é onde a pessoa está, vai
+   na tinta cheia. O rótulo herda a cor do degrau (`tone="inherit"`), então a escada mora num lugar só. */
+.crumb[data-level="group"] {
+  color: var(--color-label-secondary);
+}
+
+.crumb[data-level="folder"] {
+  color: color-mix(in oklab, var(--color-label) 80%, transparent);
+}
+
+.crumb[data-level="page"] {
+  color: var(--color-label);
+}
+
+.label {
+  min-width: 0;
 }
 
 /* Degrau sem matiz: o glifo sai solto e apagado, porque a área é contexto largo e não precisa gritar. */
@@ -75,22 +91,12 @@
   height: 0.8125rem;
 }
 
-/* A barra separa sem pesar: um degrau mais apagada que o texto dos degraus. */
+/* A barra separa sem pesar: mais apagada que qualquer degrau. */
 .separator {
   flex-shrink: 0;
   font-family: var(--font-body);
   font-size: var(--text-footnote);
   color: var(--color-label-tertiary);
-}
-
-/* No meio da barra, sem depender das pontas. O teto de largura é o que impede o nome longo de passar
-   por baixo da trilha ou do widget. */
-.title {
-  position: absolute;
-  inset-inline-start: 50%;
-  max-width: 40%;
-  translate: -50%;
-  text-align: center;
 }
 
 .end {
@@ -102,14 +108,18 @@
   margin-inline-start: auto;
 }
 
-/* O widget da IA numa caixa com o fio da casa, como na referência: o glifo de um lado e a régua de uso
-   do outro. Sem número na tela; ele fica na leitura por voz e na dica do ponteiro. */
+/* O widget da IA na receita da referência: a marca de um lado e a régua de barras do outro, numa caixa
+   levemente erguida do fundo com o fio da casa. Sem número na tela; ele fica na leitura por voz e na
+   dica do ponteiro. O `font-size` é o que dimensiona a marca, porque o `BrandIcon` mede em `em`. */
 .ai {
   display: inline-flex;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-1) var(--space-3);
+  height: 2.25rem;
+  padding-inline: var(--space-3);
+  font-size: 1.125rem;
   color: var(--color-label);
+  background-color: var(--color-fill-quaternary);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
   corner-shape: squircle;
@@ -120,24 +130,24 @@
 
 @media (hover: hover) {
   .ai:hover {
-    background-color: var(--color-fill-quaternary);
+    background-color: var(--color-fill-tertiary);
     border-color: var(--color-label-tertiary);
+    transition-duration: var(--duration-base);
   }
+}
 
-  .ai:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+.ai:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .aiIcon {
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
+  color: var(--color-label);
 }
 
 /* A régua: um degrau por décimo do plano, os acesos na tinta do texto e os apagados no preenchimento da
-   casa. Monocromática como na referência, porque ela mora na moldura e não é etiqueta de estado. */
+   casa, todos em pílula. Monocromática como na referência, porque ela mora na moldura e não é etiqueta
+   de estado. */
 .meter {
   display: flex;
   flex-shrink: 0;
@@ -146,28 +156,22 @@
 }
 
 .bar {
-  width: 0.1875rem;
-  height: 0.875rem;
-  background-color: var(--color-fill-tertiary);
+  width: 0.25rem;
+  height: 1.125rem;
+  background-color: var(--color-fill-secondary);
   border-radius: var(--radius-full);
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
 .bar[data-on] {
   background-color: var(--color-label);
 }
 
-/* No celular a trilha sai e o nome toma o lugar dela, alinhado à esquerda: numa tela estreita a trilha
-   comeria o nome, e quem já está lá dentro sabe onde está. O widget da IA fica na outra ponta. */
+/* No celular só o degrau da página fica, alinhado à esquerda: numa tela estreita a trilha inteira
+   comeria o nome, e quem já está lá dentro sabe onde está. A barra que vem antes dele sai junto. */
 @media (max-width: 47.9375rem) {
-  .route {
+  .crumb:not(:last-child),
+  .crumb:last-child .separator {
     display: none;
-  }
-
-  .title {
-    position: static;
-    flex: 1;
-    max-width: none;
-    translate: none;
-    text-align: start;
   }
 }
