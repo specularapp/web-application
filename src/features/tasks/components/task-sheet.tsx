@@ -16,6 +16,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
 import { squircle } from "@/lib/corners";
+import { cx } from "@/lib/utils/cx";
 import { dueOf, priorityLabels, priorityTones, statusLabels, statusTones } from "../labels";
 import type { Task, TaskPerson } from "../summary";
 import { AttachmentCard } from "./attachment-card";
@@ -48,9 +49,11 @@ function Person({ person }: { person: TaskPerson }) {
   );
 }
 
-function Fact({ icon: Glyph, label, children }: { icon: Icon; label: string; children: ReactNode }) {
+/* `wide` marca o fato cujo valor é objeto de largura própria (pessoa, chip, etiqueta): no celular ele
+   toma a linha inteira, e as duas colunas ficam só para os fatos de texto simples. */
+function Fact({ icon: Glyph, label, wide = false, children }: { icon: Icon; label: string; wide?: boolean; children: ReactNode }) {
   return (
-    <div className={styles.fact}>
+    <div className={cx(styles.fact, wide && styles.wide)}>
       <Text as="dt" variant="subheadline" tone="secondary" className={styles.factLabel}>
         <Glyph aria-hidden="true" />
         {label}
@@ -120,10 +123,10 @@ export function TaskSheet({ task }: TaskSheetProps) {
       )}
 
       <dl className={styles.facts}>
-        <Fact icon={UserCircleIcon} label="Responsável">
+        <Fact icon={UserCircleIcon} label="Responsável" wide>
           <Person person={task.owner} />
         </Fact>
-        <Fact icon={UsersIcon} label="Envolvidos">
+        <Fact icon={UsersIcon} label="Envolvidos" wide>
           {task.people.map((person) => (
             <Person key={person.name} person={person} />
           ))}
@@ -148,7 +151,7 @@ export function TaskSheet({ task }: TaskSheetProps) {
           </Fact>
         )}
         {task.project && (
-          <Fact icon={FolderIcon} label="Projeto">
+          <Fact icon={FolderIcon} label="Projeto" wide>
             <span className={styles.chip}>
               <Text as="span" variant="footnote" tone="secondary">
                 {task.project.reference}
@@ -160,7 +163,7 @@ export function TaskSheet({ task }: TaskSheetProps) {
           </Fact>
         )}
         {task.tags.length > 0 && (
-          <Fact icon={TagIcon} label="Etiquetas">
+          <Fact icon={TagIcon} label="Etiquetas" wide>
             {task.tags.map((tag) => (
               <Badge key={tag} size="md">
                 {tag}

@@ -1,9 +1,13 @@
 /* O perfil é uma coluna: a capa colada no topo da janela, o cabeçalho com a foto passando por cima da
    borda dela, e o resto com o recuo da janela. No celular tudo um degrau menor, pelos tokens de texto
-   redeclarados aqui dentro, e as fichas em duas colunas para caber completo e compacto. */
+   redeclarados aqui dentro, e as fichas em duas colunas para caber completo e compacto. A coluna é
+   `minmax(0, 1fr)`, e não a trilha automática que o grid daria: trilha automática tem o min-content do
+   conteúdo como piso, então um valor comprido lá dentro alargava o perfil inteiro e a janela ganhava
+   rolagem lateral. Com o piso em zero, quem cede é o conteúdo. */
 .profile {
   --inset: var(--space-5);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   padding-block-end: var(--inset);
 }
@@ -37,6 +41,7 @@
 
 .head {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   margin-block-start: -3rem;
   padding-inline: var(--inset);
@@ -96,8 +101,7 @@
 }
 
 /* Os botões de contato lado a lado. Cada ação vem em duas peças, o botão com texto e o só de ícone, e a
-   largura escolhe qual aparece: texto no desktop, ícone no celular (duas classes para vencer o
-   `display` que o botão declara). */
+   largura escolhe qual aparece. No desktop aparece sempre o com texto. */
 .actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
@@ -118,23 +122,41 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* A fila não quebra linha e não estica a janela: a ação principal cede largura e as outras ficam no
+     tamanho do próprio ícone. */
   .actions {
     display: flex;
-    justify-content: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
+    min-width: 0;
   }
 
-  .actions .wide {
+  /* No celular só a ação principal (o WhatsApp) mantém o texto; as outras trocam o botão inteiro pelo
+     de ícone. Os seletores levam quatro degraus de propósito: o `Button` declara o próprio `display`
+     em `&[data-full-width]`, que empata com duas classes e vencia por ser inserido depois pelo
+     Emotion, então as duas peças da mesma ação apareciam juntas e a fila de seis botões estourava a
+     largura da janela, que é de onde vinha a rolagem lateral. */
+  .actions .action[data-primary] .narrow,
+  .actions .action:not([data-primary]) .wide {
     display: none;
   }
 
-  .actions .narrow {
+  .actions .action:not([data-primary]) .narrow {
     display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  /* A ação principal é quem cede largura, porque as de ícone não encolhem. Sem `overflow` aqui: o
+     motor de cantos recorta quem já recorta, e o recorte levaria junto o anel de foco do botão. */
+  .actions .action[data-primary] .wide {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 
 .body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   padding-inline: var(--inset);
 }
@@ -147,6 +169,7 @@
 
 .section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -202,9 +225,19 @@
 }
 
 @media (max-width: 47.9375rem) {
+  /* Duas colunas só quando cabem: com `auto-fit` sobre um piso de 9rem, a tela de 320px fica com uma
+     coluna e a de 375 em diante ganha as duas. Com as duas fixas, o valor não cabia na célula e a
+     ficha quebrava em várias linhas. */
   .facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
     gap: var(--space-3) var(--space-4);
+  }
+
+  /* E-mail e endereço de site são palavras longas sem espaço: `anywhere` deixa a quebra acontecer
+     dentro delas e, ao contrário de `break-word`, também encolhe a largura mínima do item de flex,
+     que é o que fazia o valor empurrar a janela e criar rolagem lateral. */
+  .factValue {
+    overflow-wrap: anywhere;
   }
 
   .fact {

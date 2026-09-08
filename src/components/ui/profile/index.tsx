@@ -40,7 +40,8 @@ export type ProfileProps = {
   /** O que a pessoa faz, em uma linha. */
   subtitle?: string;
   stats: ProfileStat[];
-  /** Os botões de contato: com texto no desktop, só o ícone no celular. */
+  /** Os botões de contato: com texto no desktop; no celular só a ação principal mantém o texto e as
+   *  outras ficam só com o ícone. */
   actions?: ProfileAction[];
   children: ReactNode;
 };
@@ -80,7 +81,7 @@ export function Profile({ hue, avatar, title, badges, menu, handle, subtitle, st
           </Text>
         )}
         {subtitle && (
-          <Text variant="subheadline" weight="medium">
+          <Text variant="subheadline" weight="medium" truncate>
             {subtitle}
           </Text>
         )}
@@ -110,7 +111,7 @@ export function Profile({ hue, avatar, title, badges, menu, handle, subtitle, st
               ...(opensTab && external),
             };
             return (
-              <span key={label} className={styles.action}>
+              <span key={label} className={styles.action} data-primary={primary || undefined}>
                 <Button {...shared} size="md" radius="md" iconStart={<Glyph weight="bold" />} fullWidth className={styles.wide}>
                   {label}
                 </Button>

@@ -1,7 +1,10 @@
 /* A ficha é uma coluna com o recuo da janela; o X flutuante fica na quina, e a primeira linha deixa
-   lugar para ele. */
+   lugar para ele. A coluna é `minmax(0, 1fr)`, e não a trilha automática do grid: trilha automática tem
+   o min-content como piso, então um valor comprido lá dentro alargaria a ficha e a janela ganharia
+   rolagem lateral. */
 .sheet {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   padding: var(--space-5);
 }
@@ -111,11 +114,13 @@
   margin: 0;
 }
 
-/* No celular os fatos viram células em duas colunas, com o rótulo em cima do valor, para a ficha ficar
-   completa e compacta. */
+/* No celular os fatos viram células com o rótulo em cima do valor. As duas colunas só entram quando
+   cabem: com `auto-fit` sobre um piso de 9rem, a tela de 320px fica com uma coluna e a de 375 em
+   diante ganha as duas. Com as duas colunas fixas em toda largura, o valor não cabia na célula e a
+   ficha inteira quebrava. */
 @media (max-width: 47.9375rem) {
   .facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
     gap: var(--space-3) var(--space-4);
   }
 
@@ -124,6 +129,13 @@
     gap: var(--space-half);
     align-items: start;
     min-width: 0;
+  }
+
+  /* Fato cujo valor é objeto de largura própria (pessoa, chip de projeto, etiqueta) toma a linha
+     inteira: em meia coluna cada chip caía numa linha e a ficha virava uma escada. Em duas colunas
+     ficam só os fatos de texto simples, que é onde a divisão ajuda. */
+  .facts .wide {
+    grid-column: 1 / -1;
   }
 }
 
@@ -153,6 +165,7 @@
 
 .section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 

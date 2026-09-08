@@ -15,6 +15,23 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-04 (qui) | noite, até 23:27 (1 commit) | Painel começou, um bloco por vez: cabeçalho da pessoa com ações em ícone, grade de sete blocos em quatro linhas com altura pré-definida, `Card` e `PageHeader` saíram do stub, bloco de projetos com gráfico Recharts adaptável, avatar trocado para o DiceBear Lorelei e correção do 500 da vitrine |
 | 2026-09-05 (sex) | tarde e noite, até 21:30 (início não anotado), 1 commit | Bloco de financeiro do painel: caixa vestido de cartão com o desenho do usuário e atualizar de verdade, cinco movimentações com rosto ou logo de quem está do outro lado; bloco de conquistas ganhou e perdeu conteúdo no mesmo dia; avatar passou para o DiceBear Adventurer; fechar por toque fora unificado em `useOutsideDismiss` |
 | 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
+| 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, e os fatos em duas colunas só onde cabem |
+
+## 2026-09-08
+
+Tempo: em andamento.
+
+Feito:
+
+- Cartão do caixa mais alto no celular, a pedido: passou de 7 por 4 com teto de 12,5rem para 8 por 5 com piso de 9,5rem e teto de 13,5rem, que é a proporção do cartão físico. Na coluna larga do celular o 7 por 4 lia como faixa.
+- Fila de ações dos perfis de cliente e de membro sem a peça duplicada: no celular apareciam as duas peças da mesma ação, o ícone do WhatsApp ao lado do botão com o nome escrito, e os seis botões estouravam a largura da janela, que era de onde vinha a rolagem lateral. A regra que escondia o botão com texto tinha duas classes e empatava com o `&[data-full-width]` do `Button`, que vencia por ser inserido depois pelo Emotion; agora tem quatro degraus. Junto, a regra mudou a pedido: só a ação principal mantém o texto no celular, marcada por `data-primary` no invólucro, e as outras ficam só com o ícone.
+- Guardas contra rolagem lateral nas janelas de perfil e de tarefa: a coluna dos grids virou `minmax(0, 1fr)`, porque a trilha automática tem o min-content como piso e um e-mail comprido alargava a janela inteira, e o valor do fato ganhou `overflow-wrap: anywhere`, que ao contrário de `break-word` também encolhe a largura mínima do item de flex. O nome da função no perfil passou a encurtar por reticências.
+- Fatos em duas colunas só onde cabem: `repeat(auto-fit, minmax(9rem, 1fr))` no perfil e na ficha da tarefa, então em 320px fica uma coluna só. Na ficha da tarefa, Responsável, Envolvidos, Projeto e Etiquetas tomam a linha inteira por `wide`, porque o valor deles é objeto de largura própria e em meia coluna cada chip caía numa linha, deixando a ficha em escada. Em duas colunas ficaram só os fatos de texto simples.
+
+Pendências:
+
+- As pendências de 2026-09-07 seguem todas em aberto: nenhum domínio novo do painel existe no banco.
+- Os ajustes do dia foram conferidos por typecheck, lint, build e leitura do CSS gerado, e ainda não em aparelho de verdade.
 
 ## 2026-09-07
 

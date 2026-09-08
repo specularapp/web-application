@@ -9,9 +9,9 @@
 }
 
 /* Grade 2x2 com a marca e a situação em cima, o saldo e o atualizar embaixo, na proporção de um cartão
-   de verdade: a altura sai da largura (7 por 4), com piso e teto para não virar faixa no celular largo
-   nem esmagar na coluna estreita. A linha de baixo toma a sobra e o conteúdo dela assenta na base. O
-   raio é `lg` pelo sistema da casa, e não o concêntrico de 8px, por pedido: com o recuo de 16 do bloco
+   de verdade: a altura sai da largura (7 por 4 no desktop, 8 por 5 no celular), com piso e teto para
+   não virar faixa no celular largo nem esmagar na coluna estreita. A linha de baixo toma a sobra e o
+   conteúdo dela assenta na base. O raio é `lg` pelo sistema da casa, e não o concêntrico de 8px, por pedido: com o recuo de 16 do bloco
    a conta dava um canto que lia como quadrado num cartão desse tamanho. No fallback o motor recorta,
    porque o cartão já esconde o que transborda. Fundo no preenchimento do botão secundário, o mesmo das
    caixas do menu. A largura é declarada, e não automática: com proporção e teto de altura, largura
@@ -33,9 +33,14 @@
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
 
-  /* No celular o cartão respira um pouco mais: a coluna é larga e o bloco tem duas linhas. */
+  /* No celular o cartão ganha altura e passa para a proporção do cartão físico, 8 por 5: com 7 por 4
+     ele lia como faixa na coluna larga do celular, onde o bloco tem duas linhas de altura. O piso e o
+     teto sobem junto, para a altura sair da largura em tela estreita e parar antes de comer a lista
+     de movimentações em tela larga. */
   @media (max-width: 47.9375rem) {
-    max-height: 12.5rem;
+    aspect-ratio: 8 / 5;
+    min-height: 9.5rem;
+    max-height: 13.5rem;
   }
 }
 
