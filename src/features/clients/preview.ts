@@ -11,7 +11,7 @@ const ref = (kind: "client" | "quote" | "project", seq: number) => formatReferen
  * `Avatar` aparecer; o telefone vai só em dígitos, como no banco.
  */
 export const previewClientsSummary: ClientsSummary = {
-  total: 26,
+  total: 60,
   clients: [
     {
       id: "c1",
