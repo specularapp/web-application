@@ -1,0 +1,45 @@
+/* Tudo centrado e empilhado: rostos, pergunta, frase e os dois botões. */
+.dialog {
+  display: grid;
+  gap: var(--space-5);
+  justify-items: center;
+  width: 100%;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+/* A fila de rostos, entrando um sobre o outro, e a contagem do que não coube ao lado. */
+.faces {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.group {
+  --avatar-overlap: var(--space-3);
+}
+
+/* O "+N" numa bolinha do tamanho dos rostos, no preenchimento da casa. */
+.more {
+  display: grid;
+  place-items: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 24rem;
+}
+
+/* Os dois botões dividem a largura em partes iguais, o de excluir à direita. */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+}

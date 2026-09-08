@@ -55,9 +55,12 @@
   }
 }
 
-.ai:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+/* Anel de foco só onde há teclado de verdade: no toque ele acendia azul depois do dedo. */
+@media (hover: hover) {
+  .ai:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* A régua: um degrau por décimo do plano, em pílulas finas, os acesos na tinta do texto e os apagados no

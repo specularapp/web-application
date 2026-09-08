@@ -1,0 +1,171 @@
+/* O formulário é uma coluna de blocos, com o recuo da tela e um teto de largura para os campos não
+   esticarem demais na tela larga. */
+.form {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 72rem;
+  padding: var(--space-4);
+  margin-inline: auto;
+}
+
+@media (min-width: 48rem) {
+  .form {
+    gap: var(--space-6);
+    padding: var(--space-6);
+  }
+}
+
+/* Cada bloco: a explicação à esquerda e o painel de campos à direita, na moldura da referência. No
+   celular e no tablet empilham, com a explicação em cima. */
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 64rem) {
+  .section {
+    grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+/* O glifo na cor do título, herdada, como as linhas do menu. */
+.introTitle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.introTitle svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+/* O painel com o fio da casa e canto `xl`: raio 24 com recuo 20 dá 4 de raio interno, então o que mora
+   dentro fica no `xs`. */
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 47.9375rem) {
+  .panel {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* Dois campos lado a lado, quebrando para um por linha quando não cabem. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+/* A foto e a logo, lado a lado quando cabem. */
+.images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+.image {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A moldura da imagem: 5rem, canto `lg`, o fio da casa e o preenchimento leve por trás do que não tem
+   imagem. */
+.imageFrame {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  overflow: hidden;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+.imagePreview {
+  object-fit: cover;
+}
+
+/* O rosto gerado toma a moldura inteira. Três classes para vencer o tamanho do `Avatar`. */
+.imageFrame .avatar.avatar {
+  --avatar-size: 5rem;
+}
+
+/* A inicial da empresa em título, ou o prédio quando ainda não há nome. */
+.initial {
+  display: grid;
+  place-items: center;
+  font-size: var(--text-title-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.initial svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.imageCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.imageActions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  margin-block-start: var(--space-2);
+}
+
+/* O campo de arquivo fica fora da vista, mas não fora da árvore: o botão ao lado é quem o abre. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Os interruptores com o rótulo em duas linhas ao lado. */
+.toggles {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.toggleCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* Cancelar e salvar na ponta direita, como fecho do formulário. */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}

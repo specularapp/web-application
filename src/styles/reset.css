@@ -179,6 +179,16 @@ input:autofill {
   outline: none;
 }
 
+/* No toque não há anel de foco nenhum (a pedido, 2026-09-08): sem teclado ele não guia ninguém, e em
+   alguns navegadores de celular acendia azul depois do dedo em botões e linhas de menu. Com peso, para
+   passar por cima das folhas de fora (o calendário) que declaram o próprio anel. */
+@media (hover: none) {
+  :focus-visible,
+  :focus {
+    outline: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   :where(html:focus-within) {
     scroll-behavior: smooth;

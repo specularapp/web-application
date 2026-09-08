@@ -97,6 +97,14 @@
   pointer-events: none;
 }
 
+/* O que age sobre a seleção entra na fila só quando há algo marcado, no mesmo vão dos outros. */
+.selection {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
 /* A ação fica um passo afastada dos botões fantasma: ela é outra coisa, e colada leria como o quarto. */
 .action {
   display: flex;

@@ -8,17 +8,27 @@ import { useEffect, type RefObject } from "react";
  * na captura do documento, antes do React, e sai sozinho um pouco depois do pointerup (no toque o clique
  * pode chegar bem depois do dedo sair; solto no tique seguinte, ele vazava e fechava a janela de baixo
  * junto com o menu), então um toque sem clique (arraste, cancelamento) não deixa nada engolido para trás.
+ *
+ * `when` diz se esta camada é quem deve responder ao toque de agora: uma janela com um menu aberto por
+ * cima passa `isTopLayer`, e aí o toque fora do menu fecha só o menu, sem engolir o clique nem derrubar a
+ * janela junto (correção de 2026-09-08, depois de fechar um menu fechar também a gaveta atrás dele).
  */
 /** Quanto o engolidor espera pelo clique depois do dedo sair. */
 const CLICK_GRACE = 200;
 
-export function useOutsideDismiss(active: boolean, inside: RefObject<HTMLElement | null>[], onDismiss: () => void) {
+export function useOutsideDismiss(
+  active: boolean,
+  inside: RefObject<HTMLElement | null>[],
+  onDismiss: () => void,
+  when?: () => boolean,
+) {
   useEffect(() => {
     if (!active) return;
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (inside.some((ref) => ref.current?.contains(target))) return;
+      if (when && !when()) return;
       onDismiss();
 
       const swallow = (click: MouseEvent) => {
@@ -36,5 +46,5 @@ export function useOutsideDismiss(active: boolean, inside: RefObject<HTMLElement
 
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [active, inside, onDismiss]);
+  }, [active, inside, onDismiss, when]);
 }

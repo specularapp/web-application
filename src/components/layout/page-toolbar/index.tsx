@@ -22,6 +22,8 @@ export type PageToolbarProps = {
   filters?: DropdownSection[];
   /** Quantos filtros saíram do padrão, para a etiqueta na quina do botão. */
   activeFilters?: number;
+  /** O que age sobre o que está marcado, como excluir: a página só passa quando há seleção. */
+  selection?: ReactNode;
   /** A ação principal da página, como "Novo cliente". */
   action?: ReactNode;
 };
@@ -47,7 +49,7 @@ function isTyping(target: EventTarget | null) {
 // mesma tinta), que abre o menu de vidro do chevron duplo das listas com todos os filtros da página; e a
 // ação principal fechando a linha. Três peças em qualquer largura; no celular a tecla some, porque não há
 // teclado, e o menu vira bandeja.
-export function PageToolbar({ search, filters, activeFilters = 0, action }: PageToolbarProps) {
+export function PageToolbar({ search, filters, activeFilters = 0, selection, action }: PageToolbarProps) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,6 +98,8 @@ export function PageToolbar({ search, filters, activeFilters = 0, action }: Page
           )}
         </span>
       )}
+
+      {selection && <span className={styles.selection}>{selection}</span>}
 
       {action && <div className={styles.action}>{action}</div>}
     </div>

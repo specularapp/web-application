@@ -30,8 +30,8 @@ const DOCUMENTS_PLAN = "pro";
 
 // As opções de um cliente, no padrão pedido: ver e editar, gerar documentos (com o selo do plano que
 // libera), chamar no WhatsApp, o acompanhamento, os interruptores de ativo e favorito e, por último e
-// em vermelho, excluir. Editar, histórico, mapa e excluir ainda não têm tela nem regra: fecham o menu e
-// nada mais. Ativo e favorito trocam só na tela.
+// em vermelho, excluir. Editar leva à tela da ficha; histórico, mapa e excluir ainda não têm tela nem
+// regra: fecham o menu e nada mais. Ativo e favorito trocam só na tela.
 export function ClientMenu({ client, historyCount = 0 }: ClientMenuProps) {
   const [active, setActive] = useState(true);
   const [favorite, setFavorite] = useState(false);
@@ -41,7 +41,7 @@ export function ClientMenu({ client, historyCount = 0 }: ClientMenuProps) {
       id: "actions",
       items: [
         { id: "view", label: "Visualizar", icon: EyeIcon, href: "/clientes" },
-        { id: "edit", label: "Editar", icon: PencilSimpleIcon },
+        { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}/editar` as Route },
         {
           id: "quote",
           label: "Gerar orçamento",

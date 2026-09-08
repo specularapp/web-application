@@ -8,6 +8,7 @@ import {
   PhoneIcon,
   PlusIcon,
   StarIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
@@ -17,7 +18,9 @@ import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
+import { useToast } from "@/components/providers/toast-provider";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
+import { deleteClientsAction } from "../actions";
 import {
   CLIENTS_PER_PAGE,
   EMAIL_PARAM,
@@ -39,6 +42,7 @@ import {
 } from "../list-options";
 import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
+import { DeleteClientsDialog } from "./delete-clients-dialog";
 import styles from "./clients-board.module.css";
 
 export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery };
@@ -53,6 +57,7 @@ const TYPING_PAUSE = 320;
 // página, senão a pessoa cairia numa página que o novo filtro nem tem.
 export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [search, setSearch] = useState(query.search);
   // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás, senão o check só
   // aparecia quando o servidor devolvia a página, e a lista parecia lenta. Quando a resposta chega, o que
@@ -63,8 +68,11 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     setSeen(query);
     setLive(query);
   }
-  // Quem está marcado na grade. As ações sobre a seleção ainda não existem; a marcação fica para elas.
+  // Quem está marcado na grade, para excluir de uma vez. A seleção é desta página: trocar filtro ou
+  // página a limpa, senão a pessoa excluiria alguém que já não está vendo.
   const [selected, setSelected] = useState<string[]>([]);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // Uma gaveta só para a tela inteira, guardando quem está aberto: assim vinte e quatro cartões não
   // montam vinte e quatro janelas. Fica montada e vazia depois de fechar, para a saída animar.
   const [open, setOpen] = useState<ClientListItem | null>(null);
@@ -75,6 +83,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const go = (next: Partial<ClientsQuery>) => {
     const merged = { ...live, ...next };
     setLive(merged);
+    setSelected([]);
     const params = new URLSearchParams();
     if (merged.search) params.set(QUERY_PARAM, merged.search);
     if (merged.sort !== defaultQuery.sort) params.set(SORT_PARAM, merged.sort);
@@ -111,6 +120,30 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
 
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
   const active = countActiveFilters(live);
+  const selectedClients = page.items.filter((client) => selected.includes(client.id));
+  const count = selectedClients.length;
+
+  // Excluir de uma vez: a action valida no servidor e devolve a contagem; a tela avisa, limpa a marcação
+  // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
+  const removeSelected = async () => {
+    setDeleting(true);
+    const result = await deleteClientsAction(selectedClients.map((client) => client.id));
+    setDeleting(false);
+    setConfirming(false);
+
+    if (!result.ok) {
+      toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
+      return;
+    }
+
+    toast({
+      title: result.deleted === 1 ? "Cliente excluído" : `${result.deleted} clientes excluídos`,
+      description: "A base já está sem eles.",
+      tone: "success",
+    });
+    setSelected([]);
+    router.refresh();
+  };
 
   /* O menu de filtros, tudo num lugar só (a pedido, 2026-09-08): ordem e período em escolha única,
      marcada pelo check; favorito, ativo e inativo em interruptor, porque são sim ou não; e-mail e
@@ -208,15 +241,33 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         }}
         filters={filterSections}
         activeFilters={active}
+        selection={
+          /* Só existe com algo marcado: botão que não faz nada é pior que botão nenhum. Texto com a
+             contagem no desktop e só o ícone no celular, com a contagem no nome. */
+          count > 0 && (
+            <>
+              <span className={styles.wide}>
+                <Button variant="danger" size="sm" radius="md" iconStart={<TrashIcon />} onClick={() => setConfirming(true)}>
+                  Excluir {count}
+                </Button>
+              </span>
+              <span className={styles.narrow}>
+                <IconButton label={`Excluir ${count} selecionados`} variant="danger" size="sm" radius="md" onClick={() => setConfirming(true)}>
+                  <TrashIcon />
+                </IconButton>
+              </span>
+            </>
+          )
+        }
         action={
           <>
             <span className={styles.wide}>
-              <Button href="/clientes" size="sm" radius="md" iconStart={<PlusIcon />}>
+              <Button href="/clientes/novo" size="sm" radius="md" iconStart={<PlusIcon />}>
                 Novo cliente
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Novo cliente" href="/clientes" size="sm" radius="md">
+              <IconButton label="Novo cliente" href="/clientes/novo" size="sm" radius="md">
                 <PlusIcon />
               </IconButton>
             </span>
@@ -263,6 +314,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
       )}
 
       <ClientDrawer client={open} onClose={() => setOpen(null)} />
+      <DeleteClientsDialog clients={selectedClients} open={confirming} pending={deleting} onClose={() => setConfirming(false)} onConfirm={removeSelected} />
     </div>
   );
 }

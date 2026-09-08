@@ -298,8 +298,14 @@ export function Dialog({
   });
 
   // Sem o fundo que escurece não há onde clicar para fechar, então quem fecha é o toque fora da caixa,
-  // que engole o clique para o que estava embaixo não disparar junto.
-  useOutsideDismiss(open && !scrim, [panelRef], () => closeRef.current());
+  // que engole o clique para o que estava embaixo não disparar junto. Só quando esta janela é a camada de
+  // cima: com um menu aberto por dentro dela, o toque fora do menu é do menu, e a janela fica de pé.
+  useOutsideDismiss(
+    open && !scrim,
+    [panelRef],
+    () => closeRef.current(),
+    () => isTopLayer(layer),
+  );
 
   // Arrasto da alça da bandeja (pedido de 2026-09-08): segurar na barrinha e puxar para baixo fecha a
   // janela, o gesto que o iOS dá em toda bandeja.
