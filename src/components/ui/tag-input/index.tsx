@@ -29,7 +29,7 @@ const Shell = styled.span`
   width: 100%;
   min-width: 0;
   min-height: var(--control-height-md);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   color: var(--color-label);
   cursor: text;
   background-color: transparent;
@@ -51,8 +51,8 @@ const Shell = styled.span`
   }
 `;
 
-/* A etiqueta com o × dentro: pílula no preenchimento da casa, com a altura fechada para caber na linha do
-   campo sem recortar nada. É o chip com remoção que o Badge deixa de fora de propósito. */
+/* A etiqueta com o × dentro: bloco no preenchimento da casa, canto quase reto, com a altura fechada para
+   caber na linha do campo sem recortar nada. É o chip com remoção que o Badge deixa de fora de propósito. */
 const Chip = styled.span`
   display: inline-flex;
   gap: var(--space-half);
@@ -67,7 +67,8 @@ const Chip = styled.span`
   color: var(--color-label);
   white-space: nowrap;
   background-color: var(--color-fill-tertiary);
-  border-radius: var(--radius-full);
+  /* Canto de 2px, quase reto: a etiqueta é um bloco de texto, e em pílula competia com os botões. */
+  border-radius: 0.125rem;
 `;
 
 const ChipText = styled.span`

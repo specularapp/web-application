@@ -6,7 +6,6 @@ import {
   defaultQuery,
   favoriteValues,
   periodValues,
-  sortValues,
   statusValues,
   type ClientListItem,
   type ClientsListPage,
@@ -29,7 +28,6 @@ const flag = z
 
 const querySchema = z.object({
   search: z.string().trim().max(80).catch(""),
-  sort: z.enum(sortValues).catch(defaultQuery.sort),
   favorite: z.enum(favoriteValues).catch(defaultQuery.favorite),
   status: z.enum(statusValues).catch(defaultQuery.status),
   period: z.enum(periodValues).catch(defaultQuery.period),
@@ -41,7 +39,6 @@ const querySchema = z.object({
 export function parseClientsQuery(params: Record<string, string | undefined>): ClientsQuery {
   return querySchema.parse({
     search: params.busca ?? "",
-    sort: params.ordem,
     favorite: params.favorito,
     status: params.situacao,
     period: params.periodo,
@@ -70,15 +67,9 @@ function withinPeriod(client: ClientListItem, period: ClientsQuery["period"]) {
   return days <= Number(period);
 }
 
+/* A lista sai sempre por nome: a ordem deixou de ser filtro em 2026-09-08, a pedido, porque ninguém
+   trocava e só enchia o menu. */
 const byName = (a: ClientListItem, b: ClientListItem) => a.name.localeCompare(b.name, "pt-BR");
-const byDate = (a: ClientListItem, b: ClientListItem) => a.createdAt.localeCompare(b.createdAt);
-
-const orderBy: Record<ClientsQuery["sort"], (a: ClientListItem, b: ClientListItem) => number> = {
-  az: byName,
-  za: (a, b) => byName(b, a),
-  recentes: (a, b) => byDate(b, a),
-  antigos: byDate,
-};
 
 /**
  * Filtra, ordena e corta a página. O total devolvido é o do filtro, e não o da base, porque é ele que a
@@ -99,7 +90,7 @@ export function listClients(clients: ClientListItem[], query: ClientsQuery): Cli
   const start = (query.page - 1) * CLIENTS_PER_PAGE;
 
   return {
-    items: [...filtered].sort(orderBy[query.sort]).slice(start, start + CLIENTS_PER_PAGE),
+    items: [...filtered].sort(byName).slice(start, start + CLIENTS_PER_PAGE),
     total: filtered.length,
   };
 }

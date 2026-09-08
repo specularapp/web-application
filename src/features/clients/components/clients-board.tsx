@@ -2,7 +2,6 @@
 
 import {
   ArrowCounterClockwiseIcon,
-  CheckCircleIcon,
   EnvelopeSimpleIcon,
   MinusCircleIcon,
   PhoneIcon,
@@ -30,13 +29,11 @@ import {
   PERIOD_PARAM,
   PHONE_PARAM,
   QUERY_PARAM,
-  SORT_PARAM,
   STATUS_PARAM,
   clearedFilters,
   countActiveFilters,
   defaultQuery,
   periodOptions,
-  sortOptions,
   type ClientListItem,
   type ClientsListPage,
   type ClientsQuery,
@@ -117,7 +114,6 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
     setSelected([]);
     const params = new URLSearchParams();
     if (merged.search) params.set(QUERY_PARAM, merged.search);
-    if (merged.sort !== defaultQuery.sort) params.set(SORT_PARAM, merged.sort);
     if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
     if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
     if (merged.period !== defaultQuery.period) params.set(PERIOD_PARAM, merged.period);
@@ -177,22 +173,11 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
     router.refresh();
   };
 
-  /* O menu de filtros, tudo num lugar só (a pedido, 2026-09-08): ordem e período em escolha única,
-     marcada pelo check; favorito, ativo e inativo em interruptor, porque são sim ou não; e-mail e
-     telefone também. Cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar mais
+  /* O menu de filtros, tudo num lugar só e só o que é útil (a pedido, 2026-09-08): período em escolha
+     única, marcada pelo check; favorito e inativo em interruptor, porque são sim ou não; e-mail e
+     telefone também. Ordem e "só ativos" saíram por não mudarem nada no dia a dia. Cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar mais
      de uma coisa antes de sair; limpar volta tudo ao padrão e só aparece com algo em vigor. */
   const filterSections: DropdownSection[] = [
-    {
-      id: "sort",
-      label: "Ordem",
-      items: sortOptions.map((option) => ({
-        id: `sort-${option.value}`,
-        label: option.label,
-        selected: live.sort === option.value,
-        keepOpen: true,
-        onSelect: () => go({ sort: option.value, page: 1 }),
-      })),
-    },
     {
       id: "period",
       label: "Período de entrada",
@@ -216,15 +201,7 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
           checked: live.favorite === "favoritos",
           onChange: (on) => go({ favorite: on ? "favoritos" : "todos", page: 1 }),
         },
-        /* Ativo e inativo são um estado só, então ligar um desliga o outro. */
-        {
-          kind: "toggle",
-          id: "active",
-          label: "Só ativos",
-          icon: CheckCircleIcon,
-          checked: live.status === "ativos",
-          onChange: (on) => go({ status: on ? "ativos" : "todos", page: 1 }),
-        },
+        /* Só o que muda a lista de verdade: quase todo mundo é ativo, então o filtro útil é o de inativos. */
         {
           kind: "toggle",
           id: "inactive",
