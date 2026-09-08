@@ -481,6 +481,12 @@
   display: contents;
 }
 
+/* O botão principal da tela na barra: o nome cede e encurta por reticências antes de a barra passar da
+   largura da tela. */
+.barPrimary {
+  min-width: 0;
+}
+
 .barGroupInner {
   display: flex;
   align-items: center;

@@ -18,6 +18,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -158,6 +159,16 @@ export function ClientForm({ client }: ClientFormProps) {
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const editing = Boolean(client);
+  const form = useRef<HTMLFormElement>(null);
+  const primaryLabel = saving ? "Salvando" : editing ? "Salvar" : "Criar";
+
+  // No celular salvar e sair moram na barra flutuante do menu, fixa no rodapé, e o rodapé do formulário
+  // some: o botão fica sempre à mão sem brigar com o botão do menu. O disparo é o mesmo envio do
+  // formulário, então a validação nativa e a action valem igual.
+  useFloatingActionsRegistration({
+    primary: { label: primaryLabel, loading: saving, onClick: () => form.current?.requestSubmit() },
+    cancel: { label: "Cancelar", href: "/clientes" },
+  });
 
   // O endereço local da imagem escolhida é desfeito quando outro o substitui ou o formulário sai: o efeito
   // só limpa, sem escrever estado.
@@ -223,7 +234,7 @@ export function ClientForm({ client }: ClientFormProps) {
   const companyInitial = values.company.trim().charAt(0).toUpperCase();
 
   return (
-    <form className={styles.form} onSubmit={submit} noValidate>
+    <form ref={form} className={styles.form} onSubmit={submit} noValidate>
       <Section icon={IdentificationCardIcon} title="Identidade" description="Quem é a pessoa e onde trabalha.">
         <div className={styles.images}>
           <ImageField

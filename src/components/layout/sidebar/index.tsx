@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CheckIcon,
   CaretLeftIcon,
   CaretRightIcon,
   ListIcon,
@@ -20,6 +21,7 @@ import {
 } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/link";
@@ -30,6 +32,7 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
+import { useFloatingActions } from "../floating-actions";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
 import { Notifications, type AppNotification } from "../notifications";
 import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
@@ -411,6 +414,9 @@ export function SidebarPanel({
 export function Sidebar(props: SidebarProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [open, setOpen] = useState(false);
+  // As ações que a tela de agora pendurou na barra do celular (salvar e sair de um formulário): com elas
+  // a barra fica minimizada, sem a busca, e mostra as duas ao lado do botão do menu.
+  const { shape: actions, run: runAction } = useFloatingActions();
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
   const [notifications, setNotifications] = useState(props.notifications);
@@ -477,22 +483,39 @@ export function Sidebar(props: SidebarProps) {
       <div className={styles.bar} data-collapsed={open || undefined}>
         <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
-            <button type="button" className={styles.search} onClick={openSearch}>
-              <MagnifyingGlassIcon aria-hidden="true" />
-              <span className={styles.searchLabel}>Buscar</span>
-            </button>
-            <span className={styles.barDivider} aria-hidden="true" />
-            {/* Escondido, e não desmontado, quando não há o que ler: desmontar levava junto a bandeja aberta
-                no instante em que a última notificação era lida. */}
-            <span className={styles.barBell} hidden={unread === 0}>
-              <Notifications
-                items={notifications}
-                onChange={setNotifications}
-                size="md"
-                radius="md"
-              />
-              <span className={styles.barDivider} aria-hidden="true" />
-            </span>
+            {actions ? (
+              <>
+                {/* Tela com ações próprias: a busca sai e entram salvar e sair, no lugar dela, para a
+                    barra continuar uma só e o botão do menu ficar onde sempre fica. */}
+                <Button size="md" radius="md" iconStart={<CheckIcon />} loading={actions.loading} onClick={runAction} className={styles.barPrimary}>
+                  {actions.primaryLabel}
+                </Button>
+                <span className={styles.barDivider} aria-hidden="true" />
+                <IconButton label={actions.cancelLabel} variant="ghost" size="md" radius="md" href={actions.cancelHref}>
+                  <XIcon />
+                </IconButton>
+                <span className={styles.barDivider} aria-hidden="true" />
+              </>
+            ) : (
+              <>
+                <button type="button" className={styles.search} onClick={openSearch}>
+                  <MagnifyingGlassIcon aria-hidden="true" />
+                  <span className={styles.searchLabel}>Buscar</span>
+                </button>
+                <span className={styles.barDivider} aria-hidden="true" />
+                {/* Escondido, e não desmontado, quando não há o que ler: desmontar levava junto a bandeja
+                    aberta no instante em que a última notificação era lida. */}
+                <span className={styles.barBell} hidden={unread === 0}>
+                  <Notifications
+                    items={notifications}
+                    onChange={setNotifications}
+                    size="md"
+                    radius="md"
+                  />
+                  <span className={styles.barDivider} aria-hidden="true" />
+                </span>
+              </>
+            )}
           </div>
         </div>
         <IconButton
