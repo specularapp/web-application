@@ -34,8 +34,12 @@ export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Um degrau do caminho que o topo mostra: o nome e o glifo que o acompanha. */
-export type NavCrumb = { label: string; icon: Icon };
+/**
+ * Um degrau do caminho que o topo mostra: o nome e o glifo que o acompanha. Com `hue`, o glifo ganha um
+ * azulejo cheio naquele matiz; sem ele, sai solto e apagado. É o que separa a área, que é contexto largo,
+ * da pasta, que é onde a página mora de verdade.
+ */
+export type NavCrumb = { label: string; icon: Icon; hue?: string };
 
 /** Onde a página mora no menu: o caminho até ela à esquerda do topo e o nome dela no meio. */
 export type NavLocation = {
@@ -64,7 +68,7 @@ export function navLocation(pathname: string): NavLocation | null {
       if (isFolder(entry)) {
         for (const item of entry.items) {
           if (isCurrent(pathname, item.href)) {
-            found.push({ group: crumb, folder: { label: entry.label, icon: entry.icon }, page: item });
+            found.push({ group: crumb, folder: { label: entry.label, icon: entry.icon, hue: entry.hue }, page: item });
           }
         }
       } else if (isCurrent(pathname, entry.href)) {
