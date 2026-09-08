@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { getOnboardingBilling } from "@/features/billing/queries";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
@@ -54,7 +55,11 @@ export function AppFrame({ sidebar, children }: { sidebar: ReactNode; children: 
   return (
     <div className={styles.shell}>
       {sidebar}
-      <main className={styles.content}>{children}</main>
+      {/* Quem rola na aplicação é esta coluna, e não o documento: a concha tem a altura do visor. O
+          atributo é o que as camadas procuram para travar a rolagem certa ao abrir. */}
+      <main className={styles.content} {...{ [SCROLL_CONTAINER]: "" }}>
+        {children}
+      </main>
     </div>
   );
 }

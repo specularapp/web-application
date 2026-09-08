@@ -18,6 +18,7 @@ import {
 import { DayPicker, useDayPicker } from "react-day-picker";
 import { createPortal } from "react-dom";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { FieldAdornment, FieldShell } from "../field-shell";
 import { Listbox, type ListboxOption } from "../listbox";
 import { popIn, type ControlSize } from "../styles";
@@ -255,6 +256,8 @@ export function DatePicker({
   const dialogId = useId();
 
   const sheet = useMediaQuery(MOBILE_QUERY);
+  // Bandeja aberta trava quem rola atrás, que é a coluna de conteúdo, e não o documento.
+  useScrollLock(open && sheet);
   const date = value ?? inner;
   const flagged = invalid || aria["aria-invalid"] === true;
 
@@ -284,13 +287,7 @@ export function DatePicker({
 
   useEffect(() => {
     if (!open || !sheet) return;
-    const root = document.documentElement;
-    const previous = root.style.overflow;
-    root.style.overflow = "hidden";
     popoverRef.current?.querySelector<HTMLElement>('.rdp-day_button[tabindex="0"]')?.focus({ preventScroll: true });
-    return () => {
-      root.style.overflow = previous;
-    };
   }, [open, sheet]);
 
   useEffect(() => {

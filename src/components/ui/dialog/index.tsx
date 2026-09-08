@@ -8,6 +8,7 @@ import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
 
 export type DialogSize = "sm" | "md" | "lg";
@@ -281,6 +282,9 @@ export function Dialog({
   const closeRef = useRef(onClose);
   const dragRef = useRef<{ pointer: number; startY: number; y: number; frame: number } | null>(null);
   const layer = useLayer(open);
+  // Trava a coluna que rola de verdade, e não o documento: na concha da aplicação o documento nunca
+  // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular.
+  useScrollLock(open);
   // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
   // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
   // menu nasce enquanto quem manda é o menu, então o clique que vem depois não fecha o perfil junto.
@@ -381,9 +385,6 @@ export function Dialog({
 
     const panel = panelRef.current;
     const opener = document.activeElement as HTMLElement | null;
-    const root = document.documentElement;
-    const overflow = root.style.overflow;
-    root.style.overflow = "hidden";
 
     // Sem `focusOnOpen` quem recebe o foco é a própria janela, e não o primeiro campo: o Tab continua
     // preso aqui dentro e o teclado do celular não sobe sozinho ao abrir.
@@ -424,7 +425,6 @@ export function Dialog({
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      root.style.overflow = overflow;
       opener?.focus({ preventScroll: true });
     };
   }, [open, focusOnOpen, layer]);
