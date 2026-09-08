@@ -1,14 +1,16 @@
 "use client";
 
-import { ArrowSquareOutIcon, PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { cx } from "@/lib/utils/cx";
 import { compactMoney } from "@/lib/utils/format";
 import { loadClientAction } from "../actions";
 import type { ClientListItem } from "../list-options";
@@ -91,9 +93,6 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
               <IconButton label="Editar cliente" variant="ghost" size="sm">
                 <PencilSimpleIcon />
               </IconButton>
-              <IconButton label="Abrir a ficha em tela cheia" variant="ghost" size="sm" href={`/clientes/${client.id}`}>
-                <ArrowSquareOutIcon />
-              </IconButton>
               {full && <ClientMenu client={full} historyCount={12} />}
               <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
                 <XIcon />
@@ -128,21 +127,28 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
               </div>
               {full && (
                 <div className={styles.contact}>
-                  {clientActions(full).map(({ label, icon: Glyph, href, primary, background, foreground, external: opensTab }) => (
-                    <IconButton
-                      key={label}
-                      label={label}
-                      href={href}
-                      variant={primary ? "primary" : "outline"}
-                      background={background}
-                      foreground={foreground}
-                      size="sm"
-                      radius="md"
-                      {...(opensTab && external)}
-                    >
-                      <Glyph weight="bold" />
-                    </IconButton>
-                  ))}
+                  {/* A ação principal, o WhatsApp, leva o nome escrito, como no cartão de perfil do painel;
+                      e-mail e ligar ficam só no ícone. */}
+                  {clientActions(full).map(({ label, icon: Glyph, href, primary, background, foreground, external: opensTab }) => {
+                    const shared = {
+                      href,
+                      variant: primary ? ("primary" as const) : ("outline" as const),
+                      background,
+                      foreground,
+                      size: "sm" as const,
+                      radius: "md" as const,
+                      ...(opensTab && external),
+                    };
+                    return primary ? (
+                      <Button key={label} {...shared} iconStart={<Glyph weight="bold" />} className={styles.primaryAction}>
+                        {label}
+                      </Button>
+                    ) : (
+                      <IconButton key={label} {...shared} label={label}>
+                        <Glyph weight="bold" />
+                      </IconButton>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -152,7 +158,9 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
             {full && (
               <dl className={styles.tiles}>
                 <Tile label="Orçamentos" value={String(full.stats.quotes)} />
-                <Tile label="Projetos" value={String(full.stats.projects)} />
+                {/* Projetos sai no celular: três azulejos fecham a linha, e quatro deixavam um solto; a
+                    contagem continua na seção de projetos logo abaixo. */}
+                <Tile label="Projetos" value={String(full.stats.projects)} className={styles.tileWide} />
                 <Tile label="Faturado" value={compactMoney(full.stats.billed)} />
                 <Tile label="Em aberto" value={compactMoney(full.stats.open)} />
               </dl>
@@ -174,9 +182,9 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
   );
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
+function Tile({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className={styles.tile}>
+    <div className={cx(styles.tile, className)}>
       <Text as="dt" variant="caption1" tone="secondary" truncate>
         {label}
       </Text>

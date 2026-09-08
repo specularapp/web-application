@@ -133,8 +133,9 @@ const Sheet = styled.div`
     padding-block: var(--space-3);
   }
 
+  /* O título recua o mesmo que as linhas, senão ele nasce deslocado do glifo delas. */
   & [data-section-label] {
-    padding: var(--space-2) var(--space-3) var(--space-1);
+    padding: var(--space-2) var(--space-2) var(--space-1);
     font-size: var(--text-footnote);
     font-weight: var(--weight-semibold);
     color: var(--color-label);

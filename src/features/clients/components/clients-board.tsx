@@ -6,12 +6,16 @@ import {
   CalendarBlankIcon,
   CheckCircleIcon,
   EnvelopeSimpleIcon,
+  MinusCircleIcon,
   PhoneIcon,
   PlusIcon,
+  ProhibitIcon,
   StarIcon,
+  UsersIcon,
+  type Icon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
@@ -37,8 +41,10 @@ import {
   sortOptions,
   statusOptions,
   type ClientListItem,
+  type ClientsFavorite,
   type ClientsListPage,
   type ClientsQuery,
+  type ClientsStatus,
 } from "../list-options";
 import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
@@ -49,6 +55,10 @@ export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery };
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
 
+/* Um glifo por opção, para cada uma se reconhecer antes de ler: todos, os marcados e os de fora. */
+const favoriteIcons: Record<ClientsFavorite, Icon> = { todos: UsersIcon, favoritos: StarIcon, outros: ProhibitIcon };
+const statusIcons: Record<ClientsStatus, Icon> = { todos: UsersIcon, ativos: CheckCircleIcon, inativos: MinusCircleIcon };
+
 // A tela de clientes: a barra de busca e filtros em cima, a grade de cartões no meio e a paginação
 // embaixo. O filtro vive na URL e quem faz o trabalho é o servidor, então a página é compartilhável e
 // volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, e a
@@ -57,6 +67,15 @@ const TYPING_PAUSE = 320;
 export function ClientsBoard({ page, query }: ClientsBoardProps) {
   const router = useRouter();
   const [search, setSearch] = useState(query.search);
+  // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás, senão o check só
+  // aparecia quando o servidor devolvia a página, e a lista parecia lenta. Quando a resposta chega, o que
+  // veio da URL passa a valer, ajustado durante o render, que é como o React pede para reagir a prop nova.
+  const [live, setLive] = useState(query);
+  const [seen, setSeen] = useState(query);
+  if (seen !== query) {
+    setSeen(query);
+    setLive(query);
+  }
   // Quem está marcado na grade. As ações sobre a seleção ainda não existem; a marcação fica para elas.
   const [selected, setSelected] = useState<string[]>([]);
   // Uma gaveta só para a tela inteira, guardando quem está aberto: assim vinte e quatro cartões não
@@ -67,7 +86,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
   const go = (next: Partial<ClientsQuery>) => {
-    const merged = { ...query, ...next };
+    const merged = { ...live, ...next };
+    setLive(merged);
     const params = new URLSearchParams();
     if (merged.search) params.set(QUERY_PARAM, merged.search);
     if (merged.sort !== defaultQuery.sort) params.set(SORT_PARAM, merged.sort);
@@ -79,7 +99,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
 
     const search = params.toString();
-    router.replace(search ? `/clientes?${search}` : "/clientes", { scroll: false });
+    startTransition(() => router.replace(search ? `/clientes?${search}` : "/clientes", { scroll: false }));
   };
 
   // Cada tecla refaz a página no servidor, então o campo espera a pessoa parar de digitar: sem isso
@@ -94,8 +114,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     setSelected((current) => (on ? [...current, id] : current.filter((entry) => entry !== id)));
 
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
-  const menuFilters = countMenuFilters(query);
-  const quickFilters = countQuickFilters(query);
+  const menuFilters = countMenuFilters(live);
+  const quickFilters = countQuickFilters(live);
 
   /* O menu de filtros: cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar
      mais de uma coisa antes de sair. Favoritos e situação são escolha única, marcada pelo check; e-mail
@@ -108,8 +128,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
       items: favoriteOptions.map((option) => ({
         id: `favorite-${option.value}`,
         label: option.label,
-        icon: option.value === "todos" ? undefined : StarIcon,
-        selected: query.favorite === option.value,
+        icon: favoriteIcons[option.value],
+        selected: live.favorite === option.value,
         keepOpen: true,
         onSelect: () => go({ favorite: option.value, page: 1 }),
       })),
@@ -120,8 +140,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
       items: statusOptions.map((option) => ({
         id: `status-${option.value}`,
         label: option.label,
-        icon: option.value === "todos" ? undefined : CheckCircleIcon,
-        selected: query.status === option.value,
+        icon: statusIcons[option.value],
+        selected: live.status === option.value,
         keepOpen: true,
         onSelect: () => go({ status: option.value, page: 1 }),
       })),
@@ -135,7 +155,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
           id: "email",
           label: "Com e-mail",
           icon: EnvelopeSimpleIcon,
-          checked: query.withEmail,
+          checked: live.withEmail,
           onChange: (withEmail) => go({ withEmail, page: 1 }),
         },
         {
@@ -143,7 +163,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
           id: "phone",
           label: "Com telefone",
           icon: PhoneIcon,
-          checked: query.withPhone,
+          checked: live.withPhone,
           onChange: (withPhone) => go({ withPhone, page: 1 }),
         },
       ],
@@ -168,7 +188,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
              período do painel. Quem veste o botão é a barra. */
           {
             label: "Ordem dos clientes",
-            triggerLabel: `Ordem: ${sortOptions.find((option) => option.value === query.sort)?.label ?? ""}`,
+            triggerLabel: `Ordem: ${sortOptions.find((option) => option.value === live.sort)?.label ?? ""}`,
             icon: <ArrowsDownUpIcon />,
             sections: [
               {
@@ -177,7 +197,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
                 items: sortOptions.map((option) => ({
                   id: option.value,
                   label: option.label,
-                  selected: option.value === query.sort,
+                  selected: option.value === live.sort,
                   onSelect: () => go({ sort: option.value, page: 1 }),
                 })),
               },
@@ -185,7 +205,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
           },
           {
             label: "Período de entrada",
-            triggerLabel: `Período: ${periodOptions.find((option) => option.value === query.period)?.label ?? ""}`,
+            triggerLabel: `Período: ${periodOptions.find((option) => option.value === live.period)?.label ?? ""}`,
             icon: <CalendarBlankIcon />,
             sections: [
               {
@@ -194,7 +214,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
                 items: periodOptions.map((option) => ({
                   id: option.value,
                   label: option.label,
-                  selected: option.value === query.period,
+                  selected: option.value === live.period,
                   onSelect: () => go({ period: option.value, page: 1 }),
                 })),
               },
@@ -249,7 +269,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
       {pages > 1 && (
         <div className={styles.foot}>
           <Pagination
-            page={query.page}
+            page={live.page}
             pageSize={CLIENTS_PER_PAGE}
             total={page.total}
             onPageChange={(next) => go({ page: next })}

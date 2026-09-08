@@ -98,8 +98,10 @@
     gap: var(--space-2);
   }
 
-  .contact > * {
-    flex: 1;
+  /* A ação principal cede e toma o que sobra; as de ícone ficam no próprio tamanho. */
+  .contact .primaryAction {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 
@@ -110,6 +112,17 @@
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   gap: var(--space-2);
   margin: 0;
+}
+
+/* No celular são três azulejos numa linha só: quatro deixavam um solto na segunda linha. */
+@media (max-width: 47.9375rem) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tileWide {
+    display: none;
+  }
 }
 
 .tile {

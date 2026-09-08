@@ -26,8 +26,8 @@
    pesar. No escuro o alfa sobe, porque sobre o preto o mesmo véu sumia. */
 .card[data-selected] .inner {
   background-color: light-dark(
-    color-mix(in oklab, var(--color-accent) 10%, transparent),
-    color-mix(in oklab, var(--color-accent) 20%, transparent)
+    color-mix(in oklab, var(--color-accent) 6%, transparent),
+    color-mix(in oklab, var(--color-accent) 14%, transparent)
   );
 }
 
