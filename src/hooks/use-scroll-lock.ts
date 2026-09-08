@@ -17,6 +17,13 @@ import { SCROLL_CONTAINER } from "@/lib/scroll";
  * Trocar `overflow` de um elemento que rola por dentro, ao contrário, não mexe no `scrollTop` dele nem
  * no visor: a posição fica exatamente onde estava.
  *
+ * **O gesto também é barrado** (2026-09-08, depois de a página atrás rolar quando o dedo passava do fim
+ * do conteúdo da janela): `overflow: hidden` segura a coluna, mas o toque que começa numa parte da
+ * janela que não rola (cabeçalho, rodapé, fundo) ainda encadeava para quem estava atrás em alguns
+ * navegadores. Enquanto há trava, todo `touchmove` e `wheel` do documento é barrado, salvo quando nasce
+ * dentro de algo que rola de verdade (um corpo com `overflow: auto` e conteúdo maior que a caixa), que é
+ * o conteúdo da própria janela. A coluna travada não conta, porque o `overflow` dela está em `hidden`.
+ *
  * A contagem é compartilhada porque camada abre de dentro de camada (o menu de opções por dentro do
  * perfil): só a primeira trava e só a última destrava, senão a de cima soltava a rolagem da de baixo.
  */
@@ -30,6 +37,28 @@ function scrollers() {
   return marked.length > 0 ? marked : [document.documentElement];
 }
 
+const SCROLLS = /(auto|scroll)/;
+
+/* O gesto nasceu dentro de algo que rola de verdade? Sobe até o corpo procurando uma caixa com
+   `overflow` de rolagem e conteúdo maior que ela, em qualquer eixo. Campo de texto e editável entram,
+   porque rolam por dentro. */
+function insideScrollable(target: EventTarget | null) {
+  let node = target instanceof Element ? target : null;
+  while (node && node !== document.body) {
+    if (node instanceof HTMLTextAreaElement || (node instanceof HTMLElement && node.isContentEditable)) return true;
+    const style = getComputedStyle(node);
+    if (SCROLLS.test(style.overflowY) && node.scrollHeight > node.clientHeight) return true;
+    if (SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+function guard(event: Event) {
+  if (insideScrollable(event.target)) return;
+  event.preventDefault();
+}
+
 export function useScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -40,6 +69,8 @@ export function useScrollLock(active: boolean) {
         frozen.push({ element, overflow: element.style.overflow });
         element.style.overflow = "hidden";
       }
+      document.addEventListener("touchmove", guard, { passive: false });
+      document.addEventListener("wheel", guard, { passive: false });
     }
 
     return () => {
@@ -47,6 +78,8 @@ export function useScrollLock(active: boolean) {
       if (depth > 0) return;
       for (const { element, overflow } of frozen) element.style.overflow = overflow;
       frozen.length = 0;
+      document.removeEventListener("touchmove", guard);
+      document.removeEventListener("wheel", guard);
     };
   }, [active]);
 }

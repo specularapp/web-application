@@ -48,9 +48,10 @@ const rise = keyframes`
   }
 `;
 
+/* A bandeja desce inteira, sem desbotar: com opacidade junto ela sumia no meio do caminho e a saída lia
+   como um corte, não como a bandeja indo embora (2026-09-08). Quem desbota é o fundo. */
 const fall = keyframes`
   to {
-    opacity: 0;
     transform: translateY(100%);
   }
 `;
@@ -135,6 +136,8 @@ const Panel = styled.div`
   max-height: min(34rem, calc(100dvh - var(--space-16)));
   min-height: 0;
   overflow: hidden;
+  /* A rolagem de dentro nunca encadeia para fora: chegando ao fim do conteúdo, o gesto para aqui. */
+  overscroll-behavior: contain;
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);

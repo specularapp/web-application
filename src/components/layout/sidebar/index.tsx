@@ -421,6 +421,10 @@ export function Sidebar(props: SidebarProps) {
   // de modo desbotando um sobre o outro, e o que sai não pode sumir no meio do caminho.
   const [lastActions, setLastActions] = useState(actions);
   if (actions && actions !== lastActions) setLastActions(actions);
+  // O modo de ações fica montado desde o começo, apagado e inerte, com um rótulo de espera enquanto
+  // nenhuma janela registrou nada: montar só na hora fazia ele aparecer já no estado final, sem o fundido
+  // de entrada, e a troca lia como seca.
+  const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar" };
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
   const [notifications, setNotifications] = useState(props.notifications);
@@ -507,18 +511,16 @@ export function Sidebar(props: SidebarProps) {
             </span>
             {/* Janela com ações próprias: salvar e sair entram no lugar da busca e do sino, para a barra
                 continuar uma só e o botão do menu ficar onde sempre fica. */}
-            {lastActions && (
-              <span className={styles.barMode} data-active={actions ? "" : undefined} inert={actions ? undefined : true}>
-                <Button size="md" radius="md" iconStart={<CheckIcon />} loading={lastActions.loading} disabled={lastActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
-                  {lastActions.primaryLabel}
-                </Button>
-                <span className={styles.barDivider} aria-hidden="true" />
-                <IconButton label={lastActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
-                  <XIcon />
-                </IconButton>
-                <span className={styles.barDivider} aria-hidden="true" />
-              </span>
-            )}
+            <span className={styles.barMode} data-active={actions ? "" : undefined} inert={actions ? undefined : true}>
+              <Button size="md" radius="md" iconStart={<CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
+                {shownActions.primaryLabel}
+              </Button>
+              <span className={styles.barDivider} aria-hidden="true" />
+              <IconButton label={shownActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
+                <XIcon />
+              </IconButton>
+              <span className={styles.barDivider} aria-hidden="true" />
+            </span>
           </div>
         </div>
         <IconButton
