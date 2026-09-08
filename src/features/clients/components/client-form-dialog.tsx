@@ -4,7 +4,6 @@ import {
   BuildingsIcon,
   CheckCircleIcon,
   CheckIcon,
-  DotsThreeVerticalIcon,
   IdentificationCardIcon,
   NotePencilIcon,
   PhoneIcon,
@@ -161,17 +160,22 @@ function ImageField({
 // flutuante do menu. Três blocos separados por fio, identidade, contato e detalhes, com os campos no
 // padrão da casa e em pares onde cabem. O estado é local e o envio é a action, que valida com zod de novo
 // no servidor; erro de campo volta para o campo, e sucesso avisa e fecha. A foto e a logo entram na prévia
-// na hora; o envio do arquivo chega com o storage. Ativo e favorito ficam no menu de três pontos do topo.
+// na hora; o envio do arquivo chega com o storage. Ativo e favorito ficam no menu do chevron duplo do topo.
 export function ClientFormDialog({ editor, onClose, onSaved }: ClientFormDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
+  // O que está desenhado dentro da gaveta: segue o editor enquanto ele existe e fica quando ele zera, para
+  // o conteúdo não sumir antes de a gaveta terminar de sair (a `Dialog` só desmonta os filhos no fim da
+  // animação). Ajustado durante o render, que é como o React pede para reagir a prop nova.
+  const [shown, setShown] = useState<ClientEditor>(editor);
+  if (editor !== null && editor !== shown) setShown(editor);
 
   return (
     // Sem escurecimento no desktop, como a gaveta de criar equipe: a página segue viva atrás. No celular
     // o escurecimento entra, senão o toque na barra flutuante, que fica acima da bandeja, fecharia a janela
     // como toque fora.
     <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? "Novo cliente" : "Editar cliente"} size="md" placement="end" surface="glass" scrim={mobile} focusOnOpen={false}>
-      {editor === "new" && <ClientForm onClose={onClose} onSaved={onSaved} />}
-      {editor !== null && editor !== "new" && (isFull(editor) ? <ClientForm client={editor} onClose={onClose} onSaved={onSaved} /> : <ClientLoader item={editor} onClose={onClose} onSaved={onSaved} />)}
+      {shown === "new" && <ClientForm onClose={onClose} onSaved={onSaved} />}
+      {shown !== null && shown !== "new" && (isFull(shown) ? <ClientForm client={shown} onClose={onClose} onSaved={onSaved} /> : <ClientLoader item={shown} onClose={onClose} onSaved={onSaved} />)}
     </Dialog>
   );
 }
@@ -297,11 +301,10 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
         </Text>
         <div className={styles.headActions}>
           {/* Ativo e favorito são situação, e não dado da ficha: moram no menu de opções da própria
-              janela, como interruptores, para não tomar linha do formulário. */}
+              janela, no chevron duplo das listas, como interruptores, para não tomar linha do formulário. */}
           <DropdownMenu
             label="Situação do cliente"
             triggerLabel="Situação do cliente"
-            icon={<DotsThreeVerticalIcon />}
             sections={[
               {
                 id: "flags",

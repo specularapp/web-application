@@ -184,6 +184,10 @@
   --sidebar-width: 16rem;
   --topbar-height: 3.25rem;
   --content-max: 80rem;
+  /* Quanto a barra flutuante do celular toma do rodapé quando está com ações (salvar e sair) e sobe para
+     cima das janelas: a altura dela mais o recuo de baixo e um respiro. Toda bandeja aberta nessa situação
+     ganha essa folga embaixo, senão as últimas linhas ficavam atrás da barra e não dava para tocar. */
+  --floating-bar-inset: calc(var(--control-height-md) + var(--space-2) + var(--space-4) * 2);
 }
 
 :root[data-theme="light"] {

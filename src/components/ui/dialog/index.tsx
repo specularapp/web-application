@@ -166,6 +166,13 @@ const Panel = styled.div`
     background-color: var(--glass-sheet-bg);
   }
 
+  /* Com a barra flutuante do celular em modo de ações (salvar e sair), ela fica acima das janelas: toda
+     bandeja ganha a folga dela embaixo, senão as últimas linhas ficavam atrás da barra e não dava para
+     tocar. A marca vem do html, posta pelo provedor de ações; nenhuma bandeja precisa saber da barra. */
+  html[data-floating-actions] &[data-mode="sheet"] {
+    padding-block-end: calc(var(--floating-bar-inset) + env(safe-area-inset-bottom));
+  }
+
   /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo
      em volta e nada atrás do vidro, que só borra o que está dentro dos próprios limites. */
   &[data-veil="soft"] {

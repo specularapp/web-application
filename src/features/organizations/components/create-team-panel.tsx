@@ -4,6 +4,7 @@ import styled from "@emotion/styled";
 import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
 import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
@@ -158,6 +160,8 @@ const PersonRole = styled.span`
   width: 9rem;
 `;
 
+/* No celular o rodapé some: criar e sair moram na barra flutuante do menu, e a folga para ela vem da
+   própria bandeja, pela regra geral do `Dialog`. */
 const Footer = styled.footer`
   display: flex;
   flex-shrink: 0;
@@ -165,6 +169,10 @@ const Footer = styled.footer`
   justify-content: flex-end;
   padding: var(--space-4) var(--space-5);
   border-block-start: var(--panel-line) solid var(--color-border);
+
+  @media (max-width: 47.9375rem) {
+    display: none;
+  }
 `;
 
 // Criar equipe numa gaveta à direita: identidade, dados e pessoas numa lista só, do jeito que os
@@ -275,10 +283,22 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
     router.refresh();
   };
 
+  // No celular criar e sair moram na barra flutuante do menu, acima da bandeja, e o rodapé some: a mesma
+  // dinâmica da ficha do cliente. Registra só enquanto a gaveta está aberta.
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  useFloatingActionsRegistration(
+    open
+      ? {
+          primary: { label: saving ? "Criando" : "Criar", loading: saving, disabled: !filled, onClick: () => void create() },
+          cancel: { label: "Cancelar", onClick: close },
+        }
+      : null,
+  );
+
   return (
-    // Sem o fundo que escurece, e não por descuido: o vidro borra o que está atrás dele, e com o
-    // escurecimento ligado quem seria borrado é o próprio escurecimento, deixando a gaveta cinza no
-    // tema claro em vez de translúcida. Fechar por toque fora entra no lugar do clique no fundo.
+    // Sem o fundo que escurece no desktop: fechar por toque fora entra no lugar do clique no fundo. No
+    // celular o escurecimento entra, senão o toque na barra flutuante, que fica acima da bandeja, fecharia
+    // a gaveta como toque fora.
     <Drawer
       open={open}
       onClose={close}
@@ -286,7 +306,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
       size="md"
       placement="end"
       surface="glass"
-      scrim={false}
+      scrim={mobile}
     >
       <Header>
         <Text as="h2" variant="headline" weight="semibold">

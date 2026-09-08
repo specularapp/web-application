@@ -484,10 +484,10 @@ export function Sidebar(props: SidebarProps) {
         <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
             {actions ? (
-              <>
+              <span key="actions" className={styles.barMode}>
                 {/* Janela com ações próprias: a busca e o sino saem e entram salvar e sair no lugar deles,
                     para a barra continuar uma só e o botão do menu ficar onde sempre fica. */}
-                <Button size="md" radius="md" iconStart={<CheckIcon />} loading={actions.loading} onClick={runPrimary} className={styles.barPrimary}>
+                <Button size="md" radius="md" iconStart={<CheckIcon />} loading={actions.loading} disabled={actions.disabled} onClick={runPrimary} className={styles.barPrimary}>
                   {actions.primaryLabel}
                 </Button>
                 <span className={styles.barDivider} aria-hidden="true" />
@@ -495,9 +495,9 @@ export function Sidebar(props: SidebarProps) {
                   <XIcon />
                 </IconButton>
                 <span className={styles.barDivider} aria-hidden="true" />
-              </>
+              </span>
             ) : (
-              <>
+              <span key="default" className={styles.barMode}>
                 <button type="button" className={styles.search} onClick={openSearch}>
                   <MagnifyingGlassIcon aria-hidden="true" />
                   <span className={styles.searchLabel}>Buscar</span>
@@ -514,7 +514,7 @@ export function Sidebar(props: SidebarProps) {
                   />
                   <span className={styles.barDivider} aria-hidden="true" />
                 </span>
-              </>
+              </span>
             )}
           </div>
         </div>

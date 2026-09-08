@@ -40,12 +40,12 @@
   overscroll-behavior: contain;
 }
 
-/* No celular o rodapé some e a folga do fim é para a barra flutuante, que fica acima da bandeja: alta o
-   bastante para o último campo não se misturar com ela. */
+/* No celular o rodapé some: salvar e sair estão na barra flutuante, e a folga para ela vem da própria
+   bandeja, pela regra geral do `Dialog`. */
 @media (max-width: 47.9375rem) {
   .body {
     gap: var(--space-4);
-    padding-block: var(--space-4) calc(var(--touch-target) + var(--space-16));
+    padding-block: var(--space-4);
   }
 }
 

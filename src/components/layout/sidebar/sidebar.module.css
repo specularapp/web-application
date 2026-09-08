@@ -493,6 +493,30 @@
   min-width: 0;
 }
 
+/* Cada modo da barra (busca e sino, ou salvar e sair) entra desbotando e subindo um fio, com a curva que
+   assenta: a troca é remontar o conteúdo, e sem isso ele piscava de um para o outro. Só `opacity` e
+   `transform`, que o compositor resolve sozinho. */
+.barMode {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  animation: barModeIn var(--duration-base) var(--ease-settle) both;
+}
+
+@keyframes barModeIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barMode {
+    animation: none;
+  }
+}
+
 .barGroupInner {
   display: flex;
   align-items: center;

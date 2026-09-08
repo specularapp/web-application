@@ -52,7 +52,7 @@ const Shell = styled.span`
 `;
 
 /* A etiqueta com o × dentro: pílula no preenchimento da casa, com a altura fechada para caber na linha do
-   campo sem recortar nada. É o chip com remoção que o `Badge` deixa de fora de propósito. */
+   campo sem recortar nada. É o chip com remoção que o Badge deixa de fora de propósito. */
 const Chip = styled.span`
   display: inline-flex;
   gap: var(--space-half);
