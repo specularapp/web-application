@@ -26,8 +26,8 @@ export const defaultPageSizeOptions = [10, 20, 30, 50, 100];
 const numberFormat = new Intl.NumberFormat("pt-BR");
 
 /* Uma caixa só, com o fio da casa, e as peças separadas por fios dentro dela: primeira, anterior, a
-   página em vigor (que é uma lista para pular direto), próxima e última. Os menus de dentro se vestem
-   como o resto da caixa: sem fundo nem fio próprios, na altura do controle pequeno. */
+   página em vigor, próxima e última. O menu de quantidade, quando existe, se veste como o resto da caixa:
+   sem fundo nem fio próprios, na altura do controle pequeno. */
 const Bar = styled.nav`
   --listbox-trigger-height: var(--control-height-sm);
   --listbox-trigger-radius: var(--radius-sm);
@@ -69,6 +69,24 @@ const Bar = styled.nav`
   }
 `;
 
+/* A página em vigor e o total, "1/12", em algarismo tabular e com largura mínima para a caixa não pulsar
+   ao trocar de página. Só texto: a lista para pular de página durou uma rodada e saiu a pedido. */
+const Indicator = styled.p`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  height: var(--control-height-sm);
+  margin: 0;
+  padding-inline: var(--space-3);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  color: var(--color-label);
+`;
+
 export function Pagination({
   page,
   pageSize,
@@ -85,11 +103,6 @@ export function Pagination({
   const first = total === 0 ? 0 : (current - 1) * pageSize + 1;
   const last = Math.min(total, current * pageSize);
   const sizes: ListboxOption<number>[] = pageSizeOptions.map((size) => ({ value: size, label: String(size) }));
-  // A página em vigor lê "1/12" e abre a lista de todas, para pular direto sem apertar a seta doze vezes.
-  const pages: ListboxOption<number>[] = Array.from({ length: pageCount }, (_, index) => ({
-    value: index + 1,
-    label: `${numberFormat.format(index + 1)}/${numberFormat.format(pageCount)}`,
-  }));
 
   return (
     <Bar aria-label={label} className={className} style={style}>
@@ -109,10 +122,14 @@ export function Pagination({
         <CaretLeftIcon />
       </IconButton>
       <Separator orientation="vertical" data-divider />
-      <Listbox label="Ir para a página" placement="above" options={pages} value={current} onChange={onPageChange} />
-      <VisuallyHidden aria-live="polite">
-        {total === 0 ? "Nenhum item" : `Página ${current} de ${pageCount}, itens ${first} a ${last} de ${total}`}
-      </VisuallyHidden>
+      <Indicator aria-live="polite">
+        <span aria-hidden="true">
+          {numberFormat.format(current)}/{numberFormat.format(pageCount)}
+        </span>
+        <VisuallyHidden>
+          {total === 0 ? "Nenhum item" : `Página ${current} de ${pageCount}, itens ${first} a ${last} de ${total}`}
+        </VisuallyHidden>
+      </Indicator>
       <Separator orientation="vertical" data-divider />
       <IconButton label="Próxima página" variant="ghost" size="sm" radius="md" disabled={current >= pageCount} onClick={() => onPageChange(current + 1)}>
         <CaretRightIcon />

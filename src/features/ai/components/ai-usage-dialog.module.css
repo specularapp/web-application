@@ -1,0 +1,99 @@
+/* Cabeçalho e rodapé fixos, o meio rola: a janela tem teto de altura. Os fios seguem o menu, 0,6px em
+   `--color-border`. */
+.dialog {
+  --dialog-line: 0.0375rem;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--dialog-line) solid var(--color-border);
+}
+
+/* A marca de quem responde num azulejo com o fio da casa, na tinta do texto. */
+.mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.125rem;
+  color: var(--color-label);
+  border: var(--dialog-line) solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* O número grande do que já foi, o "de quanto" na linha de base dele e a porcentagem na outra ponta. */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+}
+
+.used {
+  line-height: 1;
+}
+
+.of {
+  flex: 1;
+  min-width: 0;
+}
+
+.share {
+  align-self: center;
+}
+
+/* Os fatos em duas colunas, rótulo apagado em cima e valor embaixo, como nas fichas da casa. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--dialog-line) solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.value {
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.foot {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-5) var(--space-5);
+  border-block-start: var(--dialog-line) solid var(--color-border);
+}

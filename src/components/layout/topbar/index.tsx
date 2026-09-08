@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { BrandIcon } from "@/components/ui/brand-icon";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { AiUsageDialog } from "@/features/ai/components/ai-usage-dialog";
 import { aiShare, type AiUsage } from "@/features/ai/summary";
 import { navLocation } from "../nav";
 import styles from "./topbar.module.css";
@@ -31,10 +32,14 @@ const usageLabel = (usage: AiUsage) => `${usage.used} de ${usage.limit} ações 
 // nome da página à esquerda, como `h1`, e na ponta direita o quanto da IA já foi usado. Nada mais: o
 // menu lateral já diz onde a página mora, e repetir o caminho aqui era ruído. O nome sai de
 // `navLocation`, a fonte única das rotas, e a página troca por `title` quando se chama diferente.
+//
+// O widget da IA é um botão: abre a janela com o resumo do ciclo e o caminho para comprar mais crédito.
+// A janela só monta aberta, então não pesa na carga da página.
 export function Topbar({ title, ai }: TopbarProps) {
   const pathname = usePathname();
   const location = navLocation(pathname);
   const name = title ?? location?.page.label;
+  const [usageOpen, setUsageOpen] = useState(false);
 
   if (!name) return null;
 
@@ -45,19 +50,29 @@ export function Topbar({ title, ai }: TopbarProps) {
       </Text>
 
       {ai && (
-        <Link href="/ia" className={styles.ai} title={usageLabel(ai)}>
-          {/* A marca de quem responde, em máscara na tinta do texto, e a régua de barras dizendo o quanto
-              do ciclo já foi, sem número na tela: cada degrau é uma fatia do plano, os acesos até onde
-              chegou e os apagados até o fim. O número por extenso fica na leitura por voz e na dica do
-              ponteiro. Monocromático porque mora na moldura e não é etiqueta de estado. */}
-          <BrandIcon name="openai" />
-          <span className={styles.meter} aria-hidden="true">
-            {Array.from({ length: AI_SEGMENTS }, (_, index) => (
-              <span key={index} className={styles.bar} data-on={index < litSegments(ai) || undefined} />
-            ))}
-          </span>
-          <VisuallyHidden>{usageLabel(ai)}</VisuallyHidden>
-        </Link>
+        <>
+          <button
+            type="button"
+            className={styles.ai}
+            title={usageLabel(ai)}
+            aria-haspopup="dialog"
+            aria-expanded={usageOpen}
+            onClick={() => setUsageOpen(true)}
+          >
+            {/* A marca de quem responde, em máscara na tinta do texto, e a régua de barras dizendo o quanto
+                do ciclo já foi, sem número na tela: cada degrau é uma fatia do plano, os acesos até onde
+                chegou e os apagados até o fim. O número por extenso fica na leitura por voz e na dica do
+                ponteiro. Monocromático porque mora na moldura e não é etiqueta de estado. */}
+            <BrandIcon name="openai" />
+            <span className={styles.meter} aria-hidden="true">
+              {Array.from({ length: AI_SEGMENTS }, (_, index) => (
+                <span key={index} className={styles.bar} data-on={index < litSegments(ai) || undefined} />
+              ))}
+            </span>
+            <VisuallyHidden>{usageLabel(ai)}</VisuallyHidden>
+          </button>
+          <AiUsageDialog usage={ai} open={usageOpen} onClose={() => setUsageOpen(false)} />
+        </>
       )}
     </header>
   );

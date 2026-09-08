@@ -4,10 +4,17 @@ export type AiUsage = {
   used: number;
   /** Quantas o plano dá no ciclo. */
   limit: number;
+  /** Quando o ciclo vira e a contagem zera, no formato `yyyy-MM-dd`. */
+  renewsAt: string;
 };
 
 /** De 0 a 1, com teto: plano estourado não desenha barra passando do fim. */
 export function aiShare(usage: AiUsage) {
   if (usage.limit <= 0) return 1;
   return Math.min(1, usage.used / usage.limit);
+}
+
+/** Quantas ações ainda cabem no ciclo; nunca negativo, porque estourado é estourado. */
+export function aiRemaining(usage: AiUsage) {
+  return Math.max(0, usage.limit - usage.used);
 }

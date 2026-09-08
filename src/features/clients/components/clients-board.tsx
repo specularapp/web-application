@@ -17,6 +17,7 @@ import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
+import { SCROLL_CONTAINER } from "@/lib/scroll";
 import {
   CLIENTS_PER_PAGE,
   EMAIL_PARAM,
@@ -98,6 +99,15 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
 
   const toggle = (id: string, on: boolean) =>
     setSelected((current) => (on ? [...current, id] : current.filter((entry) => entry !== id)));
+
+  // Trocar de página leva de volta ao começo da lista: quem rola é a coluna de conteúdo da concha, e não o
+  // documento, então o `scroll` do roteador não a alcança. Macio, salvo com movimento reduzido.
+  const changePage = (next: number) => {
+    go({ page: next });
+    const column = document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    column.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  };
 
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
   const active = countActiveFilters(live);
@@ -246,7 +256,7 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
             page={live.page}
             pageSize={CLIENTS_PER_PAGE}
             total={page.total}
-            onPageChange={(next) => go({ page: next })}
+            onPageChange={changePage}
             label="Páginas de clientes"
           />
         </div>
