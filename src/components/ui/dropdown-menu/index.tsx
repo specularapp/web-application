@@ -14,6 +14,7 @@ import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { Badge } from "../badge";
+import type { ButtonRadius } from "../button";
 import { Dialog } from "../dialog";
 import { IconButton } from "../icon-button";
 import { hoverMotion, layerMotion } from "../styles";
@@ -36,6 +37,8 @@ export type DropdownAction = {
   tone?: "default" | "danger";
   /** Item marcado numa escolha única, como o período em vigor: vira `menuitemradio` com o check no fim. */
   selected?: boolean;
+  /** Escolher não fecha o menu: para filtro, em que a pessoa ajusta várias coisas antes de sair. */
+  keepOpen?: boolean;
   onSelect?: () => void;
 };
 
@@ -65,6 +68,10 @@ export type DropdownMenuProps = {
   sections: DropdownSection[];
   icon?: ReactNode;
   size?: "sm" | "md";
+  /** O gatilho é fantasma por padrão, como o chevron das listas; `outline` é o botão de filtros da barra. */
+  variant?: "ghost" | "outline";
+  /** Canto do gatilho, no contrato do `Button`. */
+  radius?: ButtonRadius;
 };
 
 const PANEL_WIDTH = 280;
@@ -259,7 +266,7 @@ function isExternal(href: string) {
 // rota ou endereço externo), com seta de mais opções, selo do plano que libera e contagem no fim da
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
-export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" }: DropdownMenuProps) {
+export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", variant = "ghost", radius }: DropdownMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -385,7 +392,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
 
     const select = () => {
       item.onSelect?.();
-      setOpen(false);
+      if (!item.keepOpen) setOpen(false);
     };
 
     if (item.href && isExternal(item.href)) {
@@ -427,8 +434,9 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm" 
       <IconButton
         ref={triggerRef}
         label={triggerLabel}
-        variant="ghost"
+        variant={variant}
         size={size}
+        radius={radius}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}

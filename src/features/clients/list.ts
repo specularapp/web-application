@@ -7,6 +7,7 @@ import {
   favoriteValues,
   periodValues,
   sortValues,
+  statusValues,
   type ClientListItem,
   type ClientsListPage,
   type ClientsQuery,
@@ -19,11 +20,21 @@ import {
  */
 
 /* Valor fora da lista cai no padrão em vez de derrubar a página: a URL é digitável e vem de link antigo. */
+/* Filtro de liga e desliga na URL: presente com "1" liga, qualquer outra coisa ou ausente desliga. */
+const flag = z
+  .string()
+  .optional()
+  .transform((value) => value === "1")
+  .catch(false);
+
 const querySchema = z.object({
   search: z.string().trim().max(80).catch(""),
   sort: z.enum(sortValues).catch(defaultQuery.sort),
   favorite: z.enum(favoriteValues).catch(defaultQuery.favorite),
+  status: z.enum(statusValues).catch(defaultQuery.status),
   period: z.enum(periodValues).catch(defaultQuery.period),
+  withEmail: flag,
+  withPhone: flag,
   page: z.coerce.number().int().min(1).max(9999).catch(1),
 });
 
@@ -32,7 +43,10 @@ export function parseClientsQuery(params: Record<string, string | undefined>): C
     search: params.busca ?? "",
     sort: params.ordem,
     favorite: params.favorito,
+    status: params.situacao,
     period: params.periodo,
+    withEmail: params.email,
+    withPhone: params.telefone,
     page: params.pagina ?? 1,
   });
 }
@@ -76,8 +90,10 @@ export function listClients(clients: ClientListItem[], query: ClientsQuery): Cli
     (client) =>
       matches(client, query.search) &&
       withinPeriod(client, query.period) &&
-      (query.favorite === "todos" ||
-        (query.favorite === "favoritos" ? client.favorite : !client.favorite)),
+      (query.favorite === "todos" || (query.favorite === "favoritos" ? client.favorite : !client.favorite)) &&
+      (query.status === "todos" || (query.status === "ativos" ? client.active : !client.active)) &&
+      (!query.withEmail || Boolean(client.email)) &&
+      (!query.withPhone || Boolean(client.phone)),
   );
 
   const start = (query.page - 1) * CLIENTS_PER_PAGE;

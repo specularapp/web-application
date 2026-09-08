@@ -1,26 +1,40 @@
 "use client";
 
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import {
+  ArrowCounterClockwiseIcon,
+  CheckCircleIcon,
+  EnvelopeSimpleIcon,
+  PhoneIcon,
+  PlusIcon,
+  StarIcon,
+  TrashIcon,
+  UploadSimpleIcon,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { Input } from "@/components/ui/input";
 import { Listbox } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import {
   CLIENTS_PER_PAGE,
+  EMAIL_PARAM,
   FAVORITE_PARAM,
   PAGE_PARAM,
   PERIOD_PARAM,
+  PHONE_PARAM,
   QUERY_PARAM,
   SORT_PARAM,
+  STATUS_PARAM,
+  countMenuFilters,
   defaultQuery,
   favoriteOptions,
   periodOptions,
   sortOptions,
+  statusOptions,
   type ClientListItem,
   type ClientsListPage,
   type ClientsQuery,
@@ -56,7 +70,10 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
     if (merged.search) params.set(QUERY_PARAM, merged.search);
     if (merged.sort !== defaultQuery.sort) params.set(SORT_PARAM, merged.sort);
     if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
+    if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
     if (merged.period !== defaultQuery.period) params.set(PERIOD_PARAM, merged.period);
+    if (merged.withEmail) params.set(EMAIL_PARAM, "1");
+    if (merged.withPhone) params.set(PHONE_PARAM, "1");
     if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
 
     const search = params.toString();
@@ -76,45 +93,101 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
 
   const count = selected.length;
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
-  // Quantos filtros saíram do padrão, para a etiqueta no botão do celular dizer que há filtro em vigor
-  // mesmo com os menus escondidos dentro da janela.
-  const changed = [
-    query.sort !== defaultQuery.sort,
-    query.favorite !== defaultQuery.favorite,
-    query.period !== defaultQuery.period,
-  ].filter(Boolean).length;
+  const menuFilters = countMenuFilters(query);
+
+  /* O menu de filtros: cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar
+     mais de uma coisa antes de sair. Favoritos e situação são escolha única, marcada pelo check; e-mail
+     e telefone são interruptores; e limpar volta tudo do menu ao padrão, sem mexer em ordem e período,
+     que estão à vista na barra. */
+  const filterSections: DropdownSection[] = [
+    {
+      id: "favorite",
+      label: "Favoritos",
+      items: favoriteOptions.map((option) => ({
+        id: `favorite-${option.value}`,
+        label: option.label,
+        icon: option.value === "todos" ? undefined : StarIcon,
+        selected: query.favorite === option.value,
+        keepOpen: true,
+        onSelect: () => go({ favorite: option.value, page: 1 }),
+      })),
+    },
+    {
+      id: "status",
+      label: "Situação",
+      items: statusOptions.map((option) => ({
+        id: `status-${option.value}`,
+        label: option.label,
+        icon: option.value === "todos" ? undefined : CheckCircleIcon,
+        selected: query.status === option.value,
+        keepOpen: true,
+        onSelect: () => go({ status: option.value, page: 1 }),
+      })),
+    },
+    {
+      id: "contact",
+      label: "Contato",
+      items: [
+        {
+          kind: "toggle",
+          id: "email",
+          label: "Com e-mail",
+          icon: EnvelopeSimpleIcon,
+          checked: query.withEmail,
+          onChange: (withEmail) => go({ withEmail, page: 1 }),
+        },
+        {
+          kind: "toggle",
+          id: "phone",
+          label: "Com telefone",
+          icon: PhoneIcon,
+          checked: query.withPhone,
+          onChange: (withPhone) => go({ withPhone, page: 1 }),
+        },
+      ],
+    },
+    ...(menuFilters > 0
+      ? [
+          {
+            id: "reset",
+            items: [
+              {
+                id: "reset",
+                label: "Limpar filtros",
+                icon: ArrowCounterClockwiseIcon,
+                onSelect: () =>
+                  go({
+                    favorite: defaultQuery.favorite,
+                    status: defaultQuery.status,
+                    withEmail: false,
+                    withPhone: false,
+                    page: 1,
+                  }),
+              },
+            ],
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className={styles.board}>
       <PageToolbar
-        activeFilters={changed}
-        selectedCount={count}
-        search={
-          <Input
-            type="search"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            placeholder="Busque pelo nome, número ou e-mail"
-            aria-label="Buscar cliente"
-            iconStart={<MagnifyingGlassIcon />}
-            size="sm"
-          />
-        }
-        filters={
+        search={{
+          value: search,
+          onChange: onSearch,
+          placeholder: "Buscar por nome, empresa, e-mail ou telefone",
+          label: "Buscar cliente",
+        }}
+        quickFilters={
+          /* Ordem e período ficam à vista: são os que a pessoa troca toda hora ao varrer a base. */
           <>
             <Listbox
-              label="Classificar clientes"
-              prefix="Classificar de"
+              label="Ordenar clientes"
+              prefix="Ordem"
               options={sortOptions}
               value={query.sort}
               onChange={(sort) => go({ sort, page: 1 })}
-            />
-            <Listbox
-              label="Filtrar por favorito"
-              prefix="Favorito"
-              options={favoriteOptions}
-              value={query.favorite}
-              onChange={(favorite) => go({ favorite, page: 1 })}
             />
             <Listbox
               label="Período de entrada"
@@ -125,6 +198,9 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
             />
           </>
         }
+        filters={filterSections}
+        activeFilters={menuFilters}
+        selectedCount={count}
         selection={
           /* Agem sobre o que está marcado, então ficam desligados sem seleção: botão que não faz nada
              ao ser apertado é pior que botão desligado. A contagem vai no nome para o leitor de tela. */
@@ -150,12 +226,12 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         action={
           <>
             <span className={styles.wide}>
-              <Button href="/clientes" size="sm" iconStart={<PlusIcon />}>
-                Criar
+              <Button href="/clientes" size="sm" radius="md" iconStart={<PlusIcon />}>
+                Novo cliente
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Criar cliente" href="/clientes" size="sm" radius="md">
+              <IconButton label="Novo cliente" href="/clientes" size="sm" radius="md">
                 <PlusIcon />
               </IconButton>
             </span>
@@ -169,7 +245,9 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
             Nenhum cliente por aqui
           </Text>
           <Text variant="footnote" tone="secondary">
-            {query.search ? "Nada bateu com o que você procurou. Tente outro nome, telefone ou e-mail." : "Ajuste o período ou o filtro de favoritos para ver mais."}
+            {query.search
+              ? "Nada bateu com o que você procurou. Tente outro nome, empresa, e-mail ou telefone."
+              : "Ajuste o período ou os filtros para ver mais."}
           </Text>
         </div>
       ) : (

@@ -17,7 +17,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clientes
     busca: first(params.busca),
     ordem: first(params.ordem),
     favorito: first(params.favorito),
+    situacao: first(params.situacao),
     periodo: first(params.periodo),
+    email: first(params.email),
+    telefone: first(params.telefone),
     pagina: first(params.pagina),
   });
 

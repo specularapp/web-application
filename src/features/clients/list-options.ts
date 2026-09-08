@@ -29,18 +29,24 @@ export const QUERY_PARAM = "busca";
 export const SORT_PARAM = "ordem";
 export const FAVORITE_PARAM = "favorito";
 export const PERIOD_PARAM = "periodo";
+export const STATUS_PARAM = "situacao";
+export const EMAIL_PARAM = "email";
+export const PHONE_PARAM = "telefone";
 export const PAGE_PARAM = "pagina";
 
 export const sortValues = ["az", "za", "recentes", "antigos"] as const;
 export const favoriteValues = ["todos", "favoritos", "outros"] as const;
+export const statusValues = ["todos", "ativos", "inativos"] as const;
 export const periodValues = ["7", "30", "90", "365", "sempre"] as const;
 
 export type ClientsSort = (typeof sortValues)[number];
 export type ClientsFavorite = (typeof favoriteValues)[number];
+export type ClientsStatus = (typeof statusValues)[number];
 export type ClientsPeriod = (typeof periodValues)[number];
 
 export const DEFAULT_SORT: ClientsSort = "az";
 export const DEFAULT_FAVORITE: ClientsFavorite = "todos";
+export const DEFAULT_STATUS: ClientsStatus = "todos";
 export const DEFAULT_PERIOD: ClientsPeriod = "30";
 
 export const sortOptions: ListboxOption<ClientsSort>[] = [
@@ -52,8 +58,14 @@ export const sortOptions: ListboxOption<ClientsSort>[] = [
 
 export const favoriteOptions: ListboxOption<ClientsFavorite>[] = [
   { value: "todos", label: "Todos" },
-  { value: "favoritos", label: "Favoritos" },
-  { value: "outros", label: "Não favoritos" },
+  { value: "favoritos", label: "Só favoritos" },
+  { value: "outros", label: "Só não favoritos" },
+];
+
+export const statusOptions: ListboxOption<ClientsStatus>[] = [
+  { value: "todos", label: "Todos" },
+  { value: "ativos", label: "Só ativos" },
+  { value: "inativos", label: "Só inativos" },
 ];
 
 export const periodOptions: ListboxOption<ClientsPeriod>[] = [
@@ -69,7 +81,12 @@ export type ClientsQuery = {
   search: string;
   sort: ClientsSort;
   favorite: ClientsFavorite;
+  status: ClientsStatus;
   period: ClientsPeriod;
+  /** Só quem tem e-mail cadastrado. */
+  withEmail: boolean;
+  /** Só quem tem telefone cadastrado. */
+  withPhone: boolean;
   page: number;
 };
 
@@ -77,9 +94,25 @@ export const defaultQuery: ClientsQuery = {
   search: "",
   sort: DEFAULT_SORT,
   favorite: DEFAULT_FAVORITE,
+  status: DEFAULT_STATUS,
   period: DEFAULT_PERIOD,
+  withEmail: false,
+  withPhone: false,
   page: 1,
 };
+
+/**
+ * Quantos filtros do menu saíram do padrão, para a etiqueta na quina do botão de filtros. Ordem e
+ * período ficam de fora da conta porque estão à vista na própria barra.
+ */
+export function countMenuFilters(query: ClientsQuery) {
+  return [
+    query.favorite !== defaultQuery.favorite,
+    query.status !== defaultQuery.status,
+    query.withEmail,
+    query.withPhone,
+  ].filter(Boolean).length;
+}
 
 /** A página pronta: os cartões que a grade mostra e quantos clientes o filtro encontrou ao todo. */
 export type ClientsListPage = {
