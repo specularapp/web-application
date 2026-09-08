@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import { CaretDoubleRightIcon, CheckIcon } from "@phosphor-icons/react";
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { focusRing } from "@/components/ui/styles";
 
 export type ClaimSliderProps = {
@@ -106,6 +106,10 @@ const Knob = styled.button`
   background-color: var(--claim-hue);
   border: 0;
   border-radius: var(--radius-full);
+  /* O dedo na bolinha é sempre arrasto: sem isto o navegador segura os primeiros eventos para decidir
+     se a intenção era rolar a página, e o começo do gesto saía engasgado no celular. A pista segue
+     aceitando rolagem vertical, então arrastar a página tocando fora da bolinha continua funcionando. */
+  touch-action: none;
   translate: var(--x) 0;
   transition: translate var(--duration-base) var(--ease-spring);
   ${focusRing};
@@ -113,6 +117,8 @@ const Knob = styled.button`
   &[data-dragging] {
     cursor: grabbing;
     transition: none;
+    /* Camada própria enquanto anda, para o navegador só recompor em vez de repintar a cada quadro. */
+    will-change: translate;
   }
 
   /* Pego, a bolinha assenta no fim pela borda direita, sem medir nada. */
@@ -133,6 +139,14 @@ const Knob = styled.button`
   }
 `;
 
+/* A posição vai direto para as variáveis do nó, e não para estado do React (acerto de fluidez de
+   2026-09-08): o ponteiro dispara bem mais de sessenta eventos por segundo, e um `setState` por evento
+   remontava a pista, o preenchimento, o rótulo e a bolinha a cada um deles, o que segurava o arrasto. */
+function paint(track: HTMLDivElement, x: number, max: number) {
+  track.style.setProperty("--x", `${x}px`);
+  track.style.setProperty("--progress", String(max > 0 ? x / max : 0));
+}
+
 // Arraste a bolinha até o fim para ganhar os pontos do dia. Com o mouse ou o dedo, a bolinha segue o
 // ponteiro e a pista vai se preenchendo atrás dela; soltar antes de 85% volta ao começo, preenchimento
 // junto, e passar disso completa e trava. No teclado, Enter,
@@ -140,10 +154,8 @@ const Knob = styled.button`
 // fim com o check até o dia seguinte.
 export function ClaimSlider({ points, claimed = false, onClaim }: ClaimSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ startX: number; max: number } | null>(null);
+  const drag = useRef<{ startX: number; max: number; x: number; frame: number } | null>(null);
   const [done, setDone] = useState(claimed);
-  const [x, setX] = useState(0);
-  const [max, setMax] = useState(0);
   const [dragging, setDragging] = useState(false);
 
   const claim = () => {
@@ -155,28 +167,42 @@ export function ClaimSlider({ points, claimed = false, onClaim }: ClaimSliderPro
   const start = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (done) return;
     const track = trackRef.current;
-    const reach = track ? track.clientWidth - KNOB - INSET * 2 : 0;
-    drag.current = { startX: event.clientX, max: reach };
-    setMax(reach);
+    if (!track) return;
+    drag.current = { startX: event.clientX, max: track.clientWidth - KNOB - INSET * 2, x: 0, frame: 0 };
     setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
+  // Uma escrita por quadro: o evento só guarda a posição, e o quadro seguinte pinta a última que chegou.
   const move = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!drag.current) return;
-    setX(Math.min(drag.current.max, Math.max(0, event.clientX - drag.current.startX)));
+    const state = drag.current;
+    const track = trackRef.current;
+    if (!state || !track) return;
+    state.x = Math.min(state.max, Math.max(0, event.clientX - state.startX));
+    if (state.frame) return;
+    state.frame = requestAnimationFrame(() => {
+      state.frame = 0;
+      paint(track, state.x, state.max);
+    });
   };
 
   const end = () => {
-    if (!drag.current) return;
-    const { max } = drag.current;
+    const state = drag.current;
+    const track = trackRef.current;
+    if (!state || !track) return;
+    if (state.frame) cancelAnimationFrame(state.frame);
     drag.current = null;
-    if (max > 0 && x / max >= CLAIM_AT) {
+
+    if (state.max > 0 && state.x / state.max >= CLAIM_AT) {
+      paint(track, state.max, state.max);
       claim();
       return;
     }
+
     setDragging(false);
-    setX(0);
+    // A volta é pintada no quadro seguinte, depois de o React tirar o `data-dragging`: escrevendo agora,
+    // a transição ainda estaria desligada e a bolinha saltaria para o começo em vez de voltar com a mola.
+    requestAnimationFrame(() => paint(track, 0, state.max));
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -187,11 +213,8 @@ export function ClaimSlider({ points, claimed = false, onClaim }: ClaimSliderPro
     }
   };
 
-  const progress = done ? 1 : max > 0 ? x / max : 0;
-  const vars = { "--x": `${x}px`, "--progress": progress } as CSSProperties;
-
   return (
-    <Track ref={trackRef} data-claimed={done || undefined} data-dragging={dragging || undefined} style={vars}>
+    <Track ref={trackRef} data-claimed={done || undefined} data-dragging={dragging || undefined}>
       <Fill aria-hidden="true" />
       <Label aria-hidden="true">{done ? `${points} pontos ganhos hoje` : `Arraste para ganhar ${points} pontos`}</Label>
       <Knob

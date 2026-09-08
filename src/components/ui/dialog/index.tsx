@@ -276,7 +276,7 @@ export function Dialog({
   const { present, state, onAnimationEnd } = usePresence(open);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
-  const dragRef = useRef<{ pointer: number; startY: number } | null>(null);
+  const dragRef = useRef<{ pointer: number; startY: number; y: number; frame: number } | null>(null);
   const layer = useLayer(open);
   // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
   // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
@@ -292,15 +292,26 @@ export function Dialog({
   useOutsideDismiss(open && !scrim, [panelRef], () => closeRef.current());
 
   // Arrasto da alça da bandeja (pedido de 2026-09-08): segurar na barrinha e puxar para baixo fecha a
-  // janela, o gesto que o iOS dá em toda bandeja. O painel segue o dedo por `transform` inline, que
-  // aparece por cima da animação de entrada porque o `to` dela é implícito e vale o valor de baixo.
+  // janela, o gesto que o iOS dá em toda bandeja.
+  //
+  // O painel segue o dedo por `translate`, e não por `transform` (acerto de fluidez de 2026-09-08).
+  // São propriedades independentes: as animações de entrada e de saída da bandeja andam em `transform`,
+  // então escrever em `translate` não disputa com elas nem obriga o navegador a resolver de novo, a cada
+  // quadro, o quadro-chave implícito da animação que está segurando o painel no lugar. Na saída as duas
+  // se compõem, e a bandeja desce a partir de onde o dedo largou.
+  //
+  // A escrita é agrupada num quadro: o ponteiro dispara bem mais de sessenta eventos por segundo, e
+  // escrever a cada um deles pedia recálculo de estilo mais vezes do que a tela é capaz de mostrar.
   const dragStart = (event: PointerEvent<HTMLSpanElement>) => {
     const panel = panelRef.current;
     if (!panel) return;
-    dragRef.current = { pointer: event.pointerId, startY: event.clientY };
+    dragRef.current = { pointer: event.pointerId, startY: event.clientY, y: 0, frame: 0 };
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = "";
     panel.style.transition = "none";
+    // Promove o painel a camada própria antes do primeiro movimento: a bandeja de vidro carrega borrão
+    // e uma sombra do tamanho da tela, e sem a promoção o navegador repintaria os dois a cada quadro.
+    panel.style.willChange = "translate";
   };
 
   const dragMove = (event: PointerEvent<HTMLSpanElement>) => {
@@ -308,43 +319,47 @@ export function Dialog({
     const panel = panelRef.current;
     if (!drag || drag.pointer !== event.pointerId || !panel) return;
     // Só para baixo: puxar para cima não estica a bandeja, ela fica onde está.
-    panel.style.transform = `translateY(${Math.max(0, event.clientY - drag.startY)}px)`;
+    drag.y = Math.max(0, event.clientY - drag.startY);
+    if (drag.frame) return;
+    drag.frame = requestAnimationFrame(() => {
+      drag.frame = 0;
+      panel.style.translate = `0 ${drag.y}px`;
+    });
+  };
+
+  const settle = (panel: HTMLDivElement) => {
+    panel.style.transition = "";
+    panel.style.willChange = "";
   };
 
   const dragEnd = (event: PointerEvent<HTMLSpanElement>) => {
     const drag = dragRef.current;
     const panel = panelRef.current;
     if (!drag || drag.pointer !== event.pointerId || !panel) return;
+    if (drag.frame) cancelAnimationFrame(drag.frame);
     dragRef.current = null;
     delete event.currentTarget.dataset.dragging;
 
-    const distance = Math.max(0, event.clientY - drag.startY);
-
     // Fecha passando de um terço da altura da bandeja, com teto: numa bandeja de 85dvh um terço seria
     // quase a tela inteira, e o gesto deixaria de fechar.
-    if (distance > Math.min(panel.offsetHeight / 3, CLOSE_DISTANCE)) {
-      // O `transform` fica onde o dedo largou: a animação de saída tem o `from` implícito, então ela
-      // continua daqui até o rodapé em vez de saltar de volta ao lugar antes de descer.
-      panel.style.transition = "";
+    if (drag.y > Math.min(panel.offsetHeight / 3, CLOSE_DISTANCE)) {
+      // O `translate` fica onde o dedo largou e a animação de saída, que anda em `transform`, compõe com
+      // ele: a bandeja continua descendo daqui em vez de saltar para o lugar antes de cair.
+      settle(panel);
       closeRef.current();
       return;
     }
 
-    if (distance === 0) {
-      panel.style.transition = "";
+    if (drag.y === 0) {
+      settle(panel);
       return;
     }
 
-    // Não passou: volta para o lugar com a transição curta da casa, e as marcas inline saem no fim.
-    panel.style.transition = "transform var(--duration-base) var(--ease-standard)";
-    panel.style.transform = "";
-    panel.addEventListener(
-      "transitionend",
-      () => {
-        panel.style.transition = "";
-      },
-      { once: true },
-    );
+    // Não passou: volta para o lugar com a transição curta da casa, e as marcas inline saem no fim. O
+    // destino é escrito como zero, e não apagado, para a transição ter os dois lados em número.
+    panel.style.transition = "translate var(--duration-base) var(--ease-standard)";
+    panel.style.translate = "0 0";
+    panel.addEventListener("transitionend", () => settle(panel), { once: true });
   };
 
   useEffect(() => {
