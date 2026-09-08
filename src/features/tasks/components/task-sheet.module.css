@@ -15,9 +15,10 @@
 /* No celular um degrau menor em tudo, pelos tokens de texto redeclarados aqui dentro, e menos vão. */
 @media (max-width: 47.9375rem) {
   .sheet {
-    --text-title-2: var(--text-title-3);
-    --text-callout: var(--text-subheadline);
-    --text-subheadline: var(--text-footnote);
+    /* Um degrau abaixo da escala de `tokens.css`, em valor: encadear tokens aqui encolhia duas vezes. */
+    --text-title-2: 1.25rem;
+    --text-callout: 0.9375rem;
+    --text-subheadline: 0.875rem;
     gap: var(--space-4);
     padding: var(--space-4);
   }

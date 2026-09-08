@@ -66,19 +66,13 @@ const slideOut = keyframes`
   }
 `;
 
-/* A camada da janela: fundo e moldura juntos, então uma janela aberta por cima de outra fica inteira
-   acima dela, fundo incluído, e o clique fora chega ao fundo certo. */
-const Layer = styled.div`
+/* O fundo na mesma camada da moldura: vem antes dela na árvore, então fica atrás da própria janela, e
+   uma janela aberta por cima de outra traz o próprio fundo acima da de baixo, para o clique fora chegar
+   ao fundo certo. */
+const Backdrop = styled.div`
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  pointer-events: none;
-`;
-
-const Backdrop = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: auto;
   background-color: var(--color-scrim);
   animation: ${fadeIn} var(--duration-base) var(--ease-standard) both;
 
@@ -103,8 +97,9 @@ const Backdrop = styled.div`
 /* A moldura cobre a tela só para posicionar a caixa, e não recebe ponteiro: assim o clique na área
    vazia atravessa e chega no fundo, que é quem fecha. */
 const Frame = styled.div`
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   padding: var(--space-4);
@@ -343,7 +338,7 @@ export function Dialog({
   const veilKind = veil && glass ? (scrim ? "full" : "soft") : undefined;
 
   return createPortal(
-    <Layer>
+    <>
       {veil && (
         <Backdrop
           data-state={state}
@@ -372,7 +367,7 @@ export function Dialog({
           {children}
         </Panel>
       </Frame>
-    </Layer>,
+    </>,
     document.body,
   );
 }

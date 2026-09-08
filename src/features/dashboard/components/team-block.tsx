@@ -66,7 +66,6 @@ const Strip = styled.div`
   scroll-padding-inline: var(--space-1);
   cursor: grab;
   user-select: none;
-  touch-action: pan-x;
 
   @media (pointer: coarse) {
     scroll-snap-type: x proximity;

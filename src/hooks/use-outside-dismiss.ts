@@ -10,7 +10,7 @@ import { useEffect, type RefObject } from "react";
  * junto com o menu), então um toque sem clique (arraste, cancelamento) não deixa nada engolido para trás.
  */
 /** Quanto o engolidor espera pelo clique depois do dedo sair. */
-const CLICK_GRACE = 400;
+const CLICK_GRACE = 200;
 
 export function useOutsideDismiss(active: boolean, inside: RefObject<HTMLElement | null>[], onDismiss: () => void) {
   useEffect(() => {
