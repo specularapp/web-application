@@ -134,7 +134,7 @@ export function ClaimReward({ points, claimed }: ClaimRewardProps) {
                 }
               />
             ))}
-            <Points>+{number.format(points)}</Points>
+            <Points>{number.format(points)}</Points>
           </Stage>
 
           <Copy>
@@ -146,7 +146,7 @@ export function ClaimReward({ points, claimed }: ClaimRewardProps) {
             </Text>
           </Copy>
 
-          <Button variant="primary" size="md" fullWidth onClick={() => setOpen(false)}>
+          <Button variant="primary" size="md" radius="md" fullWidth onClick={() => setOpen(false)}>
             Continuar
           </Button>
         </Sheet>

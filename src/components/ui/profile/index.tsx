@@ -5,11 +5,26 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { squircle } from "@/lib/corners";
 import { Avatar, type AvatarProps } from "../avatar";
+import { Button } from "../button";
+import { IconButton } from "../icon-button";
 import { Progress } from "../progress";
 import { Text } from "../text";
 import styles from "./profile.module.css";
 
 export type ProfileStat = { label: string; value: string };
+
+export type ProfileAction = {
+  label: string;
+  icon: Icon;
+  href: string;
+  /** O botão cheio; os outros saem em contorno. */
+  primary?: boolean;
+  /** Cor própria, como a do WhatsApp, pelos tokens da casa. */
+  background?: string;
+  foreground?: string;
+  /** Abre em outra aba. */
+  external?: boolean;
+};
 
 export type ProfileProps = {
   /** Nome do matiz da paleta do sistema que pinta a capa, o mesmo do rosto gerado (`avatarHue`). */
@@ -25,14 +40,17 @@ export type ProfileProps = {
   /** O que a pessoa faz, em uma linha. */
   subtitle?: string;
   stats: ProfileStat[];
-  /** Os botões de contato, lado a lado. */
-  actions?: ReactNode;
+  /** Os botões de contato: com texto no desktop, só o ícone no celular. */
+  actions?: ProfileAction[];
   children: ReactNode;
 };
 
 /* Linhas e chips no raio `md` e `sm` da casa, recortados no fallback porque não têm borda. */
 const rowCorner = squircle("md", { clip: true });
 const chipCorner = squircle("sm", { clip: true });
+
+/* Links que saem da aplicação abrem em outra aba; o botão passa os atributos ao `a` quando tem `href`. */
+const external = { target: "_blank", rel: "noreferrer" };
 
 // O cartão de perfil da casa, para pessoa de fora ou de dentro: a capa no matiz da pessoa, a foto grande
 // passando por cima da borda da capa, o nome com etiquetas e menu, a linha apagada e o que ela faz; os
@@ -81,7 +99,29 @@ export function Profile({ hue, avatar, title, badges, menu, handle, subtitle, st
         ))}
       </dl>
 
-      {actions && <div className={styles.actions}>{actions}</div>}
+      {actions && actions.length > 0 && (
+        <div className={styles.actions}>
+          {actions.map(({ label, icon: Glyph, href, primary, background, foreground, external: opensTab }) => {
+            const shared = {
+              href,
+              variant: primary ? ("primary" as const) : ("outline" as const),
+              background,
+              foreground,
+              ...(opensTab && external),
+            };
+            return (
+              <span key={label} className={styles.action}>
+                <Button {...shared} size="md" radius="md" iconStart={<Glyph weight="bold" />} fullWidth className={styles.wide}>
+                  {label}
+                </Button>
+                <IconButton {...shared} label={label} size="md" radius="md" className={styles.narrow}>
+                  <Glyph weight="bold" />
+                </IconButton>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <div className={styles.body}>{children}</div>
     </div>
@@ -111,7 +151,7 @@ export function ProfileFacts({ children }: { children: ReactNode }) {
   return <dl className={styles.facts}>{children}</dl>;
 }
 
-/* Um fato: rótulo com ícone à esquerda e valor à direita. */
+/* Um fato: rótulo com ícone à esquerda e valor à direita; no celular, em célula com o rótulo em cima. */
 export function ProfileFact({ icon: Glyph, label, children }: { icon: Icon; label: string; children: ReactNode }) {
   return (
     <div className={styles.fact}>
@@ -142,7 +182,8 @@ export type ProfileRowProps = {
   end?: ReactNode;
 };
 
-/* Uma linha que leva à tela de algo: ícone num chip, título e legenda, o que for na ponta e o chevron. */
+/* Uma linha que leva à tela de algo: ícone num chip, título e legenda, o que for na ponta e o chevron.
+   Em grade, para a ponta cair para baixo do título no celular sem mexer o chevron do lugar. */
 export function ProfileRow({ href, icon: Glyph, title, caption, end }: ProfileRowProps) {
   return (
     <li>

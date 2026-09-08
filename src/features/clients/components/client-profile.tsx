@@ -15,9 +15,8 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 import { avatarHue } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/link";
-import { Profile, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileSection, ProfileTags } from "@/components/ui/profile";
+import { Profile, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileSection, ProfileTags, type ProfileAction } from "@/components/ui/profile";
 import { Text } from "@/components/ui/text";
 import { quoteStatuses } from "@/features/quotes/labels";
 import { applyPattern } from "@/lib/masks";
@@ -52,7 +51,13 @@ export function ClientProfile({ client }: ClientProfileProps) {
   const seed = client.email ?? client.name;
   const isNew = differenceInCalendarDays(new Date(), parseISO(client.createdAt)) <= NEW_CLIENT_DAYS;
   const phone = client.phone ? applyPattern("phone", client.phone) : null;
-  const whatsapp = client.phone ? `https://wa.me/55${client.phone}` : null;
+  const actions: ProfileAction[] = [
+    ...(client.phone
+      ? [{ label: "WhatsApp", icon: WhatsappLogoIcon, href: `https://wa.me/55${client.phone}`, primary: true, background: "var(--color-whatsapp)", foreground: "var(--color-on-whatsapp)", external: true }]
+      : []),
+    ...(client.email ? [{ label: "E-mail", icon: EnvelopeSimpleIcon, href: `mailto:${client.email}` }] : []),
+    ...(client.phone ? [{ label: "Ligar", icon: PhoneIcon, href: `tel:+55${client.phone}` }] : []),
+  ];
 
   return (
     <Profile
@@ -81,36 +86,7 @@ export function ClientProfile({ client }: ClientProfileProps) {
         { label: "Faturado", value: compactMoney(client.stats.billed) },
         { label: "Em aberto", value: compactMoney(client.stats.open) },
       ]}
-      actions={
-        (whatsapp || client.email) && (
-          <>
-            {whatsapp && (
-              <Button
-                href={whatsapp}
-                variant="primary"
-                size="md"
-                background="var(--color-whatsapp)"
-                foreground="var(--color-on-whatsapp)"
-                iconStart={<WhatsappLogoIcon weight="bold" />}
-                fullWidth
-                {...external}
-              >
-                WhatsApp
-              </Button>
-            )}
-            {client.email && (
-              <Button href={`mailto:${client.email}`} variant="outline" size="md" iconStart={<EnvelopeSimpleIcon weight="bold" />} fullWidth>
-                E-mail
-              </Button>
-            )}
-            {client.phone && (
-              <Button href={`tel:+55${client.phone}`} variant="outline" size="md" iconStart={<PhoneIcon weight="bold" />} fullWidth>
-                Ligar
-              </Button>
-            )}
-          </>
-        )
-      }
+      actions={actions}
     >
       {client.about && (
         <ProfileSection title="Sobre">

@@ -28,6 +28,7 @@ function Featured({ client }: { client: Client }) {
       dialog={<ClientProfile client={client} />}
       dialogLabel={`Perfil de ${client.name}`}
       dialogSize="lg"
+      dialogFlush
       label={`Ver detalhes de ${client.name}`}
       className={styles.featured}
     >
@@ -83,6 +84,7 @@ function Row({ client }: { client: Client }) {
       dialog={<ClientProfile client={client} />}
       dialogLabel={`Perfil de ${client.name}`}
       dialogSize="lg"
+      dialogFlush
       label={`Ver detalhes de ${client.name}`}
       className={list.row}
     >

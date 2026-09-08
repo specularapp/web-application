@@ -60,11 +60,17 @@ const Strip = styled.div`
   padding: var(--space-1) var(--space-1) var(--space-2);
   margin: calc(var(--space-1) * -1);
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
   scroll-padding-inline: var(--space-1);
   cursor: grab;
   user-select: none;
+  touch-action: pan-x;
+
+  @media (pointer: coarse) {
+    scroll-snap-type: x proximity;
+  }
 
   &[data-dragging] {
     cursor: grabbing;
@@ -76,8 +82,8 @@ const Strip = styled.div`
   }
 `;
 
-/* Cada foto é um botão redondo com a altura da fila e largura igual, entre um piso e um teto (no toque o
-   piso é o alvo de 44px, para escolher com o dedo), com o ponto de situação na quina (verde para quem já está, laranja para convite em aberto). Em foco, anel
+/* Cada foto é um botão redondo com a altura da fila e largura igual, entre um piso e um teto (o piso de
+   44px no toque saiu: estourava a altura da fila e virava rolagem vertical recortada), com o ponto de situação na quina (verde para quem já está, laranja para convite em aberto). Em foco, anel
    na cor da marca separado da foto por um vão na cor do fundo; as outras ficam um pouco apagadas, para
    a escolhida ler como escolhida. */
 const Pick = styled.button`
@@ -88,10 +94,6 @@ const Pick = styled.button`
   min-height: 2rem;
   max-height: 6rem;
   aspect-ratio: 1;
-
-  @media (pointer: coarse) {
-    min-height: var(--touch-target);
-  }
   padding: 0;
   line-height: 0;
   scroll-snap-align: start;
@@ -293,6 +295,7 @@ export function TeamBlock({ summary }: TeamBlockProps) {
         dialog={<MemberProfile member={focused} />}
         dialogLabel={`Perfil de ${focused.name}`}
         dialogSize="lg"
+        dialogFlush
         label={`Ver perfil de ${focused.name}`}
       >
         <Naming>

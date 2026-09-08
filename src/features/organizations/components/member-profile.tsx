@@ -16,8 +16,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 import { Avatar, avatarHue } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Profile, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileRule, ProfileSection, ProfileTags } from "@/components/ui/profile";
+import { Profile, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileRule, ProfileSection, ProfileTags, type ProfileAction } from "@/components/ui/profile";
 import { Text } from "@/components/ui/text";
 import { applyPattern } from "@/lib/masks";
 import { compactMoney } from "@/lib/utils/format";
@@ -38,9 +37,6 @@ const projectStatuses: Record<TeamMemberProjectStatus, { label: string; tone: Ba
   paused: { label: "Pausado", tone: "warning" },
 };
 
-/* Links que saem da aplicação abrem em outra aba; o botão passa os atributos ao `a` quando tem `href`. */
-const external = { target: "_blank", rel: "noreferrer" };
-
 const points = new Intl.NumberFormat("pt-BR");
 const longDate = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy", { locale: ptBR });
 const shortStamp = (iso: string) => format(parseISO(iso), "d MMM., HH:mm", { locale: ptBR });
@@ -54,7 +50,13 @@ export function MemberProfile({ member }: MemberProfileProps) {
   const access = accessMeta[member.access];
   const pending = member.status === "pending";
   const phone = member.phone ? applyPattern("phone", member.phone) : null;
-  const whatsapp = member.phone ? `https://wa.me/55${member.phone}` : null;
+  const actions: ProfileAction[] = [
+    ...(member.phone
+      ? [{ label: "WhatsApp", icon: WhatsappLogoIcon, href: `https://wa.me/55${member.phone}`, primary: true, background: "var(--color-whatsapp)", foreground: "var(--color-on-whatsapp)", external: true }]
+      : []),
+    { label: "E-mail", icon: EnvelopeSimpleIcon, href: `mailto:${member.email}` },
+    ...(member.phone ? [{ label: "Ligar", icon: PhoneIcon, href: `tel:+55${member.phone}` }] : []),
+  ];
 
   return (
     <Profile
@@ -92,32 +94,7 @@ export function MemberProfile({ member }: MemberProfileProps) {
         { label: "Em andamento", value: String(member.metrics.activeProjects) },
         { label: "Tarefas abertas", value: String(member.metrics.openTasks) },
       ]}
-      actions={
-        <>
-          {whatsapp && (
-            <Button
-              href={whatsapp}
-              variant="primary"
-              size="md"
-              background="var(--color-whatsapp)"
-              foreground="var(--color-on-whatsapp)"
-              iconStart={<WhatsappLogoIcon weight="bold" />}
-              fullWidth
-              {...external}
-            >
-              WhatsApp
-            </Button>
-          )}
-          <Button href={`mailto:${member.email}`} variant="outline" size="md" iconStart={<EnvelopeSimpleIcon weight="bold" />} fullWidth>
-            E-mail
-          </Button>
-          {member.phone && (
-            <Button href={`tel:+55${member.phone}`} variant="outline" size="md" iconStart={<PhoneIcon weight="bold" />} fullWidth>
-              Ligar
-            </Button>
-          )}
-        </>
-      }
+      actions={actions}
     >
       {pending && (
         <Text variant="callout" tone="secondary">

@@ -5,9 +5,13 @@ import { useEffect, type RefObject } from "react";
 /**
  * Fecha uma camada ao apontar fora dela e engole o clique que vem em seguida: quem clica fora quer só
  * fechar, e o botão que estava embaixo do ponteiro não pode disparar junto. O ouvinte do clique entra
- * na captura do documento, antes do React, e sai sozinho depois do pointerup, então um toque sem clique
- * (arraste, cancelamento) não deixa nada engolido para trás.
+ * na captura do documento, antes do React, e sai sozinho um pouco depois do pointerup (no toque o clique
+ * pode chegar bem depois do dedo sair; solto no tique seguinte, ele vazava e fechava a janela de baixo
+ * junto com o menu), então um toque sem clique (arraste, cancelamento) não deixa nada engolido para trás.
  */
+/** Quanto o engolidor espera pelo clique depois do dedo sair. */
+const CLICK_GRACE = 400;
+
 export function useOutsideDismiss(active: boolean, inside: RefObject<HTMLElement | null>[], onDismiss: () => void) {
   useEffect(() => {
     if (!active) return;
@@ -22,7 +26,7 @@ export function useOutsideDismiss(active: boolean, inside: RefObject<HTMLElement
         click.stopPropagation();
       };
       const release = () => {
-        window.setTimeout(() => document.removeEventListener("click", swallow, { capture: true }), 0);
+        window.setTimeout(() => document.removeEventListener("click", swallow, { capture: true }), CLICK_GRACE);
       };
 
       document.addEventListener("click", swallow, { capture: true, once: true });

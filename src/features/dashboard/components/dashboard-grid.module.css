@@ -66,6 +66,14 @@
   border-radius: var(--bare-corner);
 }
 
+/* Mesmo fallback do `Card` para o Safari do iPhone: canto redondo nas duas caixas, para o fio aparecer. */
+@supports (-webkit-touch-callout: none) {
+  .bare[data-squircle],
+  .bare > [data-squircle] {
+    corner-shape: round;
+  }
+}
+
 .grid > [data-block="projects"] {
   grid-area: projects;
 }

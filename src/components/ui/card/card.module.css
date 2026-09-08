@@ -41,6 +41,16 @@
   border-radius: var(--card-corner);
 }
 
+/* No Safari do iPhone o fio das duas camadas some nas quinas superelípticas mesmo com o raio igual, então
+   lá as duas caixas voltam ao canto redondo: o fio aparece inteiro, e o canto perde a superelipse só ali.
+   `-webkit-touch-callout` só existe nesse navegador. */
+@supports (-webkit-touch-callout: none) {
+  .card[data-squircle],
+  .card .inner[data-squircle] {
+    corner-shape: round;
+  }
+}
+
 /* As duas camadas valem também onde o canto nativo existe: o Safari do iPhone já tem `corner-shape`, e
    a `border` dele soma nas quinas superelípticas, então o fio de 1px pintado pelas duas caixas é o que
    aparece igual em todo navegador (decisão de 2026-09-07, depois de o fio sumir nas quinas no iPhone

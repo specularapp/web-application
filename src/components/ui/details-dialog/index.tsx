@@ -32,12 +32,18 @@ export type DetailsTriggerProps = Omit<HTMLAttributes<HTMLElement>, "onClick" | 
   dialogLabel?: string;
   /** Largura da janela; a ficha padrão cabe em `sm`, a ficha completa da tarefa pede `md`. */
   dialogSize?: DialogSize;
+  /** O conteúdo próprio encosta no topo da janela, como a capa do perfil. */
+  dialogFlush?: boolean;
   /** Nome do gatilho para leitor de tela, como "Ver detalhes de Camila Ferreira". */
   label: string;
   children: ReactNode;
 };
 
-export type DetailsDialogProps = Pick<DialogProps, "open" | "onClose" | "label" | "size"> & { children: ReactNode };
+export type DetailsDialogProps = Pick<DialogProps, "open" | "onClose" | "label" | "size"> & {
+  /** O conteúdo encosta no topo da janela: no celular sobe por baixo da alça da bandeja (a capa do perfil). */
+  flush?: boolean;
+  children: ReactNode;
+};
 
 /** Controles de dentro da linha que têm a própria ação e não abrem a janela, a menos que se declarem. */
 const INTERACTIVE = "button, a, input, select, textarea, [role='button'], [role='menuitem']";
@@ -47,6 +53,12 @@ const Custom = styled.div`
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+
+  @media (max-width: 47.9375rem) {
+    &[data-flush] {
+      margin-block-start: -1rem;
+    }
+  }
 `;
 
 /* Com conteúdo próprio, o X flutua na quina de cima à direita da janela. */
@@ -103,7 +115,7 @@ const Fact = styled.div`
 // A janela de conteúdo próprio: vidro, o X flutuando na quina de cima à direita e o conteúdo rolando por
 // dentro, sem recuo. É o que o gatilho abre quando recebe `dialog`, e o que um botão de cabeçalho abre por
 // conta própria.
-export function DetailsDialog({ open, onClose, label, size = "sm", children }: DetailsDialogProps) {
+export function DetailsDialog({ open, onClose, label, size = "sm", flush = false, children }: DetailsDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} label={label} size={size} surface="glass">
       <FloatingClose>
@@ -111,7 +123,7 @@ export function DetailsDialog({ open, onClose, label, size = "sm", children }: D
           <XIcon />
         </IconButton>
       </FloatingClose>
-      <Custom>{children}</Custom>
+      <Custom data-flush={flush || undefined}>{children}</Custom>
     </Dialog>
   );
 }
@@ -121,7 +133,18 @@ export function DetailsDialog({ open, onClose, label, size = "sm", children }: D
 // nota no fim, ou o conteúdo próprio que a linha trouxer (o recibo). A linha continua sendo o elemento que era, com as mesmas classes: o gatilho só lhe dá
 // papel de botão, foco por teclado (Enter e Espaço) e o clique; como `button` ele já é botão e dispensa os dois. Clique que nasce num controle de dentro
 // (o menu do cliente, por exemplo) não abre a janela, a menos que o controle traga `data-open-details`.
-export function DetailsTrigger({ as = "li", summary, dialog, dialogLabel, dialogSize = "sm", label, children, className, ...props }: DetailsTriggerProps) {
+export function DetailsTrigger({
+  as = "li",
+  summary,
+  dialog,
+  dialogLabel,
+  dialogSize = "sm",
+  dialogFlush = false,
+  label,
+  children,
+  className,
+  ...props
+}: DetailsTriggerProps) {
   const [open, setOpen] = useState(false);
   // As duas tags aceitam os mesmos atributos genéricos; o tipo único evita a união que o TypeScript não fecha.
   const Tag = as as "div";
@@ -155,7 +178,7 @@ export function DetailsTrigger({ as = "li", summary, dialog, dialogLabel, dialog
       </Tag>
 
       {dialog ? (
-        <DetailsDialog open={open} onClose={() => setOpen(false)} label={dialogLabel ?? label} size={dialogSize}>
+        <DetailsDialog open={open} onClose={() => setOpen(false)} label={dialogLabel ?? label} size={dialogSize} flush={dialogFlush}>
           {dialog}
         </DetailsDialog>
       ) : (

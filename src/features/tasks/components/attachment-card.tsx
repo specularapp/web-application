@@ -30,6 +30,11 @@ const Viewer = styled.div`
   gap: var(--space-4);
   min-height: 0;
   padding: var(--space-4);
+
+  @media (max-width: 47.9375rem) {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
 `;
 
 const Head = styled.div`
@@ -48,6 +53,12 @@ const Stage = styled.div`
   overflow: hidden;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
+
+  /* No celular o palco toma a altura da bandeja, em pé, em vez da proporção de tela. */
+  @media (max-width: 47.9375rem) {
+    aspect-ratio: auto;
+    height: min(64dvh, 34rem);
+  }
 
   & > img {
     object-fit: contain;
@@ -93,6 +104,15 @@ const Toolbar = styled.div`
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%);
+
+  /* No celular os botões encolhem para 32px, pelos tokens do controle pequeno redeclarados aqui. */
+  @media (max-width: 47.9375rem) {
+    --control-height-sm: 2rem;
+    --icon-button-radius-sm: 1rem;
+    --touch-target: 2rem;
+    inset-block-end: var(--space-3);
+    border-radius: var(--radius-md);
+  }
 `;
 
 function absoluteUrl(url: string) {
