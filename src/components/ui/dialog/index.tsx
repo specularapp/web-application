@@ -187,12 +187,15 @@ const Panel = styled.div`
     border-radius: var(--radius-3xl);
   }
 
+  /* Gaveta e bandeja andam com a curva que assenta, e não com a padrão: elas percorrem distância, e é
+     a cauda longa dessa curva que faz a camada parecer pousar em vez de parar de repente. A saída
+     segue mais curta que a entrada, porque quem fecha já decidiu. */
   &[data-placement="end"][data-state="open"] {
-    animation: ${slideIn} var(--duration-slow) var(--ease-standard) both;
+    animation: ${slideIn} var(--duration-glide) var(--ease-settle) both;
   }
 
   &[data-placement="end"][data-state="closed"] {
-    animation: ${slideOut} var(--duration-base) var(--ease-standard) both;
+    animation: ${slideOut} var(--duration-base) var(--ease-settle) both;
   }
 
   /* A bandeja vem depois da gaveta de propósito: quando as duas regras casam, no celular, é ela que
@@ -209,11 +212,11 @@ const Panel = styled.div`
   }
 
   &[data-mode="sheet"][data-state="open"] {
-    animation: ${rise} var(--duration-slow) var(--ease-standard) both;
+    animation: ${rise} var(--duration-glide) var(--ease-settle) both;
   }
 
   &[data-mode="sheet"][data-state="closed"] {
-    animation: ${fall} var(--duration-base) var(--ease-standard) both;
+    animation: ${fall} var(--duration-base) var(--ease-settle) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -357,7 +360,7 @@ export function Dialog({
 
     // Não passou: volta para o lugar com a transição curta da casa, e as marcas inline saem no fim. O
     // destino é escrito como zero, e não apagado, para a transição ter os dois lados em número.
-    panel.style.transition = "translate var(--duration-base) var(--ease-standard)";
+    panel.style.transition = "translate var(--duration-glide) var(--ease-settle)";
     panel.style.translate = "0 0";
     panel.addEventListener("transitionend", () => settle(panel), { once: true });
   };

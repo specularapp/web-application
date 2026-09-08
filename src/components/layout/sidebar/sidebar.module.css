@@ -400,7 +400,12 @@
   padding: var(--space-1);
   pointer-events: none;
   translate: -50% 0;
-  transition: translate var(--duration-base) var(--ease-standard);
+  /* O deslocamento é o movimento principal e o mais longo dos três, com a curva que assenta: sai rápido,
+     então a barra responde na hora, e chega devagar, que é o que dá a sensação de macio. As três
+     durações são diferentes de propósito (420, 320 e 200): partindo juntas, o grupo some primeiro, o
+     vidro troca em seguida e o deslocamento ainda está pousando, o que lê como coreografia sem precisar
+     de atraso escrito em nenhuma delas. */
+  transition: translate var(--duration-glide) var(--ease-settle);
 }
 
 .bar > * {
@@ -420,7 +425,7 @@
   border: var(--menu-line) solid var(--color-border);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  transition: opacity var(--duration-base) var(--ease-standard);
+  transition: opacity var(--duration-slow) var(--ease-settle);
 }
 
 .bar::before {
@@ -459,9 +464,11 @@
   display: grid;
   grid-template-columns: 1fr;
   transform-origin: right center;
+  /* O grupo é quem sai de cena, então é o mais curto dos três: some cedo e deixa o resto do movimento
+     para o vidro e para o deslocamento, em vez de acompanhar os dois até o fim e borrar a leitura. */
   transition:
-    opacity var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
+    opacity var(--duration-base) var(--ease-settle),
+    transform var(--duration-base) var(--ease-settle);
 }
 
 .bar[data-collapsed] .barGroup {
@@ -632,13 +639,15 @@
    trabalho de compositor, e a rolagem de dentro melhora junto. */
 .screen[data-state="open"] {
   will-change: opacity, transform;
-  animation: screenIn var(--duration-base) var(--ease-standard) both;
+  animation: screenIn var(--duration-slow) var(--ease-settle) both;
 }
 
+/* A saída é mais curta que a entrada: quem fecha já decidiu, e segurar a tela no caminho de volta é o
+   que faz interface parecer lenta. */
 .screen[data-state="closed"] {
   pointer-events: none;
   will-change: opacity, transform;
-  animation: screenOut var(--duration-fast) var(--ease-standard) both;
+  animation: screenOut var(--duration-base) var(--ease-settle) both;
 }
 
 @keyframes screenIn {

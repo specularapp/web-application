@@ -155,8 +155,17 @@
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
+  /* Para o que percorre distância de verdade, como a barra do celular indo para o centro. Parece longo
+     escrito, mas com a curva que assenta a peça já andou dois terços do caminho no primeiro quarto do
+     tempo: o resto é só o pouso. */
+  --duration-glide: 420ms;
   --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* A curva que assenta: sai rápido e chega devagar, sem passar do ponto. É o que dá sensação de
+     sistema em vez de site, porque a velocidade que a pessoa sente vem do começo do movimento, e não
+     da duração total; a cauda longa é o que faz parecer macio. Onde a peça anda, é esta; `--ease-standard`
+     continua valendo para troca de cor e de fundo, que não percorrem espaço. */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
 
   --control-height-sm: 2.25rem;
   --control-height-md: 2.75rem;
