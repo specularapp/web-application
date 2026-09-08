@@ -2,8 +2,7 @@
 
 import styled from "@emotion/styled";
 import { XIcon } from "@phosphor-icons/react";
-import { useRef, useState, type KeyboardEvent } from "react";
-import { Badge } from "../badge";
+import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 
 export type TagInputProps = {
   value: string[];
@@ -20,23 +19,17 @@ export type TagInputProps = {
 };
 
 /* O mesmo invólucro dos campos da casa, só que quebrando linha: as etiquetas entram uma ao lado da outra
-   e o campo de digitar fica no fim, tomando o que sobra. */
+   e o campo de digitar fica no fim, tomando o que sobra e descendo de linha quando não cabe. */
 const Shell = styled.span`
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
   align-items: center;
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-height: var(--control-height-md);
-  padding: var(--space-1) var(--space-3);
-  box-sizing: border-box;
-
-  /* A etiqueta nunca passa da caixa: o Badge é um span e cede antes de estourar a linha no celular. */
-  & > span {
-    min-width: 0;
-    max-width: 100%;
-  }
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   color: var(--color-label);
   cursor: text;
   background-color: transparent;
@@ -58,33 +51,40 @@ const Shell = styled.span`
   }
 `;
 
-/* O campo de digitar toma o que sobra da linha e desce para a de baixo quando não cabe, em vez de esticar
-   a caixa: é isso que segurava a quebra no celular. */
-const Control = styled.input`
-  flex: 1 1 5rem;
-  min-width: 0;
+/* A etiqueta com o × dentro: pílula no preenchimento da casa, com a altura fechada para caber na linha do
+   campo sem recortar nada. É o chip com remoção que o `Badge` deixa de fora de propósito. */
+const Chip = styled.span`
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
   max-width: 100%;
-  min-height: calc(var(--control-height-md) - var(--space-2));
-  padding: 0;
-  font: inherit;
-  font-size: max(16px, var(--text-subheadline));
+  height: 1.75rem;
+  padding-inline: var(--space-2) var(--space-half);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  line-height: 1;
   letter-spacing: var(--tracking-tight);
-  color: inherit;
-  background: transparent;
-  border: 0;
-  outline: none;
+  color: var(--color-label);
+  white-space: nowrap;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
 `;
 
-/* O × dentro da etiqueta: um botão pequeno que herda a tinta e ganha fundo no hover. */
+const ChipText = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const Remove = styled.button`
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 1rem;
-  height: 1rem;
-  margin-inline-start: var(--space-half);
+  width: 1.25rem;
+  height: 1.25rem;
   padding: 0;
-  color: inherit;
+  color: var(--color-label-secondary);
   cursor: pointer;
   background: transparent;
   border: 0;
@@ -97,14 +97,30 @@ const Remove = styled.button`
 
   @media (hover: hover) {
     &:hover {
+      color: var(--color-label);
       background-color: var(--color-fill);
     }
   }
 `;
 
-// Campo de etiquetas: o texto vira etiqueta ao apertar Enter ou vírgula (ou ao sair do campo), cada uma
-// com o × para tirar, e Backspace no campo vazio tira a última. Repetida não entra. É o chip com remoção
-// que o `Badge` deixa de propósito para fora: interativo, então mora aqui.
+const Control = styled.input`
+  flex: 1 1 5rem;
+  min-width: 0;
+  max-width: 100%;
+  height: 1.75rem;
+  padding: 0;
+  font: inherit;
+  font-size: max(16px, var(--text-subheadline));
+  letter-spacing: var(--tracking-tight);
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+`;
+
+// Campo de etiquetas: o texto vira etiqueta ao apertar Enter ou vírgula (no celular também, pelo teclado
+// virtual, que manda o Enter como "Concluído" e a vírgula pelo próprio texto), ou ao sair do campo; cada
+// uma tem o × para tirar, e Backspace no campo vazio tira a última. Repetida não entra.
 export function TagInput({
   value,
   onChange,
@@ -120,10 +136,14 @@ export function TagInput({
   const input = useRef<HTMLInputElement>(null);
   const full = max !== undefined && value.length >= max;
 
-  const commit = () => {
-    const tag = draft.trim().replace(/,+$/, "").trim();
+  const add = (raw: string) => {
+    const tag = raw.replace(/,/g, "").trim();
     if (!tag) return;
     if (!full && !value.some((entry) => entry.toLowerCase() === tag.toLowerCase())) onChange([...value, tag]);
+  };
+
+  const commit = () => {
+    add(draft);
     setDraft("");
   };
 
@@ -132,8 +152,19 @@ export function TagInput({
     input.current?.focus();
   };
 
+  // A vírgula digitada no celular não chega como tecla, e sim dentro do texto: por isso o corte é aqui.
+  const onInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const text = event.target.value;
+    if (text.includes(",")) {
+      add(text);
+      setDraft("");
+      return;
+    }
+    setDraft(text);
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" || event.key === ",") {
+    if (event.key === "Enter" || event.keyCode === 13) {
       event.preventDefault();
       commit();
     } else if (event.key === "Backspace" && draft === "" && value.length > 0) {
@@ -145,12 +176,12 @@ export function TagInput({
   return (
     <Shell data-invalid={invalid || undefined} data-disabled={disabled || undefined} onClick={() => input.current?.focus()}>
       {value.map((tag, index) => (
-        <Badge key={tag} tone="neutral" size="md">
-          {tag}
+        <Chip key={tag}>
+          <ChipText>{tag}</ChipText>
           <Remove type="button" aria-label={`Remover ${tag}`} disabled={disabled} onClick={() => remove(index)}>
             <XIcon weight="bold" />
           </Remove>
-        </Badge>
+        </Chip>
       ))}
       <Control
         ref={input}
@@ -161,7 +192,8 @@ export function TagInput({
         disabled={disabled || full}
         required={required && value.length === 0}
         autoComplete="off"
-        onChange={(event) => setDraft(event.target.value)}
+        enterKeyHint="done"
+        onChange={onInput}
         onKeyDown={onKeyDown}
         onBlur={commit}
         {...aria}

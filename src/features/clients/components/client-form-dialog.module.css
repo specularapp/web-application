@@ -19,6 +19,14 @@
   border-block-end: var(--panel-line) solid var(--color-border);
 }
 
+/* O menu de situação e o X, no vão do menu. */
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
 /* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
    ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
 .body {
@@ -32,11 +40,12 @@
   overscroll-behavior: contain;
 }
 
-/* No celular o rodapé some e a folga do fim é para a barra flutuante, que fica acima da bandeja. */
+/* No celular o rodapé some e a folga do fim é para a barra flutuante, que fica acima da bandeja: alta o
+   bastante para o último campo não se misturar com ela. */
 @media (max-width: 47.9375rem) {
   .body {
     gap: var(--space-4);
-    padding-block: var(--space-4) calc(var(--touch-target) + var(--space-8));
+    padding-block: var(--space-4) calc(var(--touch-target) + var(--space-16));
   }
 }
 
@@ -77,13 +86,25 @@
   background-color: var(--color-border);
 }
 
-/* Dois campos lado a lado, também no celular: a coluna é `minmax(0, 1fr)` para os campos encolherem em
-   vez de alargar a gaveta. */
+/* Dois campos lado a lado no desktop. No celular empilham: e-mail, site e empresa são compridos, e em meia
+   coluna cortavam o que a pessoa digita. O que é pequeno de verdade (foto e logo) segue em grade. */
 .pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.images {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 /* A foto ou a logo: a moldura de 3,5rem e, ao lado, o rótulo com os botões embaixo. */
@@ -110,9 +131,12 @@
   object-fit: cover;
 }
 
-/* O rosto gerado toma a moldura inteira. Três classes para vencer o tamanho do `Avatar`. */
+/* O rosto gerado toma a moldura inteira, no mesmo raio dela: com o raio próprio do tamanho grande (26px)
+   o canto do rosto não casava com o da moldura e aparecia um pedaço do fundo. Três classes para vencer o
+   tamanho e o raio do `Avatar`. */
 .imageFrame .avatar.avatar {
   --avatar-size: 3.5rem;
+  --avatar-radius: var(--radius-lg);
 }
 
 /* A inicial da empresa em título, ou o prédio quando ainda não há nome. */
@@ -149,13 +173,6 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-/* Os dois interruptores lado a lado. */
-.toggles {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
 }
 
 .alert {

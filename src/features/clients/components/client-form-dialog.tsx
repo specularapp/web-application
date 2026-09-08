@@ -1,19 +1,31 @@
 "use client";
 
-import { BuildingsIcon, CheckIcon, IdentificationCardIcon, NotePencilIcon, PhoneIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
+import {
+  BuildingsIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  DotsThreeVerticalIcon,
+  IdentificationCardIcon,
+  NotePencilIcon,
+  PhoneIcon,
+  StarIcon,
+  UploadSimpleIcon,
+  XIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
 import { TagInput } from "@/components/ui/tag-input";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
@@ -149,7 +161,7 @@ function ImageField({
 // flutuante do menu. Três blocos separados por fio, identidade, contato e detalhes, com os campos no
 // padrão da casa e em pares onde cabem. O estado é local e o envio é a action, que valida com zod de novo
 // no servidor; erro de campo volta para o campo, e sucesso avisa e fecha. A foto e a logo entram na prévia
-// na hora; o envio do arquivo chega com o storage.
+// na hora; o envio do arquivo chega com o storage. Ativo e favorito ficam no menu de três pontos do topo.
 export function ClientFormDialog({ editor, onClose, onSaved }: ClientFormDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
 
@@ -283,14 +295,33 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
         <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
           {editing ? "Editar cliente" : "Novo cliente"}
         </Text>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-          <XIcon />
-        </IconButton>
+        <div className={styles.headActions}>
+          {/* Ativo e favorito são situação, e não dado da ficha: moram no menu de opções da própria
+              janela, como interruptores, para não tomar linha do formulário. */}
+          <DropdownMenu
+            label="Situação do cliente"
+            triggerLabel="Situação do cliente"
+            icon={<DotsThreeVerticalIcon />}
+            sections={[
+              {
+                id: "flags",
+                label: "Situação",
+                items: [
+                  { kind: "toggle", id: "active", label: "Cliente ativo", icon: CheckCircleIcon, checked: values.active, onChange: (active) => set("active", active) },
+                  { kind: "toggle", id: "favorite", label: "Favorito", icon: StarIcon, checked: values.favorite, onChange: (favorite) => set("favorite", favorite) },
+                ],
+              },
+            ]}
+          />
+          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
+            <XIcon />
+          </IconButton>
+        </div>
       </header>
 
       <div className={styles.body}>
         <Section icon={IdentificationCardIcon} title="Identidade">
-          <div className={styles.pair}>
+          <div className={styles.images}>
             <ImageField
               label="Foto"
               preview={photoUrl}
@@ -298,7 +329,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
               onSelect={pickImage(setPhotoUrl)}
             />
             <ImageField
-              label="Logo da empresa"
+              label="Logo"
               preview={logoUrl}
               fallback={
                 <span className={styles.initial} aria-hidden="true">
@@ -362,14 +393,6 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
           <Field label="Etiquetas" error={errorOf("tags")}>
             <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
-          <div className={styles.toggles}>
-            <Switch checked={values.active} disabled={saving} onChange={(event) => set("active", event.target.checked)}>
-              Cliente ativo
-            </Switch>
-            <Switch checked={values.favorite} disabled={saving} onChange={(event) => set("favorite", event.target.checked)}>
-              Favorito
-            </Switch>
-          </div>
         </Section>
 
         {error && !error.field && (
