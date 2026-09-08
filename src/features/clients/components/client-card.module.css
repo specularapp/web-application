@@ -20,10 +20,11 @@
   }
 }
 
-/* Selecionado, o fio acende na cor de destaque, e é ele que muda, não o fundo: a foto e o nome ficam
-   como estavam e o cartão inteiro não pisca a cada marcação numa grade cheia. */
-.card[data-selected] {
-  background-color: var(--color-accent);
+/* Selecionado, o fundo de dentro sobe um tom no preenchimento da casa, e o fio fica como está: nada de
+   cor de destaque em volta (o fio azul durou uma rodada e saiu a pedido). O tom é o do preenchimento
+   terciário, um degrau acima do fundo do hover, para o marcado se ver mesmo com o ponteiro em cima. */
+.card[data-selected] .inner {
+  background-color: var(--color-fill-tertiary);
 }
 
 /* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a
