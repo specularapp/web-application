@@ -14,7 +14,7 @@ import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { Badge } from "../badge";
-import type { ButtonRadius } from "../button";
+import type { ButtonProps } from "../button";
 import { Dialog } from "../dialog";
 import { IconButton } from "../icon-button";
 import { hoverMotion, layerMotion } from "../styles";
@@ -68,11 +68,12 @@ export type DropdownMenuProps = {
   sections: DropdownSection[];
   icon?: ReactNode;
   size?: "sm" | "md";
-  /** O gatilho é fantasma por padrão, como o chevron das listas; `outline` é o botão de filtros da barra. */
-  variant?: "ghost" | "outline";
-  /** Canto do gatilho, no contrato do `Button`. */
-  radius?: ButtonRadius;
+  /** Como o gatilho se veste, no contrato do `Button`: fantasma por padrão, como o chevron das listas; a
+   *  barra de busca o veste como o campo ao lado. */
+  trigger?: DropdownTrigger;
 };
+
+export type DropdownTrigger = Pick<ButtonProps, "variant" | "radius" | "background" | "foreground" | "border">;
 
 const PANEL_WIDTH = 280;
 const ROW_HEIGHT = 40;
@@ -266,7 +267,7 @@ function isExternal(href: string) {
 // rota ou endereço externo), com seta de mais opções, selo do plano que libera e contagem no fim da
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
-export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", variant = "ghost", radius }: DropdownMenuProps) {
+export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger }: DropdownMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -434,9 +435,9 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       <IconButton
         ref={triggerRef}
         label={triggerLabel}
-        variant={variant}
+        variant="ghost"
+        {...trigger}
         size={size}
-        radius={radius}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}

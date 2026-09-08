@@ -102,17 +102,27 @@ export const defaultQuery: ClientsQuery = {
 };
 
 /**
- * Quantos filtros do menu saíram do padrão, para a etiqueta na quina do botão de filtros. Ordem e
- * período ficam de fora da conta porque estão à vista na própria barra.
+ * Quantos filtros do funil saíram do padrão, para a etiqueta na quina dele. Ordem e período ficam em
+ * conta própria porque no desktop estão à vista na barra e só no celular entram no funil.
  */
 export function countMenuFilters(query: ClientsQuery) {
-  return [
-    query.favorite !== defaultQuery.favorite,
-    query.status !== defaultQuery.status,
-    query.withEmail,
-    query.withPhone,
-  ].filter(Boolean).length;
+  return [query.favorite !== defaultQuery.favorite, query.status !== defaultQuery.status, query.withEmail, query.withPhone].filter(Boolean).length;
 }
+
+export function countQuickFilters(query: ClientsQuery) {
+  return [query.sort !== defaultQuery.sort, query.period !== defaultQuery.period].filter(Boolean).length;
+}
+
+/** Tudo de volta ao padrão, menos a busca: é o que "Limpar filtros" faz. */
+export const clearedFilters: Partial<ClientsQuery> = {
+  sort: DEFAULT_SORT,
+  favorite: DEFAULT_FAVORITE,
+  status: DEFAULT_STATUS,
+  period: DEFAULT_PERIOD,
+  withEmail: false,
+  withPhone: false,
+  page: 1,
+};
 
 /** A página pronta: os cartões que a grade mostra e quantos clientes o filtro encontrou ao todo. */
 export type ClientsListPage = {

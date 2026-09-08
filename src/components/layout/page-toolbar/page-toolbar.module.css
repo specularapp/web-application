@@ -1,6 +1,9 @@
 /* Uma linha só: a busca toma o que sobra e os botões ficam colados a ela no vão do menu, 4px, para a
    fileira ler como uma peça. Toda peça tem a altura do controle pequeno. */
 .toolbar {
+  /* O fio dos botões da barra na espessura do fio do campo: é o que faz os dois lerem como uma peça. */
+  --button-line: 0.0375rem;
+
   display: flex;
   gap: var(--space-1);
   align-items: center;
@@ -78,6 +81,17 @@
 .input::-webkit-search-cancel-button,
 .input::-webkit-search-decoration {
   appearance: none;
+}
+
+/* Os menus rápidos, no mesmo vão da linha. No celular somem: as seções deles vão para dentro do funil. */
+.quick {
+  display: contents;
+}
+
+@media (max-width: 47.9375rem) {
+  .quick {
+    display: none;
+  }
 }
 
 .funnel {

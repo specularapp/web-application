@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
@@ -28,7 +28,9 @@ import {
   QUERY_PARAM,
   SORT_PARAM,
   STATUS_PARAM,
+  clearedFilters,
   countMenuFilters,
+  countQuickFilters,
   defaultQuery,
   favoriteOptions,
   periodOptions,
@@ -93,11 +95,12 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
 
   const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
   const menuFilters = countMenuFilters(query);
+  const quickFilters = countQuickFilters(query);
 
   /* O menu de filtros: cada escolha vale na hora e não fecha o menu, porque a pessoa costuma ajustar
      mais de uma coisa antes de sair. Favoritos e situação são escolha única, marcada pelo check; e-mail
-     e telefone são interruptores; e limpar volta tudo do menu ao padrão, sem mexer em ordem e período,
-     que estão à vista na barra. */
+     e telefone são interruptores; e limpar volta tudo ao padrão, ordem e período inclusive, porque no
+     celular eles moram dentro deste mesmo menu. */
   const filterSections: DropdownSection[] = [
     {
       id: "favorite",
@@ -145,27 +148,8 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
         },
       ],
     },
-    ...(menuFilters > 0
-      ? [
-          {
-            id: "reset",
-            items: [
-              {
-                id: "reset",
-                label: "Limpar filtros",
-                icon: ArrowCounterClockwiseIcon,
-                onSelect: () =>
-                  go({
-                    favorite: defaultQuery.favorite,
-                    status: defaultQuery.status,
-                    withEmail: false,
-                    withPhone: false,
-                    page: 1,
-                  }),
-              },
-            ],
-          },
-        ]
+    ...(menuFilters + quickFilters > 0
+      ? [{ id: "reset", items: [{ id: "reset", label: "Limpar filtros", icon: ArrowCounterClockwiseIcon, onSelect: () => go(clearedFilters) }] }]
       : []),
   ];
 
@@ -178,47 +162,46 @@ export function ClientsBoard({ page, query }: ClientsBoardProps) {
           placeholder: "Buscar clientes",
           label: "Buscar cliente",
         }}
-        quickFilters={
-          /* Ordem e período ficam à vista, só no ícone, no mesmo botão fantasma e no mesmo menu de vidro
-             do chevron duplo das listas: são os que a pessoa troca toda hora ao varrer a base. O
-             escolhido vai marcado e no nome acessível do gatilho. */
-          <>
-            <DropdownMenu
-              label="Ordem dos clientes"
-              triggerLabel={`Ordem: ${sortOptions.find((option) => option.value === query.sort)?.label ?? ""}`}
-              icon={<ArrowsDownUpIcon />}
-              sections={[
-                {
-                  id: "sort",
-                  label: "Ordem",
-                  items: sortOptions.map((option) => ({
-                    id: option.value,
-                    label: option.label,
-                    selected: option.value === query.sort,
-                    onSelect: () => go({ sort: option.value, page: 1 }),
-                  })),
-                },
-              ]}
-            />
-            <DropdownMenu
-              label="Período de entrada"
-              triggerLabel={`Período: ${periodOptions.find((option) => option.value === query.period)?.label ?? ""}`}
-              icon={<CalendarBlankIcon />}
-              sections={[
-                {
-                  id: "period",
-                  label: "Período",
-                  items: periodOptions.map((option) => ({
-                    id: option.value,
-                    label: option.label,
-                    selected: option.value === query.period,
-                    onSelect: () => go({ period: option.value, page: 1 }),
-                  })),
-                },
-              ]}
-            />
-          </>
-        }
+        quickFilters={[
+          /* Ordem e período ficam à vista, só no ícone: são os que a pessoa troca toda hora ao varrer a
+             base. O escolhido vai marcado e no nome acessível do gatilho, e escolher fecha, como o
+             período do painel. Quem veste o botão é a barra. */
+          {
+            label: "Ordem dos clientes",
+            triggerLabel: `Ordem: ${sortOptions.find((option) => option.value === query.sort)?.label ?? ""}`,
+            icon: <ArrowsDownUpIcon />,
+            sections: [
+              {
+                id: "sort",
+                label: "Ordem",
+                items: sortOptions.map((option) => ({
+                  id: option.value,
+                  label: option.label,
+                  selected: option.value === query.sort,
+                  onSelect: () => go({ sort: option.value, page: 1 }),
+                })),
+              },
+            ],
+          },
+          {
+            label: "Período de entrada",
+            triggerLabel: `Período: ${periodOptions.find((option) => option.value === query.period)?.label ?? ""}`,
+            icon: <CalendarBlankIcon />,
+            sections: [
+              {
+                id: "period",
+                label: "Período",
+                items: periodOptions.map((option) => ({
+                  id: option.value,
+                  label: option.label,
+                  selected: option.value === query.period,
+                  onSelect: () => go({ period: option.value, page: 1 }),
+                })),
+              },
+            ],
+          },
+        ]}
+        activeQuickFilters={quickFilters}
         filters={filterSections}
         activeFilters={menuFilters}
         action={

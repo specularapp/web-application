@@ -81,7 +81,9 @@ const Root = styled.button`
   text-align: center;
   color: var(--button-foreground);
   background-color: var(--button-background);
-  border: 1px solid var(--button-border);
+  /* A espessura do fio vem de fora quando o botão precisa casar com um campo de fio fino ao lado, como na
+     barra de busca; por padrão é o 1px da casa. */
+  border: var(--button-line, 1px) solid var(--button-border);
   border-radius: var(--button-radius);
 
   ${hoverMotion};
