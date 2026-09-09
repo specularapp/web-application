@@ -4,6 +4,7 @@ import { ArrowCounterClockwiseIcon, ListBulletsIcon, MinusCircleIcon, PlusIcon, 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
@@ -18,6 +19,7 @@ import {
   DEFAULT_CATEGORY,
   GRID_PER_PAGE_DEFAULT,
   KIND_PARAM,
+  MOBILE_PER_PAGE,
   PAGE_PARAM,
   PAGE_SIZE_PARAM,
   QUERY_PARAM,
@@ -166,7 +168,10 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   const scrollArea = useRef<HTMLDivElement>(null);
   const changePage = (next: number) => {
     go({ page: next });
-    const column = scrollArea.current ?? document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
+    // No desktop quem rola é a área da grade; no celular ela cresce em fluxo e quem rola é a coluna da
+    // concha, então o alvo é o primeiro dos dois que de fato tenha o que rolar.
+    const area = scrollArea.current;
+    const column = (area && area.scrollHeight > area.clientHeight ? area : null) ?? document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     column.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   };
@@ -184,10 +189,14 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
     if (asTable || !grid) return;
     let timer: number | undefined;
     const observer = new ResizeObserver(() => {
+      // No celular a página é sempre doze, e não o que a grade mede: numa ou duas colunas a medida daria
+      // três ou seis, e a pessoa passaria página o tempo todo. No desktop vale o que cabe em três linhas.
       const columns = getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length;
-      const size = gridPageSize(columns);
+      const size = mobile ? MOBILE_PER_PAGE : gridPageSize(columns);
       gridSize.current = size;
-      saveCatalogGridSize(size);
+      // O cookie guarda só a medida do desktop: é ele que faz a primeira página vir do tamanho certo na
+      // visita seguinte, e o doze fixo do celular gravado ali faria o desktop abrir curto antes de medir.
+      if (!mobile) saveCatalogGridSize(size);
       window.clearTimeout(timer);
       if (size === currentSize) return;
       timer = window.setTimeout(
@@ -204,7 +213,8 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
       observer.disconnect();
       window.clearTimeout(timer);
     };
-  }, [asTable, showing, currentSize, currentPage, go]);
+  }, [asTable, mobile, showing, currentSize, currentPage, go]);
+
 
   const createItem = () => openEditor("new");
 
@@ -212,6 +222,11 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeCatalogFilters(live);
+
+  // No celular a paginação mora na barra flutuante do menu, junto do botão que abre a tela cheia, em vez de
+  // uma segunda barra no pé da lista: é o mesmo lugar de salvar e sair de uma janela, e a lista rola até o
+  // fim sem nada por cima. Passando de uma página; com uma só, a barra volta a ser busca e sino.
+  useFloatingPagerRegistration(mobile && pages > 1 ? { page: live.page, pageCount: pages, onPageChange: changePage, label: "Páginas do catálogo" } : null);
 
   /* O menu de filtros, no desenho do da base de clientes: tipo e categoria em escolha única, marcada pelo
      check; inativos em interruptor, porque quase tudo é ativo e o filtro útil é o de quem saiu de linha. As
@@ -366,7 +381,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
           <Text as="span" variant="footnote" tone="secondary">
             Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
           </Text>
-          {pages > 1 && <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas do catálogo" />}
+          {pages > 1 && !mobile && <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas do catálogo" />}
         </div>
       )}
 

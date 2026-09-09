@@ -23,6 +23,13 @@ export const GRID_ROWS = 3;
 export const GRID_PER_PAGE_DEFAULT = 12;
 export const MAX_PER_PAGE = 30;
 
+/**
+ * No celular a página é sempre doze (pedido de 2026-09-09), e não o que a grade mede: com uma ou duas
+ * colunas a medida daria três ou seis por página, e a pessoa passaria página o tempo todo. Doze é o mesmo
+ * número do padrão da grade e rola bem numa tela estreita.
+ */
+export const MOBILE_PER_PAGE = 12;
+
 export const gridPageSize = (columns: number) => pageSizeForGrid(columns, GRID_ROWS, MAX_PER_PAGE);
 
 export { remapPage };

@@ -495,8 +495,29 @@
   min-width: 0;
 }
 
-/* Os dois modos da barra (busca e sino, ou salvar e sair) ficam montados na mesma cela da grade, um sobre
-   o outro, e a troca é um fundido de verdade: o que sai desbota e encolhe um fio enquanto o que entra
+/* A página em vigor no modo de paginação: só texto, no mesmo desenho do indicador da barra de paginação
+   do desktop, em algarismo tabular e com largura mínima para a caixa não pulsar ao trocar de página. Toma
+   o que sobra entre as setas, para as duas ficarem nas pontas. */
+.barPage {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  height: var(--control-height-md);
+  padding-inline: var(--space-2);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  color: var(--color-label);
+}
+
+/* Os três modos da barra (busca e sino, a paginação da lista, ou salvar e sair) ficam montados na mesma
+   cela da grade, um sobre o outro, e a troca é um fundido de verdade: o que sai desbota e encolhe um fio enquanto o que entra
    aparece, com a curva que assenta. A cela tem a largura do maior, então a caixa da barra não muda de
    tamanho na troca, que é a regra de fluidez dela; cada modo estica o próprio conteúdo para preencher. O
    modo apagado não pega toque nem foco (`inert`). */

@@ -26,6 +26,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useCommandKey } from "@/hooks/use-command-key";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -409,22 +410,33 @@ export function SidebarPanel({
   );
 }
 
+/* Os três modos da barra do celular, na ordem de prioridade: as ações de uma janela aberta, a paginação
+   da lista à vista e, sem nenhuma das duas, a busca e o sino de sempre. */
+type BarMode = "actions" | "pager" | "browse";
+
+const numberFormat = new Intl.NumberFormat("pt-BR");
+
 // No celular o painel não fica: ele é chamado pela barra flutuante de baixo e toma a tela inteira.
 // A troca é de árvore, e não de CSS, porque as duas formas têm conteúdo diferente no rodapé.
 export function Sidebar(props: SidebarProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [open, setOpen] = useState(false);
-  // As ações que a janela aberta pendurou na barra do celular (salvar e sair de um formulário): com elas
-  // a busca e o sino saem e entram as duas, e o botão do menu fica onde sempre fica.
-  const { shape: actions, runPrimary, runCancel } = useFloatingActions();
+  // As ações que a janela aberta pendurou na barra do celular (salvar e sair de um formulário) e a
+  // paginação que a lista pendurou: com qualquer uma delas a busca e o sino saem e entra o modo da vez, e
+  // o botão do menu fica onde sempre fica. Janela manda na lista, porque um formulário aberto é o assunto.
+  const { shape: actions, pager, runPrimary, runCancel, goToPage } = useFloatingActions();
+  const mode: BarMode = actions ? "actions" : pager ? "pager" : "browse";
   // O último modo de ações visto fica guardado para o fundido de saída ter o que desenhar: a barra troca
   // de modo desbotando um sobre o outro, e o que sai não pode sumir no meio do caminho.
   const [lastActions, setLastActions] = useState(actions);
   if (actions && actions !== lastActions) setLastActions(actions);
-  // O modo de ações fica montado desde o começo, apagado e inerte, com um rótulo de espera enquanto
-  // nenhuma janela registrou nada: montar só na hora fazia ele aparecer já no estado final, sem o fundido
-  // de entrada, e a troca lia como seca.
+  const [lastPager, setLastPager] = useState(pager);
+  if (pager && pager !== lastPager) setLastPager(pager);
+  // Os modos ficam montados desde o começo, apagados e inertes, com valores de espera enquanto ninguém
+  // registrou nada: montar só na hora fazia o modo aparecer já no estado final, sem o fundido de entrada,
+  // e a troca lia como seca.
   const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar" };
+  const shownPager = lastPager ?? { page: 1, pageCount: 1, label: "Páginas" };
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
   const [notifications, setNotifications] = useState(props.notifications);
@@ -491,7 +503,7 @@ export function Sidebar(props: SidebarProps) {
       <div className={styles.bar} data-collapsed={open || undefined} data-actions={actions ? "" : undefined}>
         <div className={styles.barGroup} inert={open || undefined}>
           <div className={styles.barGroupInner}>
-            <span className={styles.barMode} data-active={actions ? undefined : ""} inert={actions ? true : undefined}>
+            <span className={styles.barMode} data-active={mode === "browse" ? "" : undefined} inert={mode === "browse" ? undefined : true}>
               <button type="button" className={styles.search} onClick={openSearch}>
                 <MagnifyingGlassIcon aria-hidden="true" />
                 <span className={styles.searchLabel}>Buscar</span>
@@ -509,9 +521,36 @@ export function Sidebar(props: SidebarProps) {
                 <span className={styles.barDivider} aria-hidden="true" />
               </span>
             </span>
+            {/* Lista com mais de uma página: anterior, a página em vigor e próxima entram no lugar da busca
+                e do sino, na mesma caixa, para o celular não ganhar uma segunda barra flutuante. O número
+                é só leitura, como na barra de paginação do desktop, e a leitura completa fica na voz. */}
+            <span className={styles.barMode} data-active={mode === "pager" ? "" : undefined} inert={mode === "pager" ? undefined : true}>
+              <IconButton label="Página anterior" variant="ghost" size="md" radius="md" disabled={shownPager.page <= 1} onClick={() => goToPage(shownPager.page - 1)}>
+                <CaretLeftIcon />
+              </IconButton>
+              <span className={styles.barDivider} aria-hidden="true" />
+              <p className={styles.barPage} aria-live="polite" aria-label={shownPager.label}>
+                <span aria-hidden="true">
+                  {numberFormat.format(shownPager.page)}/{numberFormat.format(shownPager.pageCount)}
+                </span>
+                <VisuallyHidden>{`${shownPager.label}: página ${shownPager.page} de ${shownPager.pageCount}`}</VisuallyHidden>
+              </p>
+              <span className={styles.barDivider} aria-hidden="true" />
+              <IconButton
+                label="Próxima página"
+                variant="ghost"
+                size="md"
+                radius="md"
+                disabled={shownPager.page >= shownPager.pageCount}
+                onClick={() => goToPage(shownPager.page + 1)}
+              >
+                <CaretRightIcon />
+              </IconButton>
+              <span className={styles.barDivider} aria-hidden="true" />
+            </span>
             {/* Janela com ações próprias: salvar e sair entram no lugar da busca e do sino, para a barra
                 continuar uma só e o botão do menu ficar onde sempre fica. */}
-            <span className={styles.barMode} data-active={actions ? "" : undefined} inert={actions ? undefined : true}>
+            <span className={styles.barMode} data-active={mode === "actions" ? "" : undefined} inert={mode === "actions" ? undefined : true}>
               <Button size="md" radius="md" iconStart={<CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
                 {shownActions.primaryLabel}
               </Button>
