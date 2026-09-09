@@ -1,0 +1,13 @@
+/* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra. A
+   coluna é `minmax(0, 1fr)` porque a grade de cartões alargaria a página numa trilha automática. A altura é
+   a da área de conteúdo, e não só um piso (acerto de 2026-09-08): com `min-height` a altura da tela era
+   indefinida, a trilha `1fr` crescia com o conteúdo e os 100% da prancha viravam a altura do conteúdo, então
+   a tabela nunca ficava presa e quem rolava era a página. Com altura definida a trilha é o que sobra, e
+   `minmax(0, 1fr)` não deixa o conteúdo esticá-la; a grade de cartões transborda a tela e a área de conteúdo
+   rola, como antes. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}

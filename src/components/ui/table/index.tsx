@@ -1,9 +1,9 @@
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./table.module.css";
 
-type TableScrollProps = ComponentPropsWithoutRef<"div"> & { label: string };
+type TableScrollProps = ComponentProps<"div"> & { label: string };
 
 export function TableScroll({ label, className, ...props }: TableScrollProps) {
   return (
@@ -12,7 +12,7 @@ export function TableScroll({ label, className, ...props }: TableScrollProps) {
       aria-label={label}
       tabIndex={0}
       className={cx(styles.scroll, className)}
-      {...squircle("lg")}
+      {...squircle("xs")}
       {...props}
     />
   );
@@ -25,7 +25,7 @@ export function Table({ density = "default", className, ...props }: TableProps) 
 }
 
 export function TableHead(props: ComponentPropsWithoutRef<"thead">) {
-  return <thead className={styles.head} {...props} />;
+  return <thead {...props} />;
 }
 
 export function TableBody(props: ComponentPropsWithoutRef<"tbody">) {

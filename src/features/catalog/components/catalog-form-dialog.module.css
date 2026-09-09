@@ -1,0 +1,225 @@
+/* Cabeçalho e rodapé fixos, o meio rola: a gaveta tem a altura da tela e a ficha é longa. Os fios seguem o
+   menu, 0,6px em `--color-border`, nascendo aqui e descendo por cascata para cabeçalho, divisor e rodapé.
+   Mesma moldura da gaveta de ficha do cliente. */
+.dialog {
+  --panel-line: 0.0375rem;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+/* O menu de situação e o X, no vão do menu. */
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
+   ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-height: 0;
+  padding-block: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* No celular o rodapé some: salvar e sair estão na barra flutuante, acima da bandeja, e o corpo que rola
+   leva a folga dela embaixo, para o último campo fechar acima da barra. */
+@media (max-width: 47.9375rem) {
+  .body {
+    gap: var(--space-4);
+    padding-block: var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .section {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* O glifo e o título do bloco, na cor do título, herdada. */
+.heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding-block-end: var(--space-1);
+}
+
+.heading > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+/* O divisor no fio da casa: o `Separator` puro traz `--color-separator`, quase três vezes mais opaco. */
+.divider.divider {
+  height: var(--panel-line);
+  background-color: var(--color-border);
+}
+
+/* Dois campos lado a lado no desktop; no celular empilham, porque nome e categoria são compridos. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+/* Os três números do estoque cabem lado a lado até no celular: são contagens curtas. */
+.triple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A arte do item, em 52px, com o rótulo e os botões da imagem ao lado: a mesma linha da foto do cliente. */
+.artwork {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.artworkCopy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.artworkActions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O campo de arquivo fica fora da vista, mas não fora da árvore: o botão ao lado é quem o abre. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* O seletor de cor: o rótulo em cima, como os outros campos, e as doze bolinhas embaixo. */
+.hueField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.hues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Cada matiz é uma bolinha de 24px na cor cheia; a escolhida ganha um anel na própria cor, separado por um
+   anel do fundo, o mesmo sinal do `Avatar` no grupo. O alvo de toque sobe a 32px pelo recuo transparente. */
+.hue {
+  box-sizing: content-box;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: var(--space-1);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+}
+
+.hue::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  content: "";
+  background-color: var(--hue);
+  border-radius: var(--radius-full);
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.hue[aria-checked="true"]::before {
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--hue);
+}
+
+@media (hover: hover) {
+  .hue:hover::before {
+    box-shadow:
+      0 0 0 2px var(--color-bg),
+      0 0 0 4px color-mix(in oklab, var(--hue) 50%, transparent);
+  }
+
+  .hue[aria-checked="true"]:hover::before {
+    box-shadow:
+      0 0 0 2px var(--color-bg),
+      0 0 0 4px var(--hue);
+  }
+
+  .hue:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.hue:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.alert {
+  padding-inline: var(--space-5);
+}
+
+/* Cancelar e salvar fixos no rodapé, à direita. No celular o rodapé some: os dois moram na barra
+   flutuante do menu. */
+.foot {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: var(--panel-line) solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+}

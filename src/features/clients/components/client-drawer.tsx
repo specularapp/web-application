@@ -11,7 +11,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { compactMoney } from "@/lib/utils/format";
 import { loadClientAction } from "../actions";
@@ -76,7 +75,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
       label={client ? `Ficha de ${client.name}` : "Ficha do cliente"}
       size="lg"
       placement="end"
-      surface="glass"
+      surface="page"
       scrim={false}
       focusOnOpen={false}
     >
@@ -108,7 +107,8 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
             {/* A identidade com os botões de contato na outra ponta, como na referência. */}
             <section className={styles.identity}>
               {/* A foto da pessoa com a marca da empresa pequena na quina de baixo, à direita: duas
-                  identidades, a pessoa em cima e a empresa como carimbo, sem disputar espaço. */}
+                  identidades, a pessoa em cima e a empresa como carimbo, sem disputar espaço. A foto só
+                  abre a fenda do carimbo quando há carimbo. */}
               <span className={styles.portrait}>
                 <Avatar
                   name={client.name}
@@ -116,6 +116,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
                   seed={client.email ?? client.name}
                   size="lg"
                   shape="squircle"
+                  className={full?.company ? styles.photo : undefined}
                 />
                 {full?.company && <CompanyMark name={full.company} src={full.companyLogoUrl} />}
               </span>
@@ -192,13 +193,14 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
 }
 
 /* A marca da empresa: a logo quando há, e a inicial do nome quando não há. É empresa, e não pessoa, então
-   a inicial vale: a regra de nunca usar iniciais é do rosto de gente. A imagem vai sem otimizador porque o
-   endereço da logo virá de fora e não há domínio para liberar. */
+   a inicial vale: a regra de nunca usar iniciais é do rosto de gente. Redonda, então não declara canto: o
+   círculo já é o padrão da casa. A imagem vai sem otimizador porque o endereço da logo virá de fora e não
+   há domínio para liberar. */
 function CompanyMark({ name, src }: { name: string; src?: string | null }) {
   return (
-    <span className={styles.company} role="img" aria-label={`Empresa: ${name}`} title={name} {...squircle("sm", { clip: true })}>
+    <span className={styles.company} role="img" aria-label={`Empresa: ${name}`} title={name}>
       {src ? (
-        <Image src={src} alt="" width={22} height={22} unoptimized className={styles.companyImage} />
+        <Image src={src} alt="" width={24} height={24} unoptimized className={styles.companyImage} />
       ) : (
         <span aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
       )}
@@ -212,7 +214,7 @@ function Tile({ label, value, className }: { label: string; value: string; class
       <Text as="dt" variant="caption1" tone="secondary" truncate>
         {label}
       </Text>
-      <Text as="dd" variant="title3" weight="semibold" numeric className={styles.tileValue}>
+      <Text as="dd" variant="title3" weight="semibold" className={styles.tileValue}>
         {value}
       </Text>
     </div>

@@ -1,8 +1,11 @@
 /* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra.
-   A coluna é `minmax(0, 1fr)` porque a grade de cartões alargaria a página numa trilha automática. */
+   A coluna é `minmax(0, 1fr)` porque a grade de cartões alargaria a página numa trilha automática. A altura
+   é a da área de conteúdo, e não só um piso, com a trilha em `minmax(0, 1fr)` (2026-09-08, como no
+   catálogo): é o que deixa a prancha ter altura fixa, a tabela rolar por dentro com o cabeçalho preso e a
+   paginação ficar presa no pé. A grade de cartões rola dentro da própria área. */
 .screen {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
-  min-height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
 }

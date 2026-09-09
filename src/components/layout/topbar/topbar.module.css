@@ -1,8 +1,10 @@
-/* O nome da página de um lado e o uso da IA do outro, e mais nada: o menu lateral já diz onde a página
-   mora. Recuo igual ao da prancha abaixo, para o nome e a busca começarem na mesma linha. Fica grudado
-   no topo enquanto a página rola (a pedido, 2026-09-08): a coluna de conteúdo da concha é quem rola, e o
-   topo, sendo o primeiro filho da tela, prende nela com fundo sólido para a grade passar por baixo. Só
-   acima do conteúdo; qualquer camada flutuante fica acima dele. */
+/* A rota de um lado, o nome da página no meio e o uso da IA do outro. Flex com o nome preso no meio por
+   posição absoluta, e não uma grade de três: com as pontas mandando no espaço, uma rota longa de um lado
+   e um widget curto do outro empurravam o nome para fora do centro do container, que é justamente onde
+   ele tem que estar. Recuo igual ao da prancha abaixo, para a rota e a busca começarem na mesma linha.
+   Fica grudado no topo enquanto a página rola (a pedido, 2026-09-08): a coluna de conteúdo da concha é
+   quem rola, e o topo, sendo o primeiro filho da tela, prende nela com fundo sólido para a grade passar
+   por baixo. Só acima do conteúdo; qualquer camada flutuante fica acima dele. */
 .topbar {
   position: sticky;
   inset-block-start: 0;
@@ -10,7 +12,6 @@
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  justify-content: space-between;
   min-height: 3.25rem;
   padding-inline: var(--space-4);
   background-color: var(--color-bg);
@@ -23,9 +24,61 @@
   }
 }
 
-/* O nome cede e encurta por reticências; o widget não encolhe. */
-.title {
+/* A rota até a página: só os nomes separados por barra, na tinta secundária. Não é link nem menu, é só
+   onde a pessoa está; quem leva a outro lugar é o menu lateral. */
+.route {
+  display: flex;
+  flex: 1;
   min-width: 0;
+}
+
+.crumbs {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.crumb {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O último degrau é o que cede: os de cima ficam inteiros, e o mais perto da página encurta primeiro. */
+.crumb:not(:last-child) {
+  flex-shrink: 0;
+}
+
+/* A barra separa sem pesar: um degrau mais apagada que o texto dos degraus. */
+.separator {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+/* No meio da barra, sem depender das pontas. O teto de largura é o que impede o nome longo de passar por
+   baixo da rota ou do widget. */
+.title {
+  position: absolute;
+  inset-inline-start: 50%;
+  max-width: 40%;
+  text-align: center;
+  translate: -50%;
+}
+
+.end {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  margin-inline-start: auto;
 }
 
 /* O uso da IA sem caixa nenhuma: a marca e a régua soltas na moldura, no fantasma dos controles da casa,
@@ -82,4 +135,20 @@
 
 .bar[data-on] {
   background-color: var(--color-label);
+}
+
+/* No celular a rota sai e o nome toma o lugar dela, alinhado à esquerda: numa tela estreita a rota comeria
+   o nome, e quem já está lá dentro sabe onde está. O widget da IA fica na outra ponta. */
+@media (max-width: 47.9375rem) {
+  .route {
+    display: none;
+  }
+
+  .title {
+    position: static;
+    flex: 1;
+    max-width: none;
+    text-align: start;
+    translate: none;
+  }
 }

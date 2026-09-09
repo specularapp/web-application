@@ -1,6 +1,6 @@
 "use client";
 
-import { MagnifyingGlassIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, SlidersHorizontalIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, type DropdownSection, type DropdownTrigger } from "@/components/ui/dropdown-menu";
@@ -16,12 +16,29 @@ export type PageToolbarSearch = {
   label: string;
 };
 
+/** Um filtro fora do padrão: o glifo que o representa, o valor que a etiqueta mostra e o que tira só ele. */
+export type PageToolbarFilter = { id: string; label: string; icon: Icon; onClear: () => void };
+
+/** Um jeito de ver a lista, como grade ou tabela: o glifo é o que aparece no seletor. */
+export type PageToolbarViewOption = { value: string; label: string; icon: ReactNode };
+
+export type PageToolbarView = {
+  value: string;
+  options: PageToolbarViewOption[];
+  onChange: (value: string) => void;
+  /** Nome do grupo para leitor de tela, como "Jeito de ver a lista". */
+  label: string;
+};
+
 export type PageToolbarProps = {
   search: PageToolbarSearch;
   /** As seções do menu de filtros, que abre no botão ao lado da busca; sem elas o botão não aparece. */
   filters?: DropdownSection[];
-  /** Quantos filtros saíram do padrão, para a etiqueta na quina do botão. */
-  activeFilters?: number;
+  /** Os filtros fora do padrão: a contagem na quina do funil e, no desktop, uma etiqueta para cada na
+   *  própria linha, colada ao funil. */
+  activeFilters?: PageToolbarFilter[];
+  /** O seletor de visão, só no desktop; sem ele a página tem uma visão só. */
+  view?: PageToolbarView;
   /** O que age sobre o que está marcado, como excluir: a página só passa quando há seleção. */
   selection?: ReactNode;
   /** A ação principal da página, como "Novo cliente". */
@@ -46,10 +63,15 @@ function isTyping(target: EventTarget | null) {
 // A barra logo abaixo do topo em toda página da aplicação: a busca tomando toda a largura que sobra, no
 // mesmo desenho do campo de busca do menu lateral (fio fino, raio `md`, lupa e a tecla de atalho na
 // ponta); colado a ela, a 4px, o botão de filtros vestido como o campo (mesmo fio, mesmo canto, glifo na
-// mesma tinta), que abre o menu de vidro do chevron duplo das listas com todos os filtros da página; e a
-// ação principal fechando a linha. Três peças em qualquer largura; no celular a tecla some, porque não há
-// teclado, e o menu vira bandeja.
-export function PageToolbar({ search, filters, activeFilters = 0, selection, action }: PageToolbarProps) {
+// mesma tinta), que abre o menu de vidro do chevron duplo das listas com todos os filtros da página; o
+// seletor de visão, quando a página tem mais de um jeito de ver; e a ação principal fechando a linha. No
+// celular a tecla some, porque não há teclado, e o menu vira bandeja.
+//
+// Na mesma linha, coladas ao funil e só no desktop, uma etiqueta por filtro em vigor, com o glifo do
+// filtro, o valor e o × que tira aquele filtro (a pedido, 2026-09-08; uma rodada abaixo da linha durou um
+// dia): a contagem na quina do funil diz quantos são, e as etiquetas dizem quais, sem abrir o menu. Elas
+// não encolhem; quem cede é a busca. No celular saem, porque a linha já ocupa a largura toda.
+export function PageToolbar({ search, filters, activeFilters = [], view, selection, action }: PageToolbarProps) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -86,17 +108,56 @@ export function PageToolbar({ search, filters, activeFilters = 0, selection, act
         <span className={styles.funnel}>
           <DropdownMenu
             label="Filtros"
-            triggerLabel={activeFilters > 0 ? `Filtros, ${activeFilters} em vigor` : "Filtros"}
+            triggerLabel={activeFilters.length > 0 ? `Filtros, ${activeFilters.length} em vigor` : "Filtros"}
             sections={filters}
             icon={<SlidersHorizontalIcon />}
             trigger={FIELD_TRIGGER}
           />
-          {activeFilters > 0 && (
+          {activeFilters.length > 0 && (
             <Badge tone="accent" size="sm" shape="pill" className={styles.count} aria-hidden="true">
-              {activeFilters}
+              {activeFilters.length}
             </Badge>
           )}
         </span>
+      )}
+
+      {activeFilters.length > 0 && (
+        <ul className={styles.chips} aria-label="Filtros em vigor">
+          {activeFilters.map(({ id, label, icon: Glyph, onClear }) => (
+            <li key={id}>
+              <button type="button" className={styles.chip} aria-label={`Tirar o filtro ${label}`} title={`Tirar o filtro ${label}`} onClick={onClear}>
+                <span className={styles.chipMain}>
+                  <Glyph aria-hidden="true" className={styles.chipIcon} />
+                  <span className={styles.chipLabel}>{label}</span>
+                </span>
+                <XIcon aria-hidden="true" className={styles.chipClose} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* O seletor de visão: dois botões colados num invólucro com o fio do campo, o em vigor com o
+          preenchimento da casa. `radiogroup` porque é uma escolha entre jeitos de ver a mesma lista, e
+          não duas ações. Só no desktop: no celular a grade é a única visão que serve. */}
+      {view && (
+        <div className={styles.views} role="radiogroup" aria-label={view.label} {...squircle("md")}>
+          {view.options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={option.value === view.value}
+              aria-label={option.label}
+              title={option.label}
+              className={styles.view}
+              data-on={option.value === view.value || undefined}
+              onClick={() => view.onChange(option.value)}
+            >
+              {option.icon}
+            </button>
+          ))}
+        </div>
       )}
 
       {selection && <span className={styles.selection}>{selection}</span>}

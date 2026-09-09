@@ -1,5 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
+  AddressBookIcon,
   BriefcaseIcon,
   BuildingsIcon,
   CurrencyCircleDollarIcon,
@@ -8,6 +9,7 @@ import {
   ReceiptIcon,
   SparkleIcon,
   SquaresFourIcon,
+  TagIcon,
   TrophyIcon,
   UserIcon,
   UsersThreeIcon,
@@ -22,7 +24,6 @@ export type NavFolder = { label: string; icon: Icon; hue: string; items: NavLink
 
 export type NavEntry = NavLink | NavFolder;
 
-/** O glifo do grupo acompanha o nome no caminho que o topo da página mostra. */
 export type NavGroup = { title: string; icon: Icon; hue: string; entries: NavEntry[] };
 
 export function isFolder(entry: NavEntry): entry is NavFolder {
@@ -34,14 +35,10 @@ export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/**
- * Um degrau do caminho que o topo mostra: o nome e o glifo que o acompanha. Com `hue`, o glifo ganha um
- * azulejo cheio naquele matiz; sem ele, sai solto e apagado. É o que separa a área, que é contexto largo,
- * da pasta, que é onde a página mora de verdade.
- */
-export type NavCrumb = { label: string; icon: Icon; hue?: string };
+/** Um degrau da rota que o topo mostra. Só o nome: a rota é contexto, e glifo ali só fazia barulho. */
+export type NavCrumb = { label: string };
 
-/** Onde a página mora no menu: o caminho até ela à esquerda do topo e o nome dela no meio. */
+/** Onde a página mora no menu: a rota até ela à esquerda do topo e o nome dela no meio. */
 export type NavLocation = {
   /** O grupo do menu onde a página mora. */
   group: NavCrumb;
@@ -62,13 +59,13 @@ export function navLocation(pathname: string): NavLocation | null {
   const found: NavLocation[] = [];
 
   for (const group of navGroups) {
-    const crumb: NavCrumb = { label: group.title, icon: group.icon };
+    const crumb: NavCrumb = { label: group.title };
 
     for (const entry of group.entries) {
       if (isFolder(entry)) {
         for (const item of entry.items) {
           if (isCurrent(pathname, item.href)) {
-            found.push({ group: crumb, folder: { label: entry.label, icon: entry.icon, hue: entry.hue }, page: item });
+            found.push({ group: crumb, folder: { label: entry.label }, page: item });
           }
         }
       } else if (isCurrent(pathname, entry.href)) {
@@ -95,6 +92,11 @@ export const navGroups: NavGroup[] = [
     hue: "var(--sys-blue)",
     entries: [
       { label: "Espaço de trabalho", href: "/dashboard", icon: SquaresFourIcon },
+      /* Clientes e Produtos e serviços são páginas soltas, e não filhas de pasta (pedido de 2026-09-08): são
+         as duas bases que a pessoa abre o dia inteiro, e um degrau a mais para chegar nelas só atrasava. */
+      { label: "Clientes", href: "/clientes", icon: AddressBookIcon },
+      { label: "Funil de vendas", href: "/crm", icon: BuildingsIcon },
+      { label: "Produtos e serviços", href: "/catalogo", icon: TagIcon },
       {
         label: "Orçamento",
         icon: ReceiptIcon,
@@ -121,15 +123,6 @@ export const navGroups: NavGroup[] = [
           { label: "Todos os projetos", href: "/projetos", icon: BriefcaseIcon },
           { label: "Contratos", href: "/contratos", icon: BriefcaseIcon },
           { label: "Novo contrato", href: "/contratos/novo", icon: BriefcaseIcon },
-        ],
-      },
-      {
-        label: "Clientes",
-        icon: BuildingsIcon,
-        hue: "var(--sys-teal)",
-        items: [
-          { label: "Funil de vendas", href: "/crm", icon: BuildingsIcon },
-          { label: "Base de clientes", href: "/clientes", icon: BuildingsIcon },
         ],
       },
       { label: "Automação", href: "/automacoes", icon: FlowArrowIcon },
@@ -195,7 +188,7 @@ export function navLinks(): NavResult[] {
 export const navHighlights: NavHighlight[] = [
   { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
   { label: "Projetos", href: "/projetos", icon: BriefcaseIcon, hue: "var(--sys-indigo)" },
-  { label: "Clientes", href: "/clientes", icon: BuildingsIcon, hue: "var(--sys-teal)" },
+  { label: "Clientes", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
   { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)" },
   { label: "Contratos", href: "/contratos", icon: BriefcaseIcon, hue: "var(--sys-purple)" },
   { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon, hue: "var(--sys-pink)" },

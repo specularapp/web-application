@@ -33,10 +33,12 @@ const Root = styled.label`
     }
   }
 
+  /* Marcada, a caixa vai para o escuro da casa (a tinta do texto, que é o preenchimento da dica), e não para
+     a cor da marca: é controle de lista, não ação, e a pedido de 2026-09-08. */
   &:has(input:checked),
   &:has(input:indeterminate) {
-    --checkbox-background: var(--color-brand);
-    --checkbox-border: var(--color-brand);
+    --checkbox-background: var(--color-label);
+    --checkbox-border: var(--color-label);
   }
 
   &:has(input:checked) {

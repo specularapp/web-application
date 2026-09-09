@@ -1,10 +1,10 @@
 import Image from "next/image";
 import type { ComponentPropsWithoutRef, CSSProperties } from "react";
 import { squircleAuto } from "@/lib/corners";
+import { svgToken } from "@/lib/generated-svg";
 import { cx } from "@/lib/utils/cx";
 import { hashString } from "@/lib/utils/hash";
 import styles from "./avatar.module.css";
-import { avatarToken } from "./shape";
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg";
 
@@ -62,7 +62,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
            é rebaixar a segurança para não ganhar nada. É o desvio consciente da regra de imagens. */
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`/api/avatar/${avatarToken(key)}.svg`}
+          src={`/api/avatar/${svgToken(key)}.svg`}
           alt=""
           width={pixelSizes[size]}
           height={pixelSizes[size]}

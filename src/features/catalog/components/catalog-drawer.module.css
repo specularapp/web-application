@@ -1,0 +1,135 @@
+/* O cabeçalho fica fixo no topo da gaveta e quem rola é o corpo: o nome do item é a referência de onde a
+   pessoa está. Mesma moldura da ficha do cliente. */
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O vão das ações é o do menu, 4px, e elas não encolhem: quem cede é o título, por reticências. */
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* No celular o cabeçalho encolhe: recuo menor e sem a linha da referência. */
+@media (max-width: 47.9375rem) {
+  .head {
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  }
+
+  .since {
+    display: none;
+  }
+
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+/* A arte e quem é o item (nome com etiquetas e a categoria): a linha da ficha do cliente sem os contatos,
+   porque a ação do item vive no leque. */
+.identity {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.naming {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* As seções no vão das seções da casa, como o miolo da ficha do cliente. */
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .sections {
+    gap: var(--space-4);
+  }
+}
+
+/* A cabeça da seção de orçamentos: a aprovação apagada e o "Ver todos", no tamanho da legenda. */
+.aside {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.more {
+  font-size: var(--text-footnote);
+}
+
+/* A grade de preço e condições em duas colunas fixas, com o rótulo em cima do valor: é a célula que o
+   primitivo de fatos já desenha no celular, trazida para o desktop, porque no desktop ele empilha os
+   fatos numa coluna só, com o rótulo à esquerda, e oito fatos assim viravam uma lista comprida. Os
+   seletores alcançam o primitivo por elemento, que é o único jeito de mexer numa classe de outro módulo. */
+.grid > dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.grid > dl > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-half);
+  align-items: start;
+  min-width: 0;
+}
+
+/* O valor numa linha só: com a célula em duas colunas, quebrar o valor era o que fazia a grade pular. */
+.grid > dl > div > dd {
+  flex-wrap: nowrap;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Na tela estreita as duas colunas ficam quando cabem; abaixo de 320px de conteúdo vira uma. */
+@media (max-width: 47.9375rem) {
+  .grid > dl {
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: var(--space-3) var(--space-4);
+  }
+}

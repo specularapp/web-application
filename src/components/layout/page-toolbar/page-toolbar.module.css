@@ -112,3 +112,148 @@
   align-items: center;
   margin-inline-start: var(--space-1);
 }
+
+/* As etiquetas dos filtros em vigor, na própria linha e coladas ao funil: uma por filtro, com o glifo do
+   filtro e o valor à esquerda e o × que tira só ele na ponta direita (arrumada em 2026-09-08, a pedido:
+   recuo de 12px do lado do texto e 8px do lado do ×, 8px entre glifo e nome, 12px entre o nome e o ×, e os
+   dois glifos em 16px, o tamanho dos glifos dos controles pequenos da casa). Vestidas como o campo e o
+   funil ao lado (o mesmo fio, a mesma altura, o mesmo canto), porque moram na mesma fileira; o glifo na
+   tinta secundária da lupa e o valor na tinta cheia. Não encolhem: quem cede é a busca. */
+.chips {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-3) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  white-space: nowrap;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.chipMain {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.chipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipIcon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+/* O × do mesmo tamanho do glifo, mais apagado: ele é a saída, não o assunto, e acende no hover. */
+.chipClose {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .chip:hover {
+    background-color: var(--color-fill-quaternary);
+    border-color: var(--color-label-tertiary);
+  }
+
+  .chip:hover .chipClose {
+    color: var(--color-label);
+  }
+
+  .chip:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* O seletor de visão: os botões colados dentro de um invólucro com o fio do campo, sem vão entre eles,
+   na altura das outras peças da linha. O em vigor ganha o preenchimento da casa; os outros ficam no
+   fantasma, com a tinta secundária da lupa. */
+.views {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: var(--control-height-sm);
+  padding: 0.125rem;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.view {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 100%;
+  padding: 0;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.view svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.view[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-fill-tertiary);
+}
+
+@media (hover: hover) {
+  .view:hover {
+    color: var(--color-label);
+  }
+
+  .view:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* No celular saem as duas coisas do desktop: o seletor de visão, porque só a grade serve numa tela
+   estreita, e as etiquetas, porque a linha já toma a largura toda e a contagem na quina do funil basta. */
+@media (max-width: 47.9375rem) {
+  .views,
+  .chips {
+    display: none;
+  }
+}

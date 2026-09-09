@@ -49,7 +49,7 @@ export function DeleteClientsDialog({ clients, open, pending = false, onClose, o
             ))}
           </AvatarGroup>
           {rest > 0 && (
-            <Text as="span" variant="footnote" weight="semibold" numeric className={styles.more}>
+            <Text as="span" variant="footnote" weight="semibold" className={styles.more}>
               +{rest}
             </Text>
           )}

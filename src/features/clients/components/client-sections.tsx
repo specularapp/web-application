@@ -61,7 +61,7 @@ export function ClientSections({ client }: ClientSectionsProps) {
             </Text>
           </ProfileFact>
           <ProfileFact icon={PhoneIcon} label="Telefone">
-            <Text as="span" variant="subheadline" weight="medium" numeric>
+            <Text as="span" variant="subheadline" weight="medium">
               {phone ?? "Não informado"}
             </Text>
           </ProfileFact>

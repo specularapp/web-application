@@ -144,6 +144,8 @@ export const previewClientsList: ClientListItem[] = previewClients.map((client) 
   email: client.email,
   phone: client.phone,
   avatarUrl: client.avatarUrl,
+  city: client.city,
+  stats: client.stats,
   createdAt: client.createdAt,
   company: client.company,
   active: client.active,

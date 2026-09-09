@@ -3,15 +3,17 @@
 import {
   ArrowCounterClockwiseIcon,
   EnvelopeSimpleIcon,
+  ListBulletsIcon,
   MinusCircleIcon,
   PhoneIcon,
   PlusIcon,
+  SquaresFourIcon,
   StarIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
@@ -19,43 +21,68 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
+import { remapPage } from "@/lib/utils/paging";
 import { deleteClientsAction } from "../actions";
 import {
   CLIENTS_PER_PAGE,
   EMAIL_PARAM,
   FAVORITE_PARAM,
+  GRID_PER_PAGE_DEFAULT,
   PAGE_PARAM,
+  PAGE_SIZE_PARAM,
   PERIOD_PARAM,
   PHONE_PARAM,
   QUERY_PARAM,
   STATUS_PARAM,
+  activeClientsFilters,
   clearedFilters,
-  countActiveFilters,
   defaultQuery,
+  gridPageSize,
   periodOptions,
   type ClientListItem,
   type ClientsListPage,
   type ClientsQuery,
 } from "../list-options";
 import type { Client } from "../summary";
+import { saveClientsGridSize, saveClientsView, type ClientsView } from "../view-cookie";
 import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
 import { ClientFormDialog, type ClientEditor } from "./client-form-dialog";
+import { ClientsTable } from "./clients-table";
 import { DeleteClientsDialog } from "./delete-clients-dialog";
 import styles from "./clients-board.module.css";
 
-export type ClientsBoardProps = { page: ClientsListPage; query: ClientsQuery; editing?: Client | "new" };
+export type ClientsBoardProps = {
+  page: ClientsListPage;
+  query: ClientsQuery;
+  editing?: Client | "new";
+  /** O jeito de ver que o cookie guardou: grade de cartões ou tabela. */
+  view: ClientsView;
+};
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
 
-// A tela de clientes: a barra de busca e filtros em cima, a grade de cartões no meio e a paginação
-// embaixo. O filtro vive na URL e quem faz o trabalho é o servidor, então a página é compartilhável e
-// volta igual pelo histórico do navegador; aqui ficam só a seleção dos cartões, que é da sessão, a
-// espera do campo de busca e o filtro adiantado. Trocar qualquer filtro leva de volta para a primeira
-// página, senão a pessoa cairia numa página que o novo filtro nem tem.
-export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
+/** Quanto a grade espera a janela parar de mudar de largura antes de pedir outro tamanho de página. */
+const RESIZE_PAUSE = 200;
+
+const numberFormat = new Intl.NumberFormat("pt-BR");
+
+/* Os dois jeitos de ver a mesma lista, no seletor da barra. */
+const viewOptions = [
+  { value: "grade", label: "Ver em grade", icon: <SquaresFourIcon /> },
+  { value: "tabela", label: "Ver em tabela", icon: <ListBulletsIcon /> },
+];
+
+// A tela de clientes: a barra de busca e filtros em cima, a grade de cartões ou a tabela no meio e a
+// paginação embaixo, presa no pé no desktop, como no catálogo (2026-09-08). O filtro vive na URL e quem faz o
+// trabalho é o servidor, então a página é compartilhável e volta igual pelo histórico do navegador; aqui
+// ficam só a seleção, que é da sessão e vale para cartões e tabela, a espera do campo de busca, o filtro
+// adiantado, o jeito de ver e o tamanho da página da grade. Trocar qualquer filtro leva de volta para a
+// primeira página, senão a pessoa cairia numa página que o novo filtro nem tem.
+export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState(query.search);
@@ -68,18 +95,25 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
     setSeen(query);
     setLive(query);
   }
-  // Quem está marcado na grade, para excluir de uma vez. A seleção é desta página: trocar filtro ou
-  // página a limpa, senão a pessoa excluiria alguém que já não está vendo.
+  // Quem está marcado, para excluir de uma vez. A seleção é desta página: trocar filtro ou página a limpa,
+  // senão a pessoa excluiria alguém que já não está vendo.
   const [selected, setSelected] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  // Uma gaveta só para a tela inteira, guardando quem está aberto: assim vinte e quatro cartões não
-  // montam vinte e quatro janelas. Fica montada e vazia depois de fechar, para a saída animar.
+  // Uma gaveta só para a tela inteira, guardando quem está aberto: assim trinta cartões não montam trinta
+  // janelas. Fica montada e vazia depois de fechar, para a saída animar.
   const [open, setOpen] = useState<ClientListItem | null>(null);
   // A ficha em edição na janela. Nasce do que a URL pediu (`/clientes/novo` ou `/clientes/<id>`), e daí em
   // diante troca só a URL, sem sair da tela: `pushState` conversa com o roteador sem refazer nada no
   // servidor, e o botão de voltar do navegador fecha a janela pelo `popstate`.
   const [editor, setEditor] = useState<ClientEditor>(editing ?? null);
+  // O jeito de ver vive em cookie, então o servidor já manda a página certa; o estado aqui é só para a
+  // troca valer no clique. A tabela é coisa de desktop: no celular a grade vale sempre.
+  const [view, setView] = useState<ClientsView>(saved);
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const asTable = view === "tabela" && !mobile;
+  // O último tamanho que a grade mediu, para a troca de visão já pedir o tamanho certo sem esperar a medida.
+  const gridSize = useRef<number>(GRID_PER_PAGE_DEFAULT);
   const typing = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -108,22 +142,33 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
-  const go = (next: Partial<ClientsQuery>) => {
-    const merged = { ...live, ...next };
-    setLive(merged);
-    setSelected([]);
-    const params = new URLSearchParams();
-    if (merged.search) params.set(QUERY_PARAM, merged.search);
-    if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
-    if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
-    if (merged.period !== defaultQuery.period) params.set(PERIOD_PARAM, merged.period);
-    if (merged.withEmail) params.set(EMAIL_PARAM, "1");
-    if (merged.withPhone) params.set(PHONE_PARAM, "1");
-    if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
+  const go = useCallback(
+    (next: Partial<ClientsQuery>) => {
+      const merged = { ...live, ...next };
+      setLive(merged);
+      setSelected([]);
+      const params = new URLSearchParams();
+      if (merged.search) params.set(QUERY_PARAM, merged.search);
+      if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
+      if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
+      if (merged.period !== defaultQuery.period) params.set(PERIOD_PARAM, merged.period);
+      if (merged.withEmail) params.set(EMAIL_PARAM, "1");
+      if (merged.withPhone) params.set(PHONE_PARAM, "1");
+      if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
+      if (merged.pageSize !== CLIENTS_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
 
-    const search = params.toString();
-    const base = editorPath(editor);
-    startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
+      const search = params.toString();
+      const base = editorPath(editor);
+      startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
+    },
+    [live, editor, router],
+  );
+
+  const changeView = (next: ClientsView) => {
+    setView(next);
+    saveClientsView(next);
+    const pageSize = next === "tabela" ? CLIENTS_PER_PAGE : gridSize.current;
+    if (pageSize !== live.pageSize) go({ pageSize, page: remapPage(live.page, live.pageSize, pageSize) });
   };
 
   // Cada tecla refaz a página no servidor, então o campo espera a pessoa parar de digitar: sem isso
@@ -137,17 +182,49 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
   const toggle = (id: string, on: boolean) =>
     setSelected((current) => (on ? [...current, id] : current.filter((entry) => entry !== id)));
 
-  // Trocar de página leva de volta ao começo da lista: quem rola é a coluna de conteúdo da concha, e não o
-  // documento, então o `scroll` do roteador não a alcança. Macio, salvo com movimento reduzido.
+  // Trocar de página leva de volta ao começo da lista: no desktop quem rola é a área da grade, e no celular
+  // a coluna de conteúdo da concha, e não o documento, então o `scroll` do roteador não os alcança. Macio,
+  // salvo com movimento reduzido.
+  const scrollArea = useRef<HTMLDivElement>(null);
   const changePage = (next: number) => {
     go({ page: next });
-    const column = document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
+    const column = scrollArea.current ?? document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     column.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   };
 
-  const pages = Math.max(1, Math.ceil(page.total / CLIENTS_PER_PAGE));
-  const active = countActiveFilters(live);
+  // A grade mede quantas colunas formou e pede ao servidor a página que cabe em três linhas, sempre par, na
+  // mesma receita do catálogo. As colunas saem da lista de trilhas já resolvida pelo navegador, então valem
+  // para o `auto-fill`. A medida entra no cookie para a próxima visita já vir do tamanho certo, e só pede
+  // outra página quando o tamanho muda de verdade, depois de a janela parar de mudar.
+  const gridRef = useRef<HTMLUListElement>(null);
+  const showing = page.items.length;
+  const currentSize = live.pageSize;
+  const currentPage = live.page;
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (asTable || !grid) return;
+    let timer: number | undefined;
+    const observer = new ResizeObserver(() => {
+      const columns = getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length;
+      const size = gridPageSize(columns);
+      gridSize.current = size;
+      saveClientsGridSize(size);
+      window.clearTimeout(timer);
+      if (size === currentSize) return;
+      timer = window.setTimeout(() => go({ pageSize: size, page: remapPage(currentPage, currentSize, size) }), RESIZE_PAUSE);
+    });
+    observer.observe(grid);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [asTable, showing, currentSize, currentPage, go]);
+
+  const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
+  const from = (live.page - 1) * live.pageSize + 1;
+  const to = Math.min(live.page * live.pageSize, page.total);
+  const active = activeClientsFilters(live);
   const selectedClients = page.items.filter((client) => selected.includes(client.id));
   const count = selectedClients.length;
 
@@ -234,10 +311,12 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
         },
       ],
     },
-    ...(active > 0
+    ...(active.length > 0
       ? [{ id: "reset", items: [{ id: "reset", label: "Limpar filtros", icon: ArrowCounterClockwiseIcon, onSelect: () => go(clearedFilters) }] }]
       : []),
   ];
+
+  const pagination = pages > 1 ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de clientes" /> : undefined;
 
   return (
     <div className={styles.board}>
@@ -249,7 +328,18 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
           label: "Buscar cliente",
         }}
         filters={filterSections}
-        activeFilters={active}
+        activeFilters={active.map((filter) => ({
+          id: filter.id,
+          label: filter.label,
+          icon: filter.icon,
+          onClear: () => go({ ...filter.clear, page: 1 }),
+        }))}
+        view={{
+          value: view,
+          options: viewOptions,
+          onChange: (next) => changeView(next === "tabela" ? "tabela" : "grade"),
+          label: "Jeito de ver a lista",
+        }}
         selection={
           /* Só existe com algo marcado: botão que não faz nada é pior que botão nenhum. Texto com a
              contagem no desktop e só o ícone no celular, com a contagem no nome. */
@@ -284,7 +374,17 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
         }
       />
 
-      {page.items.length === 0 ? (
+      {asTable ? (
+        <ClientsTable
+          clients={page.items}
+          selected={selected}
+          onSelectedChange={setSelected}
+          onOpen={setOpen}
+          onEdit={editClient}
+          range={{ page: live.page, pageSize: live.pageSize, total: page.total }}
+          footer={pagination}
+        />
+      ) : page.items.length === 0 ? (
         <div className={styles.empty}>
           <Text variant="callout" weight="semibold">
             Nenhum cliente por aqui
@@ -296,30 +396,30 @@ export function ClientsBoard({ page, query, editing }: ClientsBoardProps) {
           </Text>
         </div>
       ) : (
-        <ul className={styles.grid}>
-          {page.items.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              selected={selected.includes(client.id)}
-              onSelectedChange={(on) => toggle(client.id, on)}
-              onOpen={() => setOpen(client)}
-              onEdit={() => editClient(client)}
-            />
-          ))}
-        </ul>
+        <div ref={scrollArea} className={styles.scrollArea}>
+          <ul ref={gridRef} className={styles.grid}>
+            {page.items.map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                selected={selected.includes(client.id)}
+                onSelectedChange={(on) => toggle(client.id, on)}
+                onOpen={() => setOpen(client)}
+                onEdit={() => editClient(client)}
+              />
+            ))}
+          </ul>
+        </div>
       )}
 
-      {/* A barra só existe passando de uma página: com menos ela seria uma faixa sem função no pé. */}
-      {pages > 1 && (
+      {/* O pé da grade, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
+          página, a barra. Na tabela ele mora no pé da própria tabela. */}
+      {!asTable && page.items.length > 0 && (
         <div className={styles.foot}>
-          <Pagination
-            page={live.page}
-            pageSize={CLIENTS_PER_PAGE}
-            total={page.total}
-            onPageChange={changePage}
-            label="Páginas de clientes"
-          />
+          <Text as="span" variant="footnote" tone="secondary">
+            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
+          </Text>
+          {pagination}
         </div>
       )}
 

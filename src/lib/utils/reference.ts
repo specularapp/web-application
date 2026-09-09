@@ -7,6 +7,7 @@ export const referencePrefixes = {
   transaction: "TRX",
   task: "TAR",
   client: "CLI",
+  catalog: "CAT",
 } as const;
 
 export type ReferenceKind = keyof typeof referencePrefixes;

@@ -14,7 +14,7 @@ export type DialogSize = "sm" | "md" | "lg";
 
 export type DialogPlacement = "center" | "end";
 
-export type DialogSurface = "solid" | "glass";
+export type DialogSurface = "solid" | "glass" | "page";
 
 export type DialogProps = {
   open: boolean;
@@ -24,7 +24,9 @@ export type DialogProps = {
   size?: DialogSize;
   /** `end` cola a janela na lateral final da tela, em altura cheia, no lugar de centralizar. */
   placement?: DialogPlacement;
-  /** `glass` troca a superfície opaca pelo vidro: quase transparente, com o borrão desenhando a caixa. */
+  /** `glass` troca a superfície opaca pelo vidro: quase transparente, com o borrão desenhando a caixa.
+   *  `page` usa o fundo da própria página, e não o cinza elevado: para a gaveta lateral, que é extensão
+   *  da tela e não uma caixa sobre ela (a pedido, 2026-09-08, porque no escuro o cinza destoava). */
   surface?: DialogSurface;
   /** Sem o fundo que escurece a página atrás continua à vista, mas segue bloqueada: toda janela é modal, e
    *  tocar fora dela só fecha. */
@@ -165,6 +167,11 @@ const Panel = styled.div`
     background-color: var(--glass-layer-bg);
     -webkit-backdrop-filter: var(--glass-layer-blur);
     backdrop-filter: var(--glass-layer-blur);
+  }
+
+  /* O fundo da página: o fio continua marcando a borda, e é só ele que separa a gaveta do resto. */
+  &[data-surface="page"] {
+    background-color: var(--color-bg);
   }
 
   &[data-mode="sheet"][data-surface="glass"] {
@@ -444,9 +451,10 @@ export function Dialog({
   // Janela de vidro carrega a própria escuridão na sombra; o fundo fica transparente e só pega o clique.
   // O vidro só nas janelas leves (a pedido, 2026-09-08): gaveta lateral e janela grande borram uma área
   // enorme da tela a cada quadro, e no celular e em máquina fraca isso pesava a página inteira. Quem
-  // pede vidro numa dessas recebe o sólido, sem precisar saber.
+  // pede vidro numa dessas recebe o sólido, sem precisar saber. A superfície da página passa sempre.
   const heavy = placement === "end" || size === "lg";
   const glass = surface === "glass" && !heavy;
+  const resolvedSurface = glass ? "glass" : surface === "page" ? "page" : "solid";
   const veilKind = veilDark && glass ? (scrim ? "full" : "soft") : undefined;
 
   return createPortal(
@@ -472,7 +480,7 @@ export function Dialog({
           data-mode={mode}
           data-placement={placement}
           data-size={size}
-          data-surface={glass ? "glass" : "solid"}
+          data-surface={resolvedSurface}
           data-veil={veilKind}
           data-state={state}
           className={className}

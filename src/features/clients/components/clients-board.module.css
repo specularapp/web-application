@@ -15,6 +15,25 @@
   }
 }
 
+/* No desktop a prancha tem altura fixa, a da tela, nas duas visões (2026-09-08, como no catálogo): a barra
+   em cima, a lista tomando o resto e rolando por dentro, e o pé preso embaixo. Na tabela o cabeçalho fica
+   preso e a paginação mora no pé dela; na grade a área dos cartões rola e a paginação fica sempre no mesmo
+   lugar. No celular tudo segue em fluxo, rolando a coluna de conteúdo. */
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-auto-rows: auto;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .scrollArea {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 /* O botão de criar leva texto no desktop e vira só ícone no celular, por CSS e não por media query em
    JS, para a marcação não saltar na hidratação: os dois existem e cada largura mostra um. */
 .wide {
@@ -44,7 +63,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: 0;
   margin: 0;
   list-style: none;
@@ -53,7 +72,6 @@
 @media (min-width: 48rem) {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-    gap: var(--space-5);
   }
 }
 
@@ -68,8 +86,11 @@
   text-align: center;
 }
 
+/* A contagem e a barra, alinhadas à direita como o pé da tabela. */
 .foot {
   display: flex;
-  justify-content: center;
-  padding-block-start: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: flex-end;
 }
