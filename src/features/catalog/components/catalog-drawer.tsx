@@ -163,18 +163,15 @@ export function CatalogDrawer({ item, active, onActiveChange, onClose, onEdit }:
                 </div>
               </ProfileSection>
 
+              {/* Só "Ver todos" ao lado do título: a contagem com o percentual de aprovados saiu em
+                  2026-09-09, a pedido, por não dizer nada de útil e quebrar a linha no celular. */}
               <ProfileSection
                 title="Orçamentos recentes"
                 aside={
                   item.quotes.length > 0 ? (
-                    <span className={styles.aside}>
-                      <Text as="span" variant="caption1" tone="tertiary">
-                        {item.stats.quotes} no total, {percent(item.stats.approved, item.stats.quotes)}% aprovados
-                      </Text>
-                      <TextLink href={`/orcamentos?item=${item.id}` as Route} className={styles.more}>
-                        Ver todos
-                      </TextLink>
-                    </span>
+                    <TextLink href={`/orcamentos?item=${item.id}` as Route} className={styles.more}>
+                      Ver todos
+                    </TextLink>
                   ) : undefined
                 }
               >

@@ -92,13 +92,7 @@
   }
 }
 
-/* A cabeça da seção de orçamentos: a aprovação apagada e o "Ver todos", no tamanho da legenda. */
-.aside {
-  display: inline-flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
+/* O "Ver todos" na cabeça da seção de orçamentos, no tamanho da legenda. */
 .more {
   font-size: var(--text-footnote);
 }

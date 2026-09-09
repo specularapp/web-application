@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircleIcon, CheckIcon, CoinsIcon, ListChecksIcon, TagIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
-import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -19,9 +19,9 @@ import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { onlyDigits } from "@/lib/masks";
 import { saveCatalogItemAction } from "../actions";
-import { kindLabels, unitLabels } from "../list-options";
-import { catalogHues, catalogKinds, catalogUnits, MAX_LIST_ITEMS, type CatalogFormInput } from "../schemas";
-import type { CatalogHue, CatalogItem, CatalogKind, CatalogUnit } from "../summary";
+import { catalogHueFor, kindLabels, unitLabels } from "../list-options";
+import { catalogKinds, catalogUnits, MAX_LIST_ITEMS, type CatalogFormInput } from "../schemas";
+import type { CatalogItem, CatalogKind, CatalogUnit } from "../summary";
 import { CatalogArtwork } from "./catalog-artwork";
 import styles from "./catalog-form-dialog.module.css";
 
@@ -40,22 +40,6 @@ export type CatalogFormDialogProps = {
 /** Tamanho máximo da imagem, em bytes: 2 MB, o mesmo teto da foto do cliente. */
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
-/* Os nomes das cores da paleta do sistema, para o seletor de matiz ler em voz alta. */
-const hueLabels: Record<CatalogHue, string> = {
-  red: "Vermelho",
-  orange: "Laranja",
-  yellow: "Amarelo",
-  green: "Verde",
-  mint: "Menta",
-  teal: "Verde-água",
-  cyan: "Ciano",
-  blue: "Azul",
-  indigo: "Índigo",
-  purple: "Roxo",
-  pink: "Rosa",
-  brown: "Marrom",
-};
-
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 const kindOptions = catalogKinds.map((value) => ({ value, label: kindLabels[value] }));
@@ -70,7 +54,6 @@ function valuesOf(item?: CatalogItem) {
     name: item?.name ?? "",
     description: item?.description ?? "",
     category: item?.category ?? "",
-    hue: item?.hue ?? ("blue" as CatalogHue),
     price: digits(item?.price),
     unit: item?.unit ?? ("project" as CatalogUnit),
     cost: digits(item?.cost),
@@ -192,7 +175,6 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
       name: values.name,
       description: values.description,
       category: values.category,
-      hue: values.hue,
       price: Number(values.price || 0),
       unit: values.unit,
       cost: intOrNull(values.cost),
@@ -236,7 +218,9 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
   const errorOf = (field: keyof Values) => (errorField === field ? error?.message : undefined);
   const known = errorField !== undefined && errorField in values;
 
-  const preview = { id: item?.id ?? "novo", name: values.name || "Item", imageUrl, hue: values.hue };
+  // A cor da arte sai do nome, e não de uma escolha: a prévia deriva pelo mesmo caminho do servidor, então
+  // o que aparece enquanto se digita é o que fica gravado. Item que já tem matiz mantém o dele.
+  const preview = { id: item?.id ?? "novo", name: values.name || "Item", imageUrl, hue: item?.hue ?? catalogHueFor(values.name) };
 
   return (
     <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
@@ -297,29 +281,6 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
                 pickImage(file);
               }}
             />
-          </div>
-
-          {/* A cor da arte, da etiqueta de preço e do azulejo: os doze matizes da paleta do sistema. */}
-          <div className={styles.hueField}>
-            <Text as="span" id={`${titleId}-hue`} variant="footnote" weight="medium">
-              Cor
-            </Text>
-            <div className={styles.hues} role="radiogroup" aria-labelledby={`${titleId}-hue`}>
-              {catalogHues.map((hue) => (
-                <button
-                  key={hue}
-                  type="button"
-                  role="radio"
-                  aria-checked={values.hue === hue}
-                  aria-label={hueLabels[hue]}
-                  title={hueLabels[hue]}
-                  className={styles.hue}
-                  style={{ "--hue": `var(--sys-${hue})` } as CSSProperties}
-                  disabled={saving}
-                  onClick={() => set("hue", hue)}
-                />
-              ))}
-            </div>
           </div>
 
           <div className={styles.pair}>

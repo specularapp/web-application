@@ -11,3 +11,15 @@
   grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
 }
+
+/* No celular a tela não tem altura fixa: a prancha cresce em fluxo e quem rola é a coluna de conteúdo da
+   concha. Com `height: 100%` aqui, o retângulo em que o topo pode grudar terminava no fim da tela, e ao
+   passar dessa altura ele descolava e subia junto com o conteúdo (2026-09-09, a pedido). Sem altura, o
+   pai que rola é a coluna, e o topo fica preso o tempo todo. */
+@media (max-width: 47.9375rem) {
+  .screen {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100%;
+  }
+}

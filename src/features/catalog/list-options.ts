@@ -1,9 +1,11 @@
 import type { Icon } from "@phosphor-icons/react";
 import { FolderIcon, MinusCircleIcon, PackageIcon, WrenchIcon } from "@phosphor-icons/react/ssr";
 import { svgToken } from "@/lib/generated-svg";
+import { hashString } from "@/lib/utils/hash";
+import { slugify } from "@/lib/utils/slug";
 import { gridPageSize as pageSizeForGrid, remapPage } from "@/lib/utils/paging";
 import type { BadgeTone } from "@/components/ui/badge";
-import type { CatalogItem, CatalogKind, CatalogUnit } from "./summary";
+import type { CatalogHue, CatalogItem, CatalogKind, CatalogUnit } from "./summary";
 
 /**
  * O lado leve da listagem do catálogo: nomes dos parâmetros, padrões, rótulos e a lista de filtros em
@@ -155,6 +157,19 @@ export type CatalogListPage = {
  */
 export function catalogArtworkUrl(item: Pick<CatalogItem, "id" | "hue">) {
   return `/api/artwork/${item.hue}/${svgToken(item.id)}.svg`;
+}
+
+/* Os doze matizes da paleta do sistema, na ordem dela. Moram aqui, e não em `schemas.ts`, porque quem
+   deriva a cor de um item roda dos dois lados e `schemas.ts` carrega o zod. */
+export const catalogHues = ["red", "orange", "yellow", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "pink", "brown"] as const satisfies readonly CatalogHue[];
+
+/**
+ * O matiz de um item nasce do nome dele, e não de uma escolha (2026-09-09, a pedido): item sem foto ganha a
+ * arte gerada na cor que sair, como o avatar de quem não tem retrato, pelo mesmo `hashString`. O nome é
+ * comparado sem acento e sem caixa, então "Certificado SSL" e "certificado ssl" dão a mesma cor.
+ */
+export function catalogHueFor(name: string): CatalogHue {
+  return catalogHues[hashString(slugify(name, 80)) % catalogHues.length];
 }
 
 /** Como o estoque de um produto se lê: a frase curta e a cor, decididas uma vez para o cartão, a ficha e a tabela. */

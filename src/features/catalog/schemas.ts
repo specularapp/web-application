@@ -1,9 +1,13 @@
 import { z } from "zod";
-import type { CatalogHue, CatalogKind, CatalogUnit } from "./summary";
+import { catalogHues } from "./list-options";
+import type { CatalogKind, CatalogUnit } from "./summary";
 
 export const catalogKinds = ["product", "service"] as const satisfies readonly CatalogKind[];
 export const catalogUnits = ["project", "hour", "month", "unit"] as const satisfies readonly CatalogUnit[];
-export const catalogHues = ["red", "orange", "yellow", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "pink", "brown"] as const satisfies readonly CatalogHue[];
+
+/* A lista de matizes mora em `list-options.ts`, junto de quem deriva a cor pelo nome do item: ela roda no
+   cliente também, e este arquivo carrega o zod. Segue saindo daqui para quem já a importava. */
+export { catalogHues };
 
 /** Quantas entradas cada lista da ficha aceita: entregáveis, pré-requisitos e etiquetas. */
 export const MAX_LIST_ITEMS = 12;
@@ -24,7 +28,6 @@ export const catalogFormSchema = z
     name: z.string().trim().min(2, "Informe o nome do item").max(80, "Nome longo demais"),
     description: z.string().trim().min(10, "Descreva o item em uma ou duas frases").max(400, "Descrição longa demais"),
     category: z.string().trim().min(2, "Informe a categoria").max(40, "Categoria longa demais"),
-    hue: z.enum(catalogHues),
     price: int.min(1, "Informe o preço"),
     unit: z.enum(catalogUnits),
     /** Custo direto estimado; nulo quando a equipe não mede. */
