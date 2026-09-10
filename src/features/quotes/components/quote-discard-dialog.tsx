@@ -14,6 +14,11 @@ export type QuoteDiscardDialogProps = {
   number: string;
   /** Enquanto o rascunho está sendo salvo, o botão gira e nada mais fecha a janela. */
   pending?: boolean;
+  /**
+   * No celular salvar e continuar editando moram na barra flutuante, como em toda janela da casa, e a bandeja
+   * fica só com a pergunta e o descarte; no desktop as três saídas ficam aqui dentro.
+   */
+  mobile?: boolean;
   /** Volta para o formulário, sem sair. */
   onCancel: () => void;
   /** Sai jogando fora o que foi mexido. */
@@ -28,12 +33,15 @@ export type QuoteDiscardDialogProps = {
 // Agora a pergunta é explícita, com as três saídas que existem de verdade: salvar e sair, sair sem salvar, ou
 // voltar para o formulário.
 //
-// Os botões vão empilhados, e não em duas colunas como na exclusão: aqui são três, e a ordem de cima para
-// baixo é a da intenção mais provável, com o descarte por último e em vermelho, porque é o que perde
-// trabalho. Janela pequena da casa, de vidro, centrada no desktop e bandeja no celular.
-export function QuoteDiscardDialog({ open, editing, number, pending = false, onCancel, onDiscard, onSave }: QuoteDiscardDialogProps) {
+// Janela pequena da casa, de vidro, centrada no desktop e **bandeja no celular**, que é o `Dialog` da casa
+// fazendo o que sempre faz. Quem muda com a moldura são as saídas, no contrato de toda janela daqui: no
+// desktop as três ficam empilhadas dentro dela, na ordem da intenção mais provável, com o descarte por
+// último, porque é o que perde trabalho; **no celular salvar e continuar editando moram na barra flutuante**,
+// como a ficha do cliente e o item do catálogo já fazem, e a bandeja fica com a pergunta e o descarte, que é
+// a saída que a barra não tem lugar para levar.
+export function QuoteDiscardDialog({ open, editing, number, pending = false, mobile = false, onCancel, onDiscard, onSave }: QuoteDiscardDialogProps) {
   return (
-    <Dialog open={open} onClose={pending ? () => undefined : onCancel} label="Sair do orçamento" size="sm" surface="glass" focusOnOpen={false}>
+    <Dialog open={open} onClose={pending ? () => undefined : onCancel} label="Sair do orçamento" size="sm" surface="glass" scrim focusOnOpen={false}>
       <div className={styles.dialog}>
         <div className={styles.copy}>
           <Text as="h2" variant="title3" weight="semibold" align="center">
@@ -47,12 +55,16 @@ export function QuoteDiscardDialog({ open, editing, number, pending = false, onC
         </div>
 
         <div className={styles.actions}>
-          <Button radius="md" fullWidth iconStart={<FloppyDiskIcon />} loading={pending} onClick={onSave}>
-            {pending ? "Salvando" : editing ? "Salvar e sair" : "Salvar rascunho"}
-          </Button>
-          <Button variant="outline" radius="md" fullWidth disabled={pending} onClick={onCancel}>
-            Continuar editando
-          </Button>
+          {!mobile && (
+            <>
+              <Button radius="md" fullWidth iconStart={<FloppyDiskIcon />} loading={pending} onClick={onSave}>
+                {pending ? "Salvando" : editing ? "Salvar e sair" : "Salvar rascunho"}
+              </Button>
+              <Button variant="outline" radius="md" fullWidth disabled={pending} onClick={onCancel}>
+                Continuar editando
+              </Button>
+            </>
+          )}
           {/* Sair sem salvar fica por último e como fantasma: ele perde trabalho, então não disputa a vista
               com salvar. O vermelho sólido do `danger` é do excluir, que apaga da base; descartar o que ainda
               não foi salvo é menos que isso, e o texto já diz o que acontece. */}
