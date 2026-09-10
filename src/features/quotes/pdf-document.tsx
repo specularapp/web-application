@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
      com 4px até o fio que vem depois. A linha em branco para assinar à mão saiu com ela, e a versão escrita
      na Sacramento durou uma rodada e saiu no mesmo dia. */
   signature: { alignItems: "center", gap: space.s2, paddingTop: space.s5, paddingBottom: space.s1, marginTop: "auto" },
-  /* A linha de assinar, numa largura própria: ela é do bloco, e não da folha. */
+  /* A linha de assinar, abaixo do registro e numa largura própria: ela é do bloco, e não da folha. */
   signatureRule: { width: pt(256), height: hairline, backgroundColor: ink.tertiary },
   signatureCredit: { flexDirection: "row", alignItems: "center", gap: space.s3 },
   signatureRegistry: { gap: 0, flexShrink: 1 },
@@ -480,10 +480,9 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
             </View>
           )}
 
-          {/* A assinatura, a mesma peça da tela: o selo de quem vendeu em círculo (ou a marca da Specular,
-              quando não há foto) e, ao lado, o registro do documento assinado. */}
+          {/* A assinatura, a mesma peça da tela: o selo de quem vendeu em círculo, o registro ao lado e a
+              linha de assinar embaixo. */}
           <View style={styles.signature}>
-            <View style={styles.signatureRule} />
             <View style={styles.signatureCredit}>
               <Picture src={images.signature} style={styles.signatureSeal} />
               <View style={styles.signatureRegistry}>
@@ -493,6 +492,8 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
                 <Text style={[styles.signatureNote, styles.signatureHost]}>Emitido pelo {siteConfig.hosts.app}</Text>
               </View>
             </View>
+            {/* A linha de assinar fecha o bloco: num documento se assina sobre a linha. */}
+            <View style={styles.signatureRule} />
           </View>
 
           <View>

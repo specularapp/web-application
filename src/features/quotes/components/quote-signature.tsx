@@ -13,8 +13,8 @@ export type QuoteSignatureProps = {
   host: string;
 };
 
-// A assinatura que fecha o documento (2026-09-10, a pedido): a linha de assinar e, embaixo dela, o rosto de
-// quem vendeu em círculo com o registro do documento assinado ao lado. Peça estática, em CSS Module e sem
+// A assinatura que fecha o documento (2026-09-10, a pedido): o rosto de quem vendeu em círculo com o registro
+// do documento assinado ao lado, e a linha de assinar embaixo deles. Peça estática, em CSS Module e sem
 // `use client`, como o resto do documento: o servidor a desenha junto da folha.
 //
 // **É só o registro digital**: uma versão com o nome escrito à mão, na Sacramento, durou uma rodada e saiu no
@@ -22,15 +22,13 @@ export type QuoteSignatureProps = {
 // com uma família tipográfica só.
 //
 // A escala é enxuta de propósito (pedido de 2026-09-10): a peça é o rodapé do documento, e não um bloco de
-// destaque, então cada texto fica um degrau abaixo do corpo e o selo tem a altura do bloco ao lado, sem
-// medida escrita à mão. Sem foto entra o rosto desenhado do `Avatar`, como em todo lugar da casa.
+// destaque, então cada texto fica um degrau abaixo do corpo, na entrelinha apertada, e o selo é quadrado na
+// altura do bloco de texto ao lado. Sem foto entra o rosto desenhado do `Avatar`, como em todo lugar da casa.
 export function QuoteSignature({ owner, signedAt, host }: QuoteSignatureProps) {
   const registry = signedAt ? signatureStamp(signedAt) : null;
 
   return (
     <section className={styles.signature} aria-label={`Assinado digitalmente por ${owner.name}`}>
-      <span className={styles.rule} aria-hidden="true" />
-
       <div className={styles.credit}>
         {/* O selo vai em círculo, e não no squircle do resto da casa: ele é o carimbo de quem assinou, e não
             o avatar da pessoa numa lista. */}
@@ -54,6 +52,10 @@ export function QuoteSignature({ owner, signedAt, host }: QuoteSignatureProps) {
           </Text>
         </div>
       </div>
+
+      {/* A linha de assinar fecha o bloco: num documento se assina **sobre** a linha, então ela vem depois do
+          registro, e não antes. */}
+      <span className={styles.rule} aria-hidden="true" />
     </section>
   );
 }
