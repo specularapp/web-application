@@ -669,10 +669,14 @@ export function DataTableDate({ iso }: { iso: string }) {
   );
 }
 
-/** Dinheiro em centavos, por extenso e em algarismos tabulares, para as colunas alinharem à direita. */
-export function DataTableMoney({ cents, weight = "semibold" }: { cents: number; weight?: "medium" | "semibold" }) {
+/**
+ * Dinheiro em centavos, por extenso e em algarismos tabulares, para as colunas alinharem à direita. O
+ * tamanho `lg` sobe um degrau na escala (2026-09-10, a pedido, no total do orçamento): numa tabela em que o
+ * valor é o que se compara ao correr a lista, ele lê melhor um pouco maior que o resto da linha.
+ */
+export function DataTableMoney({ cents, weight = "semibold", size = "md" }: { cents: number; weight?: "medium" | "semibold"; size?: "md" | "lg" }) {
   return (
-    <Text as="span" variant="footnote" weight={weight}>
+    <Text as="span" variant={size === "lg" ? "subheadline" : "footnote"} weight={weight}>
       {formatMoney(cents)}
     </Text>
   );

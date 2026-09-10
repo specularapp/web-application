@@ -6,9 +6,11 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, DataTableDate, DataTableEmptyValue, DataTableMoney, DataTableTitle, type DataTableColumn } from "@/components/ui/data-table";
 import { Text } from "@/components/ui/text";
+import { CatalogArtwork } from "@/features/catalog/components/catalog-artwork";
 import { quoteStatuses } from "../labels";
 import type { Quote } from "../summary";
 import { quoteTotals } from "../totals";
+import { lineArtwork } from "./quote-document";
 import { QuoteHoverCard } from "./quote-hover-card";
 import { QuoteMenu } from "./quote-menu";
 
@@ -59,7 +61,7 @@ export function QuotesTable({ quotes, onOpen, footer, range }: QuotesTableProps)
         const totals = quoteTotals(quote);
         return (
           <Line>
-            <DataTableMoney cents={totals.total} />
+            <DataTableMoney cents={totals.total} size="lg" />
             {quote.installments > 1 && (
               <Text as="span" variant="caption1" tone="tertiary">
                 {quote.installments}x
@@ -74,11 +76,7 @@ export function QuotesTable({ quotes, onOpen, footer, range }: QuotesTableProps)
       header: "Itens",
       align: "end",
       hideBelow: "lg",
-      cell: (quote) => (
-        <Text as="span" variant="footnote" weight="medium">
-          {quote.lines.length}
-        </Text>
-      ),
+      cell: (quote) => <QuoteItems quote={quote} />,
     },
     {
       id: "status",
@@ -156,4 +154,63 @@ const Person = styled.span`
   align-items: center;
   min-width: 0;
   white-space: nowrap;
+`;
+
+/* Quantas artes de item a coluna mostra antes de resumir o resto em "+N". Três, como nos cartões da casa. */
+const SHOWN_ITEMS = 3;
+
+/* Os itens do orçamento pelas artes deles (2026-09-10, a pedido, no lugar da contagem em texto): as mesmas
+   artes que o documento desenha, sobrepostas na fila do `AvatarGroup`, com "+N" no fim quando há mais do que
+   cabe. A leitura por voz recebe a lista de nomes, que é o que a arte não diz. */
+function QuoteItems({ quote }: { quote: Quote }) {
+  const shown = quote.lines.slice(0, SHOWN_ITEMS);
+  const rest = quote.lines.length - shown.length;
+  if (shown.length === 0) return <DataTableEmptyValue />;
+
+  return (
+    <Items aria-label={`Itens: ${quote.lines.map((line) => line.name).join(", ")}`}>
+      {shown.map((line) => (
+        <Artwork key={line.id} item={lineArtwork(line)} size="sm" />
+      ))}
+      {rest > 0 && (
+        <Rest as="span" variant="caption1" tone="secondary">
+          +{rest}
+        </Rest>
+      )}
+    </Items>
+  );
+}
+
+/* A fila de artes com o "+N" ao lado, alinhada à direita como a coluna. As artes se sobrepõem de leve, na
+   receita da fila de rostos da casa, com o anel na cor da superfície separando uma da outra.
+
+   A sobreposição é feita aqui, e não pelo `AvatarGroup`: ele só a aplica em filhos com a classe do `Avatar`,
+   e estes são azulejos do catálogo. O anel usa a superfície da tabela, e não o fundo da página, senão ele
+   aparecia como um traço claro sobre a linha zebrada. */
+const Items = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+
+  & > span + span {
+    margin-inline-start: calc(var(--space-1) * -1);
+  }
+`;
+
+/* A arte encolhe para caber na linha da densidade compacta: o `sm` do primitivo tem 32px e a linha tem 36, e
+   na medida cheia as artes encostavam nas bordas da célula. As variáveis vão no próprio azulejo, e não
+   herdadas da fila, porque o `data-size` dele as redeclara no elemento e isso vence a herança do pai. */
+const Artwork = styled(CatalogArtwork)`
+  --artwork-size: 1.5rem;
+  --artwork-inset: 0.25rem;
+
+  /* O anel na superfície da tabela separa uma arte da outra na sobreposição. A superfície, e não o fundo da
+     página: sobre a linha zebrada o fundo aparecia como um traço claro. */
+  box-shadow: 0 0 0 2px var(--table-surface, var(--color-bg));
+`;
+
+/* O "+N" fecha a fila, fora da sobreposição das artes. */
+const Rest = styled(Text)`
+  margin-inline-start: var(--space-2);
 `;
