@@ -21,11 +21,19 @@
 }
 
 /* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a
-   curva de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. */
+   curva de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali.
+
+   As quatro partes são uma pilha em coluna, e o vão entre elas é menor que o dos outros cartões: aqui elas
+   são degraus de leitura do mesmo documento (identidade, valor, pessoas, prazo), e não blocos soltos. O
+   `auto` no meio deixa o pé assentar embaixo quando um cartão tem título de uma linha e o vizinho de duas,
+   então numa grade os prazos ficam na mesma altura. */
 .inner {
   display: grid;
-  gap: var(--space-4);
-  align-content: start;
+  /* O corpo é quem estica, e não o pé: com título de uma linha num cartão e de duas no vizinho, o valor e as
+     pessoas ficam onde estão e o pé assenta embaixo, então numa grade os prazos alinham de cartão a cartão.
+     Sem `align-content: start` de propósito, senão a trilha flexível não cresce. */
+  grid-template-rows: auto 1fr auto auto;
+  gap: var(--space-3);
   min-width: 0;
   padding: var(--space-4);
   cursor: pointer;
@@ -57,46 +65,118 @@
   background-color: var(--color-fill-quaternary);
 }
 
-/* Vencido ou recusado, o cartão apaga o que é do orçamento e deixa a situação e o leque inteiros, porque é
+/* Vencido ou recusado, o cartão apaga o que é do orçamento e deixa a identidade e o leque inteiros, porque é
    por eles que se lê e se reabre. Só opacidade, sem trocar cor, como o item fora de linha do catálogo. */
-.card[data-status="expired"] .head > :first-child,
 .card[data-status="expired"] .body,
-.card[data-status="expired"] .tags,
-.card[data-status="declined"] .head > :first-child,
+.card[data-status="expired"] .people,
+.card[data-status="expired"] .lines,
 .card[data-status="declined"] .body,
-.card[data-status="declined"] .tags {
+.card[data-status="declined"] .people,
+.card[data-status="declined"] .lines {
   opacity: 0.55;
 }
 
-/* A foto do cliente de um lado, e na outra ponta a situação, o total e o leque, colados. */
+/* Em cima a situação, com o leque na ponta. A etiqueta cede pelo texto se precisar; o leque nunca. */
 .head {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  min-width: 0;
+}
+
+.menu {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* O corpo é a trilha que estica, então o conteúdo dele assenta no topo: o que sobra de altura fica abaixo do
+   valor, e não distribuído entre as linhas. */
+.body {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* A linha de contexto do documento, acima do título, como nos outros cartões da casa. */
+.reference {
+  min-width: 0;
+}
+
+/* O código em algarismo tabular, para os números alinharem de cartão a cartão numa coluna da grade. */
+.number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* O título em duas linhas, e não numa com reticências: é o nome do trabalho, e cortar "Identidade visual e
+   papelaria" em "Identidade visu…" tira justamente o que diferencia um orçamento do outro. */
+.title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* O valor é a peça grande do cartão, e é ele que carrega a cor: o matiz do cliente pinta o número, do mesmo
+   jeito que a aura do documento nasce da equipe. A forma de pagamento fica embaixo, miúda e apagada, então a
+   leitura é "quanto" e só depois "como". O respiro em cima o separa do título, que é o vizinho mais pesado. */
+.amount {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  padding-block-start: var(--space-1);
+}
+
+/* A cor chega em `--quote-hue`, na receita do `Avatar` e do `Badge`: quem monta injeta `var(--sys-x)` na
+   variável, e não há uma regra por matiz aqui. A classe vem dobrada porque o `Text` traz a cor e o
+   espaçamento da variante num seletor de classe mais atributo, que vence uma classe só. */
+.total.total {
+  color: var(--quote-hue, var(--color-label));
+  font-variant-numeric: tabular-nums;
+}
+
+/* As duas pessoas do documento: o cliente à esquerda, com nome e empresa, e o responsável só de rosto na
+   outra ponta, separados por um fio, que é o que diz "de um para o outro" sem escrever nada. */
+.people {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding-block-start: var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-separator);
+}
+
+.client {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.clientCopy {
+  display: grid;
+  min-width: 0;
+}
+
+.owner {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* O pé: o que o orçamento lista de um lado e quanto ainda vale do outro, assentado embaixo do cartão. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: end;
   justify-content: space-between;
   min-width: 0;
 }
 
-.end {
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: var(--space-1);
-  align-items: center;
-}
-
-.body {
-  display: grid;
-  gap: var(--space-1);
+.lines {
   min-width: 0;
-}
-
-/* As etiquetas em fila, quebrando linha quando não cabem: é lista porque é uma lista de fatos do orçamento. */
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  align-items: center;
-  padding: 0;
-  margin: 0;
-  list-style: none;
 }
