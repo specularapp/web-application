@@ -1,14 +1,16 @@
 "use client";
 
 import styled from "@emotion/styled";
-import type { ReactNode } from "react";
-import { Avatar, AvatarGroup } from "@/components/ui/avatar";
+import type { CSSProperties, ReactNode } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, DataTableDate, DataTableEmptyValue, DataTableMoney, DataTableTitle, type DataTableColumn } from "@/components/ui/data-table";
 import { Text } from "@/components/ui/text";
+import { catalogArtworkUrl } from "@/features/catalog/list-options";
 import { quoteStatuses } from "../labels";
 import type { Quote } from "../summary";
 import { quoteTotals } from "../totals";
+import { lineArtwork } from "./quote-document";
 import { QuoteHoverCard } from "./quote-hover-card";
 import { QuoteMenu } from "./quote-menu";
 
@@ -154,10 +156,14 @@ const Person = styled.span`
   white-space: nowrap;
 `;
 
-/* Até três itens do orçamento nas bolinhas da casa, e o total ao lado: é a mesma peça da coluna de
-   orçamentos do catálogo (2026-09-10, a pedido, no lugar da contagem em texto sozinha), então as duas telas
-   leem igual. A semente da bolinha é o nome do item, que é o que faz o mesmo serviço desenhar sempre igual,
-   como o matiz dele já faz no documento. */
+/* Até três itens do orçamento em bolinha, e o total ao lado: a peça da coluna de orçamentos do catálogo
+   (2026-09-10, a pedido), com uma diferença que é o ponto — **o desenho é o do item, e não um rosto**. Lá as
+   bolinhas são de gente, e o `Avatar` desenha rosto; aqui elas são dos serviços orçados, então dentro vai a
+   arte do catálogo, a mesma que o documento e a grade mostram, sobre o véu do matiz do item.
+
+   A arte vem da rota, como em todo lugar da casa: é um arquivo com cache de um ano, então o mesmo item em
+   cinco telas custa uma requisição. O matiz e o desenho nascem do nome e do id da linha, como no documento,
+   o que faz o mesmo serviço sair igual em qualquer tela. */
 const SHOWN_ITEMS = 3;
 
 function QuoteItems({ quote }: { quote: Quote }) {
@@ -167,11 +173,17 @@ function QuoteItems({ quote }: { quote: Quote }) {
 
   return (
     <Items>
-      <AvatarGroup aria-label={`Itens: ${quote.lines.map((line) => line.name).join(", ")}`}>
-        {shown.map((line) => (
-          <Avatar key={line.id} name={line.name} size="xs" />
-        ))}
-      </AvatarGroup>
+      <Dots aria-label={`Itens: ${quote.lines.map((line) => line.name).join(", ")}`}>
+        {shown.map((line) => {
+          const art = lineArtwork(line);
+          return (
+            <ItemDot key={line.id} style={{ "--item-hue": `var(--sys-${art.hue})` } as CSSProperties}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={catalogArtworkUrl(art)} alt="" width={24} height={24} loading="lazy" decoding="async" />
+            </ItemDot>
+          );
+        })}
+      </Dots>
       <Text as="span" variant="footnote" weight="medium">
         {total}
       </Text>
@@ -182,11 +194,50 @@ function QuoteItems({ quote }: { quote: Quote }) {
 /* A fila de bolinhas com o total ao lado, alinhada à direita como a coluna: a receita da coluna de
    orçamentos do catálogo, com a mesma sobreposição apertada. */
 const Items = styled.span`
-  --avatar-overlap: var(--space-1);
-
   display: inline-flex;
   gap: var(--space-2);
   align-items: center;
   justify-content: flex-end;
   white-space: nowrap;
+`;
+
+/* A fila em si, na receita do `AvatarGroup` da casa: a sobreposição e o anel moram aqui porque o grupo só os
+   aplica em filhos com a classe do `Avatar`, que não é exportada, e estes são azulejos de item. O anel usa a
+   superfície da tabela, e não o fundo da página, senão ele apareceria como um traço claro sobre a zebra. */
+const Dots = styled.span`
+  display: inline-flex;
+  align-items: center;
+
+  & > span + span {
+    margin-inline-start: calc(var(--space-1) * -1);
+  }
+
+  & > span {
+    box-shadow: 0 0 0 2px var(--table-surface, var(--color-bg));
+  }
+`;
+
+/* A bolinha do item: o véu do matiz dele por fundo e a arte por cima, na medida do `Avatar` pequeno da casa.
+   Redonda, e não squircle: círculo não passa pelo sistema de cantos, pela regra da casa, e a fila de
+   bolinhas é redonda nas duas telas.
+
+   A arte tem folga dentro da bolinha, como no azulejo do catálogo: as voltas do Loops encostam na borda do
+   próprio desenho, e sem o recuo elas seriam cortadas pela curva. */
+const ItemDot = styled.span`
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--item-hue) 12%, transparent),
+    color-mix(in oklab, var(--item-hue) 18%, transparent)
+  );
+  border-radius: var(--radius-full);
+
+  & > img {
+    width: calc(100% - var(--space-1));
+    height: calc(100% - var(--space-1));
+  }
 `;

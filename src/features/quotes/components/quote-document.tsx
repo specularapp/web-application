@@ -43,8 +43,9 @@ const unitShort: Record<CatalogUnit, string> = {
 const countFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 
 /* A arte do item na linha: a mesma do catálogo, porque o matiz nasce do nome em `catalogHueFor`, então o
-   mesmo item desenha igual nas duas telas. A linha do orçamento não guarda foto, então vale a arte gerada. */
-const lineArtwork = (line: QuoteLine) => ({
+   mesmo item desenha igual nas duas telas. A linha do orçamento não guarda foto, então vale a arte gerada.
+   Exportada porque a coluna de itens da tabela mostra as mesmas artes, em bolinha (2026-09-10). */
+export const lineArtwork = (line: QuoteLine) => ({
   id: line.catalogItemId ?? line.id,
   name: line.name,
   imageUrl: null,
