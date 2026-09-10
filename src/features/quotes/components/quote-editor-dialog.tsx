@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -225,37 +225,49 @@ function Read({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/* O informativo das parcelas, dentro do campo: o glifo miúdo e, ao apontar, a fila de parcelas com data e
-   valor (pedido de 2026-09-09). A primeira vence na emissão e as outras a cada trinta dias. Com uma parcela
-   só, ele volta a ser o "x" do campo. */
-function InstallmentsInfo({ installments, amount, issuedAt }: { installments: number; amount: number; issuedAt: Date }) {
-  if (installments < 2) return <FieldAffix data-tone="muted">x</FieldAffix>;
+type InstallmentPlanProps = { installments: number; amount: number; issuedAt: Date };
+
+/* A fila de parcelas com data e valor: a primeira vence na emissão e as outras a cada trinta dias. Peça própria
+   porque mora em dois lugares, a ficha flutuante do desktop e a bandeja do celular (2026-09-10). */
+function InstallmentPlan({ installments, amount, issuedAt }: InstallmentPlanProps) {
+  return (
+    <>
+      <Text as="span" variant="subheadline" weight="semibold">
+        {installments} parcelas de {formatMoney(amount)}
+      </Text>
+      <div className={styles.plan}>
+        {Array.from({ length: installments }, (_, position) => (
+          <div key={position} className={styles.planRow}>
+            <Text as="span" variant="caption1" tone="secondary">
+              {position + 1}ª em {shortDate(addDays(issuedAt, position * 30))}
+            </Text>
+            <Text as="span" variant="footnote" weight="medium">
+              {formatMoney(amount)}
+            </Text>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* O informativo das parcelas, dentro do campo: o glifo miúdo e, ao apontar, a fila de parcelas (pedido de
+   2026-09-09). No celular não há apontar, então o glifo é um botão e quem monta o formulário abre a fila numa
+   bandeja (pedido de 2026-09-10: dava para ver as parcelas só no desktop). Com uma parcela só, ele volta a
+   ser o "x" do campo. */
+function InstallmentsInfo({ onOpen, ...plan }: InstallmentPlanProps & { onOpen?: () => void }) {
+  if (plan.installments < 2) return <FieldAffix data-tone="muted">x</FieldAffix>;
+
+  if (onOpen) {
+    return (
+      <button type="button" className={styles.planTrigger} aria-label="Ver as parcelas" onClick={onOpen}>
+        <InfoIcon aria-hidden="true" />
+      </button>
+    );
+  }
 
   return (
-    <HoverCard
-      width={252}
-      height={220}
-      inline
-      content={
-        <>
-          <Text as="span" variant="subheadline" weight="semibold">
-            {installments} parcelas de {formatMoney(amount)}
-          </Text>
-          <div className={styles.plan}>
-            {Array.from({ length: installments }, (_, position) => (
-              <div key={position} className={styles.planRow}>
-                <Text as="span" variant="caption1" tone="secondary">
-                  {position + 1}ª em {shortDate(addDays(issuedAt, position * 30))}
-                </Text>
-                <Text as="span" variant="footnote" weight="medium">
-                  {formatMoney(amount)}
-                </Text>
-              </div>
-            ))}
-          </div>
-        </>
-      }
-    >
+    <HoverCard width={252} height={220} inline content={<InstallmentPlan {...plan} />}>
       <span className={styles.planTrigger}>
         <InfoIcon aria-hidden="true" />
       </span>
@@ -275,10 +287,15 @@ export function QuoteEditorDialog({ editor, clients, catalog, issuer, owner, nex
   const [shown, setShown] = useState<QuoteEditor>(editor);
   if (editor !== null && editor !== shown) setShown(editor);
 
+  // Quem fecha é o formulário, que salva o rascunho antes se algo mudou (pedido de 2026-09-10): a janela só
+  // repassa o pedido, venha ele do fundo, do Escape, do arrasto da alça ou da barra flutuante. O formulário
+  // registra o próprio fechar a cada render; antes de ele existir, fechar é fechar.
+  const closeHandler = useRef<() => void>(onClose);
+
   return (
     <Dialog
       open={editor !== null}
-      onClose={onClose}
+      onClose={() => closeHandler.current()}
       label={editor === "new" ? "Novo orçamento" : "Editar orçamento"}
       size="xl"
       surface="page"
@@ -300,6 +317,9 @@ export function QuoteEditorDialog({ editor, clients, catalog, issuer, owner, nex
           mobile={mobile}
           onClose={onClose}
           onSaved={onSaved}
+          registerClose={(close) => {
+            closeHandler.current = close;
+          }}
         />
       )}
     </Dialog>
@@ -317,9 +337,11 @@ type QuoteFormProps = {
   mobile: boolean;
   onClose: () => void;
   onSaved: () => void;
+  /** Por onde a janela pede para fechar: o formulário entrega o fechar que salva o rascunho antes. */
+  registerClose: (close: () => void) => void;
 };
 
-function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved }: QuoteFormProps) {
+function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved, registerClose }: QuoteFormProps) {
   const { toast } = useToast();
   const [values, setValues] = useState<Values>(() => valuesOf(quote, catalog, prefill));
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
@@ -341,19 +363,21 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   if (lineSheet !== null && lineSheet !== shownSheetLine) setShownSheetLine(lineSheet);
   const [shownInfoLine, setShownInfoLine] = useState<string | null>(null);
   if (infoLine !== null && infoLine !== shownInfoLine) setShownInfoLine(infoLine);
+  const [planOpen, setPlanOpen] = useState(false);
 
-  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null);
+  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null || planOpen);
   const closeTopSheet = () => {
-    if (infoLine !== null) setInfoLine(null);
+    if (planOpen) setPlanOpen(false);
+    else if (infoLine !== null) setInfoLine(null);
     else setLineSheet(null);
   };
 
   useFloatingActionsRegistration(
     sheetOpen
-      ? { primary: { label: infoLine !== null ? "Fechar" : "Concluir", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
+      ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
       : {
           primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving !== null, onClick: () => submitWith("draft") },
-          cancel: { label: "Cancelar", onClick: onClose },
+          cancel: { label: "Fechar", onClick: () => void requestClose() },
         },
   );
 
@@ -457,28 +481,60 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     return "info";
   };
 
+  /* O que a action recebe, montado do rascunho que a prévia já desenha. */
+  const inputFor = (next: "draft" | "send"): QuoteFormInput => ({
+    id: quote?.id,
+    title: values.title,
+    clientId: values.clientId,
+    issuedAt: draft.issuedAt,
+    validUntil: draft.validUntil,
+    lines: draft.lines,
+    discount: draft.discount,
+    installments: draft.installments,
+    paymentMethods: draft.paymentMethods,
+    cashDiscount: draft.cashDiscount,
+    notes: values.notes,
+    intent: next,
+  });
+
+  // O que o formulário tinha ao abrir, para saber se algo mudou: em estado, lido uma vez, porque referência
+  // não se lê durante o render.
+  const [initial] = useState(() => JSON.stringify(values));
+  const dirty = JSON.stringify(values) !== initial;
+
+  // Fechar no meio do caminho salva o rascunho sozinho (pedido de 2026-09-10): quem mexeu em algo e fechou,
+  // pela barra, pelo X, pelo fundo ou pelo Escape, encontra o orçamento na lista. Sem mudança nenhuma, fechar é
+  // só fechar. Se o rascunho não passa (falta o cliente, por exemplo), a janela fecha mesmo assim e avisa: um
+  // fechar que não fecha prende a pessoa numa tela que ela já quis deixar.
+  const requestClose = async () => {
+    if (saving !== null) return;
+    if (!dirty) {
+      onClose();
+      return;
+    }
+    setSaving("draft");
+    const result = await saveQuoteAction(inputFor("draft"));
+    setSaving(null);
+    if (!result.ok) {
+      toast({ title: "Rascunho não salvo", description: result.error, tone: "warning" });
+      onClose();
+      return;
+    }
+    toast({ title: editing ? "Orçamento salvo" : "Rascunho salvo", description: `${draft.number} está na lista.`, tone: "success" });
+    onSaved();
+  };
+
+  useEffect(() => {
+    registerClose(() => void requestClose());
+  });
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = intent.current;
     setSaving(next);
     setError(null);
 
-    const input: QuoteFormInput = {
-      id: quote?.id,
-      title: values.title,
-      clientId: values.clientId,
-      issuedAt: draft.issuedAt,
-      validUntil: draft.validUntil,
-      lines: draft.lines,
-      discount: draft.discount,
-      installments: draft.installments,
-      paymentMethods: draft.paymentMethods,
-      cashDiscount: draft.cashDiscount,
-      notes: values.notes,
-      intent: next,
-    };
-
-    const result = await saveQuoteAction(input);
+    const result = await saveQuoteAction(inputFor(next));
     setSaving(null);
 
     if (!result.ok) {
@@ -714,9 +770,11 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
               </Button>
             </>
           )}
-          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving !== null} onClick={onClose}>
-            <XIcon />
-          </IconButton>
+          {!mobile && (
+            <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving !== null} onClick={() => void requestClose()}>
+              <XIcon />
+            </IconButton>
+          )}
         </div>
       </header>
 
@@ -802,7 +860,9 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
             <Section
               icon={ShoppingBagIcon}
               title="Itens"
-              open={step === "items"}
+              /* No celular a parte fica sempre aberta (pedido de 2026-09-10): os cartões já são o resumo, cada
+                 um abre a própria bandeja, e um lápis para chegar neles seria um toque a mais. */
+              open={step === "items" || mobile}
               onOpen={() => setStep("items")}
               aside={
                 <Text as="span" variant="footnote" weight="medium">
@@ -975,7 +1035,9 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                     placeholder="1"
                     inputMode="numeric"
                     disabled={saving !== null}
-                    iconEnd={<InstallmentsInfo installments={draft.installments} amount={totals.installment} issuedAt={values.issuedAt} />}
+                    iconEnd={
+                      <InstallmentsInfo installments={draft.installments} amount={totals.installment} issuedAt={values.issuedAt} onOpen={mobile ? () => setPlanOpen(true) : undefined} />
+                    }
                     onChange={(event) => set("installments", onlyDigits(event.target.value))}
                   />
                 </Field>
@@ -1065,6 +1127,13 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
               <div className={styles.sheetBody}>{lineFields(sheetLine, sheetIndex)}</div>
             </div>
           )}
+        </Dialog>
+      )}
+      {mobile && (
+        <Dialog open={planOpen} onClose={() => setPlanOpen(false)} label="Parcelas" size="sm" surface="glass" scrim focusOnOpen={false}>
+          <div className={styles.sheetBody}>
+            <InstallmentPlan installments={draft.installments} amount={totals.installment} issuedAt={values.issuedAt} />
+          </div>
         </Dialog>
       )}
       {mobile && (

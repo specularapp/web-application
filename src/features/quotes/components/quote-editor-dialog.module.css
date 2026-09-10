@@ -7,7 +7,12 @@
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
   height: 100%;
+  /* Zero de propósito, e é o que faz a bandeja do celular rolar por dentro (acerto de 2026-09-10): a bandeja
+     da casa tem altura livre até 85dvh e é uma coluna flex; o item de flex tem piso automático na altura do
+     conteúdo, então sem este zero o formulário nunca encolhia, nada dentro dele rolava e o gesto ia rolar a
+     página atrás. */
   min-height: 0;
+  flex: 1 1 auto;
 }
 
 .head {
@@ -258,11 +263,8 @@
   align-items: start;
 }
 
-@media (max-width: 47.9375rem) {
-  .pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+/* O par segue em duas colunas também no celular (pedido de 2026-09-10): são campos curtos, datas e números, e
+   em coluna única eles esticavam o formulário e o resumo à toa. */
 
 .lines {
   display: grid;
@@ -370,8 +372,24 @@
 .planTrigger {
   display: inline-flex;
   align-items: center;
+  padding: 0;
+  font: inherit;
   color: var(--color-label-secondary);
   cursor: help;
+  background: transparent;
+  border: 0;
+}
+
+/* No celular o gatilho é botão e abre a bandeja: ganha a área de toque da casa sem crescer na tela. */
+button.planTrigger {
+  position: relative;
+  cursor: pointer;
+}
+
+button.planTrigger::before {
+  content: "";
+  position: absolute;
+  inset: calc((var(--touch-target) - 1rem) / -2);
 }
 
 .planTrigger svg {

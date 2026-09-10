@@ -77,7 +77,7 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
       data-scheme="light"
       data-variant={variant}
       style={{ "--doc-hue": `var(--sys-${hue})` } as CSSProperties}
-      {...squircle("xl", { clip: true })}
+      {...squircle("lg", { clip: true })}
     >
       {/* A aura: quatro bolas de cor sangrando pelas quinas da folha, na receita do painel de planos. */}
       <div className={styles.aura} aria-hidden="true" />

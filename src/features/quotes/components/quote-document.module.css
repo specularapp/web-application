@@ -26,7 +26,9 @@
   isolation: isolate;
   background-color: var(--color-bg);
   border: var(--doc-line) solid var(--color-border);
-  border-radius: var(--radius-xl);
+  /* O canto `lg`, um degrau abaixo do que era (pedido de 2026-09-10): reduzida para caber no celular, a folha
+     mostrava o canto grande demais para o tamanho que ocupava. */
+  border-radius: var(--radius-lg);
 }
 
 /* A folha nasce sem largura máxima: quem lhe dá tamanho de A4 é o `QuotePaper`, tanto na prévia do editor
