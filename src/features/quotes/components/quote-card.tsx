@@ -2,8 +2,8 @@
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
-import { Avatar, avatarHue } from "@/components/ui/avatar";
+import type { KeyboardEvent, MouseEvent } from "react";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -52,14 +52,16 @@ function readValidity(quote: Quote) {
 //
 // A diferença está no eixo do cartão. No catálogo o que manda é a arte do item, e o preço é uma etiqueta na
 // ponta; aqui o que manda é **o valor**, escrito grande no corpo, porque é por ele que se lê uma lista de
-// orçamentos. Em cima fica o número, que é como o documento se chama, com a situação ao lado; no meio o
-// título com o valor; depois **as duas pessoas**, para quem foi e quem responde, lado a lado, o que o
-// catálogo não tem; e no pé os itens nomeados, e não contados, com o prazo na outra ponta, que é a conta que
-// importa numa lista de coisas em aberto.
+// orçamentos. Em cima a situação; no meio o código com a emissão, o título e o valor; depois **as duas
+// pessoas**, para quem foi e quem responde, lado a lado, o que o catálogo não tem; e no pé os itens nomeados,
+// e não contados, com o prazo na outra ponta, que é a conta que importa numa lista de coisas em aberto.
+//
+// O valor é preto neutro (pedido de 2026-09-10): pintado no matiz do cliente, cada cartão da grade puxava
+// para uma cor e a lista virava mostruário, quando o que se compara é o número. A cor do cliente fica no
+// rosto dele, que já a carrega.
 export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
   const status = quoteStatuses[quote.status];
   const totals = quoteTotals(quote);
-  const hue = avatarHue(quote.client.name);
   const methods = quote.paymentMethods.map((method) => paymentMethods[method].label).join(", ");
   const payment = quote.installments > 1 ? `${quote.installments}x de ${formatMoney(totals.installment)}` : "À vista";
   const validity = readValidity(quote);
@@ -112,8 +114,8 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
 
         {/* O miolo: o código com a emissão, o título e o valor. O código em algarismo tabular alinha de
             cartão a cartão numa coluna da grade, e a emissão logo atrás dele é o "quando" do documento. O
-            valor é a peça grande, no matiz do cliente, com a forma de pagamento embaixo, miúda: a leitura é
-            "quanto" e só depois "como". */}
+            valor é a peça grande do cartão, na tinta do rótulo, com a forma de pagamento embaixo, miúda: a
+            leitura é "quanto" e só depois "como". */}
         <div className={styles.body}>
           <Text as="span" variant="caption1" tone="secondary" truncate className={styles.reference}>
             <span className={styles.number}>{quote.number}</span>, {shortDate(quote.issuedAt)}
@@ -121,7 +123,7 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
           <Text as="h2" variant="headline" weight="semibold" className={styles.title}>
             {quote.title}
           </Text>
-          <p className={styles.amount} style={{ "--quote-hue": `var(--sys-${hue})` } as CSSProperties}>
+          <p className={styles.amount}>
             <Text as="span" variant="title3" weight="semibold" className={styles.total}>
               {formatMoney(totals.total)}
             </Text>

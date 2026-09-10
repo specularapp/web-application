@@ -43,12 +43,16 @@
     background-color var(--duration-fast) var(--ease-standard);
 }
 
+/* O pequeno ficou apertado demais (relato de 2026-09-10, das etiquetas de situação do orçamento): a 20px de
+   altura, com 11px de texto e o glifo saindo em 13px, a etiqueta lia como um selo colado, sem ar em volta da
+   palavra. Subiu para 22px com o texto de 12px, o mesmo do tamanho padrão, e mais meio degrau de recuo dos
+   lados. É um degrau, e não um salto: ela continua sendo a etiqueta miúda das listas e das tabelas densas. */
 .badge[data-size="sm"] {
-  --badge-height: 1.25rem;
+  --badge-height: 1.375rem;
   --badge-radius: var(--radius-sm);
-  --badge-padding: var(--space-2);
+  --badge-padding: calc(var(--space-2) + var(--space-half));
   --badge-gap: var(--space-1);
-  font-size: var(--text-caption-2);
+  font-size: var(--text-caption-1);
 }
 
 .badge[data-size="lg"] {

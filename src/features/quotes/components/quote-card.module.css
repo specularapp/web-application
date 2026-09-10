@@ -130,12 +130,14 @@
   padding-block-start: var(--space-1);
 }
 
-/* A cor chega em `--quote-hue`, na receita do `Avatar` e do `Badge`: quem monta injeta `var(--sys-x)` na
-   variável, e não há uma regra por matiz aqui. A classe vem dobrada porque o `Text` traz a cor e o
-   espaçamento da variante num seletor de classe mais atributo, que vence uma classe só. */
+/* O valor é preto neutro, na tinta do rótulo (pedido de 2026-09-10): pintado no matiz do cliente, cada
+   cartão da grade puxava para uma cor diferente e a lista virava um mostruário de cores, quando o que se
+   quer comparar é o número. Quem carrega a cor do cliente é o rosto dele, e basta.
+
+   E o algarismo é o da fonte do texto, sem tabular (mesmo pedido): a tabular alinha coluna de números, o que
+   serve à tabela, mas aqui ela abre os dígitos e o valor perde o desenho da Inter no corpo do cartão. */
 .total.total {
-  color: var(--quote-hue, var(--color-label));
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: normal;
 }
 
 /* As duas pessoas do documento: o cliente à esquerda, com nome e empresa, e o responsável só de rosto na
