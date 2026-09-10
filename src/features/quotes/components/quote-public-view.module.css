@@ -18,7 +18,9 @@
     grid-template-rows: auto;
     height: auto;
     min-height: 100dvh;
-    padding: var(--space-3) var(--space-3) calc(var(--space-16) + var(--space-3));
+    /* A folga de baixo é a do container flutuante, o mesmo `--floating-bar-inset` que as bandejas da casa
+       usam: a fila voltou ao tamanho de sempre no celular e a conta com `--space-16` já não a cobria. */
+    padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
     overflow: visible;
   }
 }
@@ -48,14 +50,13 @@
   translate: -50% 0;
 }
 
+/* No celular a fila continua na medida da casa, e não numa reduzida própria: ela encolhia os controles para
+   2rem, abaixo do alvo de toque mínimo, e com cinco ações em vez das seis de antes (pedido de 2026-09-10) o
+   espaço dá para o tamanho de sempre. */
 @media (max-width: 47.9375rem) {
   .toolbar {
-    --control-height-sm: 2rem;
-    --icon-button-radius-sm: 1rem;
-    --touch-target: 2rem;
-
-    inset-block-end: var(--space-3);
-    border-radius: var(--radius-md);
+    inset-block-end: max(var(--space-3), env(safe-area-inset-bottom));
+    max-width: calc(100vw - var(--space-6));
   }
 }
 
@@ -71,6 +72,61 @@
 .answered {
   padding-inline: var(--space-2);
   white-space: nowrap;
+}
+
+/* A ficha de detalhes, no desenho do `DetailsDialog` da casa: cabeçalho com o fio embaixo, os fatos em duas
+   colunas com o rótulo apagado em cima e o valor embaixo, e o pé com a ação. */
+.detailsHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.detailsHeading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.detailsFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-3);
+  margin: 0;
+  padding: var(--space-5);
+}
+
+.detailsFact,
+.detailsFactWide {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.detailsFact dd,
+.detailsFactWide dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* As formas de pagamento são uma fila de nomes e ficam mal numa coluna estreita: atravessam as duas. */
+.detailsFactWide {
+  grid-column: 1 / -1;
+}
+
+/* O pé leva a folga da área segura no celular, porque a bandeja encosta na borda de baixo da tela. */
+.detailsFoot {
+  display: flex;
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .detailsFoot {
+    padding-block-end: max(var(--space-5), env(safe-area-inset-bottom));
+  }
 }
 
 /* Impressa, a página desaparece e sobra a folha: sem fundo, sem recuo, sem altura de tela e sem o container

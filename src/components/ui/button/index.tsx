@@ -40,6 +40,8 @@ export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   loading?: boolean;
   locked?: boolean;
   href?: string;
+  /** Com `href`, faz o clique baixar o endereço em vez de navegar, e o texto é o nome sugerido do arquivo. */
+  download?: string | boolean;
   plan?: string;
   background?: string;
   foreground?: string;
@@ -293,6 +295,7 @@ export function Button({
   loading = false,
   locked = false,
   href,
+  download,
   plan,
   background,
   foreground,
@@ -348,9 +351,12 @@ export function Button({
   );
 
   if (href) {
+    /* Baixando um arquivo, o clique é transferência e não navegação: o `download` no elemento é o que faz o
+       navegador cuidar disso, sem o `next/link` por baixo interceptar, e o giro do link pendente não vale,
+       porque a página não sai do lugar. */
     return (
-      <Anchor href={href} {...shared} {...(props as ComponentPropsWithoutRef<"a">)}>
-        <LinkBody render={(pending) => renderContent(loading || pending)} />
+      <Anchor href={href} download={download} {...shared} {...(props as ComponentPropsWithoutRef<"a">)}>
+        {download === undefined ? <LinkBody render={(pending) => renderContent(loading || pending)} /> : renderContent(loading)}
       </Anchor>
     );
   }

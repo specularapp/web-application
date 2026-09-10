@@ -9,9 +9,11 @@
 }
 
 /* Reduzida pela largura, a folha assenta no topo: centrada, a parte de cima do documento ficaria fora do
-   alcance de quem rola. */
+   alcance de quem rola. O quadro fica com a altura da folha, e não com a do espaço, para a folga que quem
+   contém dá embaixo (a da barra flutuante, no celular) separar de verdade a folha da barra. */
 .frame[data-fit="width"] {
   align-content: start;
+  height: max-content;
 }
 
 /* O lugar que a folha reduzida ocupa. `scale` desenha menor mas continua ocupando o tamanho original, então
