@@ -19,6 +19,27 @@ export function quoteDocumentName(quote: Quote) {
   return `Orçamento ${quote.number}, ${quote.client.company ?? quote.client.name}`;
 }
 
+/* Os sinais diacríticos que o `NFD` separa da letra: tirá-los deixa "Orçamento" em "Orcamento". */
+const DIACRITICS = /[\u0300-\u036f]/g;
+
+/**
+ * O mesmo nome, mas seguro para virar **anexo** no celular (2026-09-10, do relato de que o WhatsApp do
+ * iPhone recusava o arquivo com "Não foi possível enviar a mensagem"): sem acento, sem vírgula e com um
+ * sublinhado no lugar do espaço.
+ *
+ * A folha de compartilhar do iOS monta a prévia a partir do arquivo, e quando ela não aparece o destino
+ * recebe um anexo degradado: salvar em Arquivos ainda funciona, porque só precisa dos bytes, mas o WhatsApp
+ * falha. O nome bonito, com acento e vírgula, continua valendo onde ele é lido como texto: o
+ * `Content-Disposition` da rota, que é o que nomeia o arquivo baixado no computador.
+ */
+export function quoteAttachmentName(quote: Quote) {
+  return `${quoteDocumentName(quote)}.pdf`
+    .normalize("NFD")
+    .replace(DIACRITICS, "")
+    .replace(/[^\w.\-]+/g, "_")
+    .replace(/_+/g, "_");
+}
+
 /**
  * A mensagem que vai para o cliente no WhatsApp, escrita na formatação de lá (2026-09-09, a pedido): o
  * negrito entre asteriscos e o itálico entre sublinhados, linhas curtas e um bloco por assunto, com uma

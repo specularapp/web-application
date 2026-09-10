@@ -12,7 +12,7 @@ import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { respondToQuoteAction } from "../actions";
 import { paymentMethods } from "../labels";
-import { quoteDocumentName } from "../share";
+import { quoteAttachmentName, quoteDocumentName } from "../share";
 import type { Quote, QuoteStatus } from "../summary";
 import { quoteTotals } from "../totals";
 import { QuoteDocument } from "./quote-document";
@@ -61,7 +61,10 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
   /* Um clique e o arquivo desce, sem a janela de impressão do navegador no meio (pedido de 2026-09-09): a
      rota ao lado da página devolve o PDF pronto, gerado da mesma folha. */
   const downloadUrl = `/orcamento/${quote.shareToken}/pdf`;
+  /* Dois nomes para o mesmo arquivo: o bonito, com acento e vírgula, para o download do computador, onde ele
+     é lido como texto; e o seguro, sem nenhum dos dois, para virar anexo no celular. */
   const fileName = `${quoteDocumentName(quote)}.pdf`;
+  const attachmentName = quoteAttachmentName(quote);
 
   /* **No celular o arquivo vai para a folha de compartilhar do sistema** (pedido de 2026-09-10, do relato de
      que no Safari do iPhone não dava para baixar): o `download` de uma âncora não existe no iOS, então o PDF
@@ -78,7 +81,7 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
      precisa do gesto da pessoa ainda valendo, e cada espera no caminho gasta essa permissão. Perguntando
      primeiro, quem não compartilha arquivo desvia para o download antes de baixar nada, e quem compartilha
      chega ao `share` com uma espera só no meio. */
-  const canShareFile = () => navigator.canShare?.({ files: [new File([], fileName, { type: "application/pdf" })] }) ?? false;
+  const canShareFile = () => navigator.canShare?.({ files: [new File([], attachmentName, { type: "application/pdf" })] }) ?? false;
 
   /* Sem compartilhar arquivo, é o download comum: a âncora entra no documento antes do clique, porque o
      Safari ignora clique em elemento que não está nele, e sai depois. */
@@ -94,7 +97,7 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
   const getFile = async () => {
     const response = await fetch(downloadUrl);
     if (!response.ok) throw new Error(String(response.status));
-    return new File([await response.blob()], fileName, { type: "application/pdf" });
+    return new File([await response.blob()], attachmentName, { type: "application/pdf" });
   };
 
   const shareFile = async () => {
@@ -105,7 +108,12 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
 
     setPreparing(true);
     try {
-      await navigator.share({ files: [await getFile()], title: fileName });
+      /* Só o arquivo, sem `title` nem `text` (acerto de 2026-09-10, do relato de que o WhatsApp do iPhone
+         recusava o anexo): com um título ao lado dos arquivos a folha do iOS recebe dois assuntos e deixa de
+         montar a prévia do documento, e sem prévia o destino recebe um anexo degradado. Salvar em Arquivos
+         continuava funcionando, porque só precisa dos bytes; o WhatsApp falhava. O nome do arquivo já diz o
+         que ele é, e é ele que o destino mostra. */
+      await navigator.share({ files: [await getFile()] });
     } catch (error) {
       /* Fechar a folha sem escolher nada é `AbortError`, e não é erro: a pessoa desistiu, e a tela fica quieta. */
       if (error instanceof DOMException && error.name === "AbortError") return;
