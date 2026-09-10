@@ -116,9 +116,7 @@ export const previewQuotes: Quote[] = Array.from({ length: 42 }, (_, index) => {
       phone: client.phone ?? undefined,
       city: client.city,
     },
-    /* O estilo da assinatura alterna na base de exemplo (2026-09-10): a escolha é de quem assina e a tela
-       que a define entra depois, então por ora os dois desenhos aparecem na lista, um a cada orçamento. */
-    owner: { name: owner.name, avatarUrl: owner.avatarUrl, signatureStyle: index % 2 === 0 ? "written" : "digital" },
+    owner: { name: owner.name, avatarUrl: owner.avatarUrl },
     issuer: previewIssuer,
     lines,
     discount: index % 4 === 0 ? { kind: "percent", value: 10 } : index % 7 === 0 ? { kind: "amount", value: 50_000 } : null,

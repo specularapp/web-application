@@ -17,10 +17,6 @@ import type { Quote } from "./summary";
    rastreamento da rota para ela existir também no servidor de produção. */
 const fontDir = path.join(process.cwd(), "public", "fonts", "inter");
 
-/* A Sacramento, a letra da assinatura escrita, pelo mesmo caminho e pelo mesmo motivo: um peso só, porque
-   assinatura não tem variação de peso. */
-const signatureDir = path.join(process.cwd(), "public", "fonts", "sacramento");
-
 let registered = false;
 
 function registerFonts() {
@@ -33,7 +29,6 @@ function registerFonts() {
       { src: path.join(fontDir, "Inter-SemiBold.ttf"), fontWeight: 600 },
     ],
   });
-  Font.register({ family: "Sacramento", fonts: [{ src: path.join(signatureDir, "Sacramento-Regular.ttf"), fontWeight: 400 }] });
   /* Sem hifenização: o react-pdf quebra palavra com hífen por padrão, e em português isso corta nome de
      cliente e de item no meio, o que a folha na tela nunca faz. */
   Font.registerHyphenationCallback((word) => [word]);

@@ -358,9 +358,9 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
       )}
 
       {/* A assinatura de quem responde pelo orçamento fecha o documento (2026-09-10, a pedido, no lugar da
-          linha em branco que existia para assinar à mão): escrita na Sacramento ou digital com a foto, pela
-          preferência de quem assina. A data do registro é a do envio, que é quando o documento saiu assinado;
-          num rascunho ainda não há envio, então o registro não aparece. */}
+          linha em branco que existia para assinar à mão): o rosto de quem vendeu com o registro ao lado. A
+          data é a do envio, que é quando o documento saiu assinado; num rascunho ainda não há envio, então o
+          registro não aparece. */}
       <QuoteSignature owner={quote.owner} signedAt={quote.sentAt} host={siteConfig.hosts.app} />
 
       {actions && <div className={styles.actions}>{actions}</div>}

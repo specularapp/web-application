@@ -16,7 +16,7 @@ import { formatMoney } from "@/lib/utils/format";
 import { paymentBrandLogos, paymentMethods } from "./labels";
 import { pdfBrands, pdfIcons } from "./pdf-glyphs";
 import { LOGO_RING, SIGNATURE_SEAL, type QuotePdfImages } from "./pdf-images";
-import { DEFAULT_SIGNATURE_STYLE, signatureStamp } from "./signature";
+import { signatureStamp } from "./signature";
 import { badgeTone, brandOpacity, CONTENT_WIDTH, glyphInk, glyphOpacity, hairline, ink, leading, oneLine, PAGE_HEIGHT, PAGE_WIDTH, pt, space, text, tracking, type, weight } from "./pdf-theme";
 import type { Quote, QuoteLine } from "./summary";
 import { isCourtesy, lineTotal, quoteTotals } from "./totals";
@@ -152,18 +152,15 @@ const styles = StyleSheet.create({
   notes: { gap: space.s1, paddingTop: space.s4, borderTopWidth: hairline, borderTopColor: ink.border },
   notesBody: { ...text(type.footnote), color: ink.secondary, letterSpacing: type.footnote * tracking.tight },
 
-  /* A assinatura de quem responde, nos dois estilos da tela (2026-09-10). A linha em branco para assinar à
-     mão saiu com eles. */
-  signature: { flexDirection: "row", alignItems: "center", gap: space.s5, paddingTop: space.s6, marginTop: "auto" },
-  signatureDigital: { gap: space.s4 },
-  /* O nome à mão, na Sacramento. O corpo é o da tela reduzido pela razão da folha, como todo tamanho aqui, e
-     a entrelinha vem apertada porque a fonte já traz muito espaço em volta do traço. */
-  signatureWritten: { fontFamily: "Sacramento", fontSize: pt(48), lineHeight: 1.1, color: ink.label },
+  /* A assinatura de quem responde (2026-09-10): o selo em círculo e o registro ao lado, centrados na folha,
+     com 4px até o fio que vem depois. A linha em branco para assinar à mão saiu com ela, e a versão escrita
+     na Sacramento durou uma rodada e saiu no mesmo dia. */
+  signature: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s4, paddingTop: space.s6, paddingBottom: space.s1, marginTop: "auto" },
   signatureRegistry: { gap: space.half, flexShrink: 1 },
-  signatureRegistryDigital: { gap: space.s1, flexShrink: 1 },
   signatureSeal: { width: pt(SIGNATURE_SEAL), height: pt(SIGNATURE_SEAL) },
-  signatureLine: { ...text(type.footnote), color: ink.secondary, letterSpacing: type.footnote * tracking.tight },
   signatureNote: { ...text(type.subheadline), color: ink.secondary, letterSpacing: type.subheadline * tracking.tight },
+  /* A emissora se separa das três linhas de cima: elas dizem quem assinou, ela diz de onde o documento saiu. */
+  signatureHost: { marginTop: space.s2 },
   /* O nome do registro em caixa alta: o react-pdf não tem `text-transform`, então quem escreve o texto o
      entrega já maiúsculo. */
   signatureName: { ...text(type.title3), fontWeight: weight.semibold, letterSpacing: type.title3 * 0.02 },
@@ -288,9 +285,7 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
   const methods = quote.paymentMethods.length > 0 ? quote.paymentMethods : (["pix"] as const);
   const verifyUrl = `${siteConfig.url.replace(/^https?:\/\//i, "")}/orcamento`;
   const cashLine = quote.cashDiscount > 0 ? `À vista com ${quote.cashDiscount}% de desconto, por ${formatMoney(totals.cash)}` : null;
-  /* A assinatura segue a preferência de quem assina, como na tela, e o registro é a data do envio: num
-     rascunho ainda não houve envio, então ele não aparece. */
-  const signatureStyle = quote.owner.signatureStyle ?? DEFAULT_SIGNATURE_STYLE;
+  /* O registro da assinatura é a data do envio: num rascunho ainda não houve envio, então ele não aparece. */
   const signedAt = quote.sentAt ? signatureStamp(quote.sentAt) : null;
 
   return (
@@ -479,27 +474,17 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
             </View>
           )}
 
-          {/* A assinatura, na mesma regra da tela: escrita na Sacramento ou digital com o rosto em círculo,
-              pela preferência de quem assina, e a data do registro é a do envio. */}
-          {signatureStyle === "digital" ? (
-            <View style={[styles.signature, styles.signatureDigital]}>
-              <Picture src={images.signature} style={styles.signatureSeal} />
-              <View style={styles.signatureRegistryDigital}>
-                <Text style={styles.signatureNote}>Documento assinado digitalmente</Text>
-                <Text style={styles.signatureName}>{quote.owner.name.toLocaleUpperCase("pt-BR")}</Text>
-                {signedAt && <Text style={styles.signatureNote}>Data: {signedAt}</Text>}
-                <Text style={styles.signatureNote}>Emitido pelo {siteConfig.hosts.app}</Text>
-              </View>
+          {/* A assinatura, a mesma peça da tela: o selo de quem vendeu em círculo (ou a marca da Specular,
+              quando não há foto) e, ao lado, o registro do documento assinado. */}
+          <View style={styles.signature}>
+            <Picture src={images.signature} style={styles.signatureSeal} />
+            <View style={styles.signatureRegistry}>
+              <Text style={styles.signatureNote}>Documento assinado digitalmente</Text>
+              <Text style={styles.signatureName}>{quote.owner.name.toLocaleUpperCase("pt-BR")}</Text>
+              {signedAt && <Text style={styles.signatureNote}>Data: {signedAt}</Text>}
+              <Text style={[styles.signatureNote, styles.signatureHost]}>Emitido pelo {siteConfig.hosts.app}</Text>
             </View>
-          ) : (
-            <View style={styles.signature}>
-              <Text style={styles.signatureWritten}>{quote.owner.name}</Text>
-              <View style={styles.signatureRegistry}>
-                <Text style={styles.signatureLine}>Documento assinado digitalmente</Text>
-                {signedAt && <Text style={styles.signatureLine}>Data: {signedAt}</Text>}
-              </View>
-            </View>
-          )}
+          </View>
 
           <View>
             <View style={styles.seal}>

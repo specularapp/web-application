@@ -1,60 +1,33 @@
-/* A assinatura fecha o documento: a margem automática a empurra para o pé numa folha de altura fixa, e numa
-   folha de altura livre ela segue logo depois do conteúdo. Mesmo desenho nas duas telas, como antes. */
+/* A assinatura fecha o documento, centrada na folha: a margem automática a empurra para o pé numa folha de
+   altura fixa, e numa folha de altura livre ela segue logo depois do conteúdo. O respiro de baixo é o de 4px
+   até o fio que vem depois dela (pedido de 2026-09-10), então o selo e o registro assentam colados nele em
+   vez de flutuarem no meio do vão. */
 .signature {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-4);
   align-items: center;
+  justify-content: center;
   min-width: 0;
-  padding-block-start: var(--space-6);
+  padding-block: var(--space-6) var(--space-1);
   margin-block-start: auto;
 }
 
-/* O nome desenhado à mão. O tamanho não sai da escala tipográfica da casa de propósito: a Sacramento tem
-   altura de x muito menor que a Inter, então no corpo de um título ela sairia miúda; em 3rem ela tem o
-   tamanho de uma assinatura de próprio punho ao lado do texto do registro. A entrelinha vem apertada porque
-   a fonte já traz muito espaço acima e abaixo do traço, e a inclinação é a da própria letra, sem `italic`
-   sintético por cima. */
-.written {
-  flex-shrink: 0;
-  max-width: 60%;
-  margin: 0;
-  overflow: hidden;
-  font-family: var(--font-signature);
-  font-size: 3rem;
-  font-weight: var(--weight-regular);
-  line-height: 1.1;
-  color: var(--color-label);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* O registro ao lado: o que aconteceu, quando e por onde. No estilo escrito ele é a legenda da assinatura,
-   então fica apagado e miúdo; no digital ele é o corpo da peça. */
-.registry {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
-}
-
-/* No estilo digital o selo é a foto, então o texto respira mais e a peça inteira cresce. */
-.signature[data-style="digital"] {
-  gap: var(--space-4);
-}
-
-.signature[data-style="digital"] .registry {
-  gap: var(--space-1);
-}
-
-/* A foto em círculo, o carimbo de quem assinou: um degrau acima do `lg` do `Avatar`, que é o topo da escala
-   dele, porque aqui ela não é o rosto numa lista e sim o selo do documento. A medida entra pela variável que
-   o próprio `Avatar` usa, e não por um tamanho novo no primitivo, porque este é o único lugar da casa que
-   precisa dela; e para de crescer em 4rem de propósito: o `sizes` da imagem do `Avatar` pede o arquivo na
-   medida do tamanho declarado (52px no `lg`), então uma foto muito ampliada sairia borrada. O `flex-shrink`
-   protege o selo: num nome comprido o texto cede por reticências, e ele nunca. */
+/* O selo de quem assinou, em círculo: a foto de quem vendeu, ou o rosto desenhado quando não há foto. A
+   medida entra pela variável que o próprio `Avatar` usa, e não por um tamanho novo no primitivo, porque este
+   é o único lugar da casa que precisa dela; e para de crescer aqui de propósito, porque o `sizes` da imagem
+   do `Avatar` pede o arquivo na medida do tamanho declarado e uma foto muito ampliada sairia borrada. O
+   `flex-shrink` protege o selo: num nome comprido o texto cede por reticências, e ele nunca. */
 .seal {
   --avatar-size: 4rem;
 
   flex-shrink: 0;
+}
+
+/* O registro ao lado do selo: quem assinou, quando, e por onde o documento saiu. */
+.registry {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
 }
 
 /* O nome do registro em caixa alta, que é como um comprovante escreve quem assinou. A classe vem dobrada
@@ -63,4 +36,9 @@
 .name.name {
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+/* A emissora se separa das três linhas de cima: elas dizem quem assinou, ela diz de onde o documento saiu. */
+.host {
+  margin-block-start: var(--space-2);
 }

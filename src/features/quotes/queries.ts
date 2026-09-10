@@ -4,7 +4,6 @@ import { previewClientsList } from "@/features/clients/list-preview";
 import { getCurrentTeamState } from "@/features/organizations/queries";
 import { formatReference } from "@/lib/utils/reference";
 import { previewIssuer, previewQuotes } from "./list-preview";
-import { DEFAULT_SIGNATURE_STYLE } from "./signature";
 import type { Quote, QuoteIssuer, QuotePerson } from "./summary";
 
 export type QuotesScreenData = {
@@ -34,13 +33,7 @@ export async function loadQuotesScreenData(next = "/orcamentos"): Promise<Quotes
     logoUrl: state.team?.logoUrl ?? null,
     website: state.team?.website ?? previewIssuer.website,
   };
-  /* Quem responde por um orçamento novo é a pessoa logada. O estilo da assinatura é preferência dela e vem do
-     cadastro quando a tela que o escolhe existir; até lá fica o padrão da casa, a escrita. */
-  const owner: QuotePerson = {
-    name: state.viewer.name ?? state.viewer.email ?? "Você",
-    avatarUrl: state.viewer.avatarUrl,
-    signatureStyle: DEFAULT_SIGNATURE_STYLE,
-  };
+  const owner: QuotePerson = { name: state.viewer.name ?? state.viewer.email ?? "Você", avatarUrl: state.viewer.avatarUrl };
 
   const quotes = previewQuotes.map((quote) => ({ ...quote, issuer }));
   const year = new Date().getFullYear();

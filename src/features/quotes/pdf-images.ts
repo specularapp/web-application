@@ -144,7 +144,7 @@ export type QuotePdfImages = {
   lines: Record<string, PdfImage>;
 };
 
-/** O lado do selo da assinatura digital, na medida que a folha usa. */
+/** O lado do selo da assinatura, na medida que a folha usa. */
 export const SIGNATURE_SEAL = 64;
 
 /** Tudo que o documento desenha, resolvido antes de o PDF começar: o react-pdf monta a página de uma vez. */
@@ -154,7 +154,8 @@ export async function quotePdfImages(quote: Quote): Promise<QuotePdfImages> {
     avatarTile(quote.client.name, quote.client.avatarUrl, 36, iconButtonCornerRadius.sm),
     avatarTile(quote.owner.name, quote.owner.avatarUrl, 36, iconButtonCornerRadius.sm),
     /* O selo da assinatura é redondo, e não squircle: o raio é metade do lado, o que faz a superelipse do
-       `squirclePath` fechar num círculo, como o `Avatar` de forma redonda faz na tela. */
+       `squirclePath` fechar num círculo, como o `Avatar` de forma redonda faz na tela. Sem foto vale o mesmo
+       rosto desenhado do avatar, como em todo lugar da casa. */
     avatarTile(quote.owner.name, quote.owner.avatarUrl, SIGNATURE_SEAL, SIGNATURE_SEAL / 2),
     Promise.all(quote.lines.map(async (line) => [line.id, await rasterize(artworkOf(line), ARTWORK_SIDE * DENSITY)] as const)),
   ]);

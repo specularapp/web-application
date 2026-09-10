@@ -7,10 +7,6 @@
      lugar só. */
   --font-code: var(--font-body);
   --font-display: var(--font-body);
-  /* A única exceção à família única (2026-09-10): a assinatura escrita do documento, na Sacramento. Ela não
-     é um segundo tipo da interface, e sim a letra de quem assina, então não tem uso fora da assinatura;
-     qualquer outro texto na casa continua saindo da Inter. */
-  --font-signature: var(--font-sacramento), cursive;
 
   --text-caption-2: 0.6875rem;
   --text-caption-1: 0.75rem;

@@ -1,14 +1,9 @@
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { QuoteSignatureStyle } from "./summary";
-
 /**
  * O que a assinatura do documento diz, num lugar só: a tela e o PDF desenham a mesma peça, e a data escrita
  * neles precisa ser a mesma frase, senão a folha e o arquivo divergem no fato mais delicado do documento.
  */
-
-/** Sem escolha registrada, a assinatura é a escrita: é a que lê como assinatura de verdade. */
-export const DEFAULT_SIGNATURE_STYLE: QuoteSignatureStyle = "written";
 
 /**
  * A data do registro, como num comprovante. **Com a hora quando ela existe, e sem inventá-la quando não**:
