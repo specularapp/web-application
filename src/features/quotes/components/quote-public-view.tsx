@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeftIcon, CheckIcon, DownloadSimpleIcon, InfoIcon, WhatsappLogoIcon, XIcon } from "@phosphor-icons/react";
-import { useState, useSyncExternalStore } from "react";
+import { CheckIcon, DownloadSimpleIcon, InfoIcon, WhatsappLogoIcon, XIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
@@ -26,8 +26,6 @@ const OPEN_STATUSES: QuoteStatus[] = ["sent", "viewed", "draft"];
 /* O WhatsApp abre em outra aba, como os contatos do perfil. */
 const external = { target: "_blank", rel: "noopener noreferrer" };
 
-/* O tamanho do histórico não muda enquanto a página vive, então a assinatura não tem o que escutar. */
-const subscribeNothing = () => () => undefined;
 
 // A página que o cliente abre pelo link do WhatsApp (refeita em 2026-09-09, a pedido): só a folha, centrada
 // e na escala de uma A4, e nada mais escrito em volta, porque o que importa é o documento. As ações moram num
@@ -38,12 +36,8 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
   const [status, setStatus] = useState<QuoteStatus>(quote.status);
   const [pending, setPending] = useState<"approve" | "decline" | null>(null);
   const [details, setDetails] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const mobile = useMediaQuery(MOBILE_QUERY);
-  /* O histórico é estado de fora do React, e é lido como tal: no servidor a resposta é "não há para onde
-     voltar", que é o que também vale para o link aberto em aba nova, e no cliente vem o valor de verdade,
-     sem a marcação divergir da que veio do servidor. Ele não muda enquanto a página vive, então ninguém
-     precisa assinar nada. */
-  const canGoBack = useSyncExternalStore(subscribeNothing, () => window.history.length > 1, () => false);
   const open = OPEN_STATUSES.includes(status);
   const totals = quoteTotals(quote);
 
@@ -65,20 +59,67 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
   };
 
   /* Um clique e o arquivo desce, sem a janela de impressão do navegador no meio (pedido de 2026-09-09): a
-     rota ao lado da página devolve o PDF pronto, gerado da mesma folha.
-
-     **É o botão que leva o navegador ao endereço, e não um blob montado aqui** (acerto de 2026-09-10, do
-     relato de que no Safari não baixava): buscar o arquivo, criar um `blob:` e clicar num link tem três
-     problemas no Safari, e no do iPhone os três de uma vez. O link nunca entrou no documento, e o Safari
-     ignora o clique num elemento fora dele; o endereço temporário era liberado no ciclo seguinte, antes de o
-     Safari terminar de ler o blob; e o iOS **não respeita `download` em `blob:`**, então, quando abria, abria
-     no visualizador sem nome de arquivo nenhum.
-
-     Agora baixar é o botão da casa como **âncora com `download`** apontando para a rota, e quem baixa é o
-     navegador: o `Content-Disposition: attachment` que ela devolve é o que nomeia o arquivo, e o nome sai
-     igual em todo navegador. O `download` no elemento faz o clique ser tratado como transferência, e não
-     como navegação, então nem o `next/link` por baixo o intercepta nem a página sai do lugar. */
+     rota ao lado da página devolve o PDF pronto, gerado da mesma folha. */
   const downloadUrl = `/orcamento/${quote.shareToken}/pdf`;
+  const fileName = `${quoteDocumentName(quote)}.pdf`;
+
+  /* **No celular o arquivo vai para a folha de compartilhar do sistema** (pedido de 2026-09-10, do relato de
+     que no Safari do iPhone não dava para baixar): o `download` de uma âncora não existe no iOS, então o PDF
+     sempre abria no visualizador e ficava sem saída dali. Buscando o arquivo e entregando-o ao
+     `navigator.share`, o iPhone abre a folha que ele já conhece, com Salvar em Arquivos, Enviar por WhatsApp
+     e imprimir na mesma lista, que é o que a pessoa quer fazer com um orçamento. Só entra quando o navegador
+     diz que aceita compartilhar **arquivo** (`canShare` com o `File` na mão, e não só `share`, que existe em
+     muito lugar que não recebe anexo); fora daí o botão continua sendo a âncora com `download`, que é o
+     caminho certo no desktop.
+
+     Cancelar a folha vem como `AbortError` e não é erro nenhum: a pessoa desistiu, e a tela não avisa nada.
+
+     **A capacidade é medida antes de buscar o arquivo**, com um `File` vazio do mesmo tipo: compartilhar
+     precisa do gesto da pessoa ainda valendo, e cada espera no caminho gasta essa permissão. Perguntando
+     primeiro, quem não compartilha arquivo desvia para o download antes de baixar nada, e quem compartilha
+     chega ao `share` com uma espera só no meio. */
+  const canShareFile = () => navigator.canShare?.({ files: [new File([], fileName, { type: "application/pdf" })] }) ?? false;
+
+  /* Sem compartilhar arquivo, é o download comum: a âncora entra no documento antes do clique, porque o
+     Safari ignora clique em elemento que não está nele, e sai depois. */
+  const downloadByLink = () => {
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+  };
+
+  const getFile = async () => {
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error(String(response.status));
+    return new File([await response.blob()], fileName, { type: "application/pdf" });
+  };
+
+  const shareFile = async () => {
+    if (!canShareFile()) {
+      downloadByLink();
+      return;
+    }
+
+    setPreparing(true);
+    try {
+      await navigator.share({ files: [await getFile()], title: fileName });
+    } catch (error) {
+      /* Fechar a folha sem escolher nada é `AbortError`, e não é erro: a pessoa desistiu, e a tela fica quieta. */
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      /* Se o compartilhar foi recusado (o gesto expirou enquanto o PDF era montado, por exemplo), o download
+         comum ainda resolve, e é melhor que avisar de um erro que a pessoa não pode consertar. */
+      if (error instanceof DOMException && error.name === "NotAllowedError") {
+        downloadByLink();
+        return;
+      }
+      toast({ title: "Não deu para preparar o arquivo", description: "Tente de novo em um instante.", tone: "danger" });
+    } finally {
+      setPreparing(false);
+    }
+  };
 
   const whatsapp = quote.issuer.phone ? `https://wa.me/55${quote.issuer.phone}?text=${encodeURIComponent(`Olá! Sobre o orçamento ${quote.number} (${quote.title}):`)}` : null;
   const methods = quote.paymentMethods.map((method) => paymentMethods[method].label).join(", ");
@@ -95,9 +136,18 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
           impressão: o que sai no papel é só a folha. São cinco ações e nada além (pedido de 2026-09-10):
           baixar, os detalhes, aprovar, recusar e voltar. */}
       <div className={styles.toolbar} role="toolbar" aria-label="Ações do orçamento" {...squircle("lg")}>
-        <IconButton label="Baixar o orçamento em PDF" variant="ghost" size="sm" href={downloadUrl} download={`${quoteDocumentName(quote)}.pdf`}>
-          <DownloadSimpleIcon />
-        </IconButton>
+        {/* No celular baixar entrega o arquivo à folha de compartilhar do sistema, que é de onde ele vai para
+            Arquivos, WhatsApp ou impressora; no desktop é a âncora com `download`, que o navegador resolve
+            direto. O giro aparece enquanto o PDF é montado no servidor. */}
+        {mobile ? (
+          <IconButton label="Baixar o orçamento em PDF" variant="ghost" size="sm" loading={preparing} disabled={preparing} onClick={() => void shareFile()}>
+            <DownloadSimpleIcon />
+          </IconButton>
+        ) : (
+          <IconButton label="Baixar o orçamento em PDF" variant="ghost" size="sm" href={downloadUrl} download={fileName}>
+            <DownloadSimpleIcon />
+          </IconButton>
+        )}
 
         <IconButton label="Detalhes do orçamento" variant="ghost" size="sm" onClick={() => setDetails(true)}>
           <InfoIcon />
@@ -110,9 +160,32 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
             <Button size="sm" radius="md" iconStart={<CheckIcon weight="bold" />} loading={pending === "approve"} disabled={pending !== null} onClick={() => respond("approve")}>
               Aprovar
             </Button>
-            <Button variant="ghost" size="sm" radius="md" iconStart={<XIcon weight="bold" />} loading={pending === "decline"} disabled={pending !== null} onClick={() => respond("decline")}>
-              Recusar
-            </Button>
+            {/* No celular recusar fica só no X (pedido de 2026-09-10): aprovar é a ação que se quer ler, e
+                escrever as duas na mesma fila estreita apertava a linha. O nome continua na voz. */}
+            {mobile ? (
+              <IconButton
+                label="Recusar o orçamento"
+                variant="ghost"
+                size="sm"
+                loading={pending === "decline"}
+                disabled={pending !== null}
+                onClick={() => respond("decline")}
+              >
+                <XIcon weight="bold" />
+              </IconButton>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                radius="md"
+                iconStart={<XIcon weight="bold" />}
+                loading={pending === "decline"}
+                disabled={pending !== null}
+                onClick={() => respond("decline")}
+              >
+                Recusar
+              </Button>
+            )}
           </>
         ) : (
           <Text as="span" variant="footnote" tone="secondary" className={styles.answered}>
@@ -120,17 +193,6 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
           </Text>
         )}
 
-        {/* Voltar é o histórico do navegador, para quem chegou pelo WhatsApp voltar à conversa. Ele só entra
-            quando há para onde voltar: o link aberto em aba nova nasce sem histórico, e ali o botão não faria
-            nada. Quem decide é o `history.length`, lido depois da montagem, porque no servidor não existe. */}
-        {canGoBack && (
-          <>
-            <span className={styles.divider} aria-hidden="true" />
-            <IconButton label="Voltar" variant="ghost" size="sm" onClick={() => window.history.back()}>
-              <ArrowLeftIcon />
-            </IconButton>
-          </>
-        )}
       </div>
 
       {/* Os detalhes na janela da casa, que no celular é a bandeja de baixo (pedido de 2026-09-10, no lugar
