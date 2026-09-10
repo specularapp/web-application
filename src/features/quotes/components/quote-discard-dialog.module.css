@@ -22,9 +22,8 @@
   width: 100%;
 }
 
-/* No celular a bandeja leva a folga da barra flutuante embaixo, dentro do que rola, que é a regra da casa
-   para toda janela com ações penduradas nela: é lá que moram salvar e continuar editando, e o descarte que
-   sobra aqui precisa fechar acima da barra. */
+/* No celular a bandeja leva a folga da barra flutuante embaixo, a regra da casa para toda janela com ações
+   penduradas nela: é lá que moram as três saídas, e sem a folga a barra cobriria o fim da pergunta. */
 @media (max-width: 47.9375rem) {
   .dialog {
     padding-block-end: var(--floating-bar-inset);

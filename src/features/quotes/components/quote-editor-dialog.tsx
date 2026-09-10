@@ -386,6 +386,20 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const confirmActions = confirmingClose
     ? {
         primary: { label: saving === "draft" ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving === "draft", onClick: () => void saveAndClose() },
+        /* Sair sem salvar é a lixeira ao lado de salvar, e não um botão escrito na bandeja: as três saídas
+           moram na barra, que é onde as ações do editor vivem no celular, e a bandeja fica só com a pergunta.
+           O nome vai na voz e na dica, como em toda ação de glifo da barra. */
+        extras: [
+          {
+            label: "Sair sem salvar",
+            icon: <TrashIcon />,
+            disabled: saving !== null,
+            onClick: () => {
+              setConfirmingClose(false);
+              onClose();
+            },
+          },
+        ],
         cancel: { label: "Continuar editando", onClick: () => setConfirmingClose(false) },
       }
     : null;
