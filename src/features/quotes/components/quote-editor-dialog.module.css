@@ -10,12 +10,6 @@
   min-height: 0;
 }
 
-@media (max-width: 47.9375rem) {
-  .editor {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-  }
-}
-
 .head {
   display: flex;
   flex-shrink: 0;
@@ -407,14 +401,25 @@
   }
 }
 
-/* No celular, rascunho, enviar e copiar ficam no pé da bandeja, acima da barra flutuante, que cuida de
-   salvar e sair. */
-.mobileFoot {
+/* As bandejas do celular: o item em edição e a ficha de margem. O cabeçalho do item é o mesmo do cartão aberto
+   do desktop, com o recuo da bandeja; o miolo rola por dentro, no respiro padrão das bandejas da casa, e leva a
+   folga da barra flutuante embaixo, porque é nela que mora o Concluir. */
+.sheet {
   display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sheet > .lineHead {
   flex-shrink: 0;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-4);
-  border-block-start: var(--panel-line) solid var(--color-border);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.sheetBody {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-3) var(--space-4) var(--floating-bar-inset);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

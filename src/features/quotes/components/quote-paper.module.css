@@ -16,19 +16,6 @@
   zoom: var(--doc-zoom, 1);
 }
 
-/* No celular a folha vira fluida: uma A4 reduzida para 360px de largura viraria texto de cinco pixels. */
-@media (max-width: 47.9375rem) {
-  .paper {
-    place-content: start stretch;
-  }
-
-  .paper > article {
-    width: 100%;
-    height: auto;
-    zoom: 1;
-  }
-}
-
 /* Impressa, a folha volta ao tamanho de A4 e é a página inteira: a escala mapeia os 832px de largura nos
    210mm do papel (210mm são 793,7px a 96dpi), então o que está na tela sai igual, sem refluxo de texto. Os
    cantos e a sombra somem, porque papel não tem quina arredondada (pedido de 2026-09-09). */

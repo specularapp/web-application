@@ -1,6 +1,7 @@
+import { cookies } from "next/headers";
 import { previewAiUsage } from "@/features/ai/preview";
 import { QuotesScreen } from "@/features/quotes/components/quotes-screen";
-import { listQuotes, parseQuotesQuery } from "@/features/quotes/list";
+import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, listQuotes, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
 import { loadQuotesScreenData } from "@/features/quotes/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
@@ -16,14 +17,19 @@ export const metadata = createMetadata({
 // lista só troca a URL, sem sair da tela. `?item=` e `?cliente=` chegam do catálogo e da base de clientes e
 // entram já preenchidos.
 export default async function NewQuotePage({ searchParams }: PageProps<"/orcamentos/novo">) {
-  const [params, data] = await Promise.all([searchParams, loadQuotesScreenData("/orcamentos/novo")]);
-  const query = parseQuotesQuery({
-    busca: first(params.busca),
-    situacao: first(params.situacao),
-    periodo: first(params.periodo),
-    pagina: first(params.pagina),
-    porPagina: first(params.porPagina),
-  });
+  const [params, cookieStore, data] = await Promise.all([searchParams, cookies(), loadQuotesScreenData("/orcamentos/novo")]);
+  const view = parseQuotesView(cookieStore.get(QUOTES_VIEW_COOKIE)?.value);
+  const gridSize = parseQuotesGridSize(cookieStore.get(QUOTES_GRID_COOKIE)?.value);
+  const query = parseQuotesQuery(
+    {
+      busca: first(params.busca),
+      situacao: first(params.situacao),
+      periodo: first(params.periodo),
+      pagina: first(params.pagina),
+      porPagina: first(params.porPagina),
+    },
+    defaultPageSize(view, gridSize),
+  );
   const prefill = { itemId: first(params.item) || undefined, clientId: first(params.cliente) || undefined };
 
   return (
@@ -38,6 +44,7 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/orcamen
       issuer={data.issuer}
       owner={data.owner}
       nextNumber={data.nextNumber}
+      view={view}
     />
   );
 }

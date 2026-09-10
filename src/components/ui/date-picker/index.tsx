@@ -1,6 +1,5 @@
 "use client";
 
-import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
 import { CalendarBlankIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
@@ -18,7 +17,7 @@ import {
 import { DayPicker, useDayPicker } from "react-day-picker";
 import { createPortal } from "react-dom";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { Dialog } from "../dialog";
 import { FieldAdornment, FieldShell } from "../field-shell";
 import { Listbox, type ListboxOption } from "../listbox";
 import { popIn, type ControlSize } from "../styles";
@@ -46,41 +45,31 @@ export type DatePickerProps = {
 const GAP = 8;
 const MARGIN = 16;
 
-const rise = keyframes`
-  from {
-    transform: translateY(100%);
+/* No celular o calendário mora na bandeja do `Dialog` (acerto de 2026-09-10): a bandeja própria que existia
+   aqui nascia na camada da janela, abaixo do próprio fundo escuro, que estava na camada das caixas
+   flutuantes, e a pessoa via o calendário apagado atrás de um véu, sem conseguir tocar. Na bandeja da casa
+   entram de graça o fundo, a alça, o arrasto para fechar, a fila de camadas e a folga da barra flutuante
+   embaixo, o mesmo respiro de toda bandeja. O calendário fica centrado, na largura em que ele desenha bem. */
+const SheetBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  html[data-floating-actions] & {
+    padding-block-end: var(--floating-bar-inset);
   }
-`;
 
-const fade = keyframes`
-  from {
-    opacity: 0;
-  }
-`;
-
-const Backdrop = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-popover);
-  background-color: var(--color-scrim);
-  animation: ${fade} var(--duration-base) var(--ease-standard);
-`;
-
-const Handle = styled.span`
-  display: block;
-  width: 2.25rem;
-  height: 0.25rem;
-  margin: 0 auto var(--space-3);
-  background-color: var(--color-fill);
-  border-radius: var(--radius-full);
-`;
-
-const Calendar = styled.div`
-  [data-mode="sheet"] > & {
+  & > * {
+    width: 100%;
     max-width: 24rem;
-    margin-inline: auto;
   }
 `;
+
+const Calendar = styled.div``;
 
 const Trigger = styled.button`
   flex: 1;
@@ -143,20 +132,6 @@ const Popover = styled.div`
   transform-origin: var(--origin);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
-  &[data-mode="sheet"] {
-    inset-inline: 0;
-    top: auto;
-    bottom: 0;
-    z-index: var(--z-modal);
-    width: 100%;
-    padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
-    background-color: var(--glass-sheet-bg);
-    border-bottom: 0;
-    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-    transform-origin: bottom;
-    animation: ${rise} var(--duration-slow) var(--ease-standard);
-  }
-
   &[data-placement="below"] {
     --slide: calc(var(--space-2) * -1);
     --origin: top left;
@@ -169,10 +144,6 @@ const Popover = styled.div`
 
   @media (pointer: coarse) {
     width: min(22rem, calc(100vw - 2rem));
-  }
-
-  &[data-mode="sheet"] {
-    width: 100%;
   }
 `;
 
@@ -265,8 +236,6 @@ export function DatePicker({
   const dialogId = useId();
 
   const sheet = useMediaQuery(MOBILE_QUERY);
-  // Bandeja aberta trava quem rola atrás, que é a coluna de conteúdo, e não o documento.
-  useScrollLock(open && sheet);
   const date = value ?? inner;
   const flagged = invalid || aria["aria-invalid"] === true;
 
@@ -299,8 +268,10 @@ export function DatePicker({
     popoverRef.current?.querySelector<HTMLElement>('.rdp-day_button[tabindex="0"]')?.focus({ preventScroll: true });
   }, [open, sheet]);
 
+  // Flutuando, quem fecha ao toque fora e ao Escape é o próprio calendário; na bandeja é o `Dialog`, que
+  // também sabe se é a camada de cima (os seletores de mês e ano abrem outra bandeja por cima dela).
   useEffect(() => {
-    if (!open) return;
+    if (!open || sheet) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (shellRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
@@ -317,9 +288,25 @@ export function DatePicker({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, sheet]);
 
   const currentYear = new Date().getFullYear();
+
+  /* O calendário em si, o mesmo na caixa flutuante e na bandeja. */
+  const calendar = (
+    <DayPicker
+      mode="single"
+      locale={ptBR}
+      selected={date}
+      onSelect={select}
+      defaultMonth={date}
+      components={components}
+      startMonth={min ?? new Date(1900, 0)}
+      endMonth={max ?? new Date(currentYear + 10, 11)}
+      disabled={[...(min ? [{ before: min }] : []), ...(max ? [{ after: max }] : [])]}
+      showOutsideDays
+    />
+  );
 
   return (
     <FieldShell ref={shellRef} size={size} invalid={flagged} className={className} style={style}>
@@ -344,39 +331,27 @@ export function DatePicker({
         <CalendarBlankIcon />
       </Glyph>
       {name && <input type="hidden" name={name} value={date ? format(date, "yyyy-MM-dd") : ""} readOnly />}
+      {open && sheet && (
+        <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="glass" scrim={false} focusOnOpen={false}>
+          <SheetBody ref={popoverRef} id={dialogId}>
+            <Calendar>{calendar}</Calendar>
+          </SheetBody>
+        </Dialog>
+      )}
       {open &&
+        !sheet &&
         createPortal(
-          <>
-            {sheet && <Backdrop onClick={() => setOpen(false)} />}
-            <Popover
-              ref={popoverRef}
-              id={dialogId}
-              role="dialog"
-              aria-modal={sheet || undefined}
-              aria-label="Escolher data"
-              data-mode={sheet ? "sheet" : "floating"}
-              data-placement={sheet ? undefined : (position?.placement ?? "below")}
-              style={
-                sheet ? undefined : position ? { top: position.top, left: position.left } : { visibility: "hidden" }
-              }
-            >
-              {sheet && <Handle aria-hidden="true" />}
-              <Calendar>
-                <DayPicker
-                  mode="single"
-                  locale={ptBR}
-                  selected={date}
-                  onSelect={select}
-                  defaultMonth={date}
-                  components={components}
-                  startMonth={min ?? new Date(1900, 0)}
-                  endMonth={max ?? new Date(currentYear + 10, 11)}
-                  disabled={[...(min ? [{ before: min }] : []), ...(max ? [{ after: max }] : [])]}
-                  showOutsideDays
-                />
-              </Calendar>
-            </Popover>
-          </>,
+          <Popover
+            ref={popoverRef}
+            id={dialogId}
+            role="dialog"
+            aria-label="Escolher data"
+            data-mode="floating"
+            data-placement={position?.placement ?? "below"}
+            style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
+          >
+            <Calendar>{calendar}</Calendar>
+          </Popover>,
           document.body,
         )}
     </FieldShell>

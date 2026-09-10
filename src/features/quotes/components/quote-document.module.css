@@ -37,15 +37,6 @@
   margin-inline: 0;
 }
 
-@media (max-width: 47.9375rem) {
-  .sheet {
-    --doc-pad: var(--space-5);
-
-    gap: var(--space-5);
-    border-radius: var(--radius-lg);
-  }
-}
-
 /* A aura: quatro bolas de cor nas quatro quinas, uma camada só, na receita do painel de planos (2026-09-09,
    a pedido; antes eram três manchas com filtro de desfoque, que ficavam jogadas no topo). Gradiente radial
    no lugar de `filter: blur`: mesmo resultado, sem custo de composição numa camada do tamanho da folha.
@@ -151,6 +142,16 @@
   min-width: 0;
 }
 
+/* O glifo sobe um tico ao lado do rótulo (acerto de 2026-09-10): centrado na linha, o desenho inteiro fica
+   abaixo da altura das maiúsculas e se lê como desalinhado. Em `translate`, que não mexe no layout, e em
+   `em`, para valer igual nos três tamanhos de letra que o documento usa. */
+.contacts svg,
+.details svg,
+.facts dt svg,
+.seal > svg {
+  translate: 0 -0.04em;
+}
+
 .contacts svg,
 .details svg {
   flex-shrink: 0;
@@ -159,19 +160,16 @@
   color: var(--color-label-tertiary);
 }
 
+/* A largura vem declarada (2026-09-10): medida pelo conteúdo ela muda com o número, e o PDF, que precisa
+   declarar a dele para o nome da equipe ganhar reticências, nunca ficaria igual. Onze rem cabem o maior
+   número no padrão `ORC-2026-0042` com folga. */
 .kicker {
   display: grid;
   flex-shrink: 0;
+  width: 11rem;
   gap: var(--space-1);
   justify-items: end;
   text-align: end;
-}
-
-@media (max-width: 47.9375rem) {
-  .kicker {
-    justify-items: start;
-    text-align: start;
-  }
 }
 
 /* Os rótulos de seção, em caixa alta miúda e apagados: dizem onde a pessoa está sem competir com o dado.
@@ -236,12 +234,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
-}
-
-@media (max-width: 47.9375rem) {
-  .parties {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* O cartão é opaco, e não o preenchimento translúcido da casa (acerto de 2026-09-09): translúcido, a aura
@@ -414,23 +406,13 @@
   color: var(--color-label-tertiary);
 }
 
-/* O pagamento à esquerda e os totais à direita; no celular os totais vêm primeiro, porque é o que a pessoa
-   procura. */
+/* O pagamento à esquerda e os totais à direita. Sem versão de celular (2026-09-10): a folha tem tamanho fixo e
+   só encolhe, então o desenho é um só em qualquer tela. */
 .summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
   gap: var(--space-6);
   align-items: start;
-}
-
-@media (max-width: 47.9375rem) {
-  .summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .summary .totals {
-    order: -1;
-  }
 }
 
 .payment {

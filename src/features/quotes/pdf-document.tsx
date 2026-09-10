@@ -16,7 +16,7 @@ import { formatMoney } from "@/lib/utils/format";
 import { paymentBrandLogos, paymentMethods } from "./labels";
 import { pdfBrands, pdfIcons } from "./pdf-glyphs";
 import { LOGO_RING, type QuotePdfImages } from "./pdf-images";
-import { badgeTone, brandOpacity, glyphInk, glyphOpacity, hairline, ink, leading, oneLine, PAGE_HEIGHT, PAGE_WIDTH, pt, space, text, tracking, type, weight } from "./pdf-theme";
+import { badgeTone, brandOpacity, CONTENT_WIDTH, glyphInk, glyphOpacity, hairline, ink, leading, oneLine, PAGE_HEIGHT, PAGE_WIDTH, pt, space, text, tracking, type, weight } from "./pdf-theme";
 import type { Quote, QuoteLine } from "./summary";
 import { isCourtesy, lineTotal, quoteTotals } from "./totals";
 
@@ -53,6 +53,25 @@ const countFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 })
    primeira coluna fica com o que sobrar, que é o que o nome do item pede. */
 const COLUMN = { count: pt(56), unit: pt(136), total: pt(104) };
 
+/* As larguras dos blocos, todas tiradas da largura útil da folha, como o CSS faz: a coluna do nome é o que
+   sobra das de número; a caixa do nome e da descrição é a coluna menos o azulejo, o vão e o recuo da célula;
+   os cartões das partes dividem a folha ao meio com o vão entre eles; o pagamento é o que sobra da coluna de
+   totais; e o número do orçamento tem a sua, para o nome da equipe ficar com o resto. */
+const NAME_COLUMN = pt(CONTENT_WIDTH - 56 - 136 - 104);
+const LINE_COPY = pt(CONTENT_WIDTH - 56 - 136 - 104 - 32 - 8 - 12);
+const PARTY = pt((CONTENT_WIDTH - 16) / 2);
+const TOTALS = pt(288);
+const PAYMENT = pt(CONTENT_WIDTH - 24 - 288);
+const KICKER = pt(176);
+const BRAND = pt(CONTENT_WIDTH - 20 - 176);
+
+/* Quanto o glifo sobe ao lado de um rótulo, em fração do tamanho da letra: é o que faz o meio do desenho
+   cair no meio das maiúsculas em vez de no meio da linha. Medido com as duas folhas lado a lado. */
+const GLYPH_RISE = 0.075;
+
+/** A entrelinha da etiqueta compacta, a mesma do CSS da linha do item. */
+const BADGE_LEADING = 1.4;
+
 const styles = StyleSheet.create({
   page: { backgroundColor: ink.sheet, color: ink.label, fontFamily: "Inter", ...text(type.footnote) },
   /* O recuo soma o fio da moldura da tela: na prévia a folha tem borda, e o conteúdo dela começa um fio
@@ -61,14 +80,14 @@ const styles = StyleSheet.create({
   sheet: { flexGrow: 1, padding: space.s8 + hairline, gap: space.s5 },
 
   masthead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.s5 },
-  brand: { flexDirection: "row", alignItems: "center", gap: space.s4, flexGrow: 1, flexShrink: 1 },
+  brand: { width: BRAND, flexDirection: "row", alignItems: "center", gap: space.s4, minWidth: 0 },
   /* A logo tem o anel do fundo da folha desenhado no próprio arquivo, então a margem negativa devolve o
      espaço dele: na tela o anel é sombra e não ocupa lugar. */
   logo: { width: pt(52 + LOGO_RING * 2), height: pt(52 + LOGO_RING * 2), margin: pt(-LOGO_RING) },
-  brandCopy: { flexShrink: 1, gap: space.s1 },
+  brandCopy: { flexShrink: 1, minWidth: 0, gap: space.s1 },
   issuerName: { ...text(type.title3, leading.tight), fontWeight: weight.semibold, letterSpacing: type.title3 * tracking.tighter, ...oneLine },
-  contacts: { flexDirection: "row", columnGap: space.s3 },
-  kicker: { alignItems: "flex-end", gap: space.s1 },
+  contacts: { flexDirection: "row", columnGap: space.s3, minWidth: 0 },
+  kicker: { width: KICKER, alignItems: "flex-end", gap: space.s1 },
   eyebrow: { ...text(type.caption1), fontWeight: weight.semibold, color: ink.secondary, letterSpacing: type.caption1 * tracking.wide, textTransform: "uppercase" },
   number: { ...text(type.title2, leading.tight), fontWeight: weight.semibold, letterSpacing: type.title2 * tracking.tight },
 
@@ -79,43 +98,43 @@ const styles = StyleSheet.create({
   factValue: { ...text(type.subheadline), fontWeight: weight.medium },
 
   parties: { flexDirection: "row", gap: space.s4 },
-  party: { flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: space.s3, padding: space.s4, backgroundColor: ink.card, borderRadius: pt(cornerRadius.lg) },
+  party: { width: PARTY, gap: space.s3, padding: space.s4, backgroundColor: ink.card, borderRadius: pt(cornerRadius.lg) },
   person: { flexDirection: "row", alignItems: "center", gap: space.s3 },
   personAvatar: { width: pt(36), height: pt(36) },
-  personCopy: { flexShrink: 1 },
+  personCopy: { flexShrink: 1, minWidth: 0 },
   personName: { ...text(type.headline), fontWeight: weight.semibold, letterSpacing: type.headline * tracking.tighter, ...oneLine },
   personMeta: { ...text(type.footnote), color: ink.secondary, letterSpacing: type.footnote * tracking.tight, ...oneLine },
   details: { flexDirection: "row", flexWrap: "wrap", rowGap: space.s1, columnGap: space.s3 },
-  detail: { flexDirection: "row", alignItems: "center", gap: space.s1 },
+  detail: { flexDirection: "row", alignItems: "center", gap: space.s1, minWidth: 0 },
 
   items: { gap: space.s2 },
   head: { flexDirection: "row", alignItems: "flex-end", borderBottomWidth: hairline, borderBottomColor: ink.border },
   headCell: { paddingVertical: space.s1, paddingHorizontal: space.s3, ...text(type.caption1), fontWeight: weight.medium, color: ink.secondary },
   row: { flexDirection: "row", alignItems: "flex-start", borderBottomWidth: hairline, borderBottomColor: ink.border },
   cell: { paddingVertical: space.s1 + space.half, paddingHorizontal: space.s3, ...text(type.footnote) },
-  first: { flexGrow: 1, flexShrink: 1, flexBasis: 0, paddingLeft: 0 },
+  first: { width: NAME_COLUMN, paddingLeft: 0 },
   last: { paddingRight: 0 },
   end: { textAlign: "right" },
-  line: { flexDirection: "row", alignItems: "center", gap: space.s2 },
+  line: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
   lineArt: { width: pt(32), height: pt(32), alignItems: "center", justifyContent: "center", borderRadius: pt(cornerRadius.sm) },
   lineArtImage: { width: pt(22), height: pt(22) },
-  lineCopy: { flexShrink: 1 },
-  lineName: { flexDirection: "row", alignItems: "center", gap: space.s2 },
-  lineTitle: { flexShrink: 1, ...text(type.footnote), fontWeight: weight.medium, ...oneLine },
+  lineCopy: { width: LINE_COPY },
+  lineName: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
+  lineTitle: { flexShrink: 1, minWidth: 0, ...text(type.footnote), fontWeight: weight.medium, ...oneLine },
   lineDescription: { ...text(type.caption1), color: ink.secondary, ...oneLine },
   per: { fontSize: type.caption2, color: ink.tertiary },
   strong: { fontWeight: weight.semibold },
   struck: { textDecoration: "line-through", textDecorationColor: ink.tertiary },
 
   summary: { flexDirection: "row", gap: space.s6, alignItems: "flex-start" },
-  payment: { flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: space.s2 },
+  payment: { width: PAYMENT, gap: space.s2 },
   paymentFacts: { gap: space.s1 },
   paymentFact: { flexDirection: "row", alignItems: "center", gap: space.s3 },
   /* Rótulo e valor no mesmo trilho, o que na tela é a grade compartilhada por subgrid, com a largura que a
      tela resolve para o rótulo mais largo. */
   paymentLabel: { width: pt(48.56), ...text(type.caption1), color: ink.secondary },
-  paymentValue: { flexShrink: 1, ...text(type.subheadline), fontWeight: weight.medium },
-  totals: { width: pt(288), gap: space.s2 },
+  paymentValue: { flexShrink: 1, minWidth: 0, ...text(type.subheadline), fontWeight: weight.medium },
+  totals: { width: TOTALS, gap: space.s2 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", gap: space.s4 },
   totalLabel: { ...text(type.subheadline), color: ink.secondary },
   totalValue: { ...text(type.subheadline), fontWeight: weight.medium },
@@ -153,36 +172,43 @@ function Glyph({ paths, size, color = glyphInk, opacity = glyphOpacity.tertiary,
   );
 }
 
-/** A etiqueta da casa na variante suave, no tamanho `sm`: o único tamanho que o documento usa. */
-function Badge({ tone, glyph, children }: { tone: BadgeTone; glyph?: readonly string[]; children: ReactNode }) {
+/**
+ * A etiqueta da casa na variante suave, na medida compacta que a linha do item usa: a caixa é a altura de
+ * linha da legenda mais o fio de um pixel de cada lado, que na tela vem da moldura transparente da etiqueta.
+ * É a única etiqueta do documento, e essa medida é o que a mantém do mesmo tamanho na tela e no papel, sem
+ * esticar a altura da linha do item (relato de 2026-09-10, sobre a de altura fixa, que era três pixels mais
+ * alta que a da prévia).
+ */
+function Badge({ tone, children }: { tone: BadgeTone; children: ReactNode }) {
   const { ink: color, tint } = badgeTone(tone);
   return (
     <View
       style={{
-        flexDirection: "row",
         alignItems: "center",
-        gap: space.s1,
-        height: pt(20),
-        paddingHorizontal: space.s2,
+        justifyContent: "center",
+        height: type.caption2 * BADGE_LEADING + pt(2),
+        paddingHorizontal: space.s1,
         backgroundColor: tint,
         borderRadius: pt(cornerRadius.sm),
       }}
     >
-      {glyph && <Glyph paths={glyph} size={type.caption2 * 1.2} color={color} opacity={1} />}
-      <Text style={{ ...text(type.caption2, 1), fontWeight: weight.semibold, letterSpacing: type.caption2 * tracking.tight, color }}>{children}</Text>
+      <Text style={{ ...text(type.caption2, BADGE_LEADING), fontWeight: weight.semibold, letterSpacing: type.caption2 * tracking.tight, color }}>{children}</Text>
     </View>
   );
 }
 
 /**
- * Rótulo com glifo à frente, o par que a tela repete nos contatos e nos fatos da emissão. O glifo desce meio
- * ponto: ele fica centrado na caixa da linha, e no react-pdf a letra assenta um tico abaixo do centro dela,
- * então sem esse empurrão o desenho parece alto demais ao lado do texto (relato de 2026-09-09).
+ * Rótulo com glifo à frente, o par que a tela repete nos contatos e nos fatos da emissão.
+ *
+ * O glifo sobe um tico: alinhado pelo centro da linha ele fica com o desenho inteiro abaixo da altura das
+ * maiúsculas, o que se lê como desalinhado (relato de 2026-09-10). `GLYPH_RISE` é o quanto ele volta, em
+ * fração do tamanho da letra, para o meio do desenho cair no meio das maiúsculas do rótulo. Vai em posição
+ * relativa, e não em margem: margem entra na conta de quem centraliza e o empurrão sairia pela metade.
  */
 function WithGlyph({ glyph, size = type.footnote, style, children }: { glyph: readonly string[]; size?: number; style?: PdfStyle; children: ReactNode }) {
   return (
     <View style={[styles.detail, style]}>
-      <Glyph paths={glyph} size={pt(14)} style={{ marginTop: size * 0.1 }} />
+      <Glyph paths={glyph} size={pt(14)} style={{ position: "relative", top: -size * GLYPH_RISE }} />
       <Text style={{ flexShrink: 1, ...text(size), color: ink.secondary }}>{children}</Text>
     </View>
   );
@@ -445,7 +471,7 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
 
           <View>
             <View style={styles.seal}>
-              <Glyph paths={pdfIcons.seal} size={pt(14)} style={{ marginTop: type.caption2 * 0.1 }} />
+              <Glyph paths={pdfIcons.seal} size={pt(14)} style={{ position: "relative", top: -type.caption2 * GLYPH_RISE }} />
               <Text style={styles.sealText}>Documento gerado pela Specular. Confira a autenticidade em {verifyUrl}</Text>
             </View>
             <View style={styles.brands}>

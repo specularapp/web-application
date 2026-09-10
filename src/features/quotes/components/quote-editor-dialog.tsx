@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CheckIcon,
   FloppyDiskIcon,
   LinkIcon,
   PaperPlaneTiltIcon,
@@ -49,7 +48,7 @@ import { quoteShareUrl } from "../share";
 import type { Quote, QuoteCourtesy, QuoteIssuer, QuotePaymentMethod, QuotePerson } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
 import { QuoteDocument } from "./quote-document";
-import { QuoteLineInfo } from "./quote-line-info";
+import { QuoteLineFacts, QuoteLineInfo } from "./quote-line-info";
 import { QuotePaper } from "./quote-paper";
 import styles from "./quote-editor-dialog.module.css";
 
@@ -332,10 +331,31 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const form = useRef<HTMLFormElement>(null);
   const intent = useRef<"draft" | "send">("draft");
 
-  useFloatingActionsRegistration({
-    primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving !== null, onClick: () => submitWith("draft") },
-    cancel: { label: "Cancelar", onClick: onClose },
-  });
+  // No celular, editar um item e ver a ficha dele abrem bandejas por cima do formulário (pedido de 2026-09-10),
+  // e a barra flutuante segue a situação: com uma bandeja aberta ela fecha a bandeja, e sem nenhuma ela salva.
+  // O que está desenhado na bandeja fica guardado à parte, para o conteúdo não sumir antes de ela terminar de
+  // descer.
+  const [lineSheet, setLineSheet] = useState<string | null>(null);
+  const [infoLine, setInfoLine] = useState<string | null>(null);
+  const [shownSheetLine, setShownSheetLine] = useState<string | null>(null);
+  if (lineSheet !== null && lineSheet !== shownSheetLine) setShownSheetLine(lineSheet);
+  const [shownInfoLine, setShownInfoLine] = useState<string | null>(null);
+  if (infoLine !== null && infoLine !== shownInfoLine) setShownInfoLine(infoLine);
+
+  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null);
+  const closeTopSheet = () => {
+    if (infoLine !== null) setInfoLine(null);
+    else setLineSheet(null);
+  };
+
+  useFloatingActionsRegistration(
+    sheetOpen
+      ? { primary: { label: infoLine !== null ? "Fechar" : "Concluir", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
+      : {
+          primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving !== null, onClick: () => submitWith("draft") },
+          cancel: { label: "Cancelar", onClick: onClose },
+        },
+  );
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -364,12 +384,14 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     const line = emptyLine();
     set("lines", [...values.lines, line]);
     setOpenLine(line.id);
+    if (mobile) setLineSheet(line.id);
   };
 
   const removeLine = (id: string) => {
     const rest = values.lines.filter((line) => line.id !== id);
     set("lines", rest);
     if (openLine === id) setOpenLine(rest[rest.length - 1]?.id ?? "");
+    if (lineSheet === id) setLineSheet(null);
   };
 
   const toggleMethod = (method: QuotePaymentMethod, on: boolean) =>
@@ -505,6 +527,119 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     })),
   ];
 
+  /* Os campos de um item, os mesmos no cartão aberto do desktop e na bandeja do celular: o seletor do
+     catálogo, nome e descrição quando é avulso, e os quatro números com a cortesia. */
+  const lineFields = (line: LineValues, index: number) => {
+    const quantity = Number(line.quantity || 0);
+    const unitPrice = Number(line.unitPrice || 0);
+    const selectId = `${titleId}-${line.id}`;
+    return (
+      <>
+        <Field label="Item do catálogo" id={selectId}>
+          <Select
+            label="Item do catálogo"
+            options={catalogOptions}
+            value={line.catalogItemId ?? FREE_ITEM}
+            searchable
+            searchPlaceholder="Buscar produto ou serviço"
+            visibleLimit={SHOWN_OPTIONS}
+            emptyLabel="Nenhum item com esse nome"
+            disabled={saving !== null}
+            onChange={(value) => pickCatalog(line.id, value)}
+          />
+        </Field>
+        {/* Vindo do catálogo, o nome e a descrição são de lá e não se digitam aqui. */}
+        {line.catalogItemId === null && (
+          <>
+            <Field label="Nome" required error={lineError(index, "name")}>
+              <Input type="text" value={line.name} placeholder="O que está sendo orçado" disabled={saving !== null} onChange={(event) => setLine(line.id, { name: event.target.value })} />
+            </Field>
+            <Field label="Descrição" error={lineError(index, "description")}>
+              <Input
+                type="text"
+                value={line.description}
+                placeholder="O que a linha entrega, em uma frase"
+                disabled={saving !== null}
+                onChange={(event) => setLine(line.id, { description: event.target.value })}
+              />
+            </Field>
+          </>
+        )}
+        <div className={styles.lineNumbers}>
+          <Field label="Qtd." required error={lineError(index, "quantity")}>
+            <Input
+              type="text"
+              mask="integer"
+              value={line.quantity}
+              placeholder="1"
+              inputMode="numeric"
+              disabled={saving !== null}
+              onChange={(event) => setLine(line.id, { quantity: onlyDigits(event.target.value) })}
+            />
+          </Field>
+          <Field label="Cobrança" required>
+            <Select label="Unidade de cobrança" options={unitOptions} value={line.unit} disabled={saving !== null} onChange={(unit) => setLine(line.id, { unit })} />
+          </Field>
+          <Field label="Unitário" required error={lineError(index, "unitPrice")}>
+            <Input
+              type="text"
+              mask="currency"
+              value={line.unitPrice}
+              placeholder="0,00"
+              disabled={saving !== null}
+              onChange={(event) => setLine(line.id, { unitPrice: onlyDigits(event.target.value) })}
+            />
+          </Field>
+          <Field label="Subtotal">
+            <Input type="text" value={formatMoney(lineTotal({ quantity, unitPrice, courtesy: line.courtesy }))} readOnly tabIndex={-1} aria-label="Subtotal da linha" />
+          </Field>
+          {/* Cortesia em três respostas: sim e "apenas hoje" põem a etiqueta no documento e zeram a cobrança
+              daquela linha. */}
+          <Field label="Cortesia">
+            <Select label="Cortesia deste item" options={courtesyOptions} value={line.courtesy} disabled={saving !== null} onChange={(courtesy) => setLine(line.id, { courtesy })} />
+          </Field>
+        </div>
+      </>
+    );
+  };
+
+  /* O cabeçalho de um item aberto: a contagem à esquerda e, na ponta, informação e lixeira, os dois miúdos. */
+  const lineHead = (line: LineValues, index: number, source: CatalogItem | undefined, extra?: ReactNode) => (
+    <div className={styles.lineHead}>
+      <Text as="span" variant="caption1" weight="semibold" tone="secondary">
+        Item {String(index + 1).padStart(2, "0")}
+      </Text>
+      <span className={styles.lineHeadActions}>
+        {source && (
+          <QuoteLineInfo
+            item={source}
+            unitPrice={Number(line.unitPrice || 0)}
+            quantity={Number(line.quantity || 0)}
+            className={styles.tiny}
+            onOpen={mobile ? () => setInfoLine(line.id) : undefined}
+          />
+        )}
+        <IconButton
+          label={`Remover item ${index + 1}`}
+          variant="ghost"
+          size="sm"
+          radius="md"
+          className={styles.tiny}
+          disabled={saving !== null || values.lines.length === 1}
+          onClick={() => removeLine(line.id)}
+        >
+          <TrashIcon />
+        </IconButton>
+        {extra}
+      </span>
+    </div>
+  );
+
+  const sheetLine = shownSheetLine === null ? undefined : values.lines.find((line) => line.id === shownSheetLine);
+  const sheetIndex = sheetLine ? values.lines.indexOf(sheetLine) : -1;
+  const infoTarget = shownInfoLine === null ? undefined : values.lines.find((line) => line.id === shownInfoLine);
+  const infoSource = infoTarget ? catalogOf(infoTarget.catalogItemId) : undefined;
+
   const showForm = !mobile || tab === "form";
   // No desktop a prévia não é opcional (a pedido, 2026-09-09): ver o documento é o trabalho.
   const showPreview = !mobile || tab === "preview";
@@ -525,14 +660,26 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         </div>
         <div className={styles.headActions}>
           {mobile ? (
-            <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
-              <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
-                Dados
-              </button>
-              <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
-                Prévia
-              </button>
-            </div>
+            /* No celular salvar mora na barra flutuante (pedido de 2026-09-10, que tirou o rodapé fixo da
+               bandeja); aqui ficam as abas, o link e enviar, em ícone. */
+            <>
+              <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
+                <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
+                  Dados
+                </button>
+                <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
+                  Prévia
+                </button>
+              </div>
+              {quote && (
+                <IconButton label="Copiar link" variant="ghost" size="sm" radius="md" disabled={saving !== null} onClick={() => void copyLink()}>
+                  <LinkIcon />
+                </IconButton>
+              )}
+              <IconButton label="Enviar ao cliente" size="sm" radius="md" loading={saving === "send"} disabled={saving !== null} onClick={() => submitWith("send")}>
+                <PaperPlaneTiltIcon weight="bold" />
+              </IconButton>
+            </>
           ) : (
             <>
               {quote && (
@@ -706,12 +853,12 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                   const source = catalogOf(line.catalogItemId);
                   const quantity = Number(line.quantity || 0);
                   const unitPrice = Number(line.unitPrice || 0);
-                  const selectId = `${titleId}-${line.id}`;
 
-                  // Fechado, o item é o mesmo cartão do resumo, e clicar nele abre.
-                  if (values.lines.length > 1 && openLine !== line.id) {
+                  // Fechado, o item é o mesmo cartão do resumo, e clicar nele abre. No celular todo item é um
+                  // cartão, e o toque abre a bandeja com os campos (pedido de 2026-09-10).
+                  if (mobile || (values.lines.length > 1 && openLine !== line.id)) {
                     return (
-                      <button key={line.id} type="button" className={styles.lineCard} data-open-line onClick={() => setOpenLine(line.id)}>
+                      <button key={line.id} type="button" className={styles.lineCard} data-open-line onClick={() => (mobile ? setLineSheet(line.id) : setOpenLine(line.id))}>
                         <CatalogArtwork item={source ?? { ...FREE_ITEM_ART, name: line.name || "Item" }} size="sm" />
                         <span className={styles.lineCardCopy}>
                           <Text as="span" variant="footnote" weight="medium" truncate>
@@ -738,101 +885,8 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                     <div key={line.id} className={styles.line}>
                       {/* O cabeçalho da linha (pedido de 2026-09-09): a contagem à esquerda e, na ponta, o
                           botão de informação e a lixeira, os dois miúdos, com o fio separando do resto. */}
-                      <div className={styles.lineHead}>
-                        <Text as="span" variant="caption1" weight="semibold" tone="secondary">
-                          Item {String(index + 1).padStart(2, "0")}
-                        </Text>
-                        <span className={styles.lineHeadActions}>
-                          {source && <QuoteLineInfo item={source} unitPrice={unitPrice} quantity={quantity} className={styles.tiny} />}
-                          <IconButton
-                            label={`Remover item ${index + 1}`}
-                            variant="ghost"
-                            size="sm"
-                            radius="md"
-                            className={styles.tiny}
-                            disabled={saving !== null || values.lines.length === 1}
-                            onClick={() => removeLine(line.id)}
-                          >
-                            <TrashIcon />
-                          </IconButton>
-                        </span>
-                      </div>
-                      <Field label="Item do catálogo" id={selectId}>
-                        <Select
-                          label="Item do catálogo"
-                          options={catalogOptions}
-                          value={line.catalogItemId ?? FREE_ITEM}
-                          searchable
-                          searchPlaceholder="Buscar produto ou serviço"
-                          visibleLimit={SHOWN_OPTIONS}
-                          emptyLabel="Nenhum item com esse nome"
-                          disabled={saving !== null}
-                          onChange={(value) => pickCatalog(line.id, value)}
-                        />
-                      </Field>
-                      {/* Vindo do catálogo, o nome e a descrição são de lá e não se digitam aqui. */}
-                      {line.catalogItemId === null && (
-                        <>
-                          <Field label="Nome" required error={lineError(index, "name")}>
-                            <Input
-                              type="text"
-                              value={line.name}
-                              placeholder="O que está sendo orçado"
-                              disabled={saving !== null}
-                              onChange={(event) => setLine(line.id, { name: event.target.value })}
-                            />
-                          </Field>
-                          <Field label="Descrição" error={lineError(index, "description")}>
-                            <Input
-                              type="text"
-                              value={line.description}
-                              placeholder="O que a linha entrega, em uma frase"
-                              disabled={saving !== null}
-                              onChange={(event) => setLine(line.id, { description: event.target.value })}
-                            />
-                          </Field>
-                        </>
-                      )}
-                      <div className={styles.lineNumbers}>
-                        <Field label="Qtd." required error={lineError(index, "quantity")}>
-                          <Input
-                            type="text"
-                            mask="integer"
-                            value={line.quantity}
-                            placeholder="1"
-                            inputMode="numeric"
-                            disabled={saving !== null}
-                            onChange={(event) => setLine(line.id, { quantity: onlyDigits(event.target.value) })}
-                          />
-                        </Field>
-                        <Field label="Cobrança" required>
-                          <Select label="Unidade de cobrança" options={unitOptions} value={line.unit} disabled={saving !== null} onChange={(unit) => setLine(line.id, { unit })} />
-                        </Field>
-                        <Field label="Unitário" required error={lineError(index, "unitPrice")}>
-                          <Input
-                            type="text"
-                            mask="currency"
-                            value={line.unitPrice}
-                            placeholder="0,00"
-                            disabled={saving !== null}
-                            onChange={(event) => setLine(line.id, { unitPrice: onlyDigits(event.target.value) })}
-                          />
-                        </Field>
-                        <Field label="Subtotal">
-                          <Input type="text" value={formatMoney(lineTotal({ quantity, unitPrice, courtesy: line.courtesy }))} readOnly tabIndex={-1} aria-label="Subtotal da linha" />
-                        </Field>
-                        {/* Cortesia em três respostas: sim e "apenas hoje" põem a etiqueta no documento e
-                            zeram a cobrança daquela linha. */}
-                        <Field label="Cortesia">
-                          <Select
-                            label="Cortesia deste item"
-                            options={courtesyOptions}
-                            value={line.courtesy}
-                            disabled={saving !== null}
-                            onChange={(courtesy) => setLine(line.id, { courtesy })}
-                          />
-                        </Field>
-                      </div>
+                      {lineHead(line, index, source)}
+                      {lineFields(line, index)}
                     </div>
                   );
                 })}
@@ -992,37 +1046,35 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         )}
       </div>
 
+      {/* As bandejas do celular (pedido de 2026-09-10): o item em edição, com os mesmos campos do cartão aberto
+          do desktop, e a ficha de margem e condições. Escurecem a página por baixo para o toque na barra
+          flutuante, que fica acima delas, não fechar a bandeja como toque fora. Concluir e Fechar moram na
+          barra, que é o botão de ação do celular. */}
       {mobile && (
-        <footer className={styles.mobileFoot}>
-          <Button
-            variant="outline"
-            size="sm"
-            radius="md"
-            iconStart={<CheckIcon />}
-            loading={saving === "draft"}
-            disabled={saving !== null}
-            onClick={() => submitWith("draft")}
-            className={styles.action}
-          >
-            {editing ? "Salvar" : "Rascunho"}
-          </Button>
-          <Button
-            size="sm"
-            radius="md"
-            iconStart={<PaperPlaneTiltIcon weight="bold" />}
-            loading={saving === "send"}
-            disabled={saving !== null}
-            onClick={() => submitWith("send")}
-            className={styles.action}
-          >
-            Enviar
-          </Button>
-          {quote && (
-            <IconButton label="Copiar link" variant="ghost" size="sm" radius="md" onClick={() => void copyLink()}>
-              <LinkIcon />
-            </IconButton>
+        <Dialog open={lineSheet !== null} onClose={() => setLineSheet(null)} label="Item do orçamento" size="md" surface="glass" scrim focusOnOpen={false}>
+          {sheetLine && (
+            <div className={styles.sheet}>
+              {lineHead(
+                sheetLine,
+                sheetIndex,
+                catalogOf(sheetLine.catalogItemId),
+                <IconButton label="Concluir" variant="ghost" size="sm" radius="md" className={styles.tiny} onClick={() => setLineSheet(null)}>
+                  <XIcon />
+                </IconButton>,
+              )}
+              <div className={styles.sheetBody}>{lineFields(sheetLine, sheetIndex)}</div>
+            </div>
           )}
-        </footer>
+        </Dialog>
+      )}
+      {mobile && (
+        <Dialog open={infoLine !== null} onClose={() => setInfoLine(null)} label="Margem e condições" size="sm" surface="glass" scrim focusOnOpen={false}>
+          {infoTarget && infoSource && (
+            <div className={styles.sheetBody}>
+              <QuoteLineFacts item={infoSource} unitPrice={Number(infoTarget.unitPrice || 0)} quantity={Number(infoTarget.quantity || 0)} />
+            </div>
+          )}
+        </Dialog>
       )}
     </form>
   );

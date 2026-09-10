@@ -1,6 +1,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import { CalendarBlankIcon, TagIcon } from "@phosphor-icons/react/ssr";
 import type { ListboxOption } from "@/components/ui/listbox";
+import { gridPageSize as pageSizeForGrid } from "@/lib/utils/paging";
 import { quoteStatuses } from "./labels";
 import type { Quote, QuoteStatus } from "./summary";
 
@@ -12,9 +13,18 @@ import type { Quote, QuoteStatus } from "./summary";
 
 /** Trinta por página, como nas outras listas em tabela: a página só passa quando está completa. */
 export const QUOTES_PER_PAGE = 30;
-/** No celular a tabela rola na horizontal e a página é doze, como nas grades do catálogo e de clientes. */
+/**
+ * Na grade de cartões (2026-09-10) a página é o que cabe em até três linhas, sempre par: a prancha mede
+ * quantas colunas a grade formou e pede ao servidor esse tanto. Antes de medir vale o que o cookie guardou
+ * da última vez ou o padrão de quatro colunas.
+ */
+export const GRID_ROWS = 3;
+export const GRID_PER_PAGE_DEFAULT = 12;
+/** No celular a lista é sempre a grade e a página é doze, como nas grades do catálogo e de clientes. */
 export const MOBILE_PER_PAGE = 12;
 export const MAX_PER_PAGE = 30;
+
+export const gridPageSize = (columns: number) => pageSizeForGrid(columns, GRID_ROWS, MAX_PER_PAGE);
 
 export const QUERY_PARAM = "busca";
 export const STATUS_PARAM = "situacao";

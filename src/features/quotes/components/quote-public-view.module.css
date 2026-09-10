@@ -10,13 +10,11 @@
   background-color: var(--color-bg-grouped-secondary);
 }
 
-/* No celular a folha é fluida e a página rola, então a altura deixa de ser a da tela. */
+/* No celular a folha continua uma A4 reduzida até caber, centrada e sem rolagem, como no desktop (decisão de
+   2026-09-10): só o recuo em volta encolhe. */
 @media (max-width: 47.9375rem) {
   .page {
-    height: auto;
-    min-height: 100dvh;
     padding: var(--space-3) var(--space-3) calc(var(--space-16) + var(--space-3));
-    overflow: visible;
   }
 }
 

@@ -14,6 +14,15 @@ import type { BadgeTone } from "@/components/ui/badge";
 /** A folha na tela, em pixels: a largura de `quote-paper.tsx`, que é a medida de onde tudo deriva. */
 export const SHEET_WIDTH = 832;
 
+/**
+ * A largura útil da folha, em pixels da tela: os 832 menos os dois recuos de 32 e o fio da moldura. É dela
+ * que sai a medida de cada bloco do documento, porque no PDF **toda caixa que corta texto precisa de largura
+ * definida**: com a caixa crescendo por `flex`, o react-pdf não põe reticências, ele deixa o texto passar por
+ * cima da coluna vizinha (medido em 2026-09-10). Na tela as mesmas medidas nascem do CSS, e o número aqui é
+ * o que faz as duas folhas coincidirem.
+ */
+export const CONTENT_WIDTH = 766;
+
 /** O A4 em pontos, na medida do react-pdf: 210 por 297 mm a 72 pontos por polegada. */
 export const PAGE_WIDTH = 595.276;
 export const PAGE_HEIGHT = 841.89;

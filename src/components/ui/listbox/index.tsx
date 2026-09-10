@@ -6,8 +6,10 @@ import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, 
 import { createPortal } from "react-dom";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useLayer } from "@/hooks/use-layer";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { slugify } from "@/lib/utils/slug";
+import { Dialog } from "../dialog";
 import { matchIconWeight } from "../icons";
 import { disabledState, popIn } from "../styles";
 
@@ -236,6 +238,23 @@ const List = styled.div`
   }
 `;
 
+/* No celular a lista mora na bandeja do `Dialog` (2026-09-10, a pedido: todo seletor abre a bandeja de
+   baixo, o componente que a casa já tem), na mesma receita do menu de opções: a busca presa no topo, a lista
+   rolando por dentro e o respiro padrão das bandejas, com a folga da barra flutuante embaixo quando uma
+   janela com ações está aberta por baixo, para o último item fechar acima dela. */
+const SheetBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-2) var(--space-2) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  html[data-floating-actions] & {
+    padding-block-end: var(--floating-bar-inset);
+  }
+`;
+
 /* A busca presa no topo do painel, na receita do seletor de equipe: a lupa, o campo sem moldura própria e o
    fio embaixo separando da lista, que rola por baixo dela. */
 const Search = styled.div`
@@ -289,6 +308,15 @@ const Scroll = styled.ul`
   /* Com foto e legenda cada linha é mais alta, então a lista mostra mais de uma tela de itens. */
   &[data-rich] {
     max-height: 18rem;
+  }
+
+  /* Na bandeja quem limita a altura é a própria bandeja, e as linhas ganham a medida de toque da casa. */
+  &[data-sheet] {
+    max-height: none;
+  }
+
+  &[data-sheet] > li[role="option"] {
+    min-height: var(--touch-target);
   }
 `;
 
@@ -472,6 +500,8 @@ export function Listbox<T extends ListboxValue>({
   emptyLabel = "Nada encontrado",
 }: ListboxProps<T>) {
   const [open, setOpen] = useState(false);
+  // No celular a lista abre na bandeja da casa em vez de flutuar ao lado do gatilho.
+  const sheet = useMediaQuery(MOBILE_QUERY);
   const [resolved, setResolved] = useState<Resolved | null>(null);
   /** A largura do gatilho, guardada entre uma abertura e outra: é ela que a caixa veste num campo. */
   const [measured, setMeasured] = useState(0);
@@ -512,11 +542,12 @@ export function Listbox<T extends ListboxValue>({
   };
 
   // A caixa entra na fila das camadas da casa: aberta de dentro de uma janela, é ela quem responde ao toque
-  // fora, e a janela de baixo fica quieta em vez de fechar junto.
-  useLayer(open);
-  useOutsideDismiss(open, [panelRef, triggerRef], () => close(false));
+  // fora, e a janela de baixo fica quieta em vez de fechar junto. Na bandeja quem cuida disso é o `Dialog`.
+  const floating = open && !sheet;
+  useLayer(floating);
+  useOutsideDismiss(floating, [panelRef, triggerRef], () => close(false));
 
-  const anchor = useAnchoredPosition(open, triggerRef, {
+  const anchor = useAnchoredPosition(floating, triggerRef, {
     width: measured || 240,
     height: estimateHeight(total, rich, searchable),
     gap: GAP,
@@ -526,7 +557,7 @@ export function Listbox<T extends ListboxValue>({
   // O palpite do hook escolhe o lado antes de pintar; aqui a caixa já montada é medida de verdade e
   // encaixada na janela, ainda antes do primeiro quadro, como no menu da casa.
   useLayoutEffect(() => {
-    if (!open || !anchor) return;
+    if (!floating || !anchor) return;
     const box = panelRef.current;
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!box || !rect) return;
@@ -550,7 +581,7 @@ export function Listbox<T extends ListboxValue>({
 
     setResolved({ top, left: anchor.left, width: rect.width, placement });
     setMeasured(rect.width);
-  }, [open, anchor]);
+  }, [floating, anchor]);
 
   const side = resolved?.placement ?? anchor?.placement ?? (placement === "above" ? "above" : "below");
   const Caret = side === "above" ? CaretUpIcon : CaretDownIcon;
@@ -624,6 +655,96 @@ export function Listbox<T extends ListboxValue>({
     }
   };
 
+  /* O que a caixa mostra, no painel flutuante ou na bandeja: a busca, as opções, as ações e os avisos. */
+  const content = (
+    <>
+    {searchable && (
+      <Search>
+        <MagnifyingGlassIcon aria-hidden="true" />
+        <Field
+          ref={fieldRef}
+          type="text"
+          role="combobox"
+          autoComplete="off"
+          spellCheck={false}
+          aria-label={`${label}: buscar`}
+          aria-expanded
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={`${listId}-${activeIndex}`}
+          placeholder={searchPlaceholder}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setActiveIndex(0);
+          }}
+          onKeyDown={onKeyDown}
+        />
+      </Search>
+    )}
+    <Scroll
+      ref={listRef}
+      id={listId}
+      role="listbox"
+      aria-label={label}
+      aria-activedescendant={`${listId}-${activeIndex}`}
+      data-rich={rich || undefined}
+      data-sheet={sheet || undefined}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+    >
+      {shown.map((option, index) => (
+        <Option
+          key={option.value}
+          id={`${listId}-${index}`}
+          role="option"
+          aria-selected={option.value === value}
+          data-active={index === activeIndex || undefined}
+          onPointerMove={() => setActiveIndex(index)}
+          onClick={() => pick(index)}
+        >
+          {option.media !== undefined || option.caption !== undefined ? (
+            <Face>
+              {option.media !== undefined && <Media aria-hidden="true">{option.media}</Media>}
+              <Copy>
+                <Label>{option.label}</Label>
+                {option.caption && <Caption>{option.caption}</Caption>}
+              </Copy>
+            </Face>
+          ) : (
+            option.label
+          )}
+          {option.value === value && <CheckIcon weight="bold" aria-hidden="true" />}
+        </Option>
+      ))}
+
+      {actions.length > 0 && shown.length > 0 && <Divider role="presentation" />}
+
+      {actions.map((action, position) => {
+        const index = shown.length + position;
+        return (
+          <Option
+            key={action.label}
+            id={`${listId}-${index}`}
+            role="option"
+            aria-selected={false}
+            data-active={index === activeIndex || undefined}
+            data-tone={action.tone}
+            onPointerMove={() => setActiveIndex(index)}
+            data-kind="action"
+            onClick={() => pick(index)}
+          >
+            {action.icon}
+            {action.label}
+          </Option>
+        );
+      })}
+    </Scroll>
+    {shown.length === 0 && <Note role="status">{emptyLabel}</Note>}
+    {hidden > 0 && <Note>Digite para buscar entre {options.length} opções.</Note>}
+    </>
+  );
+
   return (
     <Menu className={className} data-full-width={fullWidth || undefined}>
       <Trigger
@@ -671,7 +792,12 @@ export function Listbox<T extends ListboxValue>({
           </>
         )}
       </Trigger>
-      {open &&
+      {open && sheet && (
+        <Dialog open={open} onClose={() => close(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
+          <SheetBody>{content}</SheetBody>
+        </Dialog>
+      )}
+      {floating &&
         createPortal(
           <List
             ref={panelRef}
@@ -681,89 +807,7 @@ export function Listbox<T extends ListboxValue>({
               resolved ? ({ top: resolved.top, left: resolved.left, ...(fullWidth && { width: resolved.width }) } as CSSProperties) : { visibility: "hidden" }
             }
           >
-            {searchable && (
-              <Search>
-                <MagnifyingGlassIcon aria-hidden="true" />
-                <Field
-                  ref={fieldRef}
-                  type="text"
-                  role="combobox"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-label={`${label}: buscar`}
-                  aria-expanded
-                  aria-controls={listId}
-                  aria-autocomplete="list"
-                  aria-activedescendant={`${listId}-${activeIndex}`}
-                  placeholder={searchPlaceholder}
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setActiveIndex(0);
-                  }}
-                  onKeyDown={onKeyDown}
-                />
-              </Search>
-            )}
-            <Scroll
-              ref={listRef}
-              id={listId}
-              role="listbox"
-              aria-label={label}
-              aria-activedescendant={`${listId}-${activeIndex}`}
-              data-rich={rich || undefined}
-              tabIndex={-1}
-              onKeyDown={onKeyDown}
-            >
-              {shown.map((option, index) => (
-                <Option
-                  key={option.value}
-                  id={`${listId}-${index}`}
-                  role="option"
-                  aria-selected={option.value === value}
-                  data-active={index === activeIndex || undefined}
-                  onPointerMove={() => setActiveIndex(index)}
-                  onClick={() => pick(index)}
-                >
-                  {option.media !== undefined || option.caption !== undefined ? (
-                    <Face>
-                      {option.media !== undefined && <Media aria-hidden="true">{option.media}</Media>}
-                      <Copy>
-                        <Label>{option.label}</Label>
-                        {option.caption && <Caption>{option.caption}</Caption>}
-                      </Copy>
-                    </Face>
-                  ) : (
-                    option.label
-                  )}
-                  {option.value === value && <CheckIcon weight="bold" aria-hidden="true" />}
-                </Option>
-              ))}
-
-              {actions.length > 0 && shown.length > 0 && <Divider role="presentation" />}
-
-              {actions.map((action, position) => {
-                const index = shown.length + position;
-                return (
-                  <Option
-                    key={action.label}
-                    id={`${listId}-${index}`}
-                    role="option"
-                    aria-selected={false}
-                    data-active={index === activeIndex || undefined}
-                    data-tone={action.tone}
-                    onPointerMove={() => setActiveIndex(index)}
-                    data-kind="action"
-                    onClick={() => pick(index)}
-                  >
-                    {action.icon}
-                    {action.label}
-                  </Option>
-                );
-              })}
-            </Scroll>
-            {shown.length === 0 && <Note role="status">{emptyLabel}</Note>}
-            {hidden > 0 && <Note>Digite para buscar entre {options.length} opções.</Note>}
+            {content}
           </List>,
           document.body,
         )}

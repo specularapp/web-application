@@ -1,0 +1,102 @@
+/* O fio da caixa é o do `Card`: a camada de fora com a cor do fio e um recuo da espessura dele, e a de
+   dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. É o que faz o canto sair em
+   superelipse também onde não há `corner-shape`, o que `border` não permite. Mesma receita dos cartões de
+   cliente e do catálogo. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* No celular o canto cai um degrau, como no `Card`: o de 24px lia como pílula num cartão estreito. */
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+/* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a
+   curva de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. */
+.inner {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-4);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    padding: var(--space-5);
+  }
+}
+
+/* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque
+   com o dedo ou o mouse não acende anel nenhum. */
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Vencido ou recusado, o cartão apaga o que é do orçamento e deixa a situação e o leque inteiros, porque é
+   por eles que se lê e se reabre. Só opacidade, sem trocar cor, como o item fora de linha do catálogo. */
+.card[data-status="expired"] .head > :first-child,
+.card[data-status="expired"] .body,
+.card[data-status="expired"] .tags,
+.card[data-status="declined"] .head > :first-child,
+.card[data-status="declined"] .body,
+.card[data-status="declined"] .tags {
+  opacity: 0.55;
+}
+
+/* A foto do cliente de um lado, e na outra ponta a situação, o total e o leque, colados. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.end {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* As etiquetas em fila, quebrando linha quando não cabem: é lista porque é uma lista de fatos do orçamento. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
