@@ -483,9 +483,12 @@
 
 /* Com uma janela de formulário aberta, a barra sobe para cima dela: é ali que moram salvar e sair no
    celular, e a bandeja da janela cobriria a barra no lugar de sempre. Quem abre nessa situação dá ao
-   próprio conteúdo a folga de `--floating-bar-inset` embaixo, para o último item fechar acima da barra. */
+   próprio conteúdo a folga de `--floating-bar-inset` embaixo, para o último item fechar acima da barra.
+
+   Dois degraus acima da janela, e não um: a tela cheia do menu também sobe nessa situação, e precisa ficar
+   acima da janela; a barra fica acima das duas, porque é dela que sai o X que fecha o menu. */
 .bar[data-actions] {
-  z-index: calc(var(--z-modal) + 1);
+  z-index: calc(var(--z-modal) + 2);
 }
 
 /* O botão principal da janela na barra toma o que sobra do modo, e o nome cede por reticências antes de a
@@ -681,14 +684,25 @@
   font-size: var(--text-callout);
 }
 
+/* A tela cheia do menu vive logo abaixo da barra que a abre, e não numa camada solta abaixo das janelas
+   (acerto de 2026-09-10): com um formulário aberto, a barra sobe para cima da janela, porque é nela que
+   moram salvar e sair, e o menu chamado dali nascia atrás da janela, que ficava por cima dele. Agora os
+   dois sobem juntos, o menu por baixo da barra, e é a barra que continua sendo a peça mais alta. */
 .screen {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-menu-screen);
   display: grid;
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--color-bg);
+}
+
+/* Com uma janela aberta, o menu acompanha a barra para cima dela. Um degrau acima da janela é obrigatório, e
+   não empate: ela é portada para o fim do corpo da página, então vem depois do menu na árvore e, com o mesmo
+   z-index, venceria por ordem de irmão. A barra fica acima dos dois, porque é dela que sai o X que fecha. */
+.screen[data-actions] {
+  z-index: calc(var(--z-modal) + 1);
 }
 
 /* A lista some num degradê para a cor do fundo antes de chegar na barra flutuante, em vez de ser cortada

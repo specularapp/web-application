@@ -28,6 +28,7 @@ import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useCommandKey } from "@/hooks/use-command-key";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
@@ -449,6 +450,22 @@ export function Sidebar(props: SidebarProps) {
 
   const unread = notifications.filter((item) => !item.read).length;
 
+  // A tela cheia do menu entra na fila de camadas da casa, como janela, bandeja e caixa colada no gatilho:
+  // aberta por cima de um formulário, é ela quem responde ao Escape, e a janela de baixo fica quieta em vez
+  // de fechar por trás dela (acerto de 2026-09-10, junto do empilhamento).
+  const layer = useLayer(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !isTopLayer(layer)) return;
+      event.preventDefault();
+      setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, layer]);
+
   // A tecla do atalho é a mesma que o campo mostra. O `preventDefault` tira a busca do navegador, que
   // procura no texto da página e não serve a quem quer pular para outra tela.
   useEffect(() => {
@@ -491,6 +508,9 @@ export function Sidebar(props: SidebarProps) {
         <div
           className={styles.screen}
           data-state={screen.state}
+          // Com ações penduradas, o menu sobe junto com a barra para cima da janela aberta: sem isso ele
+          // nascia atrás dela, e só a barra ficava à vista (relato de 2026-09-10).
+          data-actions={actions ? "" : undefined}
           onAnimationEnd={screen.onAnimationEnd}
         >
           <SidebarPanel {...panel} variant="mobile" onSearch={openSearch} onNavigate={() => setOpen(false)} />

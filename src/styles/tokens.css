@@ -63,6 +63,10 @@
   /* A barra flutuante do celular: acima da tela cheia do menu (50) e abaixo de tudo o mais. Com ela em
      modo de ações, as janelas descem para logo abaixo dela, em vez de a barra subir. */
   --z-floating-bar: 60;
+  /* A tela cheia do menu, logo abaixo da barra que a abre: as duas são a mesma peça no celular, e o menu
+     nunca cobre a barra, que é onde mora o X que o fecha. Com uma janela aberta as duas sobem juntas, a
+     tela para `--z-modal` e a barra para um degrau acima dela. */
+  --z-menu-screen: 50;
   --z-dropdown: 100;
   --z-sticky: 200;
   --z-overlay: 300;
