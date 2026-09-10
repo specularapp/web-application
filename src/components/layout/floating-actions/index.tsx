@@ -2,9 +2,18 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+/**
+ * Uma ação secundária da barra, só em glifo: é o que o editor de orçamento pendura ao lado de salvar depois
+ * que enviar e copiar o link saíram do cabeçalho no celular (2026-09-10, a pedido). O nome vai na voz e na
+ * dica, porque o botão não tem texto.
+ */
+export type FloatingExtraAction = { label: string; icon: ReactNode; loading?: boolean; disabled?: boolean; onClick: () => void };
+
 /** As ações que uma janela pendura na barra flutuante do celular: a principal, com o nome, e a de sair. */
 export type FloatingActions = {
   primary: { label: string; loading?: boolean; disabled?: boolean; onClick: () => void };
+  /** Ações em glifo entre a principal e o sair, na ordem em que aparecem. Vazio ou ausente não desenha nada. */
+  extras?: readonly FloatingExtraAction[];
   cancel: { label: string; onClick: () => void };
 };
 
@@ -19,7 +28,9 @@ export type FloatingPager = {
 
 /* O que a barra desenha: só o que muda a marcação. As funções ficam numa referência, então a janela pode
    registrar a cada render sem fazer o menu inteiro re-renderizar a cada tecla digitada num campo. */
-type Shape = { primaryLabel: string; loading: boolean; disabled: boolean; cancelLabel: string } | null;
+type ExtraShape = { label: string; icon: ReactNode; loading: boolean; disabled: boolean };
+
+type Shape = { primaryLabel: string; loading: boolean; disabled: boolean; cancelLabel: string; extras: readonly ExtraShape[] } | null;
 
 /* O mesmo para a paginação: página, total e nome mudam a marcação; o disparo fica na referência. */
 type PagerShape = { page: number; pageCount: number; label: string } | null;
@@ -28,6 +39,7 @@ type ContextValue = {
   shape: Shape;
   pager: PagerShape;
   runPrimary: () => void;
+  runExtra: (index: number) => void;
   runCancel: () => void;
   goToPage: (page: number) => void;
   register: (actions: FloatingActions | null) => void;
@@ -38,13 +50,24 @@ const FloatingActionsContext = createContext<ContextValue | null>(null);
 
 function shapeOf(actions: FloatingActions | null): Shape {
   if (!actions) return null;
-  return { primaryLabel: actions.primary.label, loading: actions.primary.loading ?? false, disabled: actions.primary.disabled ?? false, cancelLabel: actions.cancel.label };
+  return {
+    primaryLabel: actions.primary.label,
+    loading: actions.primary.loading ?? false,
+    disabled: actions.primary.disabled ?? false,
+    cancelLabel: actions.cancel.label,
+    extras: (actions.extras ?? []).map((extra) => ({ label: extra.label, icon: extra.icon, loading: extra.loading ?? false, disabled: extra.disabled ?? false })),
+  };
 }
+
+/* O glifo é comparado por identidade: quem registra o monta no render, e um elemento novo a cada tecla
+   digitada faria a barra redesenhar sem necessidade, então o nome é o que diz se a ação é a mesma. */
+const sameExtras = (a: readonly ExtraShape[], b: readonly ExtraShape[]) =>
+  a.length === b.length && a.every((extra, index) => extra.label === b[index]?.label && extra.loading === b[index]?.loading && extra.disabled === b[index]?.disabled);
 
 function sameShape(a: Shape, b: Shape) {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.primaryLabel === b.primaryLabel && a.loading === b.loading && a.disabled === b.disabled && a.cancelLabel === b.cancelLabel;
+  return a.primaryLabel === b.primaryLabel && a.loading === b.loading && a.disabled === b.disabled && a.cancelLabel === b.cancelLabel && sameExtras(a.extras, b.extras);
 }
 
 function pagerShapeOf(pager: FloatingPager | null): PagerShape {
@@ -93,12 +116,13 @@ export function FloatingActionsProvider({ children }: { children: ReactNode }) {
   }, [shape]);
 
   const runPrimary = useCallback(() => handlers.current?.primary.onClick(), []);
+  const runExtra = useCallback((index: number) => handlers.current?.extras?.[index]?.onClick(), []);
   const runCancel = useCallback(() => handlers.current?.cancel.onClick(), []);
   const goToPage = useCallback((page: number) => pagerHandlers.current?.onPageChange(page), []);
 
   const value = useMemo(
-    () => ({ shape, pager, runPrimary, runCancel, goToPage, register, registerPager }),
-    [shape, pager, runPrimary, runCancel, goToPage, register, registerPager],
+    () => ({ shape, pager, runPrimary, runExtra, runCancel, goToPage, register, registerPager }),
+    [shape, pager, runPrimary, runExtra, runCancel, goToPage, register, registerPager],
   );
 
   return <FloatingActionsContext.Provider value={value}>{children}</FloatingActionsContext.Provider>;
@@ -109,8 +133,8 @@ const silent = () => undefined;
 /** O que a barra lê: a forma das ações e da paginação, e os disparos. Vazio fora da concha. */
 export function useFloatingActions() {
   const context = useContext(FloatingActionsContext);
-  if (!context) return { shape: null, pager: null, runPrimary: silent, runCancel: silent, goToPage: silent };
-  return { shape: context.shape, pager: context.pager, runPrimary: context.runPrimary, runCancel: context.runCancel, goToPage: context.goToPage };
+  if (!context) return { shape: null, pager: null, runPrimary: silent, runExtra: silent, runCancel: silent, goToPage: silent };
+  return { shape: context.shape, pager: context.pager, runPrimary: context.runPrimary, runExtra: context.runExtra, runCancel: context.runCancel, goToPage: context.goToPage };
 }
 
 /** A janela pendura as ações enquanto está aberta e as tira ao fechar ou sair; nulo é o mesmo que tirar,

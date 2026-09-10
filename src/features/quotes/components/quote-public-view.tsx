@@ -7,6 +7,7 @@ import { HoverCard, HoverCardFact, HoverCardFacts, HoverCardNaming } from "@/com
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { respondToQuoteAction } from "../actions";
@@ -34,6 +35,7 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
   const [status, setStatus] = useState<QuoteStatus>(quote.status);
   const [pending, setPending] = useState<"approve" | "decline" | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const mobile = useMediaQuery(MOBILE_QUERY);
   const open = OPEN_STATUSES.includes(status);
   const totals = quoteTotals(quote);
 
@@ -81,7 +83,9 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
 
   return (
     <main className={styles.page}>
-      <QuotePaper className={styles.paper}>
+      {/* No celular a folha desce pela rolagem em vez de encolher até caber na altura (pedido de 2026-09-10),
+          que é o que faz o cliente ler o documento na escala em que ele é impresso. */}
+      <QuotePaper className={styles.paper} fit={mobile ? "width" : "contain"}>
         <QuoteDocument quote={{ ...quote, status }} />
       </QuotePaper>
 

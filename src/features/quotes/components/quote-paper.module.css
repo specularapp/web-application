@@ -6,6 +6,12 @@
   min-height: 0;
 }
 
+/* Ajustada pela largura, a folha assenta no topo e mantém a altura inteira, que é o que a faz descer pela
+   rolagem de quem a contém: centrada, a parte de cima do documento ficaria fora do alcance. */
+.paper[data-fit="width"] {
+  align-content: start;
+}
+
 /* A folha tem tamanho de A4 e `zoom` a reduz até caber, com o fator medido em JS. `zoom`, e não `scale`,
    porque ele reduz o espaço ocupado junto com o desenho, então não sobra buraco nem rolagem lateral. O
    seletor alcança o `article` do documento por elemento, que é o jeito de mexer numa classe de outro

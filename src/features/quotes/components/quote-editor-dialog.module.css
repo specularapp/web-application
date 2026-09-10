@@ -413,9 +413,15 @@ button.planTrigger::before {
   }
 }
 
+/* No celular a prévia rola: a folha entra na escala da largura e mantém a altura de A4, então o que passa da
+   tela desce pela rolagem, e não por redução (pedido de 2026-09-10). `overscroll-behavior` prende o gesto
+   aqui, como nas outras áreas que rolam dentro da bandeja. */
 @media (max-width: 47.9375rem) {
   .preview {
+    align-content: start;
     padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 

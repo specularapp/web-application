@@ -376,7 +376,14 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     sheetOpen
       ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
       : {
-          primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving !== null, onClick: () => submitWith("draft") },
+          /* Salvar, e não "Salvar rascunho" (pedido de 2026-09-10): o botão gera o orçamento ou grava a
+             edição, e chamá-lo de rascunho dizia menos do que ele faz. Enviar e copiar o link vêm ao lado,
+             em ícone, porque no celular eles saíram do cabeçalho. */
+          primary: { label: saving ? "Salvando" : "Salvar", loading: saving !== null, onClick: () => submitWith("draft") },
+          extras: [
+            ...(quote ? [{ label: "Copiar link", icon: <LinkIcon />, disabled: saving !== null, onClick: () => void copyLink() }] : []),
+            { label: "Enviar ao cliente", icon: <PaperPlaneTiltIcon weight="bold" />, loading: saving === "send", disabled: saving !== null, onClick: () => submitWith("send") },
+          ],
           cancel: { label: "Fechar", onClick: () => void requestClose() },
         },
   );
@@ -716,26 +723,16 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         </div>
         <div className={styles.headActions}>
           {mobile ? (
-            /* No celular salvar mora na barra flutuante (pedido de 2026-09-10, que tirou o rodapé fixo da
-               bandeja); aqui ficam as abas, o link e enviar, em ícone. */
-            <>
-              <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
-                <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
-                  Dados
-                </button>
-                <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
-                  Prévia
-                </button>
-              </div>
-              {quote && (
-                <IconButton label="Copiar link" variant="ghost" size="sm" radius="md" disabled={saving !== null} onClick={() => void copyLink()}>
-                  <LinkIcon />
-                </IconButton>
-              )}
-              <IconButton label="Enviar ao cliente" size="sm" radius="md" loading={saving === "send"} disabled={saving !== null} onClick={() => submitWith("send")}>
-                <PaperPlaneTiltIcon weight="bold" />
-              </IconButton>
-            </>
+            /* No celular o cabeçalho tem só as abas (pedido de 2026-09-10): salvar, enviar, copiar o link e
+               sair são todos da barra flutuante, e repeti-los aqui era a mesma ação duas vezes na tela. */
+            <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
+              <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
+                Dados
+              </button>
+              <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
+                Prévia
+              </button>
+            </div>
           ) : (
             <>
               {quote && (
@@ -1101,7 +1098,10 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
 
         {showPreview && (
           <div className={styles.preview}>
-            <QuotePaper>
+            {/* No celular a folha é reduzida só pela largura e rola na vertical (pedido de 2026-09-10): é a
+                mesma A4 do PDF, na escala em que ela cabe na tela, e a pessoa desce por ela como num leitor
+                de PDF. Caber inteira na altura de uma tela de celular deixava o documento ilegível. */}
+            <QuotePaper fit={mobile ? "width" : "contain"}>
               <QuoteDocument quote={draft} variant="preview" />
             </QuotePaper>
           </div>

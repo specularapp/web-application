@@ -424,7 +424,7 @@ export function Sidebar(props: SidebarProps) {
   // As ações que a janela aberta pendurou na barra do celular (salvar e sair de um formulário) e a
   // paginação que a lista pendurou: com qualquer uma delas a busca e o sino saem e entra o modo da vez, e
   // o botão do menu fica onde sempre fica. Janela manda na lista, porque um formulário aberto é o assunto.
-  const { shape: actions, pager, runPrimary, runCancel, goToPage } = useFloatingActions();
+  const { shape: actions, pager, runPrimary, runExtra, runCancel, goToPage } = useFloatingActions();
   const mode: BarMode = actions ? "actions" : pager ? "pager" : "browse";
   // O último modo de ações visto fica guardado para o fundido de saída ter o que desenhar: a barra troca
   // de modo desbotando um sobre o outro, e o que sai não pode sumir no meio do caminho.
@@ -435,7 +435,7 @@ export function Sidebar(props: SidebarProps) {
   // Os modos ficam montados desde o começo, apagados e inertes, com valores de espera enquanto ninguém
   // registrou nada: montar só na hora fazia o modo aparecer já no estado final, sem o fundido de entrada,
   // e a troca lia como seca.
-  const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar" };
+  const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar", extras: [] };
   const shownPager = lastPager ?? { page: 1, pageCount: 1, label: "Páginas" };
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
@@ -554,6 +554,16 @@ export function Sidebar(props: SidebarProps) {
               <Button size="md" radius="md" iconStart={<CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
                 {shownActions.primaryLabel}
               </Button>
+              {/* As secundárias da janela, em glifo, entre salvar e sair: é onde enviar e copiar o link do
+                  orçamento moram no celular, depois de saírem do cabeçalho (2026-09-10, a pedido). */}
+              {shownActions.extras.map((extra, index) => (
+                <Fragment key={extra.label}>
+                  <span className={styles.barDivider} aria-hidden="true" />
+                  <IconButton label={extra.label} variant="ghost" size="md" radius="md" loading={extra.loading} disabled={extra.disabled} onClick={() => runExtra(index)}>
+                    {extra.icon}
+                  </IconButton>
+                </Fragment>
+              ))}
               <span className={styles.barDivider} aria-hidden="true" />
               <IconButton label={shownActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
                 <XIcon />
