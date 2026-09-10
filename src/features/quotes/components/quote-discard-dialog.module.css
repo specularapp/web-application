@@ -1,0 +1,23 @@
+/* A pergunta e as saídas, empilhadas e centradas, na receita da confirmação de excluir clientes. Sem fila de
+   rostos: aqui o assunto é o documento que está aberto, e quem o nomeia é a frase. */
+.dialog {
+  display: grid;
+  gap: var(--space-5);
+  justify-items: center;
+  width: 100%;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 24rem;
+}
+
+/* Os três botões em coluna, e não em duas colunas como na exclusão: são três saídas, e lado a lado a terceira
+   sobraria numa linha só ou os nomes cederiam por reticências. */
+.actions {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}

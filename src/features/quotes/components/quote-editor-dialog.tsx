@@ -47,6 +47,7 @@ import { MAX_LINES, paymentMethodValues, quoteLimits, type QuoteFormInput } from
 import { quoteShareUrl } from "../share";
 import type { Quote, QuoteCourtesy, QuoteIssuer, QuotePaymentMethod, QuotePerson } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
+import { QuoteDiscardDialog } from "./quote-discard-dialog";
 import { QuoteDocument } from "./quote-document";
 import { QuoteLineFacts, QuoteLineInfo } from "./quote-line-info";
 import { QuotePaper } from "./quote-paper";
@@ -364,17 +365,30 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const [shownInfoLine, setShownInfoLine] = useState<string | null>(null);
   if (infoLine !== null && infoLine !== shownInfoLine) setShownInfoLine(infoLine);
   const [planOpen, setPlanOpen] = useState(false);
+  /** A confirmação de sair com algo mexido, aberta por qualquer caminho de fechar. */
+  const [confirmingClose, setConfirmingClose] = useState(false);
 
-  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null || planOpen);
+  /* A confirmação de sair conta como camada aberta por cima do editor, junto das bandejas: com ela à vista, a
+     barra flutuante não pode continuar oferecendo Salvar, senão o toque nela reenviaria o formulário por trás
+     da pergunta. Ela só oferece voltar, e quem decide é a própria janela. */
+  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null || planOpen || confirmingClose);
   const closeTopSheet = () => {
-    if (planOpen) setPlanOpen(false);
+    if (confirmingClose) setConfirmingClose(false);
+    else if (planOpen) setPlanOpen(false);
     else if (infoLine !== null) setInfoLine(null);
     else setLineSheet(null);
   };
 
   useFloatingActionsRegistration(
     sheetOpen
-      ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
+      ? {
+          primary: {
+            label: lineSheet !== null && infoLine === null && !planOpen && !confirmingClose ? "Concluir" : "Fechar",
+            disabled: saving !== null,
+            onClick: closeTopSheet,
+          },
+          cancel: { label: "Fechar", onClick: closeTopSheet },
+        }
       : {
           /* Salvar, e não "Salvar rascunho" (pedido de 2026-09-10): o botão gera o orçamento ou grava a
              edição, e chamá-lo de rascunho dizia menos do que ele faz. Ao lado vai só enviar, em glifo: o
@@ -507,19 +521,32 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const [initial] = useState(() => JSON.stringify(values));
   const dirty = JSON.stringify(values) !== initial;
 
-  // Fechar no meio do caminho salva o rascunho sozinho (pedido de 2026-09-10): quem mexeu em algo e fechou,
-  // pela barra, pelo X, pelo fundo ou pelo Escape, encontra o orçamento na lista. Sem mudança nenhuma, fechar é
-  // só fechar. Se o rascunho não passa (falta o cliente, por exemplo), a janela fecha mesmo assim e avisa: um
-  // fechar que não fecha prende a pessoa numa tela que ela já quis deixar.
-  const requestClose = async () => {
+  // Fechar com algo mexido **pergunta** (pedido de 2026-09-10, no lugar do salvar sozinho que valia desde a
+  // manhã): a janela de confirmação abre com as três saídas que existem de verdade, salvar e sair, continuar
+  // editando ou sair sem salvar. Salvar sozinho resolvia o esquecimento, mas decidia pela pessoa: quem abriu
+  // para olhar e mexeu sem querer ficava com um rascunho que não pediu, e quem mexeu de propósito não sabia
+  // se tinha sido salvo. Sem mudança nenhuma, fechar continua sendo só fechar, sem pergunta.
+  //
+  // Vale para todo caminho de saída, porque todos passam por aqui: a barra flutuante, o X do desktop, o
+  // toque no fundo, o Escape e o arrasto da alça da bandeja.
+  const requestClose = () => {
     if (saving !== null) return;
     if (!dirty) {
       onClose();
       return;
     }
+    setConfirmingClose(true);
+  };
+
+  /* Salvar e sair, a partir da confirmação. Se o rascunho não passa (falta o cliente, por exemplo), a janela
+     fecha mesmo assim e avisa, como antes: um fechar que não fecha prende a pessoa numa tela que ela já quis
+     deixar, e a confirmação não é lugar de corrigir campo. */
+  const saveAndClose = async () => {
     setSaving("draft");
     const result = await saveQuoteAction(inputFor("draft"));
     setSaving(null);
+    setConfirmingClose(false);
+
     if (!result.ok) {
       toast({ title: "Rascunho não salvo", description: result.error, tone: "warning" });
       onClose();
@@ -530,7 +557,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   };
 
   useEffect(() => {
-    registerClose(() => void requestClose());
+    registerClose(requestClose);
   });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1153,6 +1180,21 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
           )}
         </Dialog>
       )}
+
+      {/* A confirmação de sair com algo mexido. Ela abre por cima do editor, então entra na fila de camadas
+          da casa pelo próprio `Dialog` e responde ao Escape antes dele. */}
+      <QuoteDiscardDialog
+        open={confirmingClose}
+        editing={editing}
+        number={draft.number}
+        pending={saving === "draft"}
+        onCancel={() => setConfirmingClose(false)}
+        onDiscard={() => {
+          setConfirmingClose(false);
+          onClose();
+        }}
+        onSave={() => void saveAndClose()}
+      />
     </form>
   );
 }
