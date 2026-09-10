@@ -17,7 +17,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
+import { useFloatingActionsRegistration, useFloatingConfirmRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -368,27 +368,16 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   /** A confirmação de sair com algo mexido, aberta por qualquer caminho de fechar. */
   const [confirmingClose, setConfirmingClose] = useState(false);
 
-  /* A confirmação de sair conta como camada aberta por cima do editor, junto das bandejas: com ela à vista, a
-     barra flutuante não pode continuar oferecendo Salvar, senão o toque nela reenviaria o formulário por trás
-     da pergunta. Ela só oferece voltar, e quem decide é a própria janela. */
-  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null || planOpen || confirmingClose);
+  const sheetOpen = mobile && (lineSheet !== null || infoLine !== null || planOpen);
   const closeTopSheet = () => {
-    if (confirmingClose) setConfirmingClose(false);
-    else if (planOpen) setPlanOpen(false);
+    if (planOpen) setPlanOpen(false);
     else if (infoLine !== null) setInfoLine(null);
     else setLineSheet(null);
   };
 
   useFloatingActionsRegistration(
     sheetOpen
-      ? {
-          primary: {
-            label: lineSheet !== null && infoLine === null && !planOpen && !confirmingClose ? "Concluir" : "Fechar",
-            disabled: saving !== null,
-            onClick: closeTopSheet,
-          },
-          cancel: { label: "Fechar", onClick: closeTopSheet },
-        }
+      ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
       : {
           /* Salvar, e não "Salvar rascunho" (pedido de 2026-09-10): o botão gera o orçamento ou grava a
              edição, e chamá-lo de rascunho dizia menos do que ele faz. Ao lado vai só enviar, em glifo: o
@@ -535,6 +524,13 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
       onClose();
       return;
     }
+    /* Pedir para fechar com a pergunta já à vista é desistir dela: no celular ela mora na barra e não
+       escurece nada, então o Escape e o toque no fundo continuam chegando aqui, e insistir em abrir o que já
+       está aberto deixaria a pessoa sem saída pelo mesmo gesto que a trouxe. */
+    if (confirmingClose) {
+      setConfirmingClose(false);
+      return;
+    }
     setConfirmingClose(true);
   };
 
@@ -555,6 +551,27 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     toast({ title: editing ? "Orçamento salvo" : "Rascunho salvo", description: `${draft.number} está na lista.`, tone: "success" });
     onSaved();
   };
+
+  /* No celular a pergunta é a barra flutuante, e não uma janela: com ela pendurada a barra vira o modo de
+     confirmação inteiro, e as ações do editor ficam guardadas até a resposta, porque é o provedor que dá
+     prioridade à pergunta. O X da barra é o voltar sem decidir. No desktop nada disso é registrado, porque
+     lá a pergunta é a janela da casa. */
+  useFloatingConfirmRegistration(
+    mobile && confirmingClose
+      ? {
+          question: editing ? "Salvar as alterações?" : "Salvar como rascunho?",
+          confirm: { label: "Salvar", loading: saving === "draft", onClick: () => void saveAndClose() },
+          deny: {
+            label: "Descartar",
+            onClick: () => {
+              setConfirmingClose(false);
+              onClose();
+            },
+          },
+          cancel: { label: "Continuar editando", onClick: () => setConfirmingClose(false) },
+        }
+      : null,
+  );
 
   useEffect(() => {
     registerClose(requestClose);
@@ -1181,20 +1198,25 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         </Dialog>
       )}
 
-      {/* A confirmação de sair com algo mexido. Ela abre por cima do editor, então entra na fila de camadas
-          da casa pelo próprio `Dialog` e responde ao Escape antes dele. */}
-      <QuoteDiscardDialog
-        open={confirmingClose}
-        editing={editing}
-        number={draft.number}
-        pending={saving === "draft"}
-        onCancel={() => setConfirmingClose(false)}
-        onDiscard={() => {
-          setConfirmingClose(false);
-          onClose();
-        }}
-        onSave={() => void saveAndClose()}
-      />
+      {/* A confirmação de sair com algo mexido. No desktop é a janela pequena da casa, que abre por cima do
+          editor e responde ao Escape antes dele pela fila de camadas. No celular ela não abre janela nenhuma:
+          a pergunta vira o modo de confirmação da barra flutuante (pedido de 2026-09-10), que é onde as ações
+          do editor já moram ali, então a decisão acontece onde a mão está, sem empilhar bandeja sobre
+          bandeja para uma escolha de três palavras. */}
+      {!mobile && (
+        <QuoteDiscardDialog
+          open={confirmingClose}
+          editing={editing}
+          number={draft.number}
+          pending={saving === "draft"}
+          onCancel={() => setConfirmingClose(false)}
+          onDiscard={() => {
+            setConfirmingClose(false);
+            onClose();
+          }}
+          onSave={() => void saveAndClose()}
+        />
+      )}
     </form>
   );
 }

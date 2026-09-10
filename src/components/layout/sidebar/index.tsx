@@ -411,9 +411,10 @@ export function SidebarPanel({
   );
 }
 
-/* Os três modos da barra do celular, na ordem de prioridade: as ações de uma janela aberta, a paginação
-   da lista à vista e, sem nenhuma das duas, a busca e o sino de sempre. */
-type BarMode = "actions" | "pager" | "browse";
+/* Os modos da barra do celular, na ordem de prioridade: a pergunta que uma janela faz (que manda em tudo,
+   porque nada mais importa até a resposta), as ações de uma janela aberta, a paginação da lista à vista e,
+   sem nenhuma das três, a busca e o sino de sempre. */
+type BarMode = "confirm" | "actions" | "pager" | "browse";
 
 const numberFormat = new Intl.NumberFormat("pt-BR");
 
@@ -425,18 +426,21 @@ export function Sidebar(props: SidebarProps) {
   // As ações que a janela aberta pendurou na barra do celular (salvar e sair de um formulário) e a
   // paginação que a lista pendurou: com qualquer uma delas a busca e o sino saem e entra o modo da vez, e
   // o botão do menu fica onde sempre fica. Janela manda na lista, porque um formulário aberto é o assunto.
-  const { shape: actions, pager, runPrimary, runExtra, runCancel, goToPage } = useFloatingActions();
-  const mode: BarMode = actions ? "actions" : pager ? "pager" : "browse";
+  const { shape: actions, confirm, pager, runPrimary, runExtra, runCancel, runConfirm, runDeny, runConfirmCancel, goToPage } = useFloatingActions();
+  const mode: BarMode = confirm ? "confirm" : actions ? "actions" : pager ? "pager" : "browse";
   // O último modo de ações visto fica guardado para o fundido de saída ter o que desenhar: a barra troca
   // de modo desbotando um sobre o outro, e o que sai não pode sumir no meio do caminho.
   const [lastActions, setLastActions] = useState(actions);
   if (actions && actions !== lastActions) setLastActions(actions);
+  const [lastConfirm, setLastConfirm] = useState(confirm);
+  if (confirm && confirm !== lastConfirm) setLastConfirm(confirm);
   const [lastPager, setLastPager] = useState(pager);
   if (pager && pager !== lastPager) setLastPager(pager);
   // Os modos ficam montados desde o começo, apagados e inertes, com valores de espera enquanto ninguém
   // registrou nada: montar só na hora fazia o modo aparecer já no estado final, sem o fundido de entrada,
   // e a troca lia como seca.
   const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar", extras: [] };
+  const shownConfirm = lastConfirm ?? { question: "Confirmar?", confirmLabel: "Salvar", loading: false, denyLabel: "Descartar", cancelLabel: "Voltar" };
   const shownPager = lastPager ?? { page: 1, pageCount: 1, label: "Páginas" };
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
@@ -586,6 +590,30 @@ export function Sidebar(props: SidebarProps) {
               ))}
               <span className={styles.barDivider} aria-hidden="true" />
               <IconButton label={shownActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
+                <XIcon />
+              </IconButton>
+              <span className={styles.barDivider} aria-hidden="true" />
+            </span>
+            {/* Janela perguntando: a barra vira a pergunta inteira (2026-09-10, a pedido), com o texto em
+                cima e as duas respostas embaixo, e o X que volta sem decidir na ponta. É o único modo em
+                duas linhas: uma pergunta que não se lê não é pergunta, e a linha da barra não a cabe ao
+                lado de dois botões. */}
+            <span className={styles.barMode} data-active={mode === "confirm" ? "" : undefined} inert={mode === "confirm" ? undefined : true}>
+              <span className={styles.barAsk}>
+                <Text as="p" variant="caption1" weight="medium" truncate className={styles.barQuestion}>
+                  {shownConfirm.question}
+                </Text>
+                <span className={styles.barAnswers}>
+                  <Button size="sm" radius="md" loading={shownConfirm.loading} onClick={runConfirm} className={styles.barPrimary}>
+                    {shownConfirm.confirmLabel}
+                  </Button>
+                  <Button variant="ghost" size="sm" radius="md" disabled={shownConfirm.loading} onClick={runDeny} className={styles.barPrimary}>
+                    {shownConfirm.denyLabel}
+                  </Button>
+                </span>
+              </span>
+              <span className={styles.barDivider} aria-hidden="true" />
+              <IconButton label={shownConfirm.cancelLabel} variant="ghost" size="md" radius="md" disabled={shownConfirm.loading} onClick={runConfirmCancel}>
                 <XIcon />
               </IconButton>
               <span className={styles.barDivider} aria-hidden="true" />

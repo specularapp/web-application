@@ -498,6 +498,32 @@
   min-width: 0;
 }
 
+/* A pergunta da janela, o único modo da barra em duas linhas (2026-09-10, a pedido): o texto em cima e as
+   duas respostas embaixo, tomando o que sobra até o X. Numa linha só, a pergunta e dois botões não caberiam
+   na largura de um celular sem cortar a pergunta, que é justamente o que precisa ser lido. */
+.barAsk {
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-block: var(--space-1);
+  padding-inline-start: var(--space-2);
+}
+
+/* A pergunta encosta no respiro do botão de baixo, e não na borda da barra. */
+.barQuestion {
+  min-width: 0;
+}
+
+/* As duas respostas dividem a linha: confirmar em preenchido e recusar em fantasma, as duas cedendo largura
+   pelo nome antes de a barra passar da tela. */
+.barAnswers {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
 /* A página em vigor no modo de paginação: só texto, no mesmo desenho do indicador da barra de paginação
    do desktop, em algarismo tabular e com largura mínima para a caixa não pulsar ao trocar de página. Toma
    o que sobra entre as setas, para as duas ficarem nas pontas. */
