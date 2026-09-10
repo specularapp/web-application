@@ -23,6 +23,12 @@ export type SelectProps<T extends ListboxValue> = {
   className?: string;
   iconEnd?: ReactNode;
   actions?: ListboxAction[];
+  /** Campo de busca preso no topo do painel, para lista longa. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  /** Quantos itens a lista mostra antes de alguém buscar; o resto chega pela busca. */
+  visibleLimit?: number;
+  emptyLabel?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 };
@@ -101,6 +107,10 @@ export function Select<T extends ListboxValue>({
   className,
   iconEnd,
   actions,
+  searchable,
+  searchPlaceholder,
+  visibleLimit,
+  emptyLabel,
   "aria-describedby": describedBy,
   "aria-invalid": ariaInvalid,
 }: SelectProps<T>) {
@@ -127,6 +137,10 @@ export function Select<T extends ListboxValue>({
         invalid={flagged}
         describedBy={describedBy}
         actions={actions}
+        searchable={searchable}
+        searchPlaceholder={searchPlaceholder}
+        visibleLimit={visibleLimit}
+        emptyLabel={emptyLabel}
       />
       {iconEnd && <Adornment>{iconEnd}</Adornment>}
       {name && <input type="hidden" name={name} value={current === undefined ? "" : String(current)} />}

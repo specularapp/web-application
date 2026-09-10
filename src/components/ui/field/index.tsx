@@ -70,13 +70,16 @@ export function Field({
         ...(required && { required }),
         "aria-describedby": describedBy,
         "aria-invalid": showError || undefined,
+        /* Com erro, o campo troca o adorno da ponta pelo "?" que mostra a mensagem; sem erro, o que o
+           controle já trazia fica (acerto de 2026-09-09: antes o campo mandava nada e apagava o
+           adorno de quem o montava, como o informativo das parcelas do orçamento). */
         iconEnd: showError ? (
           <Tooltip content={error} align="end" open>
             <button type="button" className={styles.errorTrigger} aria-label="Ver o erro deste campo">
               <QuestionIcon />
             </button>
           </Tooltip>
-        ) : undefined,
+        ) : children.props.iconEnd,
       })
     : children;
 

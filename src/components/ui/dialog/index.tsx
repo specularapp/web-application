@@ -10,7 +10,7 @@ import { usePresence } from "@/hooks/use-presence";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
 
-export type DialogSize = "sm" | "md" | "lg";
+export type DialogSize = "sm" | "md" | "lg" | "xl";
 
 export type DialogPlacement = "center" | "end";
 
@@ -161,6 +161,16 @@ const Panel = styled.div`
   &[data-size="lg"] {
     max-width: 40rem;
     max-height: min(46rem, calc(100dvh - var(--space-16)));
+  }
+
+  /* A janela de trabalho (2026-09-09, para o editor de orçamento): quase a tela inteira, com altura fixa
+     para as duas colunas de dentro rolarem por conta própria. Canto 2xl, um degrau abaixo, porque em caixa
+     tão grande o 3xl lia como bandeja. */
+  &[data-size="xl"] {
+    max-width: min(78rem, calc(100vw - var(--space-8)));
+    height: calc(100dvh - var(--space-8));
+    max-height: none;
+    border-radius: var(--radius-2xl);
   }
 
   &[data-surface="glass"] {
@@ -452,7 +462,7 @@ export function Dialog({
   // O vidro só nas janelas leves (a pedido, 2026-09-08): gaveta lateral e janela grande borram uma área
   // enorme da tela a cada quadro, e no celular e em máquina fraca isso pesava a página inteira. Quem
   // pede vidro numa dessas recebe o sólido, sem precisar saber. A superfície da página passa sempre.
-  const heavy = placement === "end" || size === "lg";
+  const heavy = placement === "end" || size === "lg" || size === "xl";
   const glass = surface === "glass" && !heavy;
   const resolvedSurface = glass ? "glass" : surface === "page" ? "page" : "solid";
   const veilKind = veilDark && glass ? (scrim ? "full" : "soft") : undefined;

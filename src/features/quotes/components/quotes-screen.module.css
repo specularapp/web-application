@@ -1,0 +1,8 @@
+/* O topo sangra de ponta a ponta e a prancha toma o que sobra, com a altura da área de conteúdo e a trilha em
+   `minmax(0, 1fr)`, como no catálogo: é o que deixa a tabela rolar por dentro com o cabeçalho preso. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}

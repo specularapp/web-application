@@ -60,3 +60,36 @@ export function squircleAuto(options?: SquircleOptions) {
 export function concentric(outer: number, inset: Spacing) {
   return Math.max(cornerRadius.xs, outer - spacing[inset]);
 }
+
+/**
+ * O canto da casa desenhado como caminho, para a forma existir fora do CSS: é a máscara que recorta a foto
+ * no PDF do orçamento, onde não há `corner-shape` nem `border-radius` com curva ajustável.
+ *
+ * `corner-shape: squircle` é a superelipse de expoente 4, |x|⁴ + |y|⁴ = 1 dentro do quadrado do raio, e não
+ * o quarto de círculo do `round`. O caminho aproxima cada quina por segmentos retos, o que basta porque a
+ * máscara é desenhada num tamanho maior e reduzida depois: o erro de um segmento cabe dentro de um pixel.
+ */
+export function squirclePath(width: number, height: number, radius: number, steps = 16) {
+  const r = Math.min(radius, width / 2, height / 2);
+  const n = (value: number) => Number(value.toFixed(2));
+  /* O outro eixo da superelipse: em `u` de 0 a 1, um eixo anda reto e este descreve a curva. */
+  const curve = (u: number) => r * (1 - u ** 4) ** 0.25;
+  const arc = (point: (u: number) => [number, number]) =>
+    Array.from({ length: steps + 1 }, (_, index) => index / steps)
+      .map((u) => point(u))
+      .map(([x, y]) => `L ${n(x)} ${n(y)}`)
+      .join(" ");
+
+  return [
+    `M ${n(r)} 0`,
+    `L ${n(width - r)} 0`,
+    arc((u) => [width - r + r * u, r - curve(u)]),
+    `L ${n(width)} ${n(height - r)}`,
+    arc((u) => [width - r + curve(u), height - r + r * u]),
+    `L ${n(r)} ${n(height)}`,
+    arc((u) => [r - r * u, height - r + curve(u)]),
+    `L 0 ${n(r)}`,
+    arc((u) => [r - curve(u), r - r * u]),
+    "Z",
+  ].join(" ");
+}

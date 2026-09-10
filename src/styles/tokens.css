@@ -1,65 +1,6 @@
 :root {
   color-scheme: light dark;
 
-  --sys-red: light-dark(#ff3b30, #ff453a);
-  --sys-orange: light-dark(#ff9500, #ff9f0a);
-  --sys-yellow: light-dark(#ffcc00, #ffd60a);
-  --sys-green: light-dark(#34c759, #30d158);
-  --sys-mint: light-dark(#00c7be, #63e6e2);
-  --sys-teal: light-dark(#30b0c7, #40c8e0);
-  --sys-cyan: light-dark(#32ade6, #64d2ff);
-  --sys-blue: light-dark(#007aff, #0a84ff);
-  --sys-indigo: light-dark(#5856d6, #5e5ce6);
-  --sys-purple: light-dark(#af52de, #bf5af2);
-  --sys-pink: light-dark(#ff2d55, #ff375f);
-  --sys-brown: light-dark(#a2845e, #ac8e68);
-  --sys-gray: #8e8e93;
-  --sys-gray-2: light-dark(#aeaeb2, #636366);
-  --sys-gray-3: light-dark(#c7c7cc, #48484a);
-  --sys-gray-4: light-dark(#d1d1d6, #3a3a3c);
-  --sys-gray-5: light-dark(#e5e5ea, #2c2c2e);
-  --sys-gray-6: light-dark(#f2f2f7, #1c1c1e);
-
-  /* Marca de fora, na cor oficial dela: o botão de chamar no WhatsApp. */
-  --color-whatsapp: #25d366;
-  --color-on-whatsapp: #ffffff;
-
-  --color-label: light-dark(#000000, #ffffff);
-  --color-label-secondary: light-dark(rgb(60 60 67 / 0.6), rgb(235 235 245 / 0.6));
-  --color-label-tertiary: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));
-  --color-label-quaternary: light-dark(rgb(60 60 67 / 0.18), rgb(235 235 245 / 0.16));
-  --color-placeholder: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));
-  --color-link: light-dark(#007aff, #0984ff);
-
-  --color-separator: light-dark(rgb(60 60 67 / 0.29), rgb(84 84 88 / 0.6));
-  --color-border: light-dark(rgb(60 60 67 / 0.12), rgb(235 235 245 / 0.13));
-  --color-separator-opaque: light-dark(#c6c6c8, #38383a);
-
-  --color-bg: light-dark(#fbfbfc, #000000);
-  --color-bg-secondary: light-dark(#f2f2f7, #1c1c1e);
-  --color-bg-tertiary: light-dark(#ffffff, #2c2c2e);
-  --color-bg-grouped: light-dark(#f2f2f7, #000000);
-  --color-bg-grouped-secondary: light-dark(#ffffff, #1c1c1e);
-  --color-bg-grouped-tertiary: light-dark(#f2f2f7, #2c2c2e);
-
-  --color-fill: light-dark(rgb(120 120 128 / 0.2), rgb(120 120 128 / 0.36));
-  --color-fill-secondary: light-dark(rgb(120 120 128 / 0.16), rgb(120 120 128 / 0.32));
-  --color-fill-tertiary: light-dark(rgb(118 118 128 / 0.12), rgb(118 118 128 / 0.24));
-  --color-fill-quaternary: light-dark(rgb(116 116 128 / 0.08), rgb(118 118 128 / 0.18));
-
-  --color-brand: light-dark(#000000, #ffffff);
-  --color-accent: var(--sys-blue);
-  --color-on-accent: #ffffff;
-  --color-focus: var(--sys-blue);
-  --color-success: var(--sys-green);
-  --color-warning: var(--sys-orange);
-  --color-danger: var(--sys-red);
-  --color-danger-solid: light-dark(#d70015, #ff6961);
-  --color-on-danger: light-dark(#ffffff, #000000);
-  --color-info: var(--sys-cyan);
-  --color-scrim: light-dark(rgb(0 0 0 / 0.4), rgb(0 0 0 / 0.6));
-  --color-scrim-soft: light-dark(rgb(0 0 0 / 0.3), rgb(0 0 0 / 0.5));
-
   --font-body: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   /* Uma família só (decisão de 2026-09-04): código e display apontam para a Inter. Os tokens ficam,
      porque quem os usa continua dizendo o papel do texto, e trocar a fonte de um papel volta a ser um
@@ -119,31 +60,6 @@
      um hexágono regular, na quadrada fica esticado. */
   --shape-hexagon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M21.5 7 Q25 0 32 0L68 0 Q75 0 78.5 7L96.5 43 Q100 50 96.5 57L78.5 93 Q75 100 68 100L32 100 Q25 100 21.5 93L3.5 57 Q0 50 3.5 43Z'/%3E%3C/svg%3E");
 
-  /* Vidro da casa, na receita do painel do login e da barra flutuante do menu: o fundo some por
-     inteiro e quem desenha a caixa é o borrão do que passa atrás. O `color-mix` a 0% fica escrito
-     assim de propósito, para o valor continuar dizendo de qual cor ele nasce. */
-  --glass-bg: color-mix(in oklab, var(--color-bg) 0%, transparent);
-  --glass-blur: blur(12px);
-  /* Camadas com lista e texto por cima (troca de time, busca, notificações, conta, gaveta): borrão
-     maior e um fio de fundo, para o que passa atrás não competir com o que está escrito. O login e a
-     barra flutuante ficam na receita de cima, que tem pouco conteúdo e pode ser mais transparente. */
-  --glass-layer-bg: color-mix(in oklab, var(--color-bg) 20%, transparent);
-  --glass-layer-blur: blur(16px);
-  /* Bandeja do celular: o conteúdo da página passa mais perto do texto, e a lista precisava de mais
-     corpo para ler. Vidro continua, só com o fundo a 72% em vez de 20% (era 40% até 2026-09-07, e o
-     menu de opções do cliente sobre o painel ainda ficava difícil de ler). */
-  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 72%, transparent);
-
-  /* Tinta e vidro do controle de arrastar da gamificação: os genéricos da casa, para o bloco assentar no
-     fundo de cada tema. Um degradê próprio nas cores do adesivo holográfico existiu por umas horas em
-     2026-09-07 e saiu a pedido. */
-  --gamification-ink: var(--color-label);
-  --gamification-pill: var(--color-fill-quaternary);
-
-  --shadow-sm: 0 1px 2px light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
-  --shadow-md: 0 4px 16px light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.6));
-  --shadow-lg: 0 12px 40px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.7));
-
   /* A barra flutuante do celular: acima da tela cheia do menu (50) e abaixo de tudo o mais. Com ela em
      modo de ações, as janelas descem para logo abaixo dela, em vez de a barra subir. */
   --z-floating-bar: 60;
@@ -195,6 +111,106 @@
      cima das janelas: a altura dela mais o recuo de baixo e um respiro. O conteúdo que rola dentro de uma
      janela aberta nessa situação leva essa folga embaixo, para o último item fechar acima da barra. */
   --floating-bar-inset: calc(var(--control-height-md) + var(--space-2) + var(--space-4) * 2 + env(safe-area-inset-bottom));
+}
+
+/* A paleta, o vidro e as sombras num bloco de dois seletores: a raiz e qualquer ilha que peça o tema claro.
+   Todo valor de cor aqui é `light-dark()`, e ele resolve pelo `color-scheme` do elemento **onde a variável é
+   declarada**, e não onde ela é usada: declarar a mesma lista dentro de uma ilha com `color-scheme: light` dá
+   a paleta clara ali dentro, sem duplicar valor nenhum (2026-09-09). É assim que o documento do orçamento é
+   sempre papel branco, mesmo com a tela no escuro; `color-scheme: light` sozinho na folha não bastava,
+   porque as variáveis chegavam lá já resolvidas pela raiz. O vidro e a tinta da gamificação vêm junto porque
+   nascem das cores. */
+:root,
+[data-scheme="light"] {
+  --sys-red: light-dark(#ff3b30, #ff453a);
+  --sys-orange: light-dark(#ff9500, #ff9f0a);
+  --sys-yellow: light-dark(#ffcc00, #ffd60a);
+  --sys-green: light-dark(#34c759, #30d158);
+  --sys-mint: light-dark(#00c7be, #63e6e2);
+  --sys-teal: light-dark(#30b0c7, #40c8e0);
+  --sys-cyan: light-dark(#32ade6, #64d2ff);
+  --sys-blue: light-dark(#007aff, #0a84ff);
+  --sys-indigo: light-dark(#5856d6, #5e5ce6);
+  --sys-purple: light-dark(#af52de, #bf5af2);
+  --sys-pink: light-dark(#ff2d55, #ff375f);
+  --sys-brown: light-dark(#a2845e, #ac8e68);
+  --sys-gray: #8e8e93;
+  --sys-gray-2: light-dark(#aeaeb2, #636366);
+  --sys-gray-3: light-dark(#c7c7cc, #48484a);
+  --sys-gray-4: light-dark(#d1d1d6, #3a3a3c);
+  --sys-gray-5: light-dark(#e5e5ea, #2c2c2e);
+  --sys-gray-6: light-dark(#f2f2f7, #1c1c1e);
+
+  /* Marca de fora, na cor oficial dela: o botão de chamar no WhatsApp. */
+  --color-whatsapp: #25d366;
+  --color-on-whatsapp: #ffffff;
+
+  --color-label: light-dark(#000000, #ffffff);
+  --color-label-secondary: light-dark(rgb(60 60 67 / 0.6), rgb(235 235 245 / 0.6));
+  --color-label-tertiary: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));
+  --color-label-quaternary: light-dark(rgb(60 60 67 / 0.18), rgb(235 235 245 / 0.16));
+  --color-placeholder: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));
+  --color-link: light-dark(#007aff, #0984ff);
+
+  --color-separator: light-dark(rgb(60 60 67 / 0.29), rgb(84 84 88 / 0.6));
+  --color-border: light-dark(rgb(60 60 67 / 0.12), rgb(235 235 245 / 0.13));
+  --color-separator-opaque: light-dark(#c6c6c8, #38383a);
+
+  --color-bg: light-dark(#fbfbfc, #000000);
+  --color-bg-secondary: light-dark(#f2f2f7, #1c1c1e);
+  --color-bg-tertiary: light-dark(#ffffff, #2c2c2e);
+  --color-bg-grouped: light-dark(#f2f2f7, #000000);
+  --color-bg-grouped-secondary: light-dark(#ffffff, #1c1c1e);
+  --color-bg-grouped-tertiary: light-dark(#f2f2f7, #2c2c2e);
+
+  --color-fill: light-dark(rgb(120 120 128 / 0.2), rgb(120 120 128 / 0.36));
+  --color-fill-secondary: light-dark(rgb(120 120 128 / 0.16), rgb(120 120 128 / 0.32));
+  --color-fill-tertiary: light-dark(rgb(118 118 128 / 0.12), rgb(118 118 128 / 0.24));
+  --color-fill-quaternary: light-dark(rgb(116 116 128 / 0.08), rgb(118 118 128 / 0.18));
+
+  --color-brand: light-dark(#000000, #ffffff);
+  --color-accent: var(--sys-blue);
+  --color-on-accent: #ffffff;
+  --color-focus: var(--sys-blue);
+  --color-success: var(--sys-green);
+  --color-warning: var(--sys-orange);
+  --color-danger: var(--sys-red);
+  --color-danger-solid: light-dark(#d70015, #ff6961);
+  --color-on-danger: light-dark(#ffffff, #000000);
+  --color-info: var(--sys-cyan);
+  --color-scrim: light-dark(rgb(0 0 0 / 0.4), rgb(0 0 0 / 0.6));
+  --color-scrim-soft: light-dark(rgb(0 0 0 / 0.3), rgb(0 0 0 / 0.5));
+
+  /* Vidro da casa, na receita do painel do login e da barra flutuante do menu: o fundo some por
+     inteiro e quem desenha a caixa é o borrão do que passa atrás. O `color-mix` a 0% fica escrito
+     assim de propósito, para o valor continuar dizendo de qual cor ele nasce. */
+  --glass-bg: color-mix(in oklab, var(--color-bg) 0%, transparent);
+  --glass-blur: blur(12px);
+  /* Camadas com lista e texto por cima (troca de time, busca, notificações, conta, gaveta): borrão
+     maior e um fio de fundo, para o que passa atrás não competir com o que está escrito. O login e a
+     barra flutuante ficam na receita de cima, que tem pouco conteúdo e pode ser mais transparente. */
+  --glass-layer-bg: color-mix(in oklab, var(--color-bg) 20%, transparent);
+  --glass-layer-blur: blur(16px);
+  /* Bandeja do celular: o conteúdo da página passa mais perto do texto, e a lista precisava de mais
+     corpo para ler. Vidro continua, só com o fundo a 72% em vez de 20% (era 40% até 2026-09-07, e o
+     menu de opções do cliente sobre o painel ainda ficava difícil de ler). */
+  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 72%, transparent);
+
+  /* Tinta e vidro do controle de arrastar da gamificação: os genéricos da casa, para o bloco assentar no
+     fundo de cada tema. Um degradê próprio nas cores do adesivo holográfico existiu por umas horas em
+     2026-09-07 e saiu a pedido. */
+  --gamification-ink: var(--color-label);
+  --gamification-pill: var(--color-fill-quaternary);
+
+  --shadow-sm: 0 1px 2px light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --shadow-md: 0 4px 16px light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.6));
+  --shadow-lg: 0 12px 40px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.7));
+}
+
+/* A ilha de tema claro: quem marca o atributo recebe a paleta acima nos valores claros, e os controles de
+   formulário e a barra de rolagem de dentro seguem junto. */
+[data-scheme="light"] {
+  color-scheme: light;
 }
 
 :root[data-theme="light"] {

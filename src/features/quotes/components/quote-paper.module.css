@@ -1,0 +1,50 @@
+/* A folha centrada no espaço que sobrou, sem rolagem: quem a faz caber é a redução. */
+.paper {
+  display: grid;
+  place-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* A folha tem tamanho de A4 e `zoom` a reduz até caber, com o fator medido em JS. `zoom`, e não `scale`,
+   porque ele reduz o espaço ocupado junto com o desenho, então não sobra buraco nem rolagem lateral. O
+   seletor alcança o `article` do documento por elemento, que é o jeito de mexer numa classe de outro
+   módulo. */
+.paper > article {
+  width: var(--page-width, 52rem);
+  height: var(--page-height, 73.5rem);
+  zoom: var(--doc-zoom, 1);
+}
+
+/* No celular a folha vira fluida: uma A4 reduzida para 360px de largura viraria texto de cinco pixels. */
+@media (max-width: 47.9375rem) {
+  .paper {
+    place-content: start stretch;
+  }
+
+  .paper > article {
+    width: 100%;
+    height: auto;
+    zoom: 1;
+  }
+}
+
+/* Impressa, a folha volta ao tamanho de A4 e é a página inteira: a escala mapeia os 832px de largura nos
+   210mm do papel (210mm são 793,7px a 96dpi), então o que está na tela sai igual, sem refluxo de texto. Os
+   cantos e a sombra somem, porque papel não tem quina arredondada (pedido de 2026-09-09). */
+@media print {
+  .paper {
+    display: block;
+    padding: 0;
+    margin: 0;
+  }
+
+  .paper > article {
+    width: var(--page-width, 832px);
+    height: var(--page-height, 1177px);
+    zoom: 0.9540;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

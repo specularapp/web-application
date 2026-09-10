@@ -1,6 +1,6 @@
 export type PatternMask = "cpf" | "cnpj" | "document" | "phone" | "cep" | "date";
 
-export type NumericMask = "currency" | "percent" | "integer";
+export type NumericMask = "currency" | "percent" | "integer" | "integerPercent";
 
 export type InputMask = PatternMask | NumericMask;
 
@@ -25,6 +25,8 @@ export const numericAffix: Record<NumericMask, { prefix?: string; suffix?: strin
   currency: { prefix: "R$" },
   percent: { suffix: "%" },
   integer: {},
+  /* Sem afixo do lado de fora: aqui o "%" faz parte do valor escrito, colado no número (2026-09-09). */
+  integerPercent: {},
 };
 
 export function onlyDigits(value: string) {
@@ -67,6 +69,8 @@ export function formatNumeric(mask: NumericMask, value: string) {
       return decimalFormatter.format(amount / 100);
     case "integer":
       return integerFormatter.format(amount);
+    case "integerPercent":
+      return `${integerFormatter.format(amount)}%`;
   }
 }
 

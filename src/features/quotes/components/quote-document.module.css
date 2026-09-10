@@ -1,0 +1,661 @@
+/* A folha: o fundo da casa, o fio fino e o canto `xl`, com a aura de cor sangrando pelas quinas. No público
+   ela tem largura de folha e fica centrada; na prévia do editor quem manda na largura é o invólucro, que
+   também a reduz. `isolation` cria o contexto para a aura ficar atrás de tudo sem vazar para fora da folha. */
+.sheet {
+  --doc-pad: var(--space-8);
+  --doc-line: 0.0375rem;
+
+  /* Papel é branco, e o documento é papel: no escuro ele não vira (decisão de 2026-09-09). Quem faz isso é o
+     `data-scheme="light"` no elemento, a ilha de tema claro dos tokens, que redeclara a paleta ali dentro
+     resolvendo pelos valores claros; `color-scheme` sozinho não bastava, porque as variáveis chegavam aqui já
+     resolvidas pela raiz. */
+  position: relative;
+  /* Pilha em coluna, e não grade (acerto de 2026-09-09): com altura fixa, a grade esticava as linhas e o
+     documento ficava com vãos enormes entre as seções. Em coluna, tudo assenta no topo e só a assinatura
+     desce, pela margem automática, tanto na folha fixa da prévia quanto na altura livre da página pública. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  padding: var(--doc-pad);
+  margin-inline: auto;
+  overflow: hidden;
+  color: var(--color-label);
+  isolation: isolate;
+  background-color: var(--color-bg);
+  border: var(--doc-line) solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+/* A folha nasce sem largura máxima: quem lhe dá tamanho de A4 é o `QuotePaper`, tanto na prévia do editor
+   quanto na página pública, o que faz a tela, o link e a impressão serem a mesma folha (2026-09-09). */
+.sheet[data-variant="preview"],
+.sheet[data-variant="page"] {
+  max-width: none;
+  margin-inline: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .sheet {
+    --doc-pad: var(--space-5);
+
+    gap: var(--space-5);
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* A aura: quatro bolas de cor nas quatro quinas, uma camada só, na receita do painel de planos (2026-09-09,
+   a pedido; antes eram três manchas com filtro de desfoque, que ficavam jogadas no topo). Gradiente radial
+   no lugar de `filter: blur`: mesmo resultado, sem custo de composição numa camada do tamanho da folha.
+
+   As cores saem todas do matiz da equipe (`--doc-hue`, o mesmo que o `Avatar` dela ganharia), girado em
+   oklch para as outras três quinas, então qualquer equipe recebe um quarteto que combina. O tamanho é em
+   porcentagem da folha, e não em rem: a mesma aura serve a folha larga da página pública e a reduzida do
+   editor. `inset` negativo tira o centro dos gradientes de dentro da folha, que é o que faz a cor vir das
+   quinas em vez de virar mancha redonda. */
+.aura {
+  position: absolute;
+  inset: calc(var(--doc-pad) * -1);
+  /* Atrás de tudo, sempre: a folha abre contexto de empilhamento próprio (`isolation`), então o z negativo
+     fica entre o fundo dela e o conteúdo, e nenhuma seção precisa de z-index para ficar na frente. */
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(60% 40% at 0% 0%, color-mix(in oklab, var(--doc-hue) 62%, transparent), transparent 64%),
+    radial-gradient(52% 34% at 100% 0%, color-mix(in oklab, var(--doc-hue) 50%, transparent), transparent 64%),
+    radial-gradient(52% 34% at 0% 100%, color-mix(in oklab, var(--doc-hue) 40%, transparent), transparent 64%),
+    radial-gradient(60% 40% at 100% 100%, color-mix(in oklab, var(--doc-hue) 48%, transparent), transparent 64%);
+  /* Suave de propósito (pedido de 2026-09-09): a cor diz de quem é o documento e para aí; mais que isso e
+     ela disputa a leitura com o que está escrito. */
+  opacity: 0.22;
+}
+
+/* Girando o matiz, as quinas deixam de ser a mesma cor: a de cima à direita e as de baixo vão para os
+   vizinhos, como as quatro bolas do painel de planos. Declarado depois, com o mesmo seletor, para quem não
+   tem cor relativa ficar com o matiz único, que também funciona. */
+@supports (color: oklch(from red l c h)) {
+  .aura {
+    background-image:
+      radial-gradient(60% 40% at 0% 0%, color-mix(in oklab, var(--doc-hue) 62%, transparent), transparent 64%),
+      radial-gradient(52% 34% at 100% 0%, color-mix(in oklab, oklch(from var(--doc-hue) l c calc(h - 45)) 50%, transparent), transparent 64%),
+      radial-gradient(52% 34% at 0% 100%, color-mix(in oklab, oklch(from var(--doc-hue) l c calc(h + 45)) 40%, transparent), transparent 64%),
+      radial-gradient(60% 40% at 100% 100%, color-mix(in oklab, oklch(from var(--doc-hue) l c calc(h + 150)) 48%, transparent), transparent 64%);
+  }
+}
+
+/* O cabeçalho: a equipe com a logo à esquerda e, na outra ponta, "Orçamento", o número e a situação. */
+/* A equipe à esquerda e o número à direita, numa linha só: quem cede largura é o texto da equipe, por
+   reticências, e não a linha, que antes quebrava e desalinhava o bloco (relato de 2026-09-09). */
+.masthead {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  flex: 1;
+  gap: var(--space-4);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A logo em 3.25rem com anel na cor do fundo, para se separar da aura. */
+.logo.logo {
+  box-shadow: 0 0 0 3px var(--color-bg);
+}
+
+.brandCopy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.contacts,
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  list-style: none;
+}
+
+/* Os contatos da equipe ficam lado a lado, sempre: e-mail e telefone em fila, com o e-mail cedendo por
+   reticências se a linha apertar. */
+.contacts {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.contacts li {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.contacts li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contacts li,
+.details li {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.contacts svg,
+.details svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.kicker {
+  display: grid;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  justify-items: end;
+  text-align: end;
+}
+
+@media (max-width: 47.9375rem) {
+  .kicker {
+    justify-items: start;
+    text-align: start;
+  }
+}
+
+/* Os rótulos de seção, em caixa alta miúda e apagados: dizem onde a pessoa está sem competir com o dado.
+
+   A classe vem dobrada de propósito (acerto de 2026-09-09): o `Text` da casa traz o espaçamento de letra da
+   variante num seletor de classe mais atributo, que vence um seletor de classe só, e a caixa alta ficava com
+   o espaçamento apertado da legenda em vez do largo que ela pede. Mesma razão no número. */
+.eyebrow.eyebrow {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.number.number {
+  letter-spacing: var(--tracking-tight);
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.title {
+  max-width: 36rem;
+  text-wrap: balance;
+}
+
+/* Os fatos da emissão em fila: rótulo com glifo em cima, valor embaixo. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8);
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  gap: var(--space-half);
+}
+
+.facts dt {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.facts dt svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+/* Cliente e vendedor, lado a lado, cada um num cartão no preenchimento da casa. */
+.parties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 47.9375rem) {
+  .parties {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* O cartão é opaco, e não o preenchimento translúcido da casa (acerto de 2026-09-09): translúcido, a aura
+   passava por dentro dele e a cor parecia estar por cima do container. A mistura sobre o fundo da folha dá o
+   mesmo cinza, sem deixar nada atravessar. */
+.party {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: color-mix(in oklab, var(--color-label) 4%, var(--color-bg));
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.person {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.personCopy {
+  display: grid;
+  min-width: 0;
+}
+
+.items {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* A tabela compacta: 6px em cima e embaixo, cabeçalho em caption apagado, fio da casa entre as linhas e
+   números à direita. O nome do item em medium e a descrição embaixo, em legenda: duas linhas por item, e
+   nada mais, porque é aqui que o documento engorda quando o orçamento tem muitos itens. */
+.table {
+  width: 100%;
+  font-size: var(--text-footnote);
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  text-align: start;
+  border-block-end: var(--doc-line) solid var(--color-border);
+}
+
+.table td {
+  padding: calc(var(--space-1) + var(--space-half)) var(--space-3);
+  vertical-align: top;
+  border-block-end: var(--doc-line) solid var(--color-border);
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-inline-start: 0;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-inline-end: 0;
+}
+
+/* Fora da primeira, cada coluna tem largura declarada, e não a do conteúdo (acerto de 2026-09-10): medida
+   pelo conteúdo ela muda de orçamento para orçamento, e o PDF, que precisa declarar as suas, nunca ficava
+   igual à tela. Com o mesmo número nos dois lados, a tabela é a mesma folha em qualquer orçamento; os
+   valores estão em `pdf-document.tsx`, na constante das colunas. A primeira ganha largura zero de propósito,
+   o truque de tabela que faz as reticências valerem: sem isso a célula cresce com o texto em vez de
+   cortá-lo. */
+.table th:not(:first-child),
+.table td:not(:first-child) {
+  white-space: nowrap;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 3.5rem;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 8.5rem;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  width: 6.5rem;
+}
+
+.table td:first-child {
+  max-width: 0;
+}
+
+/* Duas classes de propósito: `.table th` tem tipo e classe, e venceria um seletor de classe só, deixando o
+   cabeçalho de Unitário e Total alinhado à esquerda (relato de 2026-09-09). */
+.end,
+.table th.end,
+.table td.end {
+  text-align: end;
+}
+
+.strong {
+  font-weight: var(--weight-semibold);
+}
+
+/* A linha do item: a arte à esquerda, centrada na altura das duas linhas de texto, e ao lado o nome com a
+   etiqueta de cortesia e a descrição embaixo, que nunca quebra linha (pedido de 2026-09-09). */
+.line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.lineArt {
+  flex-shrink: 0;
+}
+
+.lineCopy {
+  display: grid;
+  min-width: 0;
+}
+
+/* A etiqueta de cortesia miúda, para não esticar a linha: fonte de legenda, altura curta e recuo apertado. */
+.courtesy.courtesy {
+  height: auto;
+  min-height: 0;
+  padding: 0 var(--space-1);
+  font-size: var(--text-caption-2);
+  line-height: 1.4;
+}
+
+.lineName {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  font-weight: var(--weight-medium);
+  color: var(--color-label);
+}
+
+.lineDescription {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O que é cortesia: a etiqueta ao lado do nome e o valor de tabela riscado, para o cliente ver quanto o
+   brinde valia. */
+.courtesy {
+  flex-shrink: 0;
+}
+
+.struck {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-label-tertiary);
+}
+
+/* A unidade colada no valor, apagada: "R$ 2.500,00 /prj". */
+.per {
+  margin-inline-start: var(--space-half);
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+}
+
+/* O pagamento à esquerda e os totais à direita; no celular os totais vêm primeiro, porque é o que a pessoa
+   procura. */
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary .totals {
+    order: -1;
+  }
+}
+
+.payment {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Forma e parcelas em rótulo e valor, numa grade de duas colunas que as duas linhas compartilham por
+   `subgrid`: assim os valores começam no mesmo lugar, sem largura chutada para o rótulo. */
+.paymentFacts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.paymentFacts > div {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.paymentFacts dt {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.paymentFacts dd {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+.paymentFacts dd svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+/* Mais de uma forma aceita: escritas em fila, separadas por vírgula e sem glifo (a pedido, 2026-09-09; os
+   logos das marcas ficam no pé do documento). */
+.methods {
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+.totals {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.totals > div {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-subheadline);
+}
+
+.totals dt {
+  color: var(--color-label-secondary);
+}
+
+.totals dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+}
+
+.negative {
+  color: var(--color-label-secondary);
+}
+
+/* Como pagar, embaixo do total: parcelas e a oferta de à vista numa linha só, em legenda apagada. */
+.terms {
+  display: block;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-align: end;
+  text-wrap: pretty;
+}
+
+/* O total fecha o bloco, maior e acima do fio. */
+.grand {
+  padding-block-start: var(--space-2);
+  border-block-start: var(--doc-line) solid var(--color-border);
+}
+
+.grand dt {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.grand dd {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+  font-size: var(--text-title-3);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Parcelando, o número de vezes vem miúdo e apagado antes do valor da parcela, que é o número grande
+   (pedido de 2026-09-09): é assim que a pessoa lê "24x R$ 429,90". */
+.times {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+}
+
+.notes {
+  display: grid;
+  gap: var(--space-1);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--doc-line) solid var(--color-border);
+}
+
+/* A assinatura fecha o documento, centrada: a folga acima da linha é onde o vendedor assina, e embaixo dela
+   ficam o nome e a equipe. A margem automática empurra o bloco para o pé, então numa folha alta ele assenta
+   embaixo em vez de flutuar no meio. */
+.signature {
+  display: grid;
+  gap: var(--space-half);
+  place-items: center;
+  padding-block-start: var(--space-6);
+  /* Numa folha de altura fixa, a margem automática empurra a assinatura e o que vem depois dela para o pé,
+     e o resto do documento assenta no topo; numa folha de altura livre, ela não faz nada e a assinatura
+     segue logo depois do conteúdo. Mesmo desenho nas duas telas (acerto de 2026-09-09). */
+  margin-block-start: auto;
+  text-align: center;
+}
+
+.signatureSpace {
+  display: block;
+  width: min(18rem, 100%);
+  height: 3rem;
+  margin-block-end: var(--space-2);
+  border-block-end: var(--doc-line) solid var(--color-label-tertiary);
+}
+
+/* As ações do cliente vêm depois da assinatura, centradas e acima do fio: elas são da tela, não do
+   documento, e somem na impressão. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  padding-block-start: var(--space-4);
+  border-block-start: var(--doc-line) solid var(--color-border);
+}
+
+/* O selo de origem, o fim de tudo: o glifo e uma linha em legenda apagada, centrados. Discreto de
+   propósito (pedido de 2026-09-09): ele dá segurança a quem recebe sem disputar espaço com o orçamento. */
+.seal {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  padding-block-start: var(--space-4);
+  text-align: center;
+}
+
+/* O glifo assenta na linha do texto: com o texto em duas linhas ele centrava no bloco e parecia solto
+   (relato de 2026-09-09), então a frase fica numa linha só e o par se alinha pelo meio dela. */
+.seal > p {
+  white-space: nowrap;
+}
+
+.seal > svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+/* As marcas dos meios de pagamento, embaixo do selo: em máscara monocromática e bem apagadas, então elas
+   dizem "aceitamos" sem virar propaganda. Marca sem arquivo em `public/brands` simplesmente não desenha,
+   porque a máscara não acha a imagem (2026-09-09). */
+.brands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  padding-block-start: var(--space-3);
+}
+
+/* Caixa quadrada e igual para todas, com 12px entre uma e outra e a fila centrada: a máscara ajusta a marca
+   por dentro, mantendo a proporção dela, então o passo é o mesmo em toda a fila.
+
+   O nome é `paymentBrand`, e não `brand` (acerto de 2026-09-09): `brand` já era o bloco do emitente no
+   cabeçalho, e no mesmo CSS Module os dois viravam a mesma classe. Cada logo herdava o `flex: 1` do bloco,
+   e a fila abria como se fosse `space-between`; o bloco do emitente herdava a altura de 24px da marca, e o
+   nome com os contatos ficava esmagado. */
+.paymentBrand {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-label-tertiary);
+  opacity: 0.65;
+}
+
+/* Impresso ou salvo em PDF, a folha é o papel: sem moldura, sem canto, sem sombra, e a aura fica, porque é
+   ela que faz o documento ser da equipe. */
+@media print {
+  /* No papel a folha é a página: sem moldura e sem canto (o único detalhe da tela que a impressão ignora, a
+     pedido), com o recuo de dentro fazendo as margens, e as cores mantidas, porque a aura e as etiquetas são
+     parte do documento. */
+  .sheet {
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .actions {
+    display: none;
+  }
+}

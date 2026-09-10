@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
   },
+  /* A Inter em arquivo vai junto com a rota do PDF do orçamento: o react-pdf lê a fonte do disco, e o
+     rastreamento do build não enxerga essa leitura, porque o caminho é montado em tempo de execução. */
+  outputFileTracingIncludes: {
+    "/orcamento/*/pdf": ["./public/fonts/inter/**"],
+  },
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
   },

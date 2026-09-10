@@ -1,0 +1,420 @@
+/* O editor: o cabeçalho preso em cima e, embaixo, o formulário e a prévia lado a lado, cada um rolando por
+   conta própria. A janela tem altura fixa (a `xl` da casa), então nada aqui cresce: o que sobra rola. */
+.editor {
+  --panel-line: 0.0375rem;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .editor {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* As ações do topo no vão dos controles pequenos; o X fecha a fila. */
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Rascunho e enviar são um par: mesma largura mínima, para nenhum parecer o principal por tamanho. */
+.action {
+  min-width: 8rem;
+  justify-content: center;
+}
+
+@media (max-width: 47.9375rem) {
+  .head {
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .action {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* As abas do celular, dados e prévia, no preenchimento da casa com a escolhida em relevo. */
+.tabs {
+  display: inline-flex;
+  gap: var(--space-half);
+  padding: var(--space-half);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.tab {
+  height: calc(var(--control-height-sm) - var(--space-2));
+  padding-inline: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* O corpo: o formulário numa coluna de 27rem e a prévia tomando o resto. No celular é uma coluna só, e as
+   abas dizem qual das duas aparece. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .body[data-preview][data-form] {
+    grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+  }
+}
+
+/* O formulário rola sozinho; o recuo lateral mora em cada parte, para o fio entre elas ir de ponta a ponta
+   sem margem negativa. */
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  width: 100%;
+  min-height: 0;
+  padding-block: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .form {
+    gap: var(--space-4);
+    padding-block: var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .section {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* O título da parte com o glifo e, na ponta, o que a resume (o subtotal dos itens) ou o lápis que a reabre. */
+.sectionHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--control-height-sm);
+}
+
+.sectionHead > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+.aside {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* A parte fechada: o resumo do que foi respondido, sem campo nenhum. O vão é o dos campos, e cada valor fica
+   no lugar onde estava o seu campo (pedido de 2026-09-09), então fechar não embaralha o que foi preenchido. */
+.summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Um campo só de leitura: o rótulo em cima e o valor embaixo, na altura de um campo de verdade menos o
+   respiro que o controle abria. */
+.read {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.readValue {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* Cada item fechado é um cartão: a arte, o nome com o tipo e, na outra ponta, o subtotal com a cobrança. */
+.lineCard {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background-color: var(--color-fill-quaternary);
+  border: 0;
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+/* Fechado dentro da parte aberta, o cartão é o botão que reabre aquele item. */
+.lineCard[data-open-line] {
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .lineCard[data-open-line]:hover {
+    background-color: var(--color-fill-tertiary);
+  }
+
+  .lineCard[data-open-line]:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.lineCardCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.lineCardEnd {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+  text-align: end;
+}
+
+/* O cliente fechado no desenho do gatilho do seletor: a foto à esquerda e, ao lado, o nome com a empresa
+   embaixo (pedido de 2026-09-09). */
+.person {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.personCopy {
+  display: grid;
+  min-width: 0;
+  text-align: start;
+}
+
+/* O fio entre as partes, o da casa. */
+.divider {
+  display: block;
+  height: var(--panel-line);
+  background-color: var(--color-border);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lines {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Cada item num cartão no preenchimento da casa. Sem cabeçalho e sem "Item 1" (2026-09-09): em cima o rótulo
+   do seletor com a lixeira na quina, no meio o seletor com o botão de informação à frente, e embaixo os
+   quatro números em duas colunas. */
+.line {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+/* O cabeçalho da linha: a contagem à esquerda, os dois botões miúdos na ponta e o fio separando dos campos
+   (pedido de 2026-09-09). */
+.lineHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding-block-end: var(--space-2);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.lineHeadActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+  margin-block: calc(var(--space-1) * -1);
+}
+
+/* Botão de ícone miúdo, para caber num cabeçalho de 20px sem esticá-lo: duas classes porque o `Button`
+   declara as próprias medidas em Emotion, que empata com uma só. */
+.tiny.tiny {
+  width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.tiny.tiny svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Os dois botões do cabeçalho na mesma tinta, a secundária: o glifo de informação tem traço mais fino que a
+   lixeira e parecia de outra cor (relato de 2026-09-09). */
+.tiny.tiny {
+  color: var(--color-label-secondary);
+}
+
+/* Os quatro números em duas colunas: quantidade e cobrança, unitário e subtotal. Numa coluna de formulário
+   estreita, quatro em fila cortariam o valor. */
+.lineNumbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+  align-items: start;
+}
+
+.addLine {
+  justify-self: start;
+}
+
+.discount {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* As formas de pagamento: o rótulo em cima e as caixas de marcar em duas colunas, como um grupo de campo. */
+.methodsField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+}
+
+.alert {
+  padding-inline: var(--space-5);
+}
+
+/* O plano de parcelas, na ficha que o glifo do campo abre: uma linha por parcela, data e valor. */
+.plan {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.planRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* O gatilho dentro do campo: só o glifo, na tinta secundária, com a mão de ajuda. */
+.planTrigger {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-label-secondary);
+  cursor: help;
+}
+
+.planTrigger svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* A prévia: o fundo agrupado da casa, o fio na divisa e a folha centrada, sem rolagem, porque ela cabe
+   inteira por redução. */
+.preview {
+  display: grid;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow: hidden;
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+@media (min-width: 48rem) {
+  .body[data-form] .preview {
+    border-inline-start: var(--panel-line) solid var(--color-border);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .preview {
+    padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
+  }
+}
+
+/* No celular, rascunho, enviar e copiar ficam no pé da bandeja, acima da barra flutuante, que cuida de
+   salvar e sair. */
+.mobileFoot {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  border-block-start: var(--panel-line) solid var(--color-border);
+}

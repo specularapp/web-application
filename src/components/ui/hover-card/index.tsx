@@ -18,6 +18,18 @@ export type HoverCardProps = {
   width?: number;
   /** Altura estimada em pixels, para a caixa escolher abrir para cima quando não cabe embaixo. */
   height?: number;
+/** O gatilho abre e fecha no clique, e deixa de abrir ao apontar: é o botão de informação, que serve ao dedo
+   *  e não pisca em quem só passa o ponteiro por cima (pedido de 2026-09-09). */
+  openOnClick?: boolean;
+  /** Só num gatilho que é botão: o invólucro deixa de ser bloco e vira linha, para não empurrar o vizinho. */
+  inline?: boolean;
+  /**
+   * O tema em que a caixa desenha, quando ela flutua sobre uma superfície de tema fixo. O documento do
+   * orçamento é sempre claro, em qualquer tema: a caixa portada para o corpo da página herdaria o tema de
+   * lá, e o vidro escuro sobre papel branco vira um borrão cinza, sem fio e sem sombra que se veja (relato
+   * de 2026-09-09). Dizendo o tema, ela é vidro claro sobre papel claro, como em toda a casa.
+   */
+  scheme?: "light" | "dark";
 };
 
 const WIDTH = 320;
@@ -34,11 +46,13 @@ const CLOSE_DELAY = 120;
 // com o essencial, sem abrir a ficha inteira. Só o mouse abre: no dedo não há apontar, e o toque na linha já
 // abre a ficha. Segue aberta enquanto o ponteiro está nela, para dar para ler. Posiciona no gatilho pela
 // mesma receita do menu e anima com o gênio das camadas. O conteúdo é de quem chama, montado com as peças
-// deste módulo: cabeça, nomes, etiquetas, fatos com ícone, fio e o texto em duas linhas.
-export function HoverCard({ content, children, width = WIDTH, height = HEIGHT }: HoverCardProps) {
+// deste módulo: cabeça, nomes, etiquetas, fatos com ícone, fio e o texto em duas linhas. Com `openOnClick`
+// ela troca o apontar pelo clique e fecha no toque fora, que é o que faz dela um botão de informação.
+export function HoverCard({ content, children, width = WIDTH, height = HEIGHT, openOnClick = false, inline = false, scheme }: HoverCardProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const timer = useRef<number | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const { present, state, onAnimationEnd } = usePresence(open);
   const position = useAnchoredPosition(open, triggerRef, { width, height, edge: EDGE, gap: GAP });
 
@@ -55,19 +69,51 @@ export function HoverCard({ content, children, width = WIDTH, height = HEIGHT }:
   useEffect(() => clear, []);
 
   const onEnter = (event: PointerEvent<HTMLElement>) => {
-    if (event.pointerType !== "mouse") return;
+    if (openOnClick || event.pointerType !== "mouse") return;
     schedule(true, OPEN_DELAY);
   };
 
-  const onLeave = () => schedule(false, CLOSE_DELAY);
+  const onLeave = () => {
+    if (openOnClick) return;
+    schedule(false, CLOSE_DELAY);
+  };
+
+  // Abrindo no clique, o toque fora fecha: sem isso, no dedo a caixa ficaria presa na tela, porque não há
+  // ponteiro para sair de cima dela.
+  useEffect(() => {
+    if (!openOnClick || !open) return;
+    const onPointerDown = (event: globalThis.PointerEvent) => {
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target) || cardRef.current?.contains(target)) return;
+      clear();
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [openOnClick, open]);
 
   return (
-    <Trigger ref={triggerRef} onPointerEnter={onEnter} onPointerLeave={onLeave}>
+    <Trigger
+      ref={triggerRef}
+      data-inline={inline || undefined}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+      onClick={
+        openOnClick
+          ? () => {
+              clear();
+              setOpen((state) => !state);
+            }
+          : undefined
+      }
+    >
       {children}
       {present &&
         createPortal(
           <Card
+            ref={cardRef}
             role="tooltip"
+            data-scheme={scheme}
             data-state={state}
             data-placement={position?.placement ?? "below"}
             style={position ? { top: position.top, left: position.left, width: `min(${width}px, calc(100vw - ${EDGE * 2}px))` } : { visibility: "hidden" }}
@@ -98,6 +144,10 @@ export function HoverCardFact({ icon: Glyph, children }: { icon: Icon; children:
 const Trigger = styled.span`
   display: block;
   min-width: 0;
+
+  &[data-inline] {
+    display: inline-flex;
+  }
 `;
 
 /* A camada de vidro da casa, a mesma dos menus: fundo a 20% com borrão, fio fino, sombra e o gênio. O canto

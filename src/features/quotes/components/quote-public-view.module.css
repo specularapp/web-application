@@ -1,0 +1,93 @@
+/* A página pública é só a folha: o fundo agrupado da casa, o documento centrado no que sobra e o container
+   flutuante das ações no rodapé. Nada de texto em volta (pedido de 2026-09-09), porque a folha já diz tudo. */
+.page {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100dvh;
+  padding: var(--space-6) var(--space-4) calc(var(--space-16) + var(--space-4));
+  overflow: hidden;
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+/* No celular a folha é fluida e a página rola, então a altura deixa de ser a da tela. */
+@media (max-width: 47.9375rem) {
+  .page {
+    height: auto;
+    min-height: 100dvh;
+    padding: var(--space-3) var(--space-3) calc(var(--space-16) + var(--space-3));
+    overflow: visible;
+  }
+}
+
+.paper {
+  min-height: 0;
+}
+
+/* O container das ações, na receita do visualizador de anexos: vidro da casa, fio fino, sombra grande e o
+   raio `lg`, preso no rodapé e centrado. */
+.toolbar {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: var(--z-popover);
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: calc(100vw - var(--space-8));
+  padding: var(--space-1);
+  background-color: var(--glass-layer-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  translate: -50% 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .toolbar {
+    --control-height-sm: 2rem;
+    --icon-button-radius-sm: 1rem;
+    --touch-target: 2rem;
+
+    inset-block-end: var(--space-3);
+    border-radius: var(--radius-md);
+  }
+}
+
+/* O fio de dentro separa o que é do documento do que é resposta do cliente, mais baixo que a caixa. */
+.divider {
+  align-self: center;
+  width: 0.0375rem;
+  height: calc(var(--control-height-sm) - var(--space-3));
+  margin-inline: var(--space-1);
+  background-color: var(--color-border);
+}
+
+.answered {
+  padding-inline: var(--space-2);
+  white-space: nowrap;
+}
+
+/* Impressa, a página desaparece e sobra a folha: sem fundo, sem recuo, sem altura de tela e sem o container
+   flutuante. O `@page` sem margem é o que deixa a folha ocupar o papel inteiro (pedido de 2026-09-09). */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  .page {
+    display: block;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    background: none;
+  }
+
+  .toolbar {
+    display: none;
+  }
+}

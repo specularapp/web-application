@@ -97,15 +97,9 @@ export const navGroups: NavGroup[] = [
       { label: "Clientes", href: "/clientes", icon: AddressBookIcon },
       { label: "Funil de vendas", href: "/crm", icon: BuildingsIcon },
       { label: "Produtos e serviços", href: "/catalogo", icon: TagIcon },
-      {
-        label: "Orçamento",
-        icon: ReceiptIcon,
-        hue: "var(--sys-orange)",
-        items: [
-          { label: "Acompanhar", href: "/orcamentos", icon: ReceiptIcon },
-          { label: "Gerar orçamento", href: "/orcamentos/novo", icon: ReceiptIcon },
-        ],
-      },
+      /* Orçar e acompanhar são a mesma tela (2026-09-09): a lista em tabela, com o editor abrindo por cima. A
+         pasta com "Acompanhar" e "Gerar orçamento" saiu. */
+      { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
       {
         label: "Financeiro",
         icon: CurrencyCircleDollarIcon,

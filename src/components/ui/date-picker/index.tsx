@@ -127,11 +127,19 @@ const Popover = styled.div`
   z-index: var(--z-popover);
   width: min(20rem, calc(100vw - 2rem));
   padding: var(--space-3);
-  background-color: var(--color-bg-grouped-secondary);
+  /* Vidro da casa, como o painel do listbox e as camadas do menu (pedido de 2026-09-09). Na bandeja do
+     celular o vidro é o da bandeja, mais corpo, porque ali o conteúdo da página passa perto do texto.
+     Os seletores de mês e ano abrem por cima deste vidro, então eles recebem a superfície da bandeja: vidro
+     a 20% sobre vidro a 20% ficava quase invisível. */
+  --listbox-panel-bg: var(--glass-sheet-bg);
+
+  background-color: var(--glass-layer-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
   transform-origin: var(--origin);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
@@ -142,6 +150,7 @@ const Popover = styled.div`
     z-index: var(--z-modal);
     width: 100%;
     padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    background-color: var(--glass-sheet-bg);
     border-bottom: 0;
     border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
     transform-origin: bottom;
