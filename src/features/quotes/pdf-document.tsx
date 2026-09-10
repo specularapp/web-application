@@ -155,15 +155,21 @@ const styles = StyleSheet.create({
   /* A assinatura de quem responde (2026-09-10): o selo em círculo e o registro ao lado, centrados na folha,
      com 4px até o fio que vem depois. A linha em branco para assinar à mão saiu com ela, e a versão escrita
      na Sacramento durou uma rodada e saiu no mesmo dia. */
-  signature: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s4, paddingTop: space.s6, paddingBottom: space.s1, marginTop: "auto" },
-  signatureRegistry: { gap: space.half, flexShrink: 1 },
+  signature: { alignItems: "center", gap: space.s2, paddingTop: space.s5, paddingBottom: space.s1, marginTop: "auto" },
+  /* A linha de assinar, numa largura própria: ela é do bloco, e não da folha. */
+  signatureRule: { width: pt(256), height: hairline, backgroundColor: ink.tertiary },
+  signatureCredit: { flexDirection: "row", alignItems: "center", gap: space.s3 },
+  signatureRegistry: { gap: 0, flexShrink: 1 },
+  /* O selo é quadrado na altura do bloco de texto ao lado. Aqui a medida é escrita, e não esticada como na
+     tela: o react-pdf não tem `align-self: stretch` nem `aspect-ratio`, então a altura sai da conta das
+     quatro linhas do registro, que é o que a constante compartilhada guarda. */
   signatureSeal: { width: pt(SIGNATURE_SEAL), height: pt(SIGNATURE_SEAL) },
-  signatureNote: { ...text(type.subheadline), color: ink.secondary, letterSpacing: type.subheadline * tracking.tight },
+  signatureNote: { ...text(type.caption2, leading.tight), color: ink.secondary, letterSpacing: type.caption2 * tracking.tight },
   /* A emissora se separa das três linhas de cima: elas dizem quem assinou, ela diz de onde o documento saiu. */
-  signatureHost: { marginTop: space.s2 },
+  signatureHost: { marginTop: space.s1, color: ink.tertiary },
   /* O nome do registro em caixa alta: o react-pdf não tem `text-transform`, então quem escreve o texto o
      entrega já maiúsculo. */
-  signatureName: { ...text(type.title3), fontWeight: weight.semibold, letterSpacing: type.title3 * 0.02 },
+  signatureName: { ...text(type.footnote, leading.tight), fontWeight: weight.semibold, letterSpacing: type.footnote * 0.02 },
 
   seal: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s1, paddingTop: space.s4 },
   sealText: { ...text(type.caption2), color: ink.tertiary, letterSpacing: type.caption2 * tracking.tight },
@@ -477,12 +483,15 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
           {/* A assinatura, a mesma peça da tela: o selo de quem vendeu em círculo (ou a marca da Specular,
               quando não há foto) e, ao lado, o registro do documento assinado. */}
           <View style={styles.signature}>
-            <Picture src={images.signature} style={styles.signatureSeal} />
-            <View style={styles.signatureRegistry}>
-              <Text style={styles.signatureNote}>Documento assinado digitalmente</Text>
-              <Text style={styles.signatureName}>{quote.owner.name.toLocaleUpperCase("pt-BR")}</Text>
-              {signedAt && <Text style={styles.signatureNote}>Data: {signedAt}</Text>}
-              <Text style={[styles.signatureNote, styles.signatureHost]}>Emitido pelo {siteConfig.hosts.app}</Text>
+            <View style={styles.signatureRule} />
+            <View style={styles.signatureCredit}>
+              <Picture src={images.signature} style={styles.signatureSeal} />
+              <View style={styles.signatureRegistry}>
+                <Text style={styles.signatureNote}>Documento assinado digitalmente</Text>
+                <Text style={styles.signatureName}>{quote.owner.name.toLocaleUpperCase("pt-BR")}</Text>
+                {signedAt && <Text style={styles.signatureNote}>Data: {signedAt}</Text>}
+                <Text style={[styles.signatureNote, styles.signatureHost]}>Emitido pelo {siteConfig.hosts.app}</Text>
+              </View>
             </View>
           </View>
 

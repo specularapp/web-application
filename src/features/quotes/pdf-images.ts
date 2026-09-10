@@ -144,8 +144,14 @@ export type QuotePdfImages = {
   lines: Record<string, PdfImage>;
 };
 
-/** O lado do selo da assinatura, na medida que a folha usa. */
-export const SIGNATURE_SEAL = 64;
+/**
+ * O lado do selo da assinatura, em pixels da folha: ele é quadrado **na altura do bloco de texto ao lado**
+ * (pedido de 2026-09-10), e a conta é a das quatro linhas do registro na entrelinha apertada — três em
+ * `caption2` (11px), o nome em `footnote` (13px) e o respiro de 4px antes da emissora. Na tela quem faz isso
+ * é o `stretch` do flex, que mede sozinho; aqui a medida precisa ser escrita, porque o react-pdf não tem
+ * `align-self: stretch` nem `aspect-ratio`, e é este número que mantém as duas folhas iguais.
+ */
+export const SIGNATURE_SEAL = Math.round((11 * 1.2 * 3 + 13 * 1.2 + 4) * 10) / 10;
 
 /** Tudo que o documento desenha, resolvido antes de o PDF começar: o react-pdf monta a página de uma vez. */
 export async function quotePdfImages(quote: Quote): Promise<QuotePdfImages> {

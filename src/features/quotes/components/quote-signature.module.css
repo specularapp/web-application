@@ -1,33 +1,64 @@
-/* A assinatura fecha o documento, centrada na folha: a margem automática a empurra para o pé numa folha de
-   altura fixa, e numa folha de altura livre ela segue logo depois do conteúdo. O respiro de baixo é o de 4px
-   até o fio que vem depois dela (pedido de 2026-09-10), então o selo e o registro assentam colados nele em
-   vez de flutuarem no meio do vão. */
+/* A assinatura fecha o documento: a margem automática a empurra para o pé numa folha de altura fixa, e numa
+   folha de altura livre ela segue logo depois do conteúdo. É uma coluna centrada, com a linha em cima e o
+   registro embaixo dela, e o respiro de baixo é o de 4px até o fio que vem depois (pedido de 2026-09-10),
+   então o bloco assenta colado nele em vez de flutuar no meio do vão. */
 .signature {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
   min-width: 0;
-  padding-block: var(--space-6) var(--space-1);
+  padding-block: var(--space-5) var(--space-1);
   margin-block-start: auto;
 }
 
-/* O selo de quem assinou, em círculo: a foto de quem vendeu, ou o rosto desenhado quando não há foto. A
-   medida entra pela variável que o próprio `Avatar` usa, e não por um tamanho novo no primitivo, porque este
-   é o único lugar da casa que precisa dela; e para de crescer aqui de propósito, porque o `sizes` da imagem
-   do `Avatar` pede o arquivo na medida do tamanho declarado e uma foto muito ampliada sairia borrada. O
-   `flex-shrink` protege o selo: num nome comprido o texto cede por reticências, e ele nunca. */
-.seal {
-  --avatar-size: 4rem;
+/* A linha da assinatura, a de assinar em cima do nome (pedido de 2026-09-10): o fio da folha numa largura
+   própria, e não de ponta a ponta, porque ela pertence ao bloco e não à folha. A largura é declarada porque
+   um fio vazio não tem conteúdo para medir, e num grid que centra os itens ele nasceria com zero. */
+.rule {
+  display: block;
+  width: 16rem;
+  max-width: 100%;
+  height: var(--doc-line);
+  background-color: var(--color-label-tertiary);
+}
 
+/* O selo e o registro lado a lado, na medida enxuta: a peça é o rodapé do documento, e não um bloco de
+   destaque, então tudo aqui é um degrau abaixo da escala do corpo. */
+.credit {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* O selo de quem assinou, em círculo: a foto de quem vendeu, ou o rosto desenhado quando não há foto. **Ele
+   tem a altura do bloco de texto ao lado** (pedido de 2026-09-10): `stretch` no item de flex mais
+   `aspect-ratio` quadrado o faz acompanhar o texto sozinho, em vez de uma medida escrita à mão que sai de
+   sincronia assim que a fonte ou a entrelinha muda.
+
+   A classe vem dobrada e a medida em `width` e `height`, e não pela variável do `Avatar`: o `data-size` dele
+   redeclara `--avatar-size` e as medidas num seletor de classe mais atributo, que vence uma classe só. */
+.seal.seal {
   flex-shrink: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 /* O registro ao lado do selo: quem assinou, quando, e por onde o documento saiu. */
 .registry {
   display: grid;
-  gap: var(--space-half);
+  gap: 0;
   min-width: 0;
+}
+
+/* As linhas do registro andam apertadas: quatro linhas na entrelinha do corpo (1,45) fazem um bloco alto
+   demais para o rodapé de um documento, e como o selo acompanha a altura dele, a peça inteira crescia junto.
+   O seletor alcança os parágrafos por elemento, porque a classe do `Text` vem de outro módulo, e vence a
+   entrelinha da variante por ter um elemento a mais. */
+.registry > p {
+  line-height: var(--leading-tight);
 }
 
 /* O nome do registro em caixa alta, que é como um comprovante escreve quem assinou. A classe vem dobrada
@@ -38,7 +69,8 @@
   text-transform: uppercase;
 }
 
-/* A emissora se separa das três linhas de cima: elas dizem quem assinou, ela diz de onde o documento saiu. */
+/* A emissora se separa das linhas de cima por um fio de respiro: elas dizem quem assinou, ela diz de onde o
+   documento saiu. */
 .host {
-  margin-block-start: var(--space-2);
+  margin-block-start: var(--space-1);
 }
