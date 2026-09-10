@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { saveTeamAction } from "@/features/organizations/actions";
 import {
   normalizeWebsite,
+  organizationLimits,
   slugFromName,
   type ImageKind,
   type OrganizationIndustry,
@@ -138,6 +139,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
               type="text"
               name="name"
               value={name}
+              maxLength={organizationLimits.name}
               placeholder="Como seu time se chama"
               autoComplete="organization"
               required

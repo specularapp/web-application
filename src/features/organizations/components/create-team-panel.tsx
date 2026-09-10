@@ -23,7 +23,7 @@ import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-
 import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
 import { inviteMemberAction, saveTeamAction, switchTeamAction } from "../actions";
 import { CREATE_TEAM_PLAN } from "../constants";
-import type { ImageKind, InvitableRole, OrganizationIndustry } from "../schemas";
+import { organizationLimits, type ImageKind, type InvitableRole, type OrganizationIndustry } from "../schemas";
 import { uploadTeamImage } from "../upload";
 
 /** Quem está criando: entra na lista de pessoas já como proprietário, porque é o que o banco fará. */
@@ -356,6 +356,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
               type="text"
               name="name"
               value={name}
+              maxLength={organizationLimits.name}
               placeholder="Como a equipe se chama"
               autoComplete="organization"
               required

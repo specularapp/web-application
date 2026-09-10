@@ -20,7 +20,7 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { onlyDigits } from "@/lib/masks";
 import { saveCatalogItemAction } from "../actions";
 import { catalogHueFor, kindLabels, unitLabels } from "../list-options";
-import { catalogKinds, catalogUnits, MAX_LIST_ITEMS, type CatalogFormInput } from "../schemas";
+import { catalogKinds, catalogLimits, catalogUnits, MAX_LIST_ITEMS, type CatalogFormInput } from "../schemas";
 import type { CatalogItem, CatalogKind, CatalogUnit } from "../summary";
 import { CatalogArtwork } from "./catalog-artwork";
 import styles from "./catalog-form-dialog.module.css";
@@ -288,7 +288,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
               <Select<CatalogKind> label="Tipo do item" options={kindOptions} value={values.kind} disabled={saving} onChange={(kind) => set("kind", kind)} />
             </Field>
             <Field label="Categoria" required error={errorOf("category")}>
-              <Input type="text" name="category" list={categoriesId} value={values.category} placeholder="Aplicação web, Marketing" autoComplete="off" disabled={saving} onChange={(event) => set("category", event.target.value)} />
+              <Input type="text" name="category" list={categoriesId} value={values.category} maxLength={catalogLimits.category} placeholder="Aplicação web, Marketing" autoComplete="off" disabled={saving} onChange={(event) => set("category", event.target.value)} />
             </Field>
           </div>
           <datalist id={categoriesId}>
@@ -297,10 +297,10 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
             ))}
           </datalist>
           <Field label="Nome" required error={errorOf("name")}>
-            <Input type="text" name="name" value={values.name} placeholder={service ? "Landing page" : "Certificado SSL"} required disabled={saving} onChange={(event) => set("name", event.target.value)} />
+            <Input type="text" name="name" value={values.name} maxLength={catalogLimits.name} placeholder={service ? "Landing page" : "Certificado SSL"} required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
           <Field label="Descrição" required hint="Uma ou duas frases: o cartão mostra as duas primeiras linhas" error={errorOf("description")}>
-            <Textarea name="description" value={values.description} rows={2} placeholder="O que é e o que a pessoa leva" disabled={saving} onChange={(event) => set("description", event.target.value)} />
+            <Textarea name="description" value={values.description} rows={2} maxLength={catalogLimits.description} placeholder="O que é e o que a pessoa leva" disabled={saving} onChange={(event) => set("description", event.target.value)} />
           </Field>
         </Section>
 
@@ -362,16 +362,16 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
 
         <Section icon={ListChecksIcon} title="Escopo e anotações">
           <Field label="A entrega inclui" hint="Um item por vez, Enter para adicionar" error={errorOf("deliverables")}>
-            <TagInput value={values.deliverables} placeholder="Layout aprovado em protótipo" max={MAX_LIST_ITEMS} disabled={saving} onChange={(deliverables) => set("deliverables", deliverables)} />
+            <TagInput value={values.deliverables} placeholder="Layout aprovado em protótipo" max={MAX_LIST_ITEMS} maxLength={catalogLimits.listItem} disabled={saving} onChange={(deliverables) => set("deliverables", deliverables)} />
           </Field>
           <Field label="Pedimos ao cliente" error={errorOf("requirements")}>
-            <TagInput value={values.requirements} placeholder="Identidade visual e textos" max={MAX_LIST_ITEMS} disabled={saving} onChange={(requirements) => set("requirements", requirements)} />
+            <TagInput value={values.requirements} placeholder="Identidade visual e textos" max={MAX_LIST_ITEMS} maxLength={catalogLimits.listItem} disabled={saving} onChange={(requirements) => set("requirements", requirements)} />
           </Field>
           <Field label="Etiquetas" error={errorOf("tags")}>
-            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_LIST_ITEMS} disabled={saving} onChange={(tags) => set("tags", tags)} />
+            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_LIST_ITEMS} maxLength={catalogLimits.tag} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
           <Field label="Anotações da equipe" error={errorOf("notes")}>
-            <Textarea name="notes" value={values.notes} rows={3} placeholder="O que a equipe precisa lembrar ao orçar este item" disabled={saving} onChange={(event) => set("notes", event.target.value)} />
+            <Textarea name="notes" value={values.notes} rows={3} maxLength={catalogLimits.notes} placeholder="O que a equipe precisa lembrar ao orçar este item" disabled={saving} onChange={(event) => set("notes", event.target.value)} />
           </Field>
         </Section>
 

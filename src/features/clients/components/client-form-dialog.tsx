@@ -34,7 +34,7 @@ import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { loadClientAction, saveClientAction } from "../actions";
 import type { ClientListItem } from "../list-options";
-import type { ClientFormInput } from "../schemas";
+import { clientLimits, MAX_TAGS, type ClientFormInput } from "../schemas";
 import type { Client } from "../summary";
 import styles from "./client-form-dialog.module.css";
 
@@ -55,8 +55,6 @@ export type ClientFormDialogProps = {
 
 /** Tamanho máximo da foto e da logo, em bytes: 2 MB, o mesmo teto da logo da equipe. */
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
-/** Quantas etiquetas uma ficha aceita, o mesmo teto do zod. */
-const MAX_TAGS = 12;
 
 /* O formulário guarda texto cru; a ficha guarda tipos. A conversão mora aqui, num lugar só. */
 function valuesOf(client?: Client) {
@@ -343,14 +341,14 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
             />
           </div>
           <Field label="Nome" required error={errorOf("name")}>
-            <Input type="text" name="name" value={values.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
+            <Input type="text" name="name" value={values.name} maxLength={clientLimits.name} placeholder="Nome completo" autoComplete="name" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
           <div className={styles.pair}>
             <Field label="Empresa" error={errorOf("company")}>
-              <Input type="text" name="company" value={values.company} placeholder="Onde trabalha" autoComplete="organization" disabled={saving} onChange={(event) => set("company", event.target.value)} />
+              <Input type="text" name="company" value={values.company} maxLength={clientLimits.company} placeholder="Onde trabalha" autoComplete="organization" disabled={saving} onChange={(event) => set("company", event.target.value)} />
             </Field>
             <Field label="Área" error={errorOf("role")}>
-              <Input type="text" name="role" value={values.role} placeholder="O que a empresa faz" disabled={saving} onChange={(event) => set("role", event.target.value)} />
+              <Input type="text" name="role" value={values.role} maxLength={clientLimits.role} placeholder="O que a empresa faz" disabled={saving} onChange={(event) => set("role", event.target.value)} />
             </Field>
           </div>
         </Section>
@@ -360,7 +358,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
         <Section icon={PhoneIcon} title="Contato">
           <div className={styles.pair}>
             <Field label="E-mail" error={errorOf("email")}>
-              <Input type="email" name="email" value={values.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} onChange={(event) => set("email", event.target.value)} />
+              <Input type="email" name="email" value={values.email} maxLength={clientLimits.email} placeholder="pessoa@empresa.com.br" autoComplete="email" inputMode="email" disabled={saving} onChange={(event) => set("email", event.target.value)} />
             </Field>
             <Field label="Telefone" error={errorOf("phone")}>
               <Input type="tel" name="phone" mask="phone" value={values.phone} placeholder="(11) 99999-9999" autoComplete="tel-national" disabled={saving} onChange={(event) => set("phone", onlyDigits(event.target.value))} />
@@ -372,6 +370,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
                 type="text"
                 name="website"
                 value={values.website}
+                maxLength={clientLimits.website}
                 placeholder="empresa.com.br"
                 autoComplete="url"
                 inputMode="url"
@@ -382,7 +381,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
               />
             </Field>
             <Field label="Cidade" error={errorOf("city")}>
-              <Input type="text" name="city" value={values.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} onChange={(event) => set("city", event.target.value)} />
+              <Input type="text" name="city" value={values.city} maxLength={clientLimits.city} placeholder="São Paulo, SP" autoComplete="address-level2" disabled={saving} onChange={(event) => set("city", event.target.value)} />
             </Field>
           </div>
         </Section>
@@ -391,10 +390,10 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
 
         <Section icon={NotePencilIcon} title="Detalhes">
           <Field label="Anotações" error={errorOf("about")}>
-            <Textarea name="about" value={values.about} rows={3} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
+            <Textarea name="about" value={values.about} rows={3} maxLength={clientLimits.about} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
           </Field>
           <Field label="Etiquetas" error={errorOf("tags")}>
-            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
+            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_TAGS} maxLength={clientLimits.tag} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
         </Section>
 

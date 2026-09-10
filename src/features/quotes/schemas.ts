@@ -7,14 +7,27 @@ export const paymentMethodValues = ["pix", "transfer", "boleto", "card"] as cons
 /** Quantas linhas um orçamento aceita. */
 export const MAX_LINES = 30;
 
+/**
+ * O teto de cada campo de texto, num lugar só: é daqui que sai tanto a validação do servidor quanto o
+ * `maxLength` do campo na tela, então o campo para de aceitar no mesmo ponto em que o zod recusaria (a
+ * pedido, 2026-09-10: sem o teto no campo, um título de mil caracteres passava pela tela e só quebrava o
+ * layout do documento e do cartão). Dois números para a mesma regra é como eles saem de sincronia.
+ */
+export const quoteLimits = {
+  title: 120,
+  lineName: 80,
+  lineDescription: 240,
+  notes: 1000,
+} as const;
+
 const int = z.number().int();
 const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
 
 const lineSchema = z.object({
   id: z.string().trim().min(1),
   catalogItemId: z.string().trim().min(1).nullable(),
-  name: z.string().trim().min(2, "Informe o nome do item").max(80, "Nome longo demais"),
-  description: z.string().trim().max(240, "Descrição longa demais"),
+  name: z.string().trim().min(2, "Informe o nome do item").max(quoteLimits.lineName, "Nome longo demais"),
+  description: z.string().trim().max(quoteLimits.lineDescription, "Descrição longa demais"),
   quantity: z.number().min(0.01, "Informe a quantidade").max(9999, "Quantidade alta demais"),
   unitPrice: int.min(1, "Informe o valor unitário"),
   unit: z.enum(catalogUnits),
@@ -29,7 +42,7 @@ export const quoteFormSchema = z
   .object({
     /** Presente na edição; ausente na criação. */
     id: z.string().trim().min(1).optional(),
-    title: z.string().trim().min(3, "Dê um título ao orçamento").max(120, "Título longo demais"),
+    title: z.string().trim().min(3, "Dê um título ao orçamento").max(quoteLimits.title, "Título longo demais"),
     clientId: z.string().trim().min(1, "Escolha o cliente"),
     issuedAt: isoDay,
     validUntil: isoDay.nullable(),
@@ -43,7 +56,7 @@ export const quoteFormSchema = z
     installments: int.min(1, "Ao menos uma parcela").max(24, "No máximo 24 parcelas"),
     paymentMethods: z.array(z.enum(paymentMethodValues)).min(1, "Escolha ao menos uma forma de pagamento"),
     cashDiscount: int.min(0, "O desconto não pode ser negativo").max(100, "O desconto vai até 100%"),
-    notes: z.string().trim().max(1000, "Observações longas demais"),
+    notes: z.string().trim().max(quoteLimits.notes, "Observações longas demais"),
     /** Salvar como rascunho ou já marcar como enviado. */
     intent: z.enum(["draft", "send"]),
   })

@@ -17,16 +17,23 @@ export type MemberRole = z.infer<typeof memberRoleSchema>;
 export type InvitableRole = z.infer<typeof invitableRoleSchema>;
 export type OrganizationIndustry = z.infer<typeof organizationIndustrySchema>;
 
-export const organizationNameSchema = z.string().trim().min(2).max(80);
+/**
+ * O teto de cada campo de texto da equipe, num lugar só: é daqui que sai a validação do servidor e o
+ * `maxLength` do campo na tela (a pedido, 2026-09-10). O nome da equipe assina o documento do orçamento,
+ * então um nome sem fim quebraria o cabeçalho da folha.
+ */
+export const organizationLimits = { name: 80, slug: 40, inviteName: 120, inviteEmail: 254 } as const;
+
+export const organizationNameSchema = z.string().trim().min(2).max(organizationLimits.name);
 export const organizationSlugSchema = z
   .string()
   .trim()
   .toLowerCase()
   .min(3)
-  .max(40)
+  .max(organizationLimits.slug)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
 
-export const inviteNameSchema = z.string().trim().min(2).max(120);
+export const inviteNameSchema = z.string().trim().min(2).max(organizationLimits.inviteName);
 export const inviteEmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 export const inviteTokenSchema = z.string().regex(/^[0-9a-f]{64}$/);
 

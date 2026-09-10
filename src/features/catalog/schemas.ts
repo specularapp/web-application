@@ -20,14 +20,28 @@ const days = int.min(1, "Informe o prazo em dias").max(730, "Prazo longo demais"
  * centavos, como em todo lugar do produto; prazo e revisões só fazem sentido em serviço, estoque só em
  * produto, e o formulário manda nulo no que não se aplica.
  */
+/**
+ * O teto de cada campo de texto, num lugar só: é daqui que sai tanto a validação do servidor quanto o
+ * `maxLength` do campo na tela (a pedido, 2026-09-10), então o campo para de aceitar no mesmo ponto em que o
+ * zod recusaria, e uma descrição sem fim não chega a quebrar o cartão nem a ficha.
+ */
+export const catalogLimits = {
+  name: 80,
+  description: 400,
+  category: 40,
+  listItem: 80,
+  tag: 30,
+  notes: 1000,
+} as const;
+
 export const catalogFormSchema = z
   .object({
     /** Presente na edição; ausente na criação. */
     id: z.string().trim().min(1).optional(),
     kind: z.enum(catalogKinds),
-    name: z.string().trim().min(2, "Informe o nome do item").max(80, "Nome longo demais"),
-    description: z.string().trim().min(10, "Descreva o item em uma ou duas frases").max(400, "Descrição longa demais"),
-    category: z.string().trim().min(2, "Informe a categoria").max(40, "Categoria longa demais"),
+    name: z.string().trim().min(2, "Informe o nome do item").max(catalogLimits.name, "Nome longo demais"),
+    description: z.string().trim().min(10, "Descreva o item em uma ou duas frases").max(catalogLimits.description, "Descrição longa demais"),
+    category: z.string().trim().min(2, "Informe a categoria").max(catalogLimits.category, "Categoria longa demais"),
     price: int.min(1, "Informe o preço"),
     unit: z.enum(catalogUnits),
     /** Custo direto estimado; nulo quando a equipe não mede. */
@@ -44,10 +58,10 @@ export const catalogFormSchema = z
         minimum: int.min(0, "O aviso não pode ser negativo"),
       })
       .nullable(),
-    deliverables: z.array(z.string().trim().min(1).max(80, "Entregável longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} entregáveis`),
-    requirements: z.array(z.string().trim().min(1).max(80, "Pré-requisito longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} pré-requisitos`),
-    tags: z.array(z.string().trim().min(1).max(30, "Etiqueta longa demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} etiquetas`),
-    notes: z.string().trim().max(1000, "Anotação longa demais"),
+    deliverables: z.array(z.string().trim().min(1).max(catalogLimits.listItem, "Entregável longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} entregáveis`),
+    requirements: z.array(z.string().trim().min(1).max(catalogLimits.listItem, "Pré-requisito longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} pré-requisitos`),
+    tags: z.array(z.string().trim().min(1).max(catalogLimits.tag, "Etiqueta longa demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} etiquetas`),
+    notes: z.string().trim().max(catalogLimits.notes, "Anotação longa demais"),
     active: z.boolean(),
   })
   .superRefine((data, ctx) => {

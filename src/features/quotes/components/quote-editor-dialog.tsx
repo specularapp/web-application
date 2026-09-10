@@ -43,7 +43,7 @@ import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import { saveQuoteAction } from "../actions";
 import { paymentMethods } from "../labels";
-import { MAX_LINES, paymentMethodValues, type QuoteFormInput } from "../schemas";
+import { MAX_LINES, paymentMethodValues, quoteLimits, type QuoteFormInput } from "../schemas";
 import { quoteShareUrl } from "../share";
 import type { Quote, QuoteCourtesy, QuoteIssuer, QuotePaymentMethod, QuotePerson } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
@@ -613,12 +613,20 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         {line.catalogItemId === null && (
           <>
             <Field label="Nome" required error={lineError(index, "name")}>
-              <Input type="text" value={line.name} placeholder="O que está sendo orçado" disabled={saving !== null} onChange={(event) => setLine(line.id, { name: event.target.value })} />
+              <Input
+                type="text"
+                value={line.name}
+                maxLength={quoteLimits.lineName}
+                placeholder="O que está sendo orçado"
+                disabled={saving !== null}
+                onChange={(event) => setLine(line.id, { name: event.target.value })}
+              />
             </Field>
             <Field label="Descrição" error={lineError(index, "description")}>
               <Input
                 type="text"
                 value={line.description}
+                maxLength={quoteLimits.lineDescription}
                 placeholder="O que a linha entrega, em uma frase"
                 disabled={saving !== null}
                 onChange={(event) => setLine(line.id, { description: event.target.value })}
@@ -835,6 +843,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                   type="text"
                   name="title"
                   value={values.title}
+                  maxLength={quoteLimits.title}
                   placeholder="Site institucional e identidade visual"
                   disabled={saving !== null}
                   onChange={(event) => set("title", event.target.value)}
@@ -1079,6 +1088,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                   name="notes"
                   value={values.notes}
                   rows={3}
+                  maxLength={quoteLimits.notes}
                   placeholder="Prazos, o que precisa chegar do cliente, o que fica de fora"
                   disabled={saving !== null}
                   onChange={(event) => set("notes", event.target.value)}

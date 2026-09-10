@@ -14,6 +14,8 @@ export type TagInputProps = {
   required?: boolean;
   /** Teto de etiquetas; chegando nele o campo para de aceitar. */
   max?: number;
+  /** Teto de caracteres de cada etiqueta, o mesmo que o zod valida no servidor. */
+  maxLength?: number;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 };
@@ -131,6 +133,7 @@ export function TagInput({
   invalid = false,
   required,
   max,
+  maxLength,
   ...aria
 }: TagInputProps) {
   const [draft, setDraft] = useState("");
@@ -189,6 +192,7 @@ export function TagInput({
         id={id}
         type="text"
         value={draft}
+        maxLength={maxLength}
         placeholder={value.length === 0 ? placeholder : full ? "" : "Adicionar"}
         disabled={disabled || full}
         required={required && value.length === 0}
