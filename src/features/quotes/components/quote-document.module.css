@@ -538,29 +538,6 @@
   border-block-start: var(--doc-line) solid var(--color-border);
 }
 
-/* A assinatura fecha o documento, centrada: a folga acima da linha é onde o vendedor assina, e embaixo dela
-   ficam o nome e a equipe. A margem automática empurra o bloco para o pé, então numa folha alta ele assenta
-   embaixo em vez de flutuar no meio. */
-.signature {
-  display: grid;
-  gap: var(--space-half);
-  place-items: center;
-  padding-block-start: var(--space-6);
-  /* Numa folha de altura fixa, a margem automática empurra a assinatura e o que vem depois dela para o pé,
-     e o resto do documento assenta no topo; numa folha de altura livre, ela não faz nada e a assinatura
-     segue logo depois do conteúdo. Mesmo desenho nas duas telas (acerto de 2026-09-09). */
-  margin-block-start: auto;
-  text-align: center;
-}
-
-.signatureSpace {
-  display: block;
-  width: min(18rem, 100%);
-  height: 3rem;
-  margin-block-end: var(--space-2);
-  border-block-end: var(--doc-line) solid var(--color-label-tertiary);
-}
-
 /* As ações do cliente vêm depois da assinatura, centradas e acima do fio: elas são da tela, não do
    documento, e somem na impressão. */
 .actions {

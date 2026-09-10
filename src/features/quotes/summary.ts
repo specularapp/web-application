@@ -3,7 +3,15 @@ import type { CatalogUnit } from "@/features/catalog/summary";
 /** Onde o orçamento está: é o que decide a etiqueta ao lado do título. */
 export type QuoteStatus = "draft" | "sent" | "viewed" | "approved" | "declined" | "expired";
 
-export type QuotePerson = { name: string; avatarUrl: string | null };
+/**
+ * Como a assinatura de quem responde pelo orçamento é desenhada no documento (2026-09-10, a pedido):
+ * `written` escreve o nome à mão, na Sacramento, e `digital` mostra a foto da pessoa com o registro do
+ * documento assinado, sem letra nenhuma. É preferência de quem assina, então vive na pessoa e não no
+ * orçamento; **a tela que a escolhe entra depois**, e por ora o valor é fixo para ver o desenho.
+ */
+export type QuoteSignatureStyle = "written" | "digital";
+
+export type QuotePerson = { name: string; avatarUrl: string | null; signatureStyle?: QuoteSignatureStyle };
 
 /** Como o cliente paga, escrito no documento junto das parcelas. */
 export type QuotePaymentMethod = "pix" | "transfer" | "boleto" | "card";

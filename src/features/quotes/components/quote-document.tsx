@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/utils/format";
 import { paymentBrandLogos, paymentMethods } from "../labels";
 import type { Quote, QuoteLine } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
+import { QuoteSignature } from "./quote-signature";
 import styles from "./quote-document.module.css";
 
 export type QuoteDocumentProps = {
@@ -356,17 +357,11 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
         </section>
       )}
 
-      {/* O espaço da assinatura fecha o documento, centrado: a folga acima da linha é onde o vendedor assina,
-          na tela ou no papel. */}
-      <section className={styles.signature} aria-label="Assinatura do vendedor">
-        <span className={styles.signatureSpace} aria-hidden="true" />
-        <Text as="p" variant="subheadline" weight="semibold">
-          {quote.owner.name}
-        </Text>
-        <Text as="p" variant="caption1" tone="secondary">
-          {quote.issuer.name}
-        </Text>
-      </section>
+      {/* A assinatura de quem responde pelo orçamento fecha o documento (2026-09-10, a pedido, no lugar da
+          linha em branco que existia para assinar à mão): escrita na Sacramento ou digital com a foto, pela
+          preferência de quem assina. A data do registro é a do envio, que é quando o documento saiu assinado;
+          num rascunho ainda não há envio, então o registro não aparece. */}
+      <QuoteSignature owner={quote.owner} signedAt={quote.sentAt} host={siteConfig.hosts.app} />
 
       {actions && <div className={styles.actions}>{actions}</div>}
 

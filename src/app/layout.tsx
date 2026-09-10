@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Sacramento } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -12,6 +12,10 @@ import { readThemeCookie, themeAttribute } from "@/lib/theme";
 import "@/styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+
+/* A fonte da assinatura escrita do documento, e só dela: é a letra de quem assina, não um segundo tipo da
+   casa. Um peso só, porque assinatura não tem variação de peso. */
+const sacramento = Sacramento({ subsets: ["latin"], weight: "400", variable: "--font-sacramento", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -72,7 +76,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={inter.variable}
+      className={`${inter.variable} ${sacramento.variable}`}
       data-theme={theme}
       data-scroll={authScreen ? "locked" : undefined}
     >
