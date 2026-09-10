@@ -5,9 +5,11 @@
    de flutuar no meio do vão. */
 .signature {
   /* O lado do selo, que é a altura do bloco de texto ao lado: três linhas em `caption2` e o nome em
-     `footnote`, todos na entrelinha apertada, mais o respiro antes da emissora. A mesma conta que o PDF faz
-     na constante `SIGNATURE_SEAL`, porque as duas folhas são a mesma. */
-  --signature-seal: calc(var(--text-caption-2) * var(--leading-tight) * 3 + var(--text-footnote) * var(--leading-tight) + var(--space-1));
+     `footnote`, todos na entrelinha apertada, mais o respiro antes da emissora, o que dá 59px. O número vem
+     escrito, e não em `calc` sobre os tokens, porque o PDF precisa dele **inteiro** (o `sharp` recusa pixel
+     fracionário e o 59,2 da conta exata derrubava a rota) e as duas folhas têm de bater: quem muda um lado
+     muda o outro, e a constante `SIGNATURE_SEAL` guarda a conta. */
+  --signature-seal: 3.6875rem;
 
   display: grid;
   gap: var(--space-2);

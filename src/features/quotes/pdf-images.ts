@@ -80,7 +80,11 @@ async function rasterize(svg: string, px: number): Promise<PdfImage> {
  * recorta o que já está desenhado.
  */
 async function squircleTile(image: Sharp, side: number, radius: number, background: string, ring = 0): Promise<PdfImage> {
-  const px = side * DENSITY;
+  /* O `sharp` só aceita pixel inteiro e recusa o resto com erro, então o arredondamento mora aqui, onde a
+     medida da folha encontra o rasterizador: qualquer lado que venha de uma conta, e não de um número escrito
+     à mão, chega fracionário mais cedo ou mais tarde, e um selo de 59,2 já derrubou a rota do PDF inteira
+     (relato de 2026-09-10). Fração de pixel na folha não muda o desenho. */
+  const px = Math.round(side * DENSITY);
   const shape = (size: number, corner: number, fill: string) =>
     Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="${squirclePath(size, size, corner)}" fill="${fill}"/></svg>`);
 
@@ -92,7 +96,7 @@ async function squircleTile(image: Sharp, side: number, radius: number, backgrou
 
   if (ring === 0) return { data: tile, format: "png" };
 
-  const outer = (side + ring * 2) * DENSITY;
+  const outer = Math.round((side + ring * 2) * DENSITY);
   const data = await sharp(shape(outer, (radius + ring) * DENSITY, RING_COLOR))
     .composite([{ input: tile, top: ring * DENSITY, left: ring * DENSITY }])
     .png()
@@ -147,11 +151,14 @@ export type QuotePdfImages = {
 /**
  * O lado do selo da assinatura, em pixels da folha: ele é quadrado **na altura do bloco de texto ao lado**
  * (pedido de 2026-09-10), e a conta é a das quatro linhas do registro na entrelinha apertada — três em
- * `caption2` (11px), o nome em `footnote` (13px) e o respiro de 4px antes da emissora. Na tela quem faz isso
- * é o `stretch` do flex, que mede sozinho; aqui a medida precisa ser escrita, porque o react-pdf não tem
- * `align-self: stretch` nem `aspect-ratio`, e é este número que mantém as duas folhas iguais.
+ * `caption2` (11px), o nome em `footnote` (13px) e o respiro de 4px antes da emissora, o que dá 59,2. A tela
+ * faz a mesma conta em `--signature-seal`, e é este número que mantém as duas folhas iguais.
+ *
+ * **Inteiro, e não o valor exato da conta**: o lado é multiplicado pela densidade e entra no `resize` do
+ * `sharp`, que só aceita pixel inteiro e recusa o resto com erro, o que derrubava a rota do PDF inteira e o
+ * download acabava no toast de erro (relato de 2026-09-10). Meio pixel na folha não muda nada do desenho.
  */
-export const SIGNATURE_SEAL = Math.round((11 * 1.2 * 3 + 13 * 1.2 + 4) * 10) / 10;
+export const SIGNATURE_SEAL = Math.round(11 * 1.2 * 3 + 13 * 1.2 + 4);
 
 /** Tudo que o documento desenha, resolvido antes de o PDF começar: o react-pdf monta a página de uma vez. */
 export async function quotePdfImages(quote: Quote): Promise<QuotePdfImages> {
