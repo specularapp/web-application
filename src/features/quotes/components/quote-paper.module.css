@@ -1,41 +1,72 @@
-/* A folha centrada no espaço que sobrou, sem rolagem: quem a faz caber é a redução. */
-.paper {
+/* O espaço onde a folha mora. No desktop ela cabe inteira e fica centrada; no celular ela é reduzida pela
+   largura e o que passa da tela desce pela rolagem de quem contém este quadro. */
+.frame {
   display: grid;
-  place-content: center;
+  justify-content: center;
+  align-content: center;
   min-width: 0;
   min-height: 0;
 }
 
-/* Ajustada pela largura, a folha assenta no topo e mantém a altura inteira, que é o que a faz descer pela
-   rolagem de quem a contém: centrada, a parte de cima do documento ficaria fora do alcance. */
-.paper[data-fit="width"] {
+/* Reduzida pela largura, a folha assenta no topo: centrada, a parte de cima do documento ficaria fora do
+   alcance de quem rola. */
+.frame[data-fit="width"] {
   align-content: start;
 }
 
-/* A folha tem tamanho de A4 e `zoom` a reduz até caber, com o fator medido em JS. `zoom`, e não `scale`,
-   porque ele reduz o espaço ocupado junto com o desenho, então não sobra buraco nem rolagem lateral. O
-   seletor alcança o `article` do documento por elemento, que é o jeito de mexer numa classe de outro
-   módulo. */
-.paper > article {
-  width: var(--page-width, 52rem);
-  height: var(--page-height, 73.5rem);
-  zoom: var(--doc-zoom, 1);
+/* O lugar que a folha reduzida ocupa. `scale` desenha menor mas continua ocupando o tamanho original, então
+   a medida escalada vive aqui: é ela que a centralização e a rolagem enxergam, e é o que evita o vão enorme
+   embaixo da folha que a escala sozinha deixaria. */
+.slot {
+  position: relative;
+  width: calc(var(--page-width, 832px) * var(--doc-scale, 1));
+  height: calc(var(--page-height, 1177px) * var(--doc-scale, 1));
+}
+
+/* A folha em si: sempre nos 832px de A4, desenhada como no desktop e reduzida como imagem pela escala. É o
+   que faz a prévia do celular ser o desktop visto menor, e não um documento remontado na medida do celular
+   (acerto de 2026-09-10). A quina de cima à esquerda é a origem, para a folha reduzida encostar no canto do
+   lugar que o `slot` reservou. */
+.page {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: var(--page-width, 832px);
+  height: var(--page-height, 1177px);
+  transform: scale(var(--doc-scale, 1));
+  transform-origin: top left;
+}
+
+/* O `article` do documento preenche a folha: o seletor o alcança por elemento, que é o jeito de mexer numa
+   classe de outro módulo. */
+.page > article {
+  width: 100%;
+  height: 100%;
 }
 
 /* Impressa, a folha volta ao tamanho de A4 e é a página inteira: a escala mapeia os 832px de largura nos
    210mm do papel (210mm são 793,7px a 96dpi), então o que está na tela sai igual, sem refluxo de texto. Os
    cantos e a sombra somem, porque papel não tem quina arredondada (pedido de 2026-09-09). */
 @media print {
-  .paper {
+  .frame {
     display: block;
     padding: 0;
     margin: 0;
   }
 
-  .paper > article {
-    width: var(--page-width, 832px);
-    height: var(--page-height, 1177px);
-    zoom: 0.9540;
+  /* Na impressão a folha não é mais reduzida pela tela, então o lugar reservado sai do caminho e ela volta a
+     ocupar o próprio tamanho, com a escala do papel. */
+  .slot {
+    width: auto;
+    height: auto;
+  }
+
+  .page {
+    position: static;
+    transform: scale(0.954);
+  }
+
+  .page > article {
     border: 0;
     border-radius: 0;
     box-shadow: none;

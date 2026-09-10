@@ -377,13 +377,11 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
       ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
       : {
           /* Salvar, e não "Salvar rascunho" (pedido de 2026-09-10): o botão gera o orçamento ou grava a
-             edição, e chamá-lo de rascunho dizia menos do que ele faz. Enviar e copiar o link vêm ao lado,
-             em ícone, porque no celular eles saíram do cabeçalho. */
+             edição, e chamá-lo de rascunho dizia menos do que ele faz. Ao lado vai só enviar, em glifo: o
+             copiar link saiu da barra do celular (segundo pedido do dia), porque enviar já leva o link e
+             cada peça a mais aperta a barra. Ele fica no leque da lista e no cabeçalho do desktop. */
           primary: { label: saving ? "Salvando" : "Salvar", loading: saving !== null, onClick: () => submitWith("draft") },
-          extras: [
-            ...(quote ? [{ label: "Copiar link", icon: <LinkIcon />, disabled: saving !== null, onClick: () => void copyLink() }] : []),
-            { label: "Enviar ao cliente", icon: <PaperPlaneTiltIcon weight="bold" />, loading: saving === "send", disabled: saving !== null, onClick: () => submitWith("send") },
-          ],
+          extras: [{ label: "Enviar ao cliente", icon: <PaperPlaneTiltIcon weight="bold" />, loading: saving === "send", disabled: saving !== null, onClick: () => submitWith("send") }],
           cancel: { label: "Fechar", onClick: () => void requestClose() },
         },
   );

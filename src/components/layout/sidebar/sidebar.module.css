@@ -516,22 +516,25 @@
   color: var(--color-label);
 }
 
-/* Os três modos da barra (busca e sino, a paginação da lista, ou salvar e sair) ficam montados na mesma
-   cela da grade, um sobre o outro, e a troca é um fundido de verdade: o que sai desbota e encolhe um fio enquanto o que entra
-   aparece, com a curva que assenta. A cela tem a largura do maior, então a caixa da barra não muda de
-   tamanho na troca, que é a regra de fluidez dela; cada modo estica o próprio conteúdo para preencher. O
-   modo apagado não pega toque nem foco (`inert`). */
+/* Os três modos da barra (busca e sino, a paginação da lista, ou salvar e sair) ficam montados um sobre o
+   outro, e a troca é um fundido de verdade: o que sai desbota e encolhe um fio enquanto o que entra aparece,
+   com a curva que assenta. O modo apagado não pega toque nem foco (`inert`). */
 .barGroupInner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  position: relative;
+  display: flex;
   align-items: center;
   min-width: 0;
   overflow: hidden;
 }
 
+/* Quem mede a barra é só o modo em vigor: o apagado sai do fluxo, então a largura é a do que está à vista.
+   Os três dividiam a mesma cela de grade e a caixa ficava do tamanho do maior, o que servia enquanto eles
+   tinham medidas parecidas; com uma ação a mais no modo de janela, a barra da lista voltava do editor larga
+   demais, com um vão vazio ao lado da busca (relato de 2026-09-10). Em troca, a caixa passa a mudar de
+   tamanho na troca de modo, e é a barra inteira que desliza para o novo tamanho (`--duration-glide` no
+   `.bar`), o que lê como ela se ajustando ao que carrega. */
 .barMode {
   display: flex;
-  grid-area: 1 / 1;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
@@ -540,7 +543,13 @@
     transform var(--duration-base) var(--ease-settle);
 }
 
+/* O apagado é esticado na altura da caixa em vez de deslocado pela metade da própria medida: os controles
+   dentro dele já se centram (`align-items: center` no próprio modo), então ele fica na mesma faixa do ativo
+   sem depender de quanto mede. */
 .barMode:not([data-active]) {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
   pointer-events: none;
   opacity: 0;
   transform: translateY(0.25rem) scale(0.96);
