@@ -479,7 +479,7 @@ export function Sidebar(props: SidebarProps) {
   // Os modos ficam montados desde o começo, apagados e inertes, com valores de espera enquanto ninguém
   // registrou nada: montar só na hora fazia o modo aparecer já no estado final, sem o fundido de entrada,
   // e a troca lia como seca.
-  const shownActions = lastActions ?? { primaryLabel: "Salvar", loading: false, disabled: true, cancelLabel: "Cancelar", extras: [] };
+  const shownActions = lastActions ?? { primaryLabel: "Salvar", primaryIconOnly: false, loading: false, disabled: true, cancelLabel: "Cancelar", extras: [] };
   const shownPager = lastPager ?? { page: 1, pageCount: 1, label: "Páginas" };
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
@@ -614,19 +614,32 @@ export function Sidebar(props: SidebarProps) {
             {/* Janela com ações próprias: salvar e sair entram no lugar da busca e do sino, para a barra
                 continuar uma só e o botão do menu ficar onde sempre fica. */}
             <span className={styles.barMode} data-active={mode === "actions" ? "" : undefined} inert={mode === "actions" ? undefined : true}>
-              <Button size="md" radius="md" iconStart={shownActions.primaryIcon ?? <CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
-                {shownActions.primaryLabel}
-              </Button>
+              {/* A principal com nome abre a fila, que é o caso de salvar. Em glifo (`iconOnly`) ela troca de
+                  lugar com as secundárias e vai para o fim, encostada no sair: é o desenho do compositor da
+                  conversa, em que enviar é o último da fila (2026-09-11, a pedido). */}
+              {!shownActions.primaryIconOnly && (
+                <Button size="md" radius="md" iconStart={shownActions.primaryIcon ?? <CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
+                  {shownActions.primaryLabel}
+                </Button>
+              )}
               {/* As secundárias da janela, em glifo, entre salvar e sair: é onde enviar e copiar o link do
                   orçamento moram no celular, depois de saírem do cabeçalho (2026-09-10, a pedido). */}
               {shownActions.extras.map((extra, index) => (
                 <Fragment key={extra.label}>
-                  <span className={styles.barDivider} aria-hidden="true" />
+                  {(index > 0 || !shownActions.primaryIconOnly) && <span className={styles.barDivider} aria-hidden="true" />}
                   <IconButton label={extra.label} variant="ghost" size="md" radius="md" loading={extra.loading} disabled={extra.disabled} onClick={() => runExtra(index)}>
                     {extra.icon}
                   </IconButton>
                 </Fragment>
               ))}
+              {shownActions.primaryIconOnly && (
+                <>
+                  <span className={styles.barDivider} aria-hidden="true" />
+                  <IconButton label={shownActions.primaryLabel} size="md" radius="md" loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary}>
+                    {shownActions.primaryIcon ?? <CheckIcon />}
+                  </IconButton>
+                </>
+              )}
               <span className={styles.barDivider} aria-hidden="true" />
               <IconButton label={shownActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
                 <XIcon />

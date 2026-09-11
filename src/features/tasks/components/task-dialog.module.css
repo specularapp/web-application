@@ -4,17 +4,29 @@
 .dialog {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 /* No celular a janela é bandeja e um degrau menor em tudo, pelos tokens de texto redeclarados aqui dentro,
-   como a ficha já fazia. Em valor, e não encadeados, senão encolhem duas vezes. */
+   como a ficha já fazia. Em valor, e não encadeados, senão encolhem duas vezes.
+
+   A altura é a da bandeja (correção de 2026-09-11): o painel no celular é `height: auto` com teto de 85dvh,
+   e `height: 100%` de um pai `auto` não resolve, então a janela colapsava na altura do conteúdo e a conversa
+   nunca conseguia a altura fixa que ela precisa. O piso de 85dvh casa com o teto do painel, então a bandeja
+   abre sempre na mesma medida, cheia, que é o pedido de a atividade ficar maior. */
 @media (max-width: 47.9375rem) {
   .dialog {
     --text-title-2: 1.25rem;
     --text-callout: 0.9375rem;
     --text-subheadline: 0.875rem;
+
+    height: auto;
+    /* O teto do painel é 85dvh, e ele ainda abre o recuo da área segura por dentro: o piso desconta esse
+       recuo, senão o miolo pediria mais altura do que a bandeja tem e o pé vazaria. */
+    min-height: calc(85dvh - env(safe-area-inset-bottom));
   }
 }
 
@@ -178,6 +190,7 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
 }
 
@@ -196,13 +209,11 @@
     display: none;
   }
 
+  /* Uma linha só, com piso zero: a metade escondida sai por `display: none`, então quem sobra toma a faixa
+     inteira e estica na altura dela por ser item de grid. É daqui que a conversa tira a altura para o
+     registro rolar no meio e o campo ficar preso no pé, em vez de crescer com o que tem dentro. */
   .body {
     grid-template-rows: minmax(0, 1fr);
-  }
-
-  .side {
-    min-height: 0;
-    height: 100%;
   }
 }
 
@@ -216,11 +227,17 @@
   }
 }
 
+/* `min-width: 0` não é detalhe aqui (correção de 2026-09-11): as duas metades são filhas de grid, e filho de
+   grid nasce com `min-width: auto`, que é o tamanho do conteúdo e não encolhe. Bastava um balão longo, um
+   nome de arquivo comprido ou uma etiqueta grande na conversa para a coluna esticar, e como a faixa do corpo
+   é a largura da janela, a bandeja inteira ia junto: era daí a rolagem lateral enorme e a largura quebrada
+   no celular. */
 .main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-5);
+  min-width: 0;
   min-height: 0;
   padding: var(--space-5);
   overflow-y: auto;
@@ -231,6 +248,14 @@
   .main {
     gap: var(--space-4);
     padding: var(--space-4);
+  }
+
+  /* O fim da ficha fecha acima da barra flutuante (2026-09-11, a pedido): a folga é o `--floating-bar-inset`
+     da casa, e ela entra no que rola, senão o último bloco terminava debaixo da barra e não dava para ler.
+     Presa a `html[data-floating-actions]`, como toda camada da casa faz, porque a marca só existe enquanto a
+     ficha registrou ações. */
+  html[data-floating-actions] .main {
+    padding-block-end: var(--floating-bar-inset);
   }
 }
 
@@ -442,6 +467,7 @@
 .side {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
   min-height: 0;
   background-color: light-dark(
     color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),

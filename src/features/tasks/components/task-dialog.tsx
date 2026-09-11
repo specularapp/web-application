@@ -4,16 +4,15 @@ import {
   ArrowUpRightIcon,
   AtIcon,
   CalendarBlankIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
+  ChatCircleIcon,
   CheckCircleIcon,
-  CopySimpleIcon,
   FileTextIcon,
   FlagIcon,
   FolderIcon,
   HashIcon,
   ImageIcon,
   KanbanIcon,
+  ListBulletsIcon,
   MicrophoneIcon,
   PaperclipIcon,
   PaperPlaneTiltIcon,
@@ -59,7 +58,7 @@ import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { slugify } from "@/lib/utils/slug";
 import { cx } from "@/lib/utils/cx";
-import { acceptDocuments, acceptImages, attachmentOf } from "../files";
+import { acceptAny, acceptDocuments, acceptImages, attachmentOf } from "../files";
 import { DAY_MINUTES, dueOf, estimateLabel, peopleLabel, priorityHues, priorityLabels, priorityTones } from "../labels";
 import { linkKindValues, taskLinkKinds } from "../links";
 import { defaultStages, taskStageMeta, type TaskStage } from "../stages";
@@ -557,6 +556,9 @@ function TaskDetail({
   const voiceRecorder = useVoiceRecorder(setVoice);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  /* O anexo da barra flutuante é um só e aceita os dois tipos: quem separa galeria de arquivos ali é o
+     seletor do próprio aparelho. */
+  const anyInput = useRef<HTMLInputElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
 
   const patch = (change: Partial<Task>) => setDraft((current) => ({ ...current, ...change }));
@@ -856,11 +858,20 @@ function TaskDetail({
     mobile
       ? tab === "activity"
         ? {
-            primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
+            primary: {
+              label: "Enviar",
+              icon: <PaperPlaneTiltIcon weight="bold" />,
+              iconOnly: true,
+              disabled: !canPublish,
+              onClick: publish,
+            },
+            /* Duas secundárias e nada mais: a barra é `max-content` com teto na largura da tela, e com o
+               botão do menu, o X e o enviar ela já chega perto do limite numa tela de 360px; a quarta era
+               cortada pelo `overflow` do grupo. Marcar um registro saiu por ter o mesmo caminho do arroba,
+               o `#` digitado no campo, e anexar virou **um** botão que abre o seletor do aparelho com os
+               dois tipos, em vez de um glifo para imagem e outro para documento (2026-09-11, a pedido). */
             extras: [
-              { label: "Anexar imagem", icon: <ImageIcon weight="bold" />, onClick: () => imageInput.current?.click() },
-              { label: "Anexar arquivo", icon: <PaperclipIcon weight="bold" />, onClick: () => fileInput.current?.click() },
-              { label: "Marcar um registro da aplicação", icon: <HashIcon weight="bold" />, onClick: () => setMentioning(true) },
+              { label: "Anexar ao comentário", icon: <PaperclipIcon weight="bold" />, onClick: () => anyInput.current?.click() },
               voiceRecorder.recording
                 ? { label: "Encerrar a gravação", icon: <StopIcon weight="fill" />, onClick: voiceRecorder.stop }
                 : { label: "Gravar áudio", icon: <MicrophoneIcon weight="bold" />, onClick: () => void voiceRecorder.start() },
@@ -877,7 +888,6 @@ function TaskDetail({
                 onStageChange?.(next);
               },
             },
-            extras: [{ label: "Duplicar tarefa", icon: <CopySimpleIcon weight="bold" />, onClick: () => undefined }],
             cancel: { label: "Fechar tarefa", onClick: onClose },
           }
       : null,
@@ -938,7 +948,10 @@ function TaskDetail({
           aria-label={tab === "details" ? "Ver a atividade da tarefa" : "Ver as informações da tarefa"}
           onClick={() => setTab(tab === "details" ? "activity" : "details")}
         >
-          {tab === "details" ? <CaretRightIcon weight="bold" aria-hidden="true" /> : <CaretLeftIcon weight="bold" aria-hidden="true" />}
+          {/* O glifo diz **para onde se vai**, e não o sentido do movimento (2026-09-11, a pedido): o balão da
+              conversa quando o botão leva à atividade, a lista quando ele traz de volta para a ficha. Seta
+              dizia só "para o lado", que numa janela de duas metades não informa nada. */}
+          {tab === "details" ? <ChatCircleIcon weight="bold" aria-hidden="true" /> : <ListBulletsIcon weight="bold" aria-hidden="true" />}
           {tab === "details" && events.length > 0 && (
             <span className={frame.flipCount} aria-hidden="true">
               {events.length}
@@ -1409,6 +1422,18 @@ function TaskDetail({
               accept={acceptDocuments}
               className={frame.picker}
               aria-label="Escolher documentos para o comentário"
+              onChange={(event) => {
+                take(event.target.files);
+                event.target.value = "";
+              }}
+            />
+            <input
+              ref={anyInput}
+              type="file"
+              multiple
+              accept={acceptAny}
+              className={frame.picker}
+              aria-label="Escolher arquivos para o comentário"
               onChange={(event) => {
                 take(event.target.files);
                 event.target.value = "";

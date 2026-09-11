@@ -31,3 +31,11 @@ export function attachmentOf(file: File, id: string): TaskAttachment {
 /** O que o seletor do sistema aceita em cada caso, para "Imagem" não abrir a pasta inteira. */
 export const acceptImages = "image/*";
 export const acceptDocuments = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.ai,.psd,.sketch,.fig";
+
+/**
+ * Os dois juntos, para o celular (2026-09-11, a pedido de o anexo ser uma opção só que abre as outras): na
+ * barra flutuante não cabe um glifo para imagem e outro para documento, e o seletor do próprio aparelho já
+ * oferece galeria e arquivos na mesma folha. No desktop o menu com os dois tipos continua, porque lá o
+ * seletor do sistema não separa nada.
+ */
+export const acceptAny = `${acceptImages},${acceptDocuments}`;

@@ -16,7 +16,19 @@ export type FloatingActions = {
    * não salva passa o próprio (2026-09-11): a ficha da tarefa edita no lugar e nunca salva, então um check
    * ao lado de "Enviar" prometia uma gravação que não existe.
    */
-  primary: { label: string; icon?: ReactNode; loading?: boolean; disabled?: boolean; onClick: () => void };
+  primary: {
+    label: string;
+    icon?: ReactNode;
+    /**
+     * A principal em glifo, no fim da barra (2026-09-11, a pedido, para o enviar da conversa): o nome vai só
+     * para a voz e a dica, e ela troca de lugar com as secundárias, ficando encostada no sair. É o desenho
+     * de um compositor, em que enviar é o último da fila e não precisa de rótulo.
+     */
+    iconOnly?: boolean;
+    loading?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+  };
   /** Ações em glifo entre a principal e o sair, na ordem em que aparecem. Vazio ou ausente não desenha nada. */
   extras?: readonly FloatingExtraAction[];
   cancel: { label: string; onClick: () => void };
@@ -35,7 +47,15 @@ export type FloatingPager = {
    registrar a cada render sem fazer o menu inteiro re-renderizar a cada tecla digitada num campo. */
 type ExtraShape = { label: string; icon: ReactNode; loading: boolean; disabled: boolean };
 
-type Shape = { primaryLabel: string; primaryIcon?: ReactNode; loading: boolean; disabled: boolean; cancelLabel: string; extras: readonly ExtraShape[] } | null;
+type Shape = {
+  primaryLabel: string;
+  primaryIcon?: ReactNode;
+  primaryIconOnly: boolean;
+  loading: boolean;
+  disabled: boolean;
+  cancelLabel: string;
+  extras: readonly ExtraShape[];
+} | null;
 
 /* O mesmo para a paginação: página, total e nome mudam a marcação; o disparo fica na referência. */
 type PagerShape = { page: number; pageCount: number; label: string } | null;
@@ -58,6 +78,7 @@ function shapeOf(actions: FloatingActions | null): Shape {
   return {
     primaryLabel: actions.primary.label,
     primaryIcon: actions.primary.icon,
+    primaryIconOnly: actions.primary.iconOnly ?? false,
     loading: actions.primary.loading ?? false,
     disabled: actions.primary.disabled ?? false,
     cancelLabel: actions.cancel.label,
@@ -74,7 +95,14 @@ const sameExtras = (a: readonly ExtraShape[], b: readonly ExtraShape[]) =>
 function sameShape(a: Shape, b: Shape) {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.primaryLabel === b.primaryLabel && a.loading === b.loading && a.disabled === b.disabled && a.cancelLabel === b.cancelLabel && sameExtras(a.extras, b.extras);
+  return (
+    a.primaryLabel === b.primaryLabel &&
+    a.primaryIconOnly === b.primaryIconOnly &&
+    a.loading === b.loading &&
+    a.disabled === b.disabled &&
+    a.cancelLabel === b.cancelLabel &&
+    sameExtras(a.extras, b.extras)
+  );
 }
 
 function pagerShapeOf(pager: FloatingPager | null): PagerShape {
