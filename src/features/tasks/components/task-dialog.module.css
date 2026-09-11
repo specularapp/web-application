@@ -535,18 +535,14 @@
  * lateral, e o de cima cortava a coluna em duas sem motivo.
  */
 .side {
-  /* A superfície da coluna sai de variável porque o rabo do balão precisa dela: ele é pintado em cor sólida,
-     e sólido aqui é a cor da bolha já resolvida **sobre este fundo**. */
-  --feed-surface: light-dark(
-    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
-    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
-  );
-
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
-  background-color: var(--feed-surface);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
+    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
+  );
 }
 
 .sideHead {
@@ -904,11 +900,6 @@
  * ele abre. A minha vira do outro lado e não tem rosto, porque numa conversa só há um "eu".
  */
 .message {
-  /* O quanto o rabo avança para fora da parede do balão, tirado do SVG de referência: 12.2 no desenho de raio
-     32, que na escala da casa (20/32) dá 7.6. O deslocamento do rabo o usa e a minha bolha reserva o mesmo
-     tanto na margem, senão a ponta é cortada pela borda da coluna. */
-  --tail: 7.6px;
-
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
@@ -939,10 +930,6 @@
 
 .message[data-mine] .said {
   justify-items: end;
-  /* O espaço do rabo, que sai para fora do balão: sem ele a ponta da minha bolha era cortada pela borda da
-     coluna. É a mesma medida que o gancho ocupa, então as duas andam juntas. Do outro lado quem dá esse
-     espaço é o vão do rosto. */
-  margin-inline-end: var(--tail);
 }
 
 /* O nome de quem falou e a hora, fora da bolha: dentro dela eles roubavam a linha do texto, e a referência
@@ -975,78 +962,19 @@
 }
 
 /**
- * O rabo do balão, na quina **de baixo** do último balão de quem falou (2026-09-11, traçado a partir do SVG
- * de referência do usuário; até então era uma orelha na quina de cima, apontando para o rosto).
+ * O canto de baixo do lado de quem falou **fica reto** (2026-09-11, a pedido, no lugar do rabo): o balão é só
+ * raio, e a quina zerada de um lado é o que diz de quem é a mensagem, junto do lado em que ela está. O rabo
+ * desenhado em SVG saiu inteiro, com a máscara, as duas camadas de cor e a conta do avanço.
  *
- * O caminho é o da referência, escalado. Lá o balão tem raio 32 e o rabo mede 30 de altura; aqui o balão usa
- * o `--radius-lg` da casa, 20, então tudo entra em 20/32 e o rabo fica com 19 de altura, avançando 7.6 para
- * fora da parede e entrando 5.5 por dentro dela.
- *
- * A forma, lida do caminho original: a parede do balão **desce reta** e vai inclinando para fora, sem curva
- * de quina nenhuma, até virar uma diagonal que termina num **bico**, na mesma linha da base do balão; de lá o
- * traço volta por um **arco côncavo** que reentra na borda de baixo. Ou seja, a ponta é reta e a barriga é
- * para dentro — o contrário do gancho convexo que eu havia desenhado antes de ler o caminho direito.
- *
- * Continua sendo uma máscara em SVG sobre uma caixa pintada na cor do balão, que é o que mantém a curva curva
- * de verdade e sem emenda em qualquer fundo, porque não há segunda cor para casar.
- *
- * Fica no **último** balão de um bloco, e não no primeiro: é de lá que a ponta cai sem cruzar as mensagens
- * seguintes do mesmo autor.
+ * Fica no **último** balão de um bloco, e não no primeiro: é o canto que fecha a fala, e nas mensagens do
+ * meio o raio continua inteiro, então o bloco lê como uma coisa só.
  */
-.message[data-closes] .bubble::after {
-  position: absolute;
-  /* A ponta fica na linha da base do balão, como na referência: as duas bases se alinham. */
-  inset-block-end: 0;
-  /* A caixa cobre o **raio inteiro** da quina mais o avanço do rabo, e as três medidas saem das mesmas duas
-     variáveis, sem número solto: com uma sobreposição menor que o raio (10 contra 20) o arco do balão
-     aparecia por baixo da máscara em parte do trajeto e o encontro saía com um degrau. O `viewBox` usa esses
-     mesmos números, então a escala é 1:1 e a parede desenhada cai exatamente sobre a parede do balão — antes
-     a largura era um literal que não batia com o `viewBox`, e o navegador ainda arredondava para o pixel do
-     aparelho (17.5938 no lugar de 17.6), o que deslocava o desenho inteiro por uma fração. */
-  width: calc(var(--radius-lg) + var(--tail));
-  height: 18.82px;
-  content: "";
-  /* Duas camadas, e não uma cor calculada: a de baixo é a superfície da coluna e a de cima é a bolha, que é
-     translúcida. Empilhadas, o resultado é exatamente a cor que o balão tem ali, e o rabo pode cobrir a quina
-     sem somar um segundo alfa por cima do que já está pintado. */
-  background-image: linear-gradient(var(--bubble-bg, var(--color-fill-quaternary)) 0 100%),
-    linear-gradient(var(--feed-surface) 0 100%);
-  /* O caminho, do SVG do usuário em 20/32. A borda de dentro **é o arco da quina** (o `A 20 20` que desce até
-     a base), e não uma reta: o balão já curvou ali, então um retângulo reto sobrava por fora dele e aparecia
-     como um degrau no encontro. Da parede para a direita segue o desenho da referência: a diagonal até o bico
-     na linha da base e o arco côncavo de volta.
-
-     O contorno de fora **acompanha o arco do balão** na primeira metade, e só depois se desprende rumo ao
-     bico: uma parede reta ali avançava para fora da curva numa altura em que o balão já tinha recuado (em
-     y=9.8 o balão está em x=16.7 e a reta ia a 22.6), e esse excesso, pintado sobre o fundo da coluna,
-     aparecia como o risco fino na emenda. Seguindo o arco até se soltar, a silhueta é contínua. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M17.77 8 C19.5 12 23 16 27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 17.77 8 Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M17.77 8 C19.5 12 23 16 27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 17.77 8 Z'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
-/* A quina **mantem o raio** (acerto a pedido de 2026-09-11): zerado, o rabo saia de um corte reto, e na
-   referencia o balao continua arredondado e o rabo nasce da curva. Quem cobre o vao entre o arco e a diagonal
-   e a propria mascara do rabo, que comeca a esquerda da parede justamente para isso. */
 .message:not([data-mine])[data-closes] .bubble {
-  border-end-start-radius: var(--radius-lg);
-}
-
-/* O deslocamento é o avanço para fora; o resto da caixa fica por cima do balão, fechando o encontro. */
-.message:not([data-mine])[data-closes] .bubble::after {
-  inset-inline-start: calc(var(--tail) * -1);
-  transform: scaleX(-1);
+  border-end-start-radius: 0;
 }
 
 .message[data-mine][data-closes] .bubble {
-  border-end-end-radius: var(--radius-lg);
-}
-
-.message[data-mine][data-closes] .bubble::after {
-  inset-inline-end: calc(var(--tail) * -1);
+  border-end-end-radius: 0;
 }
 
 /**

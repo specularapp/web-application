@@ -661,9 +661,9 @@ function TaskDetail({
       /* Mensagens seguidas da mesma pessoa, no mesmo dia, entram como um bloco só: o rosto e o nome aparecem
          na primeira e as outras só continuam, que é o que faz uma conversa longa ficar legível. */
       const opensAuthor = opens || !previous || previous.person.name !== event.person.name || previous.kind !== event.kind;
-      /* Quem fecha o bloco é quem leva o rabo do balão (2026-09-11): ele nasce na base, então precisa da
-         última mensagem de quem falou, e não da primeira, senão a ponta cairia por cima das seguintes do
-         mesmo autor. A seguinte inicia outro bloco, ou não existe. */
+      /* Quem fecha o bloco é quem leva o canto reto (2026-09-11): é o canto que termina a fala, então precisa
+         da última mensagem de quem falou, e não da primeira; nas do meio o raio fica inteiro e o bloco lê
+         como uma coisa só. A seguinte inicia outro bloco, ou não existe. */
       const next = ordered[index + 1];
       const closesAuthor =
         !next ||
