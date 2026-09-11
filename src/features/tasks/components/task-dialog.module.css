@@ -244,18 +244,16 @@
   overscroll-behavior: contain;
 }
 
+/* No celular o fim da ficha leva a folga da barra flutuante, na mesma receita da janela de cliente e da de
+   catálogo: `--floating-bar-inset` no bloco que rola, direto e sem condição. Preso a `data-floating-actions`
+   ele ficava curto, porque a marca entra num efeito depois da primeira pintura e o recuo chegava atrasado;
+   e somado ao `padding` genérico, o atalho vencia a propriedade longa em parte dos casos. Aqui o recuo de
+   fim é declarado em `padding-block`, que é o que a casa faz, então ele é sempre o da barra. */
 @media (max-width: 47.9375rem) {
   .main {
     gap: var(--space-4);
-    padding: var(--space-4);
-  }
-
-  /* O fim da ficha fecha acima da barra flutuante (2026-09-11, a pedido): a folga é o `--floating-bar-inset`
-     da casa, e ela entra no que rola, senão o último bloco terminava debaixo da barra e não dava para ler.
-     Presa a `html[data-floating-actions]`, como toda camada da casa faz, porque a marca só existe enquanto a
-     ficha registrou ações. */
-  html[data-floating-actions] .main {
-    padding-block-end: var(--floating-bar-inset);
+    padding-inline: var(--space-4);
+    padding-block: var(--space-4) var(--floating-bar-inset);
   }
 }
 
@@ -553,21 +551,31 @@
 }
 
 /**
- * A barra flutuante encaixa **dentro** do cartão do comentário (2026-09-11, a pedido): o cartão abre no pé
- * a folga da barra, então ela pousa sobre a própria caixa do campo em vez de flutuar sobre a conversa, e as
- * duas leem como uma peça só, com o campo em cima e as ações embaixo.
+ * O cartão do comentário no celular (refeito em 2026-09-11, a pedido): a barra flutuante encaixa **dentro**
+ * dele, então o cartão abre no pé a folga da barra e as duas leem como uma peça só, com o campo em cima e as
+ * ações embaixo.
  *
- * A folga mora no cartão, e não no compositor em volta, que é o que faz o encaixe: com ela no compositor a
- * barra ficava abaixo do cartão, separada dele por um vão. O recuo de fim do cartão fecha acima da barra
- * pela metade do respiro, para o texto não encostar nela.
+ * A medida da folga é a da barra **menos o respiro que o compositor já abre embaixo**: somando os dois o
+ * cartão ficava com um vazio do tamanho de uma barra e meia, e o texto boiava lá no alto. O campo cresce
+ * junto (`min-height` de três linhas): com o rodapé de ações fora do cartão, sobrava um campo de duas linhas
+ * dentro de uma caixa alta, que é o que deixava tudo apertado e desencontrado.
  */
 @media (max-width: 47.9375rem) {
-  html[data-floating-actions] .composerCard {
-    padding-block-end: calc(var(--floating-bar-inset) - var(--space-2));
+  .composer {
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 
-  html[data-floating-actions] .composer {
-    padding-block-end: var(--space-2);
+  .composerCard {
+    gap: var(--space-3);
+    padding: var(--space-4);
+    /* A barra sempre tem ações na conversa, então a folga é declarada direto: presa a
+       `data-floating-actions` ela dependia de um efeito que só marca o `html` depois do primeiro render, e
+       o cartão nascia sem o recuo por um quadro. */
+    padding-block-end: calc(var(--floating-bar-inset) - var(--space-3));
+  }
+
+  .composerField {
+    min-height: calc(var(--leading-normal) * 3em);
   }
 }
 

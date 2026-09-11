@@ -40,7 +40,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
+import { useFloatingActionsRegistration, type FloatingActions } from "@/components/layout/floating-actions";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -838,25 +838,27 @@ function TaskDetail({
   };
 
   /**
-   * A ficha pendura as próprias ações na barra flutuante do celular (2026-09-11, a pedido), no contrato de
-   * toda janela da casa: conteúdo na bandeja, ações na barra.
+   * O que a ficha pendura na barra flutuante do celular (2026-09-11, a pedido), no contrato de toda janela
+   * da casa: conteúdo na bandeja, ações na barra.
    *
-   * **Trocar de aba não entra aqui** (segundo pedido do dia): quem faz isso é a faixa lá em cima, e ter a
-   * mesma escolha nos dois lugares era a mesma coisa duas vezes na tela.
+   * A conta tem três degraus, e é a mesma do editor de orçamento. **Bandeja aberta por cima manda**: com o
+   * seletor de registro no ar, Enviar publicaria o comentário por baixo dele, então ali a barra vira
+   * concluir e fechar. (As três janelas de acrescentar cuidam disso sozinhas, porque registram as próprias
+   * ações; esta é montada aqui, então a conta é aqui.)
    *
-   * Na aba da conversa a barra vira o **rodapé do compositor**: enviar como principal, apagada enquanto não
-   * há texto, arquivo nem áudio, e ao lado, em glifo, o que se pendura na mensagem — anexar, marcar alguém,
-   * marcar um registro e gravar. São as mesmas ações do cartão, que no celular desce para a barra em vez de
-   * espremer cinco alvos de toque na largura de um campo de texto.
+   * Na **conversa** a barra é o rodapé do compositor: enviar em glifo no fim, encostado no sair, e ao lado o
+   * que se pendura na mensagem. São duas secundárias e nada mais, porque a barra é `max-content` com teto na
+   * largura da tela e a quarta era cortada pelo `overflow` do grupo numa tela de 360px: anexar virou **um**
+   * botão que abre o seletor do aparelho com os dois tipos, e marcar um registro saiu por ter o mesmo
+   * caminho do arroba, o `#` digitado no campo.
    *
-   * Na aba das informações a barra leva as **ações da tarefa** (2026-09-11, a pedido): concluir como
-   * principal, com duplicar e excluir em glifo. São as mesmas do leque do cartão, trazidas para a mão, que é
-   * o que a ficha tem de ação própria; sem elas a barra ficava com sair dos dois lados, dizendo a mesma coisa
-   * duas vezes. Concluir some no que já fechou, como no leque, porque marcar de novo não é ação nenhuma.
+   * Nas **informações** ficam as ações da tarefa: concluir, ou reabrir no que já fechou.
    */
-  useFloatingActionsRegistration(
-    mobile
-      ? tab === "activity"
+  const barActions: FloatingActions | null = !mobile
+    ? null
+    : mentioning
+      ? { primary: { label: "Concluir", onClick: () => setMentioning(false) }, cancel: { label: "Fechar", onClick: () => setMentioning(false) } }
+      : tab === "activity"
         ? {
             primary: {
               label: "Enviar",
@@ -865,11 +867,6 @@ function TaskDetail({
               disabled: !canPublish,
               onClick: publish,
             },
-            /* Duas secundárias e nada mais: a barra é `max-content` com teto na largura da tela, e com o
-               botão do menu, o X e o enviar ela já chega perto do limite numa tela de 360px; a quarta era
-               cortada pelo `overflow` do grupo. Marcar um registro saiu por ter o mesmo caminho do arroba,
-               o `#` digitado no campo, e anexar virou **um** botão que abre o seletor do aparelho com os
-               dois tipos, em vez de um glifo para imagem e outro para documento (2026-09-11, a pedido). */
             extras: [
               { label: "Anexar ao comentário", icon: <PaperclipIcon weight="bold" />, onClick: () => anyInput.current?.click() },
               voiceRecorder.recording
@@ -889,9 +886,9 @@ function TaskDetail({
               },
             },
             cancel: { label: "Fechar tarefa", onClick: onClose },
-          }
-      : null,
-  );
+          };
+
+  useFloatingActionsRegistration(barActions);
 
   const send = (event: FormEvent) => {
     event.preventDefault();

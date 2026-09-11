@@ -28,9 +28,16 @@
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-4);
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
 }
 
 /* Dois campos curtos dividindo a linha, como nos formulários da casa; no celular eles empilham. */
@@ -59,6 +66,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   width: 100%;
+}
+
+/* No celular o pé some: confirmar e cancelar estão na barra flutuante, acima da bandeja, no contrato de
+   toda janela da casa (2026-09-11, a pedido). O corpo que rola leva a folga dela embaixo, para o último
+   campo fechar acima da barra, que é a mesma receita da janela de cliente e da de catálogo. */
+@media (max-width: 47.9375rem) {
+  .actions {
+    display: none;
+  }
 }
 
 .actions[data-single] {

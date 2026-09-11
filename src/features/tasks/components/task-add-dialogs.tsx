@@ -3,6 +3,7 @@
 import { FileIcon, FilePdfIcon, PaperclipIcon, PlusIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -13,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { squircle } from "@/lib/corners";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord, type RecordKind } from "@/features/records/records";
 import { acceptDocuments, acceptImages, attachmentTypeOf, sizeLabel } from "../files";
@@ -60,9 +62,33 @@ function AddDialog({
   size?: "md" | "lg";
   children: React.ReactNode;
 }) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const submit = useRef<HTMLFormElement>(null);
+
+  /**
+   * No celular as ações saem do pé da bandeja e vão para a barra flutuante (2026-09-11, a pedido), que é o
+   * contrato de toda janela da casa e o que o editor de orçamento já fazia com as bandejas dele: conteúdo na
+   * bandeja, ações na barra. Estas três abrem **por cima** da ficha da tarefa, então enquanto uma delas está
+   * no ar é ela quem manda na barra, e a ficha volta a mandar quando ela fecha — quem registrar por último
+   * ganha, e a bandeja de cima monta depois.
+   *
+   * Sem `onSubmit` a janela não tem o que confirmar, que é o caso do vincular, em que escolher já vincula:
+   * ali a principal é o próprio fechar, como no editor de orçamento.
+   */
+  useFloatingActionsRegistration(
+    open && mobile
+      ? onSubmit
+        ? {
+            primary: { label: submitLabel ?? "Salvar", disabled, onClick: () => submit.current?.requestSubmit() },
+            cancel: { label: "Cancelar", onClick: onClose },
+          }
+        : { primary: { label: "Concluir", onClick: onClose }, cancel: { label: "Fechar", onClick: onClose } }
+      : null,
+  );
+
   return (
     <Dialog open={open} onClose={onClose} label={title} size={size} surface="glass" focusOnOpen={false}>
-      <form className={styles.dialog} onSubmit={onSubmit}>
+      <form ref={submit} className={styles.dialog} onSubmit={onSubmit}>
         <div className={styles.head}>
           <Text as="h2" variant="headline" weight="semibold">
             {title}
