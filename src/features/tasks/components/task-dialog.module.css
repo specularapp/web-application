@@ -900,10 +900,10 @@
  * ele abre. A minha vira do outro lado e não tem rosto, porque numa conversa só há um "eu".
  */
 .message {
-  /* O quanto o rabo do balão avança para fora, num número só: o gancho o usa como largura, o deslocamento o
-     puxa de volta (menos 1px, para as duas formas se sobreporem e não deixar fio de fundo no encontro) e a
-     minha bolha reserva o mesmo tanto na margem, senão a ponta é cortada pela borda da coluna. */
-  --tail: 12px;
+  /* O quanto o rabo avança para fora da parede do balão, tirado do SVG de referência: 12.2 no desenho de raio
+     32, que na escala da casa (20/32) dá 7.6. O deslocamento do rabo o usa e a minha bolha reserva o mesmo
+     tanto na margem, senão a ponta é cortada pela borda da coluna. */
+  --tail: 7.6px;
 
   display: flex;
   gap: var(--space-3);
@@ -971,49 +971,53 @@
 }
 
 /**
- * O rabo do balão, na quina **de baixo** do último balão de quem falou (2026-09-11, sobre uma referência de
- * conversa do usuário, em que o balão sai da bolha como uma gota).
+ * O rabo do balão, na quina **de baixo** do último balão de quem falou (2026-09-11, traçado a partir do SVG
+ * de referência do usuário; até então era uma orelha na quina de cima, apontando para o rosto).
  *
- * Ele mudou de lugar e de forma nessa data. Antes era uma orelha na quina de cima, apontando para o rosto;
- * agora nasce na base, que é onde a conversa "termina de falar", e a ponta cai para fora do balão em vez de
- * subir. A forma vem da referência: a borda desce reta, faz a curva da quina e, em vez de fechar, **continua
- * para fora** num gancho que se afina até a ponta.
+ * O caminho é o da referência, escalado. Lá o balão tem raio 32 e o rabo mede 30 de altura; aqui o balão usa
+ * o `--radius-lg` da casa, 20, então tudo entra em 20/32 e o rabo fica com 19 de altura, avançando 7.6 para
+ * fora da parede e entrando 5.5 por dentro dela.
  *
- * O desenho é o mesmo recurso de antes, uma máscara em SVG sobre uma caixa pintada com a cor do balão, e é o
- * que mantém a curva curva de verdade em qualquer fundo, sem segunda cor para casar. O que mudou é o caminho:
- * a curva de saída sai tangente à quina do balão e a de volta é mais fechada, então o gancho tem barriga de um
- * lado e ponta fina do outro, como na referência.
+ * A forma, lida do caminho original: a parede do balão **desce reta** e vai inclinando para fora, sem curva
+ * de quina nenhuma, até virar uma diagonal que termina num **bico**, na mesma linha da base do balão; de lá o
+ * traço volta por um **arco côncavo** que reentra na borda de baixo. Ou seja, a ponta é reta e a barriga é
+ * para dentro — o contrário do gancho convexo que eu havia desenhado antes de ler o caminho direito.
+ *
+ * Continua sendo uma máscara em SVG sobre uma caixa pintada na cor do balão, que é o que mantém a curva curva
+ * de verdade e sem emenda em qualquer fundo, porque não há segunda cor para casar.
  *
  * Fica no **último** balão de um bloco, e não no primeiro: é de lá que a ponta cai sem cruzar as mensagens
  * seguintes do mesmo autor.
  */
 .message[data-closes] .bubble::after {
   position: absolute;
-  /* A base do rabo é a **base do balão**, e não a linha de baixo dele: com o alinhamento pelo fim o gancho
-     descia abaixo do balão e o encontro virava um degrau, em vez de a lateral continuar para fora. */
+  /* A ponta fica na linha da base do balão, como na referência: as duas bases se alinham. */
   inset-block-end: 0;
-  width: calc(var(--tail) + 1px);
-  height: 14px;
+  /* A caixa começa **na parede** e vai até o bico, sem invadir o balão: as duas cores de bolha da casa são
+     semitransparentes (alfa 0.18 e 0.32), então onde as duas formas se sobrepõem os alfas somam e a área sai
+     mais clara — era o vinco que aparecia no encontro, visto na captura ampliada. Sem sobreposição, a parede
+     do balão e a do rabo são a mesma linha e a cor é uma só. */
+  width: 7.6px;
+  height: 18.8px;
   content: "";
   background-color: var(--bubble-bg, var(--color-fill-quaternary));
-  /* O caminho é a esquina do balão continuando para fora, e não uma peça colada nela: a lateral desce reta
-     (`v6`), a quina faz a curva do raio do balão e, em vez de fechar, o traço segue numa curva larga até a
-     ponta e volta por uma mais fechada. É a diferença entre as duas curvaturas que dá a barriga de um lado e
-     a ponta fina do outro, que é o desenho da referência. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 14'%3E%3Cpath d='M0 0v6a8 8 0 0 0 8 8h5c-4 -1.4 -7.2 -4.6 -8.6 -8.6C3.4 3.2 1.9 1.3 0 0z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 14'%3E%3Cpath d='M0 0v6a8 8 0 0 0 8 8h5c-4 -1.4 -7.2 -4.6 -8.6 -8.6C3.4 3.2 1.9 1.3 0 0z'/%3E%3C/svg%3E");
+  /* Coordenadas do SVG do usuário multiplicadas por 20/32, com a origem na parede: a parede desce inclinando
+     para fora até o bico, na linha da base, e o arco côncavo volta dali até a parede de novo. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7.62 18.82'%3E%3Cpath d='M0 0 L2.56 9.79 L7.62 18.82 L6.89 18.73 C4.6 18.5 2.1 17.6 0 16.09 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7.62 18.82'%3E%3Cpath d='M0 0 L2.56 9.79 L7.62 18.82 L6.89 18.73 C4.6 18.5 2.1 17.6 0 16.09 Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
 
-/* A quina daquele lado perde o raio para o gancho sair reto dela, e a caixa entra 1px por dentro do balão,
-   senão o encontro das duas deixa um fio do fundo aparecendo entre elas. */
+/* A quina daquele lado perde o raio: na referência a parede desce reta e vira a diagonal do rabo, sem arco
+   de quina nenhum entre as duas. */
 .message:not([data-mine])[data-closes] .bubble {
   border-end-start-radius: 0;
 }
 
+/* O deslocamento é o avanço para fora; o resto da caixa fica por cima do balão, fechando o encontro. */
 .message:not([data-mine])[data-closes] .bubble::after {
   inset-inline-start: calc(var(--tail) * -1);
   transform: scaleX(-1);
