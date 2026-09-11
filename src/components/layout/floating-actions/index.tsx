@@ -11,7 +11,12 @@ export type FloatingExtraAction = { label: string; icon: ReactNode; loading?: bo
 
 /** As ações que uma janela pendura na barra flutuante do celular: a principal, com o nome, e a de sair. */
 export type FloatingActions = {
-  primary: { label: string; loading?: boolean; disabled?: boolean; onClick: () => void };
+  /**
+   * A ação principal. O glifo é o check de salvar por padrão, que é o que a maioria das janelas faz; quem
+   * não salva passa o próprio (2026-09-11): a ficha da tarefa edita no lugar e nunca salva, então um check
+   * ao lado de "Enviar" prometia uma gravação que não existe.
+   */
+  primary: { label: string; icon?: ReactNode; loading?: boolean; disabled?: boolean; onClick: () => void };
   /** Ações em glifo entre a principal e o sair, na ordem em que aparecem. Vazio ou ausente não desenha nada. */
   extras?: readonly FloatingExtraAction[];
   cancel: { label: string; onClick: () => void };
@@ -30,7 +35,7 @@ export type FloatingPager = {
    registrar a cada render sem fazer o menu inteiro re-renderizar a cada tecla digitada num campo. */
 type ExtraShape = { label: string; icon: ReactNode; loading: boolean; disabled: boolean };
 
-type Shape = { primaryLabel: string; loading: boolean; disabled: boolean; cancelLabel: string; extras: readonly ExtraShape[] } | null;
+type Shape = { primaryLabel: string; primaryIcon?: ReactNode; loading: boolean; disabled: boolean; cancelLabel: string; extras: readonly ExtraShape[] } | null;
 
 /* O mesmo para a paginação: página, total e nome mudam a marcação; o disparo fica na referência. */
 type PagerShape = { page: number; pageCount: number; label: string } | null;
@@ -52,6 +57,7 @@ function shapeOf(actions: FloatingActions | null): Shape {
   if (!actions) return null;
   return {
     primaryLabel: actions.primary.label,
+    primaryIcon: actions.primary.icon,
     loading: actions.primary.loading ?? false,
     disabled: actions.primary.disabled ?? false,
     cancelLabel: actions.cancel.label,
@@ -59,8 +65,9 @@ function shapeOf(actions: FloatingActions | null): Shape {
   };
 }
 
-/* O glifo é comparado por identidade: quem registra o monta no render, e um elemento novo a cada tecla
-   digitada faria a barra redesenhar sem necessidade, então o nome é o que diz se a ação é a mesma. */
+/* O glifo não entra na comparação, nem nas secundárias nem na principal: quem registra o monta no render, e
+   um elemento novo a cada tecla digitada faria a barra redesenhar sem necessidade, então o nome é o que diz
+   se a ação é a mesma. Ação que troca de glifo troca de nome junto, que é o caso de toda barra da casa. */
 const sameExtras = (a: readonly ExtraShape[], b: readonly ExtraShape[]) =>
   a.length === b.length && a.every((extra, index) => extra.label === b[index]?.label && extra.loading === b[index]?.loading && extra.disabled === b[index]?.disabled);
 

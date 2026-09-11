@@ -32,6 +32,16 @@ export type TaskColumnProps = {
    * gesto; a coluna só desenha.
    */
   landing?: boolean;
+  /**
+   * Se o cartão desta coluna se pega com o dedo (2026-09-11): no celular não, porque o mesmo gesto passaria
+   * de etapa, e quem move ali é a ficha e o "Mover para" do leque. Sem o arraste o cartão nem chega a ser
+   * medido pelo `useDraggable`, então não sobra ouvinte de toque no caminho da rolagem.
+   */
+  draggable?: boolean;
+  /** As etapas deste quadro, para o "Mover para" do leque do cartão oferecer só as que existem aqui. */
+  stages?: TaskStage[];
+  /** Leva a tarefa para outra etapa, pelo leque do cartão. */
+  onMove?: (task: Task, stage: TaskStage) => void;
 };
 
 // Uma coluna do quadro. O cabeçalho é o que esta rodada acertou (2026-09-10, a pedido, sobre uma referência
@@ -42,17 +52,50 @@ export type TaskColumnProps = {
 // Recolhida, a coluna vira um trilho estreito: a mesma pílula em pé, com o nome na vertical e a contagem,
 // e o menu no pé, por onde ela volta a abrir. É a mesma marcação, só de lado, então não existe um segundo
 // cabeçalho para sair de sincronia com este.
-function DraggableCard({ task, stage, onOpen }: { task: Task; stage: TaskStage; onOpen: () => void }) {
+function DraggableCard({
+  task,
+  stage,
+  onOpen,
+  stages,
+  onMove,
+}: {
+  task: Task;
+  stage: TaskStage;
+  onOpen: () => void;
+  stages?: TaskStage[];
+  onMove?: (task: Task, stage: TaskStage) => void;
+}) {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: task.id,
     data: { task, stage },
     attributes: { roleDescription: "cartão de tarefa" },
   });
 
-  return <TaskCard task={task} onOpen={onOpen} drag={{ ref: setNodeRef, listeners, attributes, dragging: isDragging }} />;
+  return (
+    <TaskCard
+      task={task}
+      onOpen={onOpen}
+      drag={{ ref: setNodeRef, listeners, attributes, dragging: isDragging }}
+      stages={stages}
+      onMove={onMove && ((to) => onMove(task, to))}
+    />
+  );
 }
 
-export function TaskColumn({ stage, tasks, collapsed, onCollapsedChange, sort, onSortChange, onOpen, onAdd, landing = false }: TaskColumnProps) {
+export function TaskColumn({
+  stage,
+  tasks,
+  collapsed,
+  onCollapsedChange,
+  sort,
+  onSortChange,
+  onOpen,
+  onAdd,
+  landing = false,
+  draggable = true,
+  stages,
+  onMove,
+}: TaskColumnProps) {
   const Glyph = stage.icon;
   const count = tasks.length;
   const hue = { "--stage-hue": stage.hue } as CSSProperties;
@@ -161,9 +204,26 @@ export function TaskColumn({ stage, tasks, collapsed, onCollapsedChange, sort, o
                   </Text>
                 </li>
               )}
-              {tasks.map((task) => (
-                <DraggableCard key={task.id} task={task} stage={stage.id} onOpen={() => onOpen(task)} />
-              ))}
+              {tasks.map((task) =>
+                draggable ? (
+                  <DraggableCard
+                    key={task.id}
+                    task={task}
+                    stage={stage.id}
+                    onOpen={() => onOpen(task)}
+                    stages={stages}
+                    onMove={onMove}
+                  />
+                ) : (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onOpen={() => onOpen(task)}
+                    stages={stages}
+                    onMove={onMove && ((to) => onMove(task, to))}
+                  />
+                ),
+              )}
             </ul>
           </div>
         ))}

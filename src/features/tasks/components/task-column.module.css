@@ -14,12 +14,15 @@
   min-height: 0;
 }
 
-/* No celular a coluna cabe quase inteira na tela e o trilho encaixa nela, então a pessoa passa de etapa em
-   etapa com o dedo em vez de parar no meio de duas. */
+/* No celular a coluna para **no centro** da tela (2026-09-11, a pedido), com a mesma espiada da vizinha dos
+   dois lados: a medida vem do trilho, que é quem também abre o recuo das pontas para a primeira e a última
+   pararem no mesmo lugar que as do meio. O encaixe é no centro pelo mesmo motivo: com `start` a coluna
+   grudava na borda esquerda e a espiada só aparecia de um lado. */
 @media (max-width: 47.9375rem) {
   .column {
-    --column-width: min(80vw, 19rem);
-    scroll-snap-align: start;
+    --column-width: var(--mobile-column, min(80vw, 19rem));
+
+    scroll-snap-align: center;
   }
 }
 

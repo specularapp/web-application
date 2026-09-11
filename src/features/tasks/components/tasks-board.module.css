@@ -24,6 +24,10 @@
    primeira e a última coluna ficavam presas dentro do recuo e o trilho parecia estreito no meio da página.
    O recuo lateral entra de volta por dentro, então a coluna da ponta continua respirando. */
 .rail {
+  /* A medida da coluna no celular, lida aqui e pela coluna: a tela menos a espiada das duas vizinhas e os
+     dois vãos entre elas, com teto na largura de sempre para o tablet estreito não esticar a coluna. */
+  --mobile-column: min(19rem, calc(100vw - var(--space-8) - var(--space-3) * 2));
+
   display: flex;
   gap: var(--space-4);
   align-items: stretch;
@@ -42,10 +46,15 @@
   }
 }
 
-/* No celular o trilho encaixa em coluna cheia, então o dedo passa de etapa em etapa e não para no meio. */
+/* No celular o trilho encaixa **no centro** (2026-09-11, a pedido): a coluna para no meio da tela com a
+   mesma espiada da vizinha dos dois lados, então a etapa em foco fica sempre centrada e a borda mostra que
+   o quadro anda. O recuo das pontas é o que deixa a primeira e a última pararem no centro como as do meio:
+   sem ele o encaixe não teria para onde puxá-las, e elas ficariam presas na borda. A conta é metade do que
+   sobra da tela depois da coluna, e é a mesma medida que a coluna usa para se dimensionar. */
 @media (max-width: 47.9375rem) {
   .rail {
     gap: var(--space-3);
+    padding-inline: max(var(--space-4), calc((100vw - var(--mobile-column)) / 2));
     scroll-snap-type: x mandatory;
   }
 }

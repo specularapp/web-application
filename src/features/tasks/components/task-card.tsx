@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { squircle, squircleAuto } from "@/lib/corners";
 import { dueOf, estimateLabel, priorityLabels, priorityTones, subtasksDone } from "../labels";
+import type { TaskStage } from "../stages";
 import type { Task } from "../summary";
 import { TaskMenu } from "./task-menu";
 import styles from "./task-card.module.css";
@@ -34,6 +35,10 @@ export type TaskCardProps = {
   drag?: TaskCardDrag;
   /** O cartão que flutua sob o ponteiro enquanto se arrasta: é só o desenho, sem alça e sem leque. */
   overlay?: boolean;
+  /** As etapas do quadro em que o cartão está, para o "Mover para" do leque. */
+  stages?: TaskStage[];
+  /** Leva a tarefa para outra etapa pelo leque, que é o caminho curto onde não se arrasta. */
+  onMove?: (stage: TaskStage) => void;
 };
 
 /** Quantos rostos a fila mostra antes de resumir o resto em "+N", o mesmo da ficha e do aviso do menu. */
@@ -61,7 +66,7 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // A ordem é a de quem varre a coluna com o olho: o que é urgente, o que é, onde mora, o que diz, como está
 // classificado, quanto falta, e por fim quem cuida e quando vence. Etiquetas, trabalho e as contagens do pé
 // só aparecem quando existem, então tarefa simples tem cartão curto e tarefa cheia tem cartão cheio.
-export function TaskCard({ task, onOpen, drag, overlay = false }: TaskCardProps) {
+export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove }: TaskCardProps) {
   const due = dueOf(task);
   const faces = task.people.slice(0, SHOWN_FACES);
   const restFaces = task.people.length - faces.length;
@@ -124,7 +129,7 @@ export function TaskCard({ task, onOpen, drag, overlay = false }: TaskCardProps)
           {task.alert && <Badge tone="warning" size="sm" icon={<WarningIcon weight="fill" />} label="Tem um aviso para ler antes de mexer" />}
           {!overlay && (
             <span className={styles.menu}>
-              <TaskMenu task={task} onOpen={onOpen} />
+              <TaskMenu task={task} onOpen={onOpen} stages={stages} onMove={onMove} />
             </span>
           )}
         </div>

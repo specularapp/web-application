@@ -20,7 +20,9 @@ import { ArrowCounterClockwiseIcon, PlusIcon, WarningCircleIcon } from "@phospho
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -107,6 +109,10 @@ const screenReaderInstructions: ScreenReaderInstructions = {
     "Para mover a tarefa de etapa, aperte Espaço. Use as setas para escolher a etapa e aperte Espaço de novo para soltar. Esc cancela. Enter abre a tarefa.",
 };
 
+/* No celular o quadro não arrasta, e a concha do `DndContext` fica montada sem sensor nenhum: ela segue
+   servindo o `DragOverlay` e os avisos de leitor de tela sem escutar o toque, que ali é da rolagem. */
+const noSensors: ReturnType<typeof useSensors> = [];
+
 /* Toda coluna abre na ordem padrão da casa, o prazo. A escolha é de coluna, então são cinco. */
 const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAULT_COLUMN_SORT])) as Record<TaskStage, TasksColumnSort>;
 
@@ -134,6 +140,13 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   const [sorts, setSorts] = useState<Record<TaskStage, TasksColumnSort>>(initialSorts);
   const [open, setOpen] = useState<Task | null>(null);
   /**
+   * No celular o cartão **não se arrasta** (2026-09-11, a pedido): a coluna ocupa quase a tela inteira e o
+   * trilho rola na horizontal, então o mesmo gesto servia para arrastar o cartão e para passar de etapa, e
+   * quem só queria ver a coluna seguinte saía carregando uma tarefa. Quem move ali é a ficha da tarefa e o
+   * "Mover para" do leque do cartão, que valem no toque e no teclado.
+   */
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  /**
    * Para onde cada tarefa foi arrastada, por id (2026-09-10, a pedido). É um mapa de destinos, e não uma
    * cópia da lista: o quadro em si continua vindo do servidor a cada filtro, e uma cópia sairia de sincronia
    * na primeira busca. **Vale só na tela**, como o resto do que a ficha muda; quem ligar a tabela troca este
@@ -145,8 +158,13 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   /** Em que coluna ela cairia agora, para a etapa acender e abrir o lugar dele. */
   const [landing, setLanding] = useState<TaskStage | null>(null);
   const typing = useRef<number | undefined>(undefined);
+  /** O trilho, para a barra flutuante levar o quadro até a etapa escolhida e para saber qual está à vista. */
+  const rail = useRef<HTMLDivElement>(null);
+  /** Qual etapa está no centro da tela agora, contada de 1, como a barra de paginação conta páginas. */
+  const [stagePage, setStagePage] = useState(1);
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_START } }),
@@ -214,6 +232,49 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     return board.columns.map((column) => ({ ...column, tasks: piles.get(column.stage) ?? [] }));
   }, [board.columns, moved]);
 
+  /**
+   * Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/8" e as setas andam a
+   * partir dali, então o número precisa acompanhar o dedo, e não só o toque na seta. A conta é a distância
+   * do centro da tela ao centro de cada coluna, que é a mesma medida que o encaixe usa, então ela vale
+   * igual com etapa recolhida no meio do caminho, que é mais estreita que as outras.
+   *
+   * Só no celular: acima disso o trilho mostra várias colunas e "a coluna em vigor" não quer dizer nada.
+   */
+  useEffect(() => {
+    const node = rail.current;
+    if (!node || !mobile) return;
+
+    const read = () => {
+      const middle = node.scrollLeft + node.clientWidth / 2;
+      const columns = Array.from(node.children) as HTMLElement[];
+      let nearest = 0;
+      let best = Infinity;
+      columns.forEach((column, index) => {
+        const distance = Math.abs(column.offsetLeft + column.offsetWidth / 2 - middle);
+        if (distance < best) {
+          best = distance;
+          nearest = index;
+        }
+      });
+      /* Só quando muda de verdade: `read` roda a cada quadro da rolagem, e marcar o mesmo número de novo
+         redesenharia o quadro inteiro dezenas de vezes no meio de um gesto de dedo. */
+      setStagePage((current) => (current === nearest + 1 ? current : nearest + 1));
+    };
+
+    read();
+    node.addEventListener("scroll", read, { passive: true });
+    return () => node.removeEventListener("scroll", read);
+  }, [mobile, columns.length, board.matched]);
+
+  /* Levar o quadro até a etapa que a barra pediu: o trilho rola até ela ficar no centro, que é onde o
+     encaixe a deixaria de qualquer jeito. */
+  const goToStage = (page: number) => {
+    const node = rail.current;
+    const column = node?.children[page - 1] as HTMLElement | undefined;
+    if (!node || !column) return;
+    node.scrollTo({ left: column.offsetLeft + column.offsetWidth / 2 - node.clientWidth / 2, behavior: "smooth" });
+  };
+
   const onDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current as { task?: Task; stage?: TaskStage } | undefined;
     if (data?.task && data.stage) setDragging({ task: data.task, from: data.stage });
@@ -225,15 +286,25 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     setLanding(over && over !== dragging?.from ? over : null);
   };
 
+  /**
+   * Levar uma tarefa para outra etapa, venha o pedido de onde vier: do arraste, do "Mover para" do leque do
+   * cartão ou da ficha. Fica num lugar só porque a etapa de destino recolhida precisa abrir nos três casos,
+   * senão a tarefa some no trilho fechado logo depois de a pessoa mandar ela para lá.
+   */
+  const moveTask = (task: Task, to: TaskStage, from: TaskStage) => {
+    if (to === from) return;
+    setMoved((current) => ({ ...current, [task.id]: to }));
+    if (overrides[to] === true || (overrides[to] === undefined && countOf(to) === 0)) changeCollapsed(to, false);
+  };
+
   const onDragEnd = (event: DragEndEvent) => {
     const to = event.over?.id as TaskStage | undefined;
     const task = dragging?.task;
+    const from = dragging?.from;
     setDragging(null);
     setLanding(null);
-    if (!task || !to || to === dragging?.from) return;
-    setMoved((current) => ({ ...current, [task.id]: to }));
-    /* Soltar numa etapa recolhida abre ela: a tarefa acabou de chegar, e um trilho fechado a esconderia. */
-    if (overrides[to] === true || (overrides[to] === undefined && countOf(to) === 0)) changeCollapsed(to, false);
+    if (!task || !to || !from) return;
+    moveTask(task, to, from);
   };
 
   const countOf = (stage: TaskStage) => columns.find((column) => column.stage === stage)?.tasks.length ?? 0;
@@ -251,6 +322,22 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     columns.flatMap((column) => column.tasks).find((task) => task.id === id)?.title ?? "a tarefa";
 
   const active = activeTasksFilters(live);
+
+  /**
+   * O quadro pendura a **navegação das etapas** na barra flutuante do celular (2026-09-11, a pedido), pelo
+   * modo de paginação que a barra já tem: anterior, "3/8" e próxima, no lugar da busca e do sino. É o encaixe
+   * certo aqui porque no celular só uma etapa cabe na tela de cada vez, e sem isso a única forma de chegar na
+   * oitava coluna era arrastar o trilho sete vezes às cegas, sem saber quantas faltam.
+   *
+   * As ações de janela ficam para a ficha, que é janela de verdade: numa tela de lista o X da barra não tem
+   * para onde sair. E a paginação some sozinha quando a ficha abre, porque janela manda na lista, então as
+   * duas nunca disputam a barra.
+   */
+  useFloatingPagerRegistration(
+    mobile && board.matched > 0 && columns.length > 1
+      ? { page: stagePage, pageCount: columns.length, onPageChange: goToStage, label: "Etapas do quadro" }
+      : null,
+  );
 
   /* O menu de filtros, tudo num lugar só: prioridade e prazo em escolha única, marcadas pelo check, e "só
      atrasadas" em interruptor, porque é sim ou não. Cada escolha vale na hora e não fecha o menu, porque a
@@ -341,7 +428,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         // pela quina mais perto, que é o que funciona com alvos altos e estreitos lado a lado, e o cartão que
         // flutua fica preso à janela pelo modificador.
         <DndContext
-          sensors={sensors}
+          sensors={mobile ? noSensors : sensors}
           collisionDetection={closestCorners}
           accessibility={{ announcements, screenReaderInstructions }}
           onDragStart={onDragStart}
@@ -352,7 +439,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
             setLanding(null);
           }}
         >
-          <div className={styles.rail} data-dragging={dragging ? "" : undefined}>
+          <div ref={rail} className={styles.rail} data-dragging={dragging ? "" : undefined}>
             {columns.map((column) => (
               <TaskColumn
                 key={column.stage}
@@ -365,6 +452,9 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
                 onOpen={setOpen}
                 onAdd={() => undefined}
                 landing={landing === column.stage}
+                draggable={!mobile}
+                stages={board.columns.map((entry) => entry.stage)}
+                onMove={(task, to) => moveTask(task, to, column.stage)}
               />
             ))}
           </div>
@@ -391,6 +481,11 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         stages={board.columns.map((column) => column.stage)}
         team={team}
         records={records}
+        onStageChange={(stage) => {
+          if (!open) return;
+          moveTask(open, stage, open.stage);
+          setOpen({ ...open, stage });
+        }}
       />
     </div>
   );

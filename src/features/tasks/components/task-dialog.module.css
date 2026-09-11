@@ -3,7 +3,7 @@
    corpo, e é dela que as duas colunas tiram o piso de zero para rolar por dentro. */
 .dialog {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
   height: 100%;
 }
@@ -85,6 +85,91 @@
   align-items: center;
 }
 
+/**
+ * A faixa de abas (2026-09-11, a pedido): só existe enquanto as duas metades não cabem lado a lado. Acima de
+ * 64rem ela some, porque ali ficha e conversa estão as duas à vista e escolher entre elas não faz sentido.
+ * O desenho é o do seletor de visão da casa, o mesmo do filtro do registro logo abaixo, mas em faixa cheia:
+ * as duas abas dividem a largura, então o alvo de toque é metade da tela e não uma pílula no canto.
+ */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  margin: var(--space-3) var(--space-4) 0;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+@media (width >= 64rem) {
+  .tabs {
+    display: none;
+  }
+}
+
+.tab {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: var(--control-height-sm);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.tab[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--color-label);
+  }
+}
+
+/* Quantas coisas a conversa tem, na aba: a mesma contagem que a coluna da etapa leva, para a pessoa saber se
+   vale trocar de aba sem trocar. Algarismo tabular, para a aba não pulsar de largura. */
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: var(--space-half);
+  font-size: var(--text-caption-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-xs);
+  corner-shape: squircle;
+}
+
+.tab[data-on] .tabCount {
+  color: var(--color-label);
+}
+
 /* O corpo: conteúdo e conversa lado a lado, com um fio entre eles. A coluna da conversa é fixa e um pouco
    mais larga que a primeira medida (26rem, a pedido de 2026-09-10): em 22rem o cartão do comentário apertava
    a fila de ações. As duas rolam por conta e nenhuma encadeia para fora. */
@@ -92,6 +177,15 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
+}
+
+/* Abaixo de 64rem quem aparece é a metade que a aba escolheu, e ela toma a faixa inteira: as duas ficam
+   montadas, então trocar de aba não remonta a conversa nem perde o que estava escrito no comentário. */
+@media (width < 64rem) {
+  .body[data-tab="details"] .side,
+  .body[data-tab="activity"] .main {
+    display: none;
+  }
 }
 
 @media (width >= 64rem) {

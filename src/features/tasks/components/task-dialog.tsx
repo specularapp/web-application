@@ -4,12 +4,14 @@ import {
   ArrowUpRightIcon,
   AtIcon,
   CalendarBlankIcon,
+  ChatCircleIcon,
   FileTextIcon,
   FlagIcon,
   FolderIcon,
   HashIcon,
   ImageIcon,
   KanbanIcon,
+  ListBulletsIcon,
   PaperPlaneTiltIcon,
   PlusIcon,
   TagIcon,
@@ -23,7 +25,8 @@ import {
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -38,6 +41,7 @@ import { RecordMediaView } from "@/features/records/components/record-media";
 import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord } from "@/features/records/records";
 import { squircle } from "@/lib/corners";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { slugify } from "@/lib/utils/slug";
 import { cx } from "@/lib/utils/cx";
 import { acceptDocuments, acceptImages, attachmentOf } from "../files";
@@ -65,6 +69,12 @@ export type TaskDialogProps = {
   team?: TaskPerson[];
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
+  /**
+   * Avisa o quadro de que a etapa mudou aqui dentro (2026-09-11): sem isto a troca ficava só no rascunho da
+   * ficha e a tarefa voltava para a coluna de origem ao fechar, o que no celular é o **único** caminho de
+   * mover, porque ali não se arrasta.
+   */
+  onStageChange?: (stage: TaskStage) => void;
 };
 
 /** Quantos rostos a fila de envolvidos mostra antes de resumir o resto em "+N". */
@@ -472,7 +482,7 @@ function Block({
 //
 // A `key` da tarefa remonta o miolo quando outra abre: a janela é uma só para o quadro inteiro, e sem isso o
 // rascunho de uma vazaria para a seguinte.
-export function TaskDialog({ task, open, onClose, stages, team, records = [] }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, stages, team, records = [], onStageChange }: TaskDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} label={task ? `Tarefa ${task.title}` : "Tarefa"} size="xl" focusOnOpen={false}>
       {task && (
@@ -483,6 +493,7 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [] }: 
           stages={stages ?? defaultStages}
           team={team ?? task.people}
           records={records}
+          onStageChange={onStageChange}
         />
       )}
     </Dialog>
@@ -495,17 +506,27 @@ function TaskDetail({
   stages,
   team,
   records,
+  onStageChange,
 }: {
   task: Task;
   onClose: () => void;
   stages: TaskStage[];
   team: TaskPerson[];
   records: AppRecord[];
+  onStageChange?: (stage: TaskStage) => void;
 }) {
   const [draft, setDraft] = useState(task);
   const [events, setEvents] = useState<TaskEvent[]>(task.activity);
   const [comment, setComment] = useState("");
   const [feed, setFeed] = useState<"all" | "comments">("all");
+  /**
+   * Qual metade a janela mostra enquanto as duas não cabem lado a lado (2026-09-11, a pedido): a ficha ou a
+   * conversa. Acima de 64rem a escolha não vale, porque ali as duas estão à vista ao mesmo tempo e a faixa
+   * de abas nem é desenhada; o estado fica montado assim mesmo, então girar o aparelho não perde o lugar.
+   */
+  const [tab, setTab] = useState<"details" | "activity">("details");
+  /* No celular a janela é bandeja e as ações dela moram na barra flutuante, como em toda janela da casa. */
+  const mobile = useMediaQuery(MOBILE_QUERY);
   const [linking, setLinking] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [mentioning, setMentioning] = useState(false);
@@ -574,7 +595,10 @@ function TaskDetail({
           label: meta.label,
           media: <Glyph weight="bold" style={{ color: meta.hue } as CSSProperties} />,
           selected: draft.stage === id,
-          onSelect: () => patch({ stage: id }),
+          onSelect: () => {
+            patch({ stage: id });
+            onStageChange?.(id);
+          },
         };
       }),
     },
@@ -730,10 +754,13 @@ function TaskDetail({
    * Publicar o comentário: o texto, o que ele marcou e o que veio junto. Sai daqui e não do `onSubmit`
    * porque o Enter no campo manda pelo mesmo caminho (2026-09-10, a pedido).
    */
+  /* Áudio e arquivo falam por si: uma mensagem só com eles é uma mensagem válida. A regra fica aqui porque
+     o botão da barra flutuante lê a mesma coisa para saber se fica apagado. */
+  const canPublish = comment.trim().length > 0 || pending.length > 0 || Boolean(voice);
+
   const publish = () => {
     const text = comment.trim();
-    /* Áudio e arquivo falam por si: uma mensagem só com eles é uma mensagem válida. */
-    if (!text && pending.length === 0 && !voice) return;
+    if (!canPublish) return;
     /* Só as marcações que sobraram no texto: quem apagou o sinal à mão não quer a marcação. */
     const kept = mentions.filter((mention) => text.includes(mention.token));
     setEvents((current) => [
@@ -754,6 +781,46 @@ function TaskDetail({
     setPending([]);
     setVoice(null);
   };
+
+  /* As setas andam entre as duas abas e levam o foco junto, que é o que `tablist` pede; Home e End vão às
+     pontas, que aqui são as mesmas duas. */
+  const onTabKeys = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const keys: Record<string, "details" | "activity"> = {
+      ArrowLeft: "details",
+      ArrowRight: "activity",
+      Home: "details",
+      End: "activity",
+    };
+    const next = keys[event.key];
+    if (!next) return;
+    event.preventDefault();
+    setTab(next);
+    document.getElementById(next === "details" ? "task-tab-details" : "task-tab-activity")?.focus();
+  };
+
+  /**
+   * A ficha pendura as próprias ações na barra flutuante do celular (2026-09-11, a pedido), no contrato de
+   * toda janela da casa: conteúdo na bandeja, ações na barra. A principal segue a aba em vigor, que é o que
+   * a pessoa está fazendo naquele instante: na ficha ela **abre a conversa**, que é o caminho que a janela
+   * estreita escondeu atrás da aba; na conversa ela **envia** o que está escrito, e fica apagada enquanto
+   * não há texto, arquivo nem áudio, como o botão de enviar do próprio cartão. Ao lado, em glifo, o leque da
+   * tarefa não cabe (ele é um menu, e a barra hospeda ação), então o que entra é voltar para as informações.
+   * Sair é o X, como em toda janela.
+   */
+  useFloatingActionsRegistration(
+    mobile
+      ? tab === "details"
+        ? {
+            primary: { label: "Atividade", icon: <ChatCircleIcon weight="bold" />, onClick: () => setTab("activity") },
+            cancel: { label: "Fechar tarefa", onClick: onClose },
+          }
+        : {
+            primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
+            extras: [{ label: "Ver informações", icon: <ListBulletsIcon weight="bold" />, onClick: () => setTab("details") }],
+            cancel: { label: "Fechar tarefa", onClick: onClose },
+          }
+      : null,
+  );
 
   const send = (event: FormEvent) => {
     event.preventDefault();
@@ -791,8 +858,49 @@ function TaskDetail({
         </div>
       </header>
 
-      <div className={frame.body}>
-        <div className={frame.main}>
+      {/* As duas metades viram abas enquanto não cabem lado a lado (2026-09-11, a pedido): partir a janela
+          estreita ao meio dava meia ficha e meia conversa, e nenhuma das duas rendia. Acima de 64rem a faixa
+          some por CSS e as duas voltam a ficar à vista, então a marcação é a mesma nas duas larguras e nada
+          salta na hidratação. É `tablist` de verdade, com as setas andando entre as abas, porque são duas
+          vistas do mesmo conteúdo e não dois filtros. */}
+      <div className={frame.tabs} role="tablist" aria-label="O que ver da tarefa">
+        <button
+          type="button"
+          role="tab"
+          id="task-tab-details"
+          aria-selected={tab === "details"}
+          aria-controls="task-panel-details"
+          tabIndex={tab === "details" ? 0 : -1}
+          className={frame.tab}
+          data-on={tab === "details" || undefined}
+          onClick={() => setTab("details")}
+          onKeyDown={onTabKeys}
+        >
+          Informações
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="task-tab-activity"
+          aria-selected={tab === "activity"}
+          aria-controls="task-panel-activity"
+          tabIndex={tab === "activity" ? 0 : -1}
+          className={frame.tab}
+          data-on={tab === "activity" || undefined}
+          onClick={() => setTab("activity")}
+          onKeyDown={onTabKeys}
+        >
+          Atividade
+          {events.length > 0 && (
+            <span className={frame.tabCount} aria-hidden="true">
+              {events.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className={frame.body} data-tab={tab}>
+        <div className={frame.main} id="task-panel-details" role="tabpanel" aria-labelledby="task-tab-details">
           <InlineText value={draft.title} onChange={(title) => patch({ title })} label="Título da tarefa" as="h2" variant="title2" weight="semibold" single />
 
           {task.alert && (
@@ -1013,7 +1121,7 @@ function TaskDetail({
 
         {/* A conversa numa coluna própria: o registro de cima para baixo, o filtro no cabeçalho e o campo
             num cartão no pé, com o que dá para anexar e marcar dentro dele. */}
-        <aside className={frame.side} aria-label="Atividade da tarefa">
+        <aside className={frame.side} id="task-panel-activity" role="tabpanel" aria-labelledby="task-tab-activity">
           <div className={frame.sideHead}>
             <Text as="h3" variant="callout" weight="semibold">
               Atividade

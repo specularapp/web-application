@@ -614,7 +614,7 @@ export function Sidebar(props: SidebarProps) {
             {/* Janela com ações próprias: salvar e sair entram no lugar da busca e do sino, para a barra
                 continuar uma só e o botão do menu ficar onde sempre fica. */}
             <span className={styles.barMode} data-active={mode === "actions" ? "" : undefined} inert={mode === "actions" ? undefined : true}>
-              <Button size="md" radius="md" iconStart={<CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
+              <Button size="md" radius="md" iconStart={shownActions.primaryIcon ?? <CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
                 {shownActions.primaryLabel}
               </Button>
               {/* As secundárias da janela, em glifo, entre salvar e sair: é onde enviar e copiar o link do
