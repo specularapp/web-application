@@ -997,26 +997,27 @@
   position: absolute;
   /* A ponta fica na linha da base do balão, como na referência: as duas bases se alinham. */
   inset-block-end: 0;
-  /* A caixa cobre o vão entre o **arco da quina** e o rabo, e é por isso que ela começa 10px à esquerda da
-     parede: a quina do balão continua arredondada (raio 20) e o arco recua para dentro conforme desce, então
-     sem essa faixa o rabo saía de um corte reto em vez de nascer da curva.
-
-     O preenchimento é sólido aqui (`--bubble-solid`, a cor da bolha já resolvida sobre o fundo da coluna) e
-     não o `--bubble-bg` semitransparente: onde a máscara passa por cima do balão os dois alfas somariam e o
-     encontro ficaria com um vinco mais claro, que foi o que a captura ampliada mostrou. */
-  width: 17.6px;
-  height: 18.8px;
+  /* A caixa cobre o **raio inteiro** da quina mais o avanço do rabo, e as três medidas saem das mesmas duas
+     variáveis, sem número solto: com uma sobreposição menor que o raio (10 contra 20) o arco do balão
+     aparecia por baixo da máscara em parte do trajeto e o encontro saía com um degrau. O `viewBox` usa esses
+     mesmos números, então a escala é 1:1 e a parede desenhada cai exatamente sobre a parede do balão — antes
+     a largura era um literal que não batia com o `viewBox`, e o navegador ainda arredondava para o pixel do
+     aparelho (17.5938 no lugar de 17.6), o que deslocava o desenho inteiro por uma fração. */
+  width: calc(var(--radius-lg) + var(--tail));
+  height: 18.82px;
   content: "";
   /* Duas camadas, e não uma cor calculada: a de baixo é a superfície da coluna e a de cima é a bolha, que é
      translúcida. Empilhadas, o resultado é exatamente a cor que o balão tem ali, e o rabo pode cobrir a quina
      sem somar um segundo alfa por cima do que já está pintado. */
   background-image: linear-gradient(var(--bubble-bg, var(--color-fill-quaternary)) 0 100%),
     linear-gradient(var(--feed-surface) 0 100%);
-  /* O caminho, do SVG do usuário em 20/32, com a origem deslocada 10 à direita: a borda esquerda acompanha o
-     arco da quina (o `A` de raio 20), a parede desce inclinando até o bico na linha da base e o arco côncavo
-     volta dali para dentro do balão. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17.62 18.82'%3E%3Cpath d='M0 0 L10 0 L12.56 9.79 L17.62 18.82 L16.89 18.73 C14.6 18.5 12.1 17.6 10 16.09 C7.5 17.9 4 18.82 0 18.82 Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17.62 18.82'%3E%3Cpath d='M0 0 L10 0 L12.56 9.79 L17.62 18.82 L16.89 18.73 C14.6 18.5 12.1 17.6 10 16.09 C7.5 17.9 4 18.82 0 18.82 Z'/%3E%3C/svg%3E");
+  /* O caminho, do SVG do usuário em 20/32. A borda de dentro **é o arco da quina** (o `A 20 20` que desce de
+     x=20 até a base), e não uma reta: o balão já curvou ali, então um retângulo reto sobrava por fora dele e
+     aparecia como um degrau no encontro, visto na captura ampliada. Com o mesmo raio nos dois, a máscara
+     encosta na borda do balão em todo o trajeto. Da parede para a direita segue o desenho da referência: a
+     diagonal até o bico na linha da base e o arco côncavo de volta. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M20 0 L22.56 9.79 L27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 20 0 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M20 0 L22.56 9.79 L27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 20 0 Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
