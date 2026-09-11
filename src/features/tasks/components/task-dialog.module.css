@@ -1011,13 +1011,17 @@
      sem somar um segundo alfa por cima do que já está pintado. */
   background-image: linear-gradient(var(--bubble-bg, var(--color-fill-quaternary)) 0 100%),
     linear-gradient(var(--feed-surface) 0 100%);
-  /* O caminho, do SVG do usuário em 20/32. A borda de dentro **é o arco da quina** (o `A 20 20` que desce de
-     x=20 até a base), e não uma reta: o balão já curvou ali, então um retângulo reto sobrava por fora dele e
-     aparecia como um degrau no encontro, visto na captura ampliada. Com o mesmo raio nos dois, a máscara
-     encosta na borda do balão em todo o trajeto. Da parede para a direita segue o desenho da referência: a
-     diagonal até o bico na linha da base e o arco côncavo de volta. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M20 0 L22.56 9.79 L27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 20 0 Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M20 0 L22.56 9.79 L27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 20 0 Z'/%3E%3C/svg%3E");
+  /* O caminho, do SVG do usuário em 20/32. A borda de dentro **é o arco da quina** (o `A 20 20` que desce até
+     a base), e não uma reta: o balão já curvou ali, então um retângulo reto sobrava por fora dele e aparecia
+     como um degrau no encontro. Da parede para a direita segue o desenho da referência: a diagonal até o bico
+     na linha da base e o arco côncavo de volta.
+
+     O contorno de fora **acompanha o arco do balão** na primeira metade, e só depois se desprende rumo ao
+     bico: uma parede reta ali avançava para fora da curva numa altura em que o balão já tinha recuado (em
+     y=9.8 o balão está em x=16.7 e a reta ia a 22.6), e esse excesso, pintado sobre o fundo da coluna,
+     aparecia como o risco fino na emenda. Seguindo o arco até se soltar, a silhueta é contínua. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M17.77 8 C19.5 12 23 16 27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 17.77 8 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27.62 18.82'%3E%3Cpath d='M17.77 8 C19.5 12 23 16 27.62 18.82 L26.89 18.73 C24.6 18.5 22.1 17.6 20 16.09 C17.5 17.9 14 18.82 10.24 18.82 A20 20 0 0 0 17.77 8 Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
