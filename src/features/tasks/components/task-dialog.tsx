@@ -4,15 +4,21 @@ import {
   ArrowUpRightIcon,
   AtIcon,
   CalendarBlankIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  CopySimpleIcon,
   FileTextIcon,
   FlagIcon,
   FolderIcon,
   HashIcon,
   ImageIcon,
   KanbanIcon,
+  MicrophoneIcon,
   PaperclipIcon,
   PaperPlaneTiltIcon,
   PlusIcon,
+  StopIcon,
   TagIcon,
   TimerIcon,
   UserCircleIcon,
@@ -24,7 +30,17 @@ import {
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +66,7 @@ import { defaultStages, taskStageMeta, type TaskStage } from "../stages";
 import { tagGroups, tagHue, taskTags } from "../tags";
 import type { Task, TaskAttachment, TaskAudio, TaskEvent, TaskLink, TaskMention, TaskPerson, TaskPriority } from "../summary";
 import { AttachmentCard } from "./attachment-card";
-import { AudioBubble, VoiceButton } from "./chat-audio";
+import { AudioBubble, VoiceButton, useVoiceRecorder } from "./chat-audio";
 import { Subtasks } from "./subtasks";
 import { AttachmentDialog, LinkDialog } from "./task-add-dialogs";
 import { TaskMenu } from "./task-menu";
@@ -481,6 +497,9 @@ function Block({
 //
 // A `key` da tarefa remonta o miolo quando outra abre: a janela é uma só para o quadro inteiro, e sem isso o
 // rascunho de uma vazaria para a seguinte.
+/** Quanto o dedo precisa andar na horizontal para o arrasto virar troca de página, e não rolagem torta. */
+const SWIPE = 56;
+
 export function TaskDialog({ task, open, onClose, stages, team, records = [], onStageChange }: TaskDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} label={task ? `Tarefa ${task.title}` : "Tarefa"} size="xl" focusOnOpen={false}>
@@ -533,6 +552,9 @@ function TaskDetail({
   /* O que está pendurado no comentário, esperando o envio: os arquivos escolhidos e o áudio gravado ali. */
   const [pending, setPending] = useState<TaskAttachment[]>([]);
   const [voice, setVoice] = useState<TaskAudio | null>(null);
+  /* O microfone, aqui e não dentro do botão: no celular quem grava é a barra flutuante, e o cartão do
+     comentário mostra o mesmo estado. */
+  const voiceRecorder = useVoiceRecorder(setVoice);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -781,20 +803,36 @@ function TaskDetail({
     setVoice(null);
   };
 
-  /* As setas andam entre as duas abas e levam o foco junto, que é o que `tablist` pede; Home e End vão às
-     pontas, que aqui são as mesmas duas. */
-  const onTabKeys = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const keys: Record<string, "details" | "activity"> = {
-      ArrowLeft: "details",
-      ArrowRight: "activity",
-      Home: "details",
-      End: "activity",
-    };
-    const next = keys[event.key];
-    if (!next) return;
-    event.preventDefault();
-    setTab(next);
-    document.getElementById(next === "details" ? "task-tab-details" : "task-tab-activity")?.focus();
+  /**
+   * O arrasto para o lado que vira a página (2026-09-11, a pedido), ao lado do botão da lateral: puxar para
+   * a esquerda vai para a conversa e para a direita volta para a ficha, que é o sentido de quem folheia.
+   *
+   * A conta é feita no soltar, e não a cada movimento: o dedo precisa andar `SWIPE` na horizontal e menos que
+   * isso na vertical, senão a rolagem da própria metade viraria troca de página no primeiro deslize torto.
+   * Gesto que nasce num campo, num botão ou dentro de algo que rola na horizontal não conta, porque ali ele
+   * é do controle, e não da janela: é o caso do campo de comentário e da fila de anexos.
+   */
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+
+  const onSwipeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") return;
+    const from = event.target as HTMLElement;
+    if (from.closest("input, textarea, button, a, [role='button'], [role='menuitem']")) return;
+    swipe.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const onSwipeCancel = () => {
+    swipe.current = null;
+  };
+
+  const onSwipeEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const from = swipe.current;
+    swipe.current = null;
+    if (!from) return;
+    const moveX = event.clientX - from.x;
+    const moveY = event.clientY - from.y;
+    if (Math.abs(moveX) < SWIPE || Math.abs(moveY) > Math.abs(moveX)) return;
+    setTab(moveX < 0 ? "activity" : "details");
   };
 
   /**
@@ -809,22 +847,39 @@ function TaskDetail({
    * marcar um registro e gravar. São as mesmas ações do cartão, que no celular desce para a barra em vez de
    * espremer cinco alvos de toque na largura de um campo de texto.
    *
-   * Na aba das informações a ficha **não registra nada**: ali não há ação própria, e uma barra com sair dos
-   * dois lados (o botão com nome e o X dizendo a mesma coisa) seria ruído. Sem registro, a barra volta ao
-   * que ela é na tela, com a busca e o menu, e fechar a janela continua no X do cabeçalho e no arrasto da
-   * bandeja.
+   * Na aba das informações a barra leva as **ações da tarefa** (2026-09-11, a pedido): concluir como
+   * principal, com duplicar e excluir em glifo. São as mesmas do leque do cartão, trazidas para a mão, que é
+   * o que a ficha tem de ação própria; sem elas a barra ficava com sair dos dois lados, dizendo a mesma coisa
+   * duas vezes. Concluir some no que já fechou, como no leque, porque marcar de novo não é ação nenhuma.
    */
   useFloatingActionsRegistration(
-    mobile && tab === "activity"
-      ? {
-          primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
-          extras: [
-            { label: "Anexar imagem", icon: <ImageIcon weight="bold" />, onClick: () => imageInput.current?.click() },
-            { label: "Anexar arquivo", icon: <PaperclipIcon weight="bold" />, onClick: () => fileInput.current?.click() },
-            { label: "Marcar um registro da aplicação", icon: <HashIcon weight="bold" />, onClick: () => setMentioning(true) },
-          ],
-          cancel: { label: "Fechar tarefa", onClick: onClose },
-        }
+    mobile
+      ? tab === "activity"
+        ? {
+            primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
+            extras: [
+              { label: "Anexar imagem", icon: <ImageIcon weight="bold" />, onClick: () => imageInput.current?.click() },
+              { label: "Anexar arquivo", icon: <PaperclipIcon weight="bold" />, onClick: () => fileInput.current?.click() },
+              { label: "Marcar um registro da aplicação", icon: <HashIcon weight="bold" />, onClick: () => setMentioning(true) },
+              voiceRecorder.recording
+                ? { label: "Encerrar a gravação", icon: <StopIcon weight="fill" />, onClick: voiceRecorder.stop }
+                : { label: "Gravar áudio", icon: <MicrophoneIcon weight="bold" />, onClick: () => void voiceRecorder.start() },
+            ],
+            cancel: { label: "Fechar tarefa", onClick: onClose },
+          }
+        : {
+            primary: {
+              label: stage.kind === "done" ? "Reabrir" : "Concluir",
+              icon: <CheckCircleIcon weight="bold" />,
+              onClick: () => {
+                const next: TaskStage = stage.kind === "done" ? "doing" : "done";
+                patch({ stage: next });
+                onStageChange?.(next);
+              },
+            },
+            extras: [{ label: "Duplicar tarefa", icon: <CopySimpleIcon weight="bold" />, onClick: () => undefined }],
+            cancel: { label: "Fechar tarefa", onClick: onClose },
+          }
       : null,
   );
 
@@ -864,49 +919,34 @@ function TaskDetail({
         </div>
       </header>
 
-      {/* As duas metades viram abas enquanto não cabem lado a lado (2026-09-11, a pedido): partir a janela
-          estreita ao meio dava meia ficha e meia conversa, e nenhuma das duas rendia. Acima de 64rem a faixa
-          some por CSS e as duas voltam a ficar à vista, então a marcação é a mesma nas duas larguras e nada
-          salta na hidratação. É `tablist` de verdade, com as setas andando entre as abas, porque são duas
-          vistas do mesmo conteúdo e não dois filtros. */}
-      <div className={frame.tabs} role="tablist" aria-label="O que ver da tarefa">
+      {/* A troca entre as duas metades, enquanto elas não cabem lado a lado (2026-09-11, a pedido, no lugar
+          da faixa de abas que ocupava uma linha inteira): um botão preso no meio da lateral, apontando para
+          onde se vai, mais o arrasto para o lado dentro do próprio conteúdo. Na ficha ele fica na direita e
+          leva à conversa; na conversa ele vira para a esquerda e traz de volta. É a navegação de página ao
+          lado, e não um seletor, então ele some acima de 64rem junto com a divisão. */}
+      <div
+        className={frame.body}
+        data-tab={tab}
+        onPointerDown={onSwipeStart}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={onSwipeCancel}
+      >
         <button
           type="button"
-          role="tab"
-          id="task-tab-details"
-          aria-selected={tab === "details"}
-          aria-controls="task-panel-details"
-          tabIndex={tab === "details" ? 0 : -1}
-          className={frame.tab}
-          data-on={tab === "details" || undefined}
-          onClick={() => setTab("details")}
-          onKeyDown={onTabKeys}
+          className={frame.flip}
+          data-side={tab === "details" ? "end" : "start"}
+          aria-label={tab === "details" ? "Ver a atividade da tarefa" : "Ver as informações da tarefa"}
+          onClick={() => setTab(tab === "details" ? "activity" : "details")}
         >
-          Informações
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="task-tab-activity"
-          aria-selected={tab === "activity"}
-          aria-controls="task-panel-activity"
-          tabIndex={tab === "activity" ? 0 : -1}
-          className={frame.tab}
-          data-on={tab === "activity" || undefined}
-          onClick={() => setTab("activity")}
-          onKeyDown={onTabKeys}
-        >
-          Atividade
-          {events.length > 0 && (
-            <span className={frame.tabCount} aria-hidden="true">
+          {tab === "details" ? <CaretRightIcon weight="bold" aria-hidden="true" /> : <CaretLeftIcon weight="bold" aria-hidden="true" />}
+          {tab === "details" && events.length > 0 && (
+            <span className={frame.flipCount} aria-hidden="true">
               {events.length}
             </span>
           )}
         </button>
-      </div>
 
-      <div className={frame.body} data-tab={tab}>
-        <div className={frame.main} id="task-panel-details" role="tabpanel" aria-labelledby="task-tab-details">
+        <section className={frame.main} aria-label="Informações da tarefa">
           <InlineText value={draft.title} onChange={(title) => patch({ title })} label="Título da tarefa" as="h2" variant="title2" weight="semibold" single />
 
           {task.alert && (
@@ -1123,11 +1163,11 @@ function TaskDetail({
               </ul>
             )}
           </Block>
-        </div>
+        </section>
 
         {/* A conversa numa coluna própria: o registro de cima para baixo, o filtro no cabeçalho e o campo
             num cartão no pé, com o que dá para anexar e marcar dentro dele. */}
-        <aside className={frame.side} id="task-panel-activity" role="tabpanel" aria-labelledby="task-tab-activity">
+        <aside className={frame.side} aria-label="Atividade da tarefa">
           <div className={frame.sideHead}>
             <Text as="h3" variant="callout" weight="semibold">
               Atividade

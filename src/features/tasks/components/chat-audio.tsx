@@ -116,7 +116,12 @@ export type VoiceButtonProps = {
  * A permissão do microfone é pedida no clique, que é o gesto que o navegador exige, e negada vira aviso em
  * vez de silêncio.
  */
-export function VoiceButton({ onRecorded }: VoiceButtonProps) {
+/**
+ * A gravação em si, fora do botão (2026-09-11): o mesmo microfone é acionado de dois lugares, do cartão do
+ * comentário no desktop e da barra flutuante no celular, e com o estado preso dentro do botão o segundo não
+ * tinha como saber que já havia uma gravação em curso. O botão passou a ser só o desenho disto.
+ */
+export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
   const { toast } = useToast();
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -172,6 +177,12 @@ export function VoiceButton({ onRecorded }: VoiceButtonProps) {
     recorder.current = null;
     setRecording(false);
   };
+
+  return { recording, seconds, start, stop };
+}
+
+export function VoiceButton({ onRecorded }: VoiceButtonProps) {
+  const { recording, seconds, start, stop } = useVoiceRecorder(onRecorded);
 
   if (!recording) {
     return (

@@ -3,7 +3,7 @@
    corpo, e é dela que as duas colunas tiram o piso de zero para rolar por dentro. */
 .dialog {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   height: 100%;
 }
@@ -86,98 +86,96 @@
 }
 
 /**
- * A faixa de abas (2026-09-11, a pedido): só existe enquanto as duas metades não cabem lado a lado. Acima de
- * 64rem ela some, porque ali ficha e conversa estão as duas à vista e escolher entre elas não faz sentido.
- * O desenho é o do seletor de visão da casa, o mesmo do filtro do registro logo abaixo, mas em faixa cheia:
- * as duas abas dividem a largura, então o alvo de toque é metade da tela e não uma pílula no canto.
+ * O botão que vira a página (2026-09-11, a pedido, no lugar da faixa de abas): preso no meio da lateral,
+ * apontando para onde se vai. Na ficha ele fica na direita e leva à conversa; na conversa ele vira para a
+ * esquerda e traz de volta. Ocupa o alvo de toque e nada mais, então não rouba linha do conteúdo, que era
+ * o problema da faixa cheia.
+ *
+ * Ele flutua **sobre** o conteúdo, e não no fluxo, senão empurraria a ficha inteira para o lado. O meio da
+ * lateral é onde o polegar chega sem mudar a pegada, que é o mesmo motivo de a barra da casa morar no pé.
  */
-.tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  margin: var(--space-3) var(--space-4) 0;
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
-}
-
-@media (width >= 64rem) {
-  .tabs {
-    display: none;
-  }
-}
-
-/* A aba tem a altura do alvo de toque (acerto de 2026-09-11, a pedido): em `control-height-sm` ela ficava
-   com 36px, abaixo dos 44 que a casa pede para qualquer coisa que se toca, e a faixa lia como filtro
-   miúdo em vez da escolha principal da janela. O texto subiu um degrau junto, para `subheadline`, porque
-   numa faixa dessa altura o `footnote` boiava no meio. */
-.tab {
+.flip {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
   display: inline-flex;
-  gap: var(--space-2);
+  gap: var(--space-half);
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-height: var(--touch-target);
-  padding: var(--space-1) var(--space-3);
-  font-family: var(--font-body);
-  font-size: var(--text-subheadline);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
-  cursor: pointer;
-  background-color: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  corner-shape: squircle;
-  transition:
-    color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
-}
-
-.tab[data-on] {
+  min-width: var(--touch-target);
+  height: var(--touch-target);
+  padding-inline: var(--space-2);
   color: var(--color-label);
-  background-color: var(--color-bg);
-  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-bg) 82%, transparent),
+    color-mix(in oklab, var(--color-bg) 76%, transparent)
+  );
+  border: 0.0375rem solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(var(--blur-md));
+  translate: 0 -50%;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    translate var(--duration-base) var(--ease-settle);
 }
 
-.tab:focus-visible {
+/* Encostado na borda, com o canto arredondado só do lado de dentro: ele é uma aba presa na parede da
+   janela, e não um botão solto no meio dela. */
+.flip[data-side="end"] {
+  inset-inline-end: 0;
+  border-inline-end: 0;
+  border-start-start-radius: var(--radius-lg);
+  border-end-start-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.flip[data-side="start"] {
+  inset-inline-start: 0;
+  border-inline-start: 0;
+  border-start-end-radius: var(--radius-lg);
+  border-end-end-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.flip svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.flip:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
-  .tab:hover {
-    color: var(--color-label);
+  .flip:hover {
+    background-color: var(--color-bg);
   }
 }
 
-/* Quantas coisas a conversa tem, na aba: a mesma contagem que a coluna da etapa leva, para a pessoa saber se
-   vale trocar de aba sem trocar. Algarismo tabular, para a aba não pulsar de largura. */
-.tabCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding-inline: var(--space-1);
+/* Quantas coisas a conversa tem, no botão: a mesma contagem que a aba levava, para a pessoa saber se vale
+   virar a página sem virar. Algarismo tabular, para o botão não pulsar de largura. */
+.flipCount {
   font-size: var(--text-caption-1);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  font-weight: var(--weight-medium);
   color: var(--color-label-secondary);
-  background-color: var(--color-fill-tertiary);
-  border-radius: var(--radius-xs);
-  corner-shape: squircle;
 }
 
-.tab[data-on] .tabCount {
-  color: var(--color-label);
+/* Acima de 64rem as duas metades estão à vista, então não há página ao lado para virar. */
+@media (width >= 64rem) {
+  .flip {
+    display: none;
+  }
 }
 
 /* O corpo: conteúdo e conversa lado a lado, com um fio entre eles. A coluna da conversa é fixa e um pouco
    mais larga que a primeira medida (26rem, a pedido de 2026-09-10): em 22rem o cartão do comentário apertava
    a fila de ações. As duas rolam por conta e nenhuma encadeia para fora. */
 .body {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
@@ -185,10 +183,26 @@
 
 /* Abaixo de 64rem quem aparece é a metade que a aba escolheu, e ela toma a faixa inteira: as duas ficam
    montadas, então trocar de aba não remonta a conversa nem perde o que estava escrito no comentário. */
+/* Abaixo de 64rem quem aparece é a metade que a página em vigor escolheu, e ela toma a faixa inteira: as
+   duas ficam montadas, então virar a página não remonta a conversa nem perde o que estava escrito no
+   comentário.
+
+   A faixa tem altura fixa (acerto de 2026-09-11, a pedido): a conversa ocupa a janela toda, com o registro
+   rolando no meio e o cartão do comentário preso no pé, em vez de crescer com o que tem dentro e deixar o
+   campo boiando no meio da tela quando há pouca mensagem. */
 @media (width < 64rem) {
   .body[data-tab="details"] .side,
   .body[data-tab="activity"] .main {
     display: none;
+  }
+
+  .body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .side {
+    min-height: 0;
+    height: 100%;
   }
 }
 
@@ -268,11 +282,24 @@
  * Os campos em colunas: cada um com o rótulo e o glifo em cima e o valor embaixo. `auto-fit` com piso, e não
  * duas colunas fixas: na janela estreita, e no celular, vira uma coluna sozinha.
  */
+/* As propriedades em grade, e as que se estendem tomando a linha inteira pelo `wide`. O piso da coluna é o
+   que decide quantas cabem: em 13rem o celular só conseguia uma, e etapa, responsável, prioridade, prazo,
+   início e estimativa desciam numa fila de seis linhas que empurrava o resto da ficha para longe. Em 8,5rem
+   entram duas lado a lado a partir de 320px, que é onde a casa começa, e os valores dessas seis são todos
+   curtos: uma etiqueta, um rosto com o primeiro nome, uma data (acerto de 2026-09-11, a pedido). Envolvidos
+   e Etiquetas seguem em linha cheia, porque crescem com o que têm dentro. */
 .properties {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4) var(--space-5);
   margin: 0;
+}
+
+/* Com espaço, as seis curtas se espalham em três colunas, que é onde elas já ficavam no desktop. */
+@media (width >= 48rem) {
+  .properties {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .property {
@@ -499,16 +526,22 @@
   padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
-/* Com a barra flutuante no ar, o compositor fecha acima dela (2026-09-11, a pedido): a folga é o
-   `--floating-bar-inset` da casa, o mesmo respiro que toda bandeja com ações usa, senão o cartão do
-   comentário ficava debaixo da barra e o campo não dava para tocar.
-
-   Presa a `html[data-floating-actions]`, como toda camada da casa faz: a marca só existe enquanto alguém
-   registrou ações, que aqui é a aba da conversa. Na aba das informações a ficha não registra nada, e sem a
-   condição sobraria uma faixa vazia do tamanho de uma barra que não está lá. */
+/**
+ * A barra flutuante encaixa **dentro** do cartão do comentário (2026-09-11, a pedido): o cartão abre no pé
+ * a folga da barra, então ela pousa sobre a própria caixa do campo em vez de flutuar sobre a conversa, e as
+ * duas leem como uma peça só, com o campo em cima e as ações embaixo.
+ *
+ * A folga mora no cartão, e não no compositor em volta, que é o que faz o encaixe: com ela no compositor a
+ * barra ficava abaixo do cartão, separada dele por um vão. O recuo de fim do cartão fecha acima da barra
+ * pela metade do respiro, para o texto não encostar nela.
+ */
 @media (max-width: 47.9375rem) {
+  html[data-floating-actions] .composerCard {
+    padding-block-end: calc(var(--floating-bar-inset) - var(--space-2));
+  }
+
   html[data-floating-actions] .composer {
-    padding-block-end: var(--floating-bar-inset);
+    padding-block-end: var(--space-2);
   }
 }
 
@@ -605,17 +638,13 @@
   min-width: 0;
 }
 
-/* No celular a fila de ações do cartão sobe para a barra flutuante (2026-09-11, a pedido), e o rodapé do
-   compositor sai: as mesmas cinco ações nos dois lugares seriam a mesma coisa duas vezes na tela, e na
-   largura de um campo de texto elas ficavam abaixo do alvo de toque. Gravar áudio é a exceção e continua
-   aqui, porque é um botão que muda de estado enquanto grava e a barra hospeda ação, e não estado. */
+/* No celular o rodapé do cartão sai inteiro (2026-09-11, a pedido): enviar, anexar, marcar e gravar viraram
+   os glifos da barra flutuante, com enviar na direita, e as mesmas ações nos dois lugares seriam a mesma
+   coisa duas vezes na tela. O cartão fica só com o campo, que é o pedido de deixar o input "meio vazio", e a
+   barra pousa no pé dele pela folga que ele abre embaixo. */
 @media (max-width: 47.9375rem) {
-  .composerTools {
-    display: none;
-  }
-
   .composerBar {
-    justify-content: flex-end;
+    display: none;
   }
 }
 
