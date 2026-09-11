@@ -134,7 +134,10 @@
   align-items: center;
   width: max-content;
   max-width: calc(100vw - var(--space-8));
-  padding: 0.1875rem;
+  /* O recuo é `--space-half`, e não um número solto, porque é ele que decide o canto de dentro: com 2px, o
+     raio interno é 20 menos 2, que dá os 18 do deslizante. Fora da escala, a conta concêntrica não fecha em
+     token nenhum. */
+  padding: var(--space-half);
   background-color: var(--glass-layer-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -165,7 +168,13 @@
   grid-area: 1 / 1;
   align-self: stretch;
   background-color: var(--color-bg);
-  border-radius: var(--radius-md);
+  /* Canto concêntrico: o raio da caixa menos o recuo que a separa dele (20 menos 2), e não um token escolhido
+     à parte. Com o `--radius-md` de antes, 12 contra 20, a curva de dentro abria folga na de fora e o
+     deslizante lia como uma peça de outro lugar posta ali. Em 18 as duas curvas correm juntas, e o número é o
+     mesmo `--icon-button-radius-sm` da casa, porque a altura aqui é a do controle pequeno e metade de 36 é
+     18: o deslizante fica com a geometria de metade do lado, a do botão de ícone. O `data-squircle-radius` do
+     TS carrega o mesmo número, senão o motor do fallback desenharia uma superelipse e o CSS outra. */
+  border-radius: var(--icon-button-radius-sm);
   box-shadow: var(--shadow-sm);
   transition: translate var(--duration-base) var(--ease-settle);
 }
@@ -208,7 +217,9 @@
   cursor: pointer;
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-md);
+  /* O mesmo canto do deslizante, porque a opção ocupa exatamente o lugar dele: é o que faz o anel de foco
+     acompanhar a curva que a pessoa vê em vez de cortá-la. */
+  border-radius: var(--icon-button-radius-sm);
   transition: color var(--duration-base) var(--ease-standard);
 }
 
