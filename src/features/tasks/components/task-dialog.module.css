@@ -1127,24 +1127,41 @@
  * sombra e o canto do painel do menu de opções, **flutuando** sobre o cartão do comentário (2026-09-10, a
  * pedido): absoluta, para não empurrar o campo a cada tecla.
  */
+/**
+ * O leque do "@" veste o cartão do comentário (2026-09-11, a pedido): mesma superfície opaca (`--color-bg`),
+ * mesmo fio e mesmo raio, então ele lê como a continuação do campo em vez de uma caixa estranha por cima.
+ *
+ * O vidro saiu daqui de propósito, e é o que tirava a aparência: a receita das camadas é fundo a 20% com
+ * borrão, feita para flutuar **sobre a página**, e esta caixa flutua sobre o cartão, que já é opaco — vidro
+ * sobre opaco não borra nada e só entrega uma cor lavada, sem contraste com o texto de dentro.
+ *
+ * A sombra é a média, e não a grande: a caixa nasce colada no campo, a um respiro dele, e a sombra grande de
+ * popover a fazia parecer solta no meio da coluna.
+ */
 .suggest {
   position: absolute;
   inset-block-end: 100%;
   inset-inline: 0;
   z-index: 1;
   display: grid;
+  gap: var(--space-half);
   max-height: 13rem;
-  padding: var(--space-1);
+  padding: var(--space-2);
   margin-block-end: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
-  background-color: var(--glass-layer-bg);
+  background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   corner-shape: squircle;
-  box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: var(--glass-layer-blur);
-  backdrop-filter: var(--glass-layer-blur);
+  box-shadow: var(--shadow-md);
+}
+
+/* O título diz o que a lista é, na mesma tinta de rótulo do resto da ficha: sem ele a caixa aparecia do nada
+   com uma fila de rostos e não se sabia o que estava sendo escolhido. */
+.suggestTitle {
+  padding: var(--space-1) var(--space-2) var(--space-half);
+  color: var(--color-label-tertiary);
 }
 
 .suggestOption {
@@ -1181,4 +1198,18 @@
   display: grid;
   gap: var(--space-1);
   min-width: 0;
+}
+
+/* A gravação em curso, no topo do cartão do comentário: a onda que se move com a voz, o relógio e a palavra
+   que diz o que está acontecendo. Em vermelho, como todo indicador de gravação. */
+.composerRecording {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.composerRecordingClock {
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums;
 }

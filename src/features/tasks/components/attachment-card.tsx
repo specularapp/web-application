@@ -4,12 +4,14 @@ import styled from "@emotion/styled";
 import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FigmaLogoIcon, FileIcon, FileImageIcon, FilePdfIcon, GlobeSimpleIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useState } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
 import { BrandIcon } from "@/components/ui/brand-icon";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import type { TaskAttachment, TaskAttachmentType } from "../summary";
 import styles from "./task-sheet.module.css";
@@ -81,15 +83,55 @@ const stageCorner = squircle("lg", { clip: true });
 /* A pílula de ações tem 44px de altura, e o raio `lg` (20px) fica abaixo da metade dela; com borda, não recorta. */
 const toolbarCorner = squircle("lg");
 
+/**
+ * As ações do anexo na barra flutuante do celular (2026-09-11, a pedido), no mesmo contrato das janelas de
+ * acrescentar: abrir em outra aba é a principal, baixar e copiar são os glifos do meio, e o X fecha. Mora
+ * **dentro** da `Dialog`, porque a barra elege quem registrou na maior profundidade e é ali que o
+ * `FloatingLayer` da janela já elevou a conta; de fora, esta janela empataria com a ficha que a abre.
+ */
+function ViewerActions({
+  active,
+  downloadable,
+  onDownload,
+  onOpen,
+  onCopy,
+  onClose,
+}: {
+  active: boolean;
+  downloadable: boolean;
+  onDownload: () => void;
+  onOpen: () => void;
+  onCopy: () => Promise<void>;
+  onClose: () => void;
+}) {
+  useFloatingActionsRegistration(
+    active
+      ? {
+          primary: { label: "Abrir em nova aba", icon: <ArrowSquareOutIcon weight="bold" />, onClick: onOpen },
+          extras: [
+            ...(downloadable ? [{ label: "Baixar", icon: <DownloadSimpleIcon weight="bold" />, onClick: onDownload }] : []),
+            { label: "Copiar link", icon: <LinkSimpleIcon weight="bold" />, onClick: () => void onCopy() },
+          ],
+          cancel: { label: "Fechar", onClick: onClose },
+        }
+      : null,
+  );
+
+  return null;
+}
+
 const Viewer = styled.div`
   display: grid;
   gap: var(--space-4);
   min-height: 0;
   padding: var(--space-4);
 
+  /* Na bandeja o fim abre o espaço da barra flutuante, que é o contrato de toda janela da casa: o palco fecha
+     acima dela em vez de ficar por baixo. O recuo é o inset da barra, o mesmo das janelas de acrescentar. */
   @media (max-width: 47.9375rem) {
     gap: var(--space-3);
     padding: var(--space-3);
+    padding-block-end: var(--floating-bar-inset);
   }
 `;
 
@@ -110,10 +152,12 @@ const Stage = styled.div`
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
 
-  /* No celular o palco toma a altura da bandeja, em pé, em vez da proporção de tela. */
+  /* No celular o palco toma a altura da bandeja, em pé, em vez da proporção de tela. A conta desconta o
+     cabeçalho e a folga da barra flutuante, senão o palco pedia mais altura do que a bandeja tem e o pé
+     dela ficava atrás da barra. */
   @media (max-width: 47.9375rem) {
     aspect-ratio: auto;
-    height: min(64dvh, 34rem);
+    height: min(calc(85dvh - var(--floating-bar-inset) - var(--space-16)), 30rem);
   }
 
   & > img {
@@ -210,6 +254,7 @@ function absoluteUrl(url: string) {
 // baixar, abrir em nova aba, copiar o link e fechar. Nada sai da tela sem a pessoa pedir.
 export function AttachmentCard({ file }: AttachmentCardProps) {
   const [open, setOpen] = useState(false);
+  const mobile = useMediaQuery(MOBILE_QUERY);
   const { toast } = useToast();
   const kind = kinds[file.type];
   const Glyph = kind.icon;
@@ -267,7 +312,15 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
         <ArrowSquareOutIcon className={styles.open} aria-hidden="true" />
       </button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} label={`Anexo ${file.name}`} size="lg" surface="glass" focusOnOpen={false}>
+      <Dialog open={open} onClose={() => setOpen(false)} label={`Anexo ${file.name}`} size="md" surface="glass" focusOnOpen={false}>
+        <ViewerActions
+          active={open && mobile}
+          downloadable={kind.downloadable}
+          onDownload={download}
+          onOpen={openInTab}
+          onCopy={copy}
+          onClose={() => setOpen(false)}
+        />
         <Viewer>
           <Head>
             <Text as="h2" variant="headline" weight="semibold" truncate>
@@ -301,22 +354,27 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
               </CardPreview>
             )}
 
-            <Toolbar role="toolbar" aria-label="Ações do anexo" {...toolbarCorner}>
-              {kind.downloadable && (
-                <IconButton label="Baixar" variant="ghost" size="sm" onClick={download}>
-                  <DownloadSimpleIcon />
+            {/* No celular as ações moram na barra flutuante, como em toda janela da casa, e a fila de cima do
+                palco sai: as mesmas quatro coisas nos dois lugares seriam a mesma coisa duas vezes na tela, e
+                a fila pousada sobre a imagem ainda comia a parte de baixo dela. */}
+            {!mobile && (
+              <Toolbar role="toolbar" aria-label="Ações do anexo" {...toolbarCorner}>
+                {kind.downloadable && (
+                  <IconButton label="Baixar" variant="ghost" size="sm" onClick={download}>
+                    <DownloadSimpleIcon />
+                  </IconButton>
+                )}
+                <IconButton label="Abrir em nova aba" variant="ghost" size="sm" onClick={openInTab}>
+                  <ArrowSquareOutIcon />
                 </IconButton>
-              )}
-              <IconButton label="Abrir em nova aba" variant="ghost" size="sm" onClick={openInTab}>
-                <ArrowSquareOutIcon />
-              </IconButton>
-              <IconButton label="Copiar link" variant="ghost" size="sm" onClick={copy}>
-                <LinkSimpleIcon />
-              </IconButton>
-              <IconButton label="Fechar" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                <XIcon />
-              </IconButton>
-            </Toolbar>
+                <IconButton label="Copiar link" variant="ghost" size="sm" onClick={copy}>
+                  <LinkSimpleIcon />
+                </IconButton>
+                <IconButton label="Fechar" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                  <XIcon />
+                </IconButton>
+              </Toolbar>
+            )}
           </Stage>
         </Viewer>
       </Dialog>

@@ -81,22 +81,33 @@
   color: var(--color-danger);
 }
 
-.pulse {
-  width: 0.5rem;
-  height: 0.5rem;
+/* A onda que se move enquanto grava: barras finas em pílula que crescem com o volume do microfone. Altura
+   fixa na caixa, e o que muda é a escala vertical de cada barra, porque `transform` o compositor resolve
+   sozinho, sem recalcular layout a cada quadro. */
+.live {
+  display: flex;
+  gap: 0.125rem;
+  align-items: center;
+  height: 0.875rem;
+}
+
+.liveBar {
+  width: 0.125rem;
+  height: 100%;
   background-color: var(--color-danger);
   border-radius: var(--radius-full);
-  animation: blink 1.2s var(--ease-standard) infinite;
+  /* A origem no centro faz a barra crescer para os dois lados, como num medidor de voz. */
+  transform: scaleY(var(--level, 0.22));
+  transform-origin: center;
+  /* Curto o bastante para acompanhar a fala e longo o bastante para não tremer: sem ele, cada quadro do
+     analisador aparecia como um salto. */
+  transition: transform 90ms var(--ease-standard);
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0.25;
-  }
-}
-
+/* Com movimento reduzido a onda para numa altura média: quem diz que a gravação corre é o relógio ao lado. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse {
-    animation: none;
+  .liveBar {
+    transform: scaleY(0.55);
+    transition: none;
   }
 }

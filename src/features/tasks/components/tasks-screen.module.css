@@ -12,3 +12,21 @@
   grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
 }
+
+/**
+ * No celular a tela toma de volta o recuo que a concha abre no pé para a barra flutuante (2026-09-11, a
+ * pedido de mais espaço de visualização para baixo). A reserva da concha existe para as telas que rolam em
+ * fluxo, cujo último item precisa fechar acima da barra; aqui ela era contada **duas vezes**, porque o quadro
+ * tem altura fixa e o trilho já abre a folga da barra por dentro, no fim de cada pilha.
+ *
+ * Na prática eram setenta e seis pixels de tela que ninguém usava: a prancha terminava em 768 numa tela de
+ * 844, com a barra flutuando sobre o vazio. Com a margem negativa a prancha desce até o fim do visor e as
+ * colunas ganham essa altura toda, que é onde os cartões aparecem.
+ */
+@media (max-width: 47.9375rem) {
+  .screen {
+    /* A altura vem da coluna da concha, que já desconta a reserva dela: por isso a conta é feita aqui, sobre
+       o visor, em vez de uma margem negativa, que o `height: 100%` do pai ignoraria. */
+    height: 100dvh;
+  }
+}

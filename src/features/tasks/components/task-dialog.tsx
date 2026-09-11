@@ -63,7 +63,7 @@ import { defaultStages, taskStageMeta, type TaskStage } from "../stages";
 import { tagGroups, tagHue, taskTags } from "../tags";
 import type { Task, TaskAttachment, TaskAudio, TaskEvent, TaskLink, TaskMention, TaskPerson, TaskPriority } from "../summary";
 import { AttachmentCard } from "./attachment-card";
-import { AudioBubble, VoiceButton, useVoiceRecorder } from "./chat-audio";
+import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "./chat-audio";
 import { Subtasks } from "./subtasks";
 import { AttachmentDialog, LinkDialog } from "./task-add-dialogs";
 import { TaskMenu } from "./task-menu";
@@ -516,6 +516,16 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
    * da bandeja ele seria recortado pela borda dela.
    */
   const [tab, setTab] = useState<TaskTab>("details");
+
+  /* Toda tarefa abre em Informações (2026-09-11, a pedido). A janela é uma só para o quadro inteiro e fica
+     montada entre uma abertura e outra, então o estado sobrevivia: quem tivesse ido para a conversa numa
+     tarefa abria a seguinte já na conversa, e a ficha que se queria ver estava atrás. O ajuste é durante o
+     render, ao ver a tarefa mudar, que é como o React pede para reagir a prop nova. */
+  const [seen, setSeen] = useState(task?.id);
+  if (task && task.id !== seen) {
+    setSeen(task.id);
+    setTab("details");
+  }
 
   return (
     <Dialog
@@ -1345,10 +1355,13 @@ function TaskDetail({
                 desenho do menu de opções da casa (2026-09-10, a pedido): absoluta, para não empurrar o campo
                 a cada tecla. O primeiro da lista responde ao Enter, como em toda conversa. */}
             {suggested.length > 0 && (
-              <div className={frame.suggest} {...squircle("xl")} role="listbox" aria-label="Marcar alguém">
+              <div className={frame.suggest} {...squircle("lg")} role="listbox" aria-label="Marcar alguém">
+                <Text as="span" variant="caption2" weight="medium" className={frame.suggestTitle}>
+                  Marcar alguém
+                </Text>
                 {suggested.map((person) => (
                   <button key={person.name} type="button" role="option" aria-selected="false" className={frame.suggestOption} onClick={() => complete(person)}>
-                    <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
+                    <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="sm" />
                     <Text as="span" variant="subheadline" weight="medium" truncate>
                       {person.name}
                     </Text>
@@ -1357,6 +1370,22 @@ function TaskDetail({
               </div>
             )}
             <div className={frame.composerCard} {...squircle("lg")}>
+              {/* A gravação em curso aparece **dentro do cartão** (2026-09-11, a pedido de a gravação ter
+                  animação): a onda que se move com a voz e o relógio correndo. No celular o microfone mora na
+                  barra flutuante e o único sinal era o glifo virar "parar", que não diz que está gravando; no
+                  desktop a onda já está no lugar do botão, e aqui ela aparece nos dois. */}
+              {voiceRecorder.recording && (
+                <div className={frame.composerRecording}>
+                  <LiveWave level={voiceRecorder.level} />
+                  <Text as="span" variant="caption2" weight="medium" className={frame.composerRecordingClock}>
+                    {clock(voiceRecorder.seconds)}
+                  </Text>
+                  <Text as="span" variant="caption2" tone="secondary">
+                    Gravando
+                  </Text>
+                </div>
+              )}
+
               {/* O que já foi marcado, no mesmo cartão em que vai sair publicado: a mídia do registro, o
                   nome e o identificador, com o × que tira a marcação e o sinal dela do texto junto, para os
                   dois não saírem de sincronia. */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { MicrophoneIcon, PauseIcon, PlayIcon, StopIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
@@ -128,6 +128,14 @@ export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
   const started = useRef(0);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  /**
+   * O quanto a voz está alta agora, de 0 a 1 (2026-09-11, a pedido de a gravação ter animação): é ele que
+   * move a onda enquanto se fala, em vez de um ponto piscando sozinho. Vem do `AnalyserNode` da Web Audio,
+   * que lê o próprio fluxo do microfone, então a onda responde ao que a pessoa fala e não a um temporizador.
+   */
+  const [level, setLevel] = useState(0);
+  const audioContext = useRef<AudioContext | null>(null);
+  const frame = useRef(0);
 
   /* O relógio da gravação, para quem está falando saber quanto já falou. */
   useEffect(() => {
@@ -136,10 +144,13 @@ export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
     return () => window.clearInterval(timer);
   }, [recording]);
 
-  /* Saindo da tela no meio de uma gravação, o microfone é solto: sem isto a luz do aparelho fica acesa. */
+  /* Saindo da tela no meio de uma gravação, o microfone e a leitura de volume são soltos: sem isto a luz do
+     aparelho fica acesa e o laço de quadro segue rodando sobre um contexto que ninguém mais ouve. */
   useEffect(
     () => () => {
       recorder.current?.stream.getTracks().forEach((track) => track.stop());
+      cancelAnimationFrame(frame.current);
+      void audioContext.current?.close();
     },
     [],
   );
@@ -162,6 +173,24 @@ export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
         const length = Math.max(1, Math.round((Date.now() - started.current) / 1000));
         onRecorded({ url: URL.createObjectURL(blob), seconds: length });
       };
+      /* A leitura de volume corre em `requestAnimationFrame`, e não em temporizador: ela só desenha quando o
+         navegador vai pintar, então a onda acompanha a fala sem custar quadro nenhum em aba oculta. O valor é
+         a média do espectro, normalizada e com um piso, senão a onda morria no silêncio entre as palavras. */
+      const context = new AudioContext();
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      context.createMediaStreamSource(stream).connect(analyser);
+      const spectrum = new Uint8Array(analyser.frequencyBinCount);
+      audioContext.current = context;
+
+      const read = () => {
+        analyser.getByteFrequencyData(spectrum);
+        const average = spectrum.reduce((sum, value) => sum + value, 0) / spectrum.length;
+        setLevel(Math.min(1, average / 96));
+        frame.current = requestAnimationFrame(read);
+      };
+      frame.current = requestAnimationFrame(read);
+
       started.current = Date.now();
       setSeconds(0);
       media.start();
@@ -175,14 +204,43 @@ export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
   const stop = () => {
     recorder.current?.stop();
     recorder.current = null;
+    cancelAnimationFrame(frame.current);
+    void audioContext.current?.close();
+    audioContext.current = null;
+    setLevel(0);
     setRecording(false);
   };
 
-  return { recording, seconds, start, stop };
+  return { recording, seconds, level, start, stop };
+}
+
+/* Quantas barras a onda de gravação tem. Ímpar de propósito: existe uma barra do meio, e é dela que o
+   movimento parte para as pontas, como num medidor de voz. */
+const LIVE_BARS = 7;
+
+/**
+ * A onda que se move enquanto se grava (2026-09-11, a pedido): cada barra lê o volume do microfone agora, com
+ * as do meio respondendo mais que as das pontas, então a fila inteira infla e murcha junto com a fala. É o
+ * que diz "está gravando" de verdade, no lugar do ponto que piscava sozinho num intervalo fixo.
+ *
+ * A altura vai em variável inline, e não em classe: ela muda a cada quadro, e o que anda é só `scale`, que o
+ * compositor resolve sem tocar em layout. Com movimento reduzido as barras ficam paradas numa altura média, e
+ * quem diz que a gravação corre é o relógio ao lado.
+ */
+export function LiveWave({ level }: { level: number }) {
+  return (
+    <span className={styles.live} aria-hidden="true">
+      {Array.from({ length: LIVE_BARS }, (_, index) => {
+        /* 1 no meio, caindo para as pontas: é o que dá o formato de medidor em vez de uma fila igual. */
+        const weight = 1 - Math.abs(index - (LIVE_BARS - 1) / 2) / ((LIVE_BARS - 1) / 2 + 1);
+        return <span key={index} className={styles.liveBar} style={{ "--level": 0.22 + level * weight } as CSSProperties} />;
+      })}
+    </span>
+  );
 }
 
 export function VoiceButton({ onRecorded }: VoiceButtonProps) {
-  const { recording, seconds, start, stop } = useVoiceRecorder(onRecorded);
+  const { recording, seconds, level, start, stop } = useVoiceRecorder(onRecorded);
 
   if (!recording) {
     return (
@@ -194,7 +252,7 @@ export function VoiceButton({ onRecorded }: VoiceButtonProps) {
 
   return (
     <span className={styles.recording} {...squircle("sm")}>
-      <span className={styles.pulse} aria-hidden="true" />
+      <LiveWave level={level} />
       <Text as="span" variant="caption2" weight="medium" className={styles.clock}>
         {clock(seconds)}
       </Text>
