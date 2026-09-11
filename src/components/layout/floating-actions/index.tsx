@@ -15,8 +15,12 @@ export type FloatingActions = {
    * A ação principal. O glifo é o check de salvar por padrão, que é o que a maioria das janelas faz; quem
    * não salva passa o próprio (2026-09-11): a ficha da tarefa edita no lugar e nunca salva, então um check
    * ao lado de "Enviar" prometia uma gravação que não existe.
+   *
+   * **Ausente é uma barra só de saída** (2026-09-11): existe janela em que escolher já confirma e fecha, como
+   * o vincular registro, e ali não há estado nenhum esperando um salvar. Uma principal chamada "Fechar" ao
+   * lado do X de sair seriam dois botões para a mesma coisa, então a barra fica só com o X.
    */
-  primary: {
+  primary?: {
     label: string;
     icon?: ReactNode;
     /**
@@ -48,7 +52,8 @@ export type FloatingPager = {
 type ExtraShape = { label: string; icon: ReactNode; loading: boolean; disabled: boolean };
 
 type Shape = {
-  primaryLabel: string;
+  /** Ausente quando a janela não tem principal: a barra fica só com as secundárias e o sair. */
+  primaryLabel?: string;
   primaryIcon?: ReactNode;
   primaryIconOnly: boolean;
   loading: boolean;
@@ -76,11 +81,11 @@ const FloatingActionsContext = createContext<ContextValue | null>(null);
 function shapeOf(actions: FloatingActions | null): Shape {
   if (!actions) return null;
   return {
-    primaryLabel: actions.primary.label,
-    primaryIcon: actions.primary.icon,
-    primaryIconOnly: actions.primary.iconOnly ?? false,
-    loading: actions.primary.loading ?? false,
-    disabled: actions.primary.disabled ?? false,
+    primaryLabel: actions.primary?.label,
+    primaryIcon: actions.primary?.icon,
+    primaryIconOnly: actions.primary?.iconOnly ?? false,
+    loading: actions.primary?.loading ?? false,
+    disabled: actions.primary?.disabled ?? false,
     cancelLabel: actions.cancel.label,
     extras: (actions.extras ?? []).map((extra) => ({ label: extra.label, icon: extra.icon, loading: extra.loading ?? false, disabled: extra.disabled ?? false })),
   };
@@ -165,7 +170,7 @@ export function FloatingActionsProvider({ children }: { children: ReactNode }) {
     };
   }, [shape]);
 
-  const runPrimary = useCallback(() => handlers.current?.primary.onClick(), []);
+  const runPrimary = useCallback(() => handlers.current?.primary?.onClick(), []);
   const runExtra = useCallback((index: number) => handlers.current?.extras?.[index]?.onClick(), []);
   const runCancel = useCallback(() => handlers.current?.cancel.onClick(), []);
   const goToPage = useCallback((page: number) => pagerHandlers.current?.onPageChange(page), []);

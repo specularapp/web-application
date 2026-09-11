@@ -38,9 +38,61 @@ const linkKinds: RecordKind[] = ["client", "quote", "project", "contract"];
 
 const isoDay = (date: Date) => format(date, "yyyy-MM-dd");
 
-/* O glifo do fechar na barra, quando a janela não tem o que confirmar: montado uma vez, porque a barra
-   compara as ações pelo nome e um elemento novo a cada render não muda nada além de trabalho. */
-const closeIcon = <XIcon weight="bold" />;
+/**
+ * As ações da janela na barra flutuante do celular (2026-09-11, a pedido), que é o contrato de toda janela da
+ * casa: conteúdo na bandeja, ações na barra.
+ *
+ * **Isto mora dentro da `Dialog`, e não no corpo de quem a monta** (acerto de 2026-09-11, medido no
+ * navegador). A barra elege quem registrou na maior profundidade, e a `Dialog` abre um `FloatingLayer` em
+ * volta do **conteúdo** dela: registrando de fora, estas três janelas ficavam na mesma altura da ficha da
+ * tarefa que as abre, e no empate quem vence é o pai, porque o React roda os efeitos dos filhos primeiro. Na
+ * prática a barra continuava mostrando "Concluir" e "Fechar tarefa" com a janela de vincular aberta por
+ * cima. Daqui de dentro a profundidade é maior e a janela de cima manda, como manda o contrato.
+ *
+ * **A barra é o botão da janela, e não um botão genérico**: ela leva o mesmo nome, o mesmo glifo e o mesmo
+ * impedimento do confirmar que a janela desenharia no pé, então "Adicionar" na subtarefa e "Anexar" ou
+ * "Anexar 3" no anexo, e nasce apagada enquanto falta o que a janela exige. Cancelar é o gêmeo do botão de
+ * cancelar dela: os dois saem só desta bandeja, e a ficha continua aberta atrás.
+ *
+ * Sem `onSubmit` a janela não tem o que confirmar, que é o caso do vincular: ali escolher já vincula **e
+ * fecha**, então não existe estado esperando um salvar. **A barra fica só com o X de sair**: uma principal
+ * chamada "Fechar" ao lado do X de sair seriam dois botões para a mesma ação.
+ */
+function BarActions({
+  active,
+  submitLabel,
+  submitIcon,
+  disabled,
+  onSubmit,
+  onClose,
+  form,
+}: {
+  active: boolean;
+  submitLabel?: string;
+  submitIcon?: React.ReactNode;
+  disabled?: boolean;
+  onSubmit?: (event: FormEvent) => void;
+  onClose: () => void;
+  form: React.RefObject<HTMLFormElement | null>;
+}) {
+  useFloatingActionsRegistration(
+    active
+      ? onSubmit
+        ? {
+            primary: {
+              label: submitLabel ?? "Salvar",
+              icon: submitIcon,
+              disabled,
+              onClick: () => form.current?.requestSubmit(),
+            },
+            cancel: { label: "Cancelar", onClick: onClose },
+          }
+        : { cancel: { label: "Fechar", onClick: onClose } }
+      : null,
+  );
+
+  return null;
+}
 
 /** A moldura das três: título, o que muda no meio e os dois botões no pé. */
 function AddDialog({
@@ -69,42 +121,24 @@ function AddDialog({
   const mobile = useMediaQuery(MOBILE_QUERY);
   const submit = useRef<HTMLFormElement>(null);
 
-  /**
-   * No celular as ações saem do pé da bandeja e vão para a barra flutuante (2026-09-11, a pedido), que é o
-   * contrato de toda janela da casa e o que o editor de orçamento já fazia com as bandejas dele: conteúdo na
-   * bandeja, ações na barra. Estas três abrem **por cima** da ficha da tarefa, então enquanto uma delas está
-   * no ar é ela quem manda na barra, e a ficha volta a mandar quando ela fecha — quem registrar por último
-   * ganha, e a bandeja de cima monta depois.
-   *
-   * **A barra é o botão da janela, e não um botão genérico** (2026-09-11, a pedido): ela leva o mesmo nome,
-   * o mesmo glifo e o mesmo impedimento do confirmar que a janela desenharia no pé, então "Adicionar" na
-   * subtarefa, "Anexar" ou "Anexar 3" no anexo, e ela nasce apagada enquanto falta o que a janela exige.
-   * Cancelar é o gêmeo do botão de cancelar dela, e o X ao lado fecha a mesma janela: os dois saem só desta
-   * bandeja, e a ficha da tarefa continua aberta atrás.
-   *
-   * Sem `onSubmit` a janela não tem o que confirmar, que é o caso do vincular: ali escolher já vincula **e
-   * fecha**, então não existe estado esperando um "salvar". A principal vira o próprio fechar, com o nome
-   * dizendo o que ela faz de verdade — sair sem escolher nada —, e não um "Concluir" que promete gravar
-   * algo que já foi gravado no toque anterior.
-   */
-  useFloatingActionsRegistration(
-    open && mobile
-      ? onSubmit
-        ? {
-            primary: {
-              label: submitLabel ?? "Salvar",
-              icon: submitIcon,
-              disabled,
-              onClick: () => submit.current?.requestSubmit(),
-            },
-            cancel: { label: "Cancelar", onClick: onClose },
-          }
-        : { primary: { label: "Fechar", icon: closeIcon, onClick: onClose }, cancel: { label: "Fechar", onClick: onClose } }
-      : null,
-  );
+  /* No celular o tamanho grande só tira o vidro, e não dá nada em troca: na bandeja toda janela é de largura
+     cheia e 85dvh de altura, então `lg` e `md` desenham a mesma caixa, mas o `lg` entra na conta de janela
+     pesada da `Dialog` e recebe a superfície sólida. Toda bandeja de escolha da casa é de vidro — a busca, as
+     notificações, os seletores, o calendário —, e a de vincular saía sólida por causa disso. No desktop o
+     `lg` continua, que é onde a largura serve à lista de registros. */
+  const sheetSize = mobile && size === "lg" ? "md" : size;
 
   return (
-    <Dialog open={open} onClose={onClose} label={title} size={size} surface="glass" focusOnOpen={false}>
+    <Dialog open={open} onClose={onClose} label={title} size={sheetSize} surface="glass" focusOnOpen={false}>
+      <BarActions
+        active={open && mobile}
+        submitLabel={submitLabel}
+        submitIcon={submitIcon}
+        disabled={disabled}
+        onSubmit={onSubmit}
+        onClose={onClose}
+        form={submit}
+      />
       <form ref={submit} className={styles.dialog} onSubmit={onSubmit}>
         <div className={styles.head}>
           <Text as="h2" variant="headline" weight="semibold">

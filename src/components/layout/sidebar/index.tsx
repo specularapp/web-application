@@ -617,7 +617,10 @@ export function Sidebar(props: SidebarProps) {
               {/* A principal com nome abre a fila, que é o caso de salvar. Em glifo (`iconOnly`) ela troca de
                   lugar com as secundárias e vai para o fim, encostada no sair: é o desenho do compositor da
                   conversa, em que enviar é o último da fila (2026-09-11, a pedido). */}
-              {!shownActions.primaryIconOnly && (
+              {/* Sem principal a barra fica só com as secundárias e o sair: é o caso da janela em que
+                  escolher já confirma, como o vincular registro, em que um botão "Fechar" ao lado do X seria
+                  a mesma ação duas vezes. */}
+              {shownActions.primaryLabel && !shownActions.primaryIconOnly && (
                 <Button size="md" radius="md" iconStart={shownActions.primaryIcon ?? <CheckIcon />} loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary} className={styles.barPrimary}>
                   {shownActions.primaryLabel}
                 </Button>
@@ -626,13 +629,13 @@ export function Sidebar(props: SidebarProps) {
                   orçamento moram no celular, depois de saírem do cabeçalho (2026-09-10, a pedido). */}
               {shownActions.extras.map((extra, index) => (
                 <Fragment key={extra.label}>
-                  {(index > 0 || !shownActions.primaryIconOnly) && <span className={styles.barDivider} aria-hidden="true" />}
+                  {(index > 0 || (shownActions.primaryLabel && !shownActions.primaryIconOnly)) && <span className={styles.barDivider} aria-hidden="true" />}
                   <IconButton label={extra.label} variant="ghost" size="md" radius="md" loading={extra.loading} disabled={extra.disabled} onClick={() => runExtra(index)}>
                     {extra.icon}
                   </IconButton>
                 </Fragment>
               ))}
-              {shownActions.primaryIconOnly && (
+              {shownActions.primaryLabel && shownActions.primaryIconOnly && (
                 <>
                   <span className={styles.barDivider} aria-hidden="true" />
                   <IconButton label={shownActions.primaryLabel} size="md" radius="md" loading={shownActions.loading} disabled={shownActions.disabled} onClick={runPrimary}>

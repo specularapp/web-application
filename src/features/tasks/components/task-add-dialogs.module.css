@@ -19,15 +19,11 @@
 @media (max-width: 47.9375rem) {
   .dialog {
     gap: var(--space-4);
+    /* O recuo de fim é zero e vai escrito na propriedade longa, depois do atalho: em `padding` ele voltava a
+       ser `--space-4` e a faixa da superfície reaparecia embaixo do conteúdo. Um segundo bloco `@media`
+       idêntico a este, mais abaixo no arquivo, desfazia exatamente isto até 2026-09-11. */
     padding: var(--space-4);
     padding-block-end: 0;
-  }
-}
-
-@media (max-width: 47.9375rem) {
-  .dialog {
-    gap: var(--space-4);
-    padding: var(--space-4);
   }
 }
 
@@ -74,6 +70,16 @@
 .picker {
   min-height: 0;
   height: 100%;
+}
+
+/* No celular a folga da barra é da **lista que rola**, lá dentro do `RecordPicker`, e não deste invólucro:
+   com o recuo aqui a caixa encolheria e a lista terminaria acima da barra, em vez de correr por baixo dela
+   até o fim. O seletor lê `--record-list-inset` para saber quanto reservar, e quem o monta numa bandeja é
+   quem diz o valor, porque o mesmo seletor também abre no comentário, onde a barra é outra. */
+@media (max-width: 47.9375rem) {
+  .picker {
+    --record-list-inset: var(--floating-bar-inset);
+  }
 }
 
 /* Os dois botões dividem a largura em partes iguais. Sozinho, o fechar não estica: ele é saída, e um botão
