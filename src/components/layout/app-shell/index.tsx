@@ -4,6 +4,9 @@ import { getOnboardingBilling } from "@/features/billing/queries";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getCurrentTeamState, getTeamOptions } from "@/features/organizations/queries";
+import { previewTasks } from "@/features/tasks/list-preview";
+import { buildTaskTree } from "@/features/tasks/tree";
+import { previewTaskTree } from "@/features/tasks/tree-preview";
 import { FloatingActionsProvider } from "../floating-actions";
 import { previewNotifications } from "../notifications/preview";
 import { Sidebar } from "../sidebar";
@@ -42,6 +45,10 @@ export async function AppShell({ children }: { children: ReactNode }) {
           currentTeamId={state.team?.id ?? null}
           notifications={previewNotifications}
           alert={pickAlert(previewAlerts)}
+          /* A arquitetura das tarefas com as contagens resolvidas aqui, no servidor, como o aviso: o menu
+             recebe pronta e não conhece o domínio. Vem de prévia enquanto pastas e projetos não existem no
+             banco, e troca só esta linha quando existirem. */
+          tasks={buildTaskTree(previewTaskTree, previewTasks)}
         />
       }
     >

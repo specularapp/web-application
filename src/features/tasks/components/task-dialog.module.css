@@ -1,0 +1,910 @@
+/* A janela por dentro: o topo sangrando as duas colunas e, embaixo, o conteúdo e a conversa, cada um rolando
+   por conta. A altura vem da `Dialog` `xl`, que é fixa, então quem tem `minmax(0, 1fr)` aqui é a faixa do
+   corpo, e é dela que as duas colunas tiram o piso de zero para rolar por dentro. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+/* No celular a janela é bandeja e um degrau menor em tudo, pelos tokens de texto redeclarados aqui dentro,
+   como a ficha já fazia. Em valor, e não encadeados, senão encolhem duas vezes. */
+@media (max-width: 47.9375rem) {
+  .dialog {
+    --text-title-2: 1.25rem;
+    --text-callout: 0.9375rem;
+    --text-subheadline: 0.875rem;
+  }
+}
+
+.top {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+/* A rota de onde a tarefa mora: os degraus separados por barra, como no topo da aplicação, e o
+   identificador em etiqueta na ponta. O nome do projeto cede por reticências; a etiqueta não. */
+.route {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.crumb svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+.route .reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O corpo: conteúdo e conversa lado a lado, com um fio entre eles. A coluna da conversa é fixa e um pouco
+   mais larga que a primeira medida (26rem, a pedido de 2026-09-10): em 22rem o cartão do comentário apertava
+   a fila de ações. As duas rolam por conta e nenhuma encadeia para fora. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (width >= 64rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) 26rem;
+  }
+
+  .side {
+    border-inline-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .main {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+/**
+ * Texto que se edita no lugar: o valor e o campo ocupam a mesma caixa, com a mesma tipografia, então clicar
+ * não muda nada de lugar. O `Text` de fora é quem carrega a escala, e os dois herdam dele.
+ */
+.inline {
+  display: block;
+  min-width: 0;
+}
+
+/* O valor em repouso: só o cursor diz que dá para editar, porque o pedido foi não mudar o desenho. O anel de
+   foco é de teclado. */
+.inlineValue {
+  display: block;
+  min-width: 0;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
+@media (hover: hover) {
+  .inlineValue:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+}
+
+/* O campo herda tudo de quem o contém e não desenha caixa nenhuma: mesma fonte, mesmo peso, mesma cor, sem
+   fio, sem fundo e sem recuo. A altura é medida no próprio campo, porque `field-sizing` ainda não existe em
+   todo navegador. */
+.inlineField {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+/**
+ * Os campos em colunas: cada um com o rótulo e o glifo em cima e o valor embaixo. `auto-fit` com piso, e não
+ * duas colunas fixas: na janela estreita, e no celular, vira uma coluna sozinha.
+ */
+.properties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+}
+
+.property {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* Campo cujo valor é uma fila que cresce (envolvidos, etiquetas) toma a linha inteira, senão a fila quebrava
+   em meia coluna. */
+.wide {
+  grid-column: 1 / -1;
+}
+
+.propertyLabel {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.propertyLabel svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+.propertyValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+}
+
+/* "Vazio" na tinta de campo em branco da casa, a mesma do `placeholder`: ele diz que o campo existe sem
+   fingir que tem conteúdo. */
+.empty {
+  color: var(--color-placeholder);
+}
+
+/* A data sem moldura pesa como os outros valores da ficha. */
+.plainDate {
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+/* A fila de etiquetas dentro do gatilho: quebra linha quando são muitas. */
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A bolinha da cor de uma etiqueta no menu de escolha: é ela que diz qual é qual antes da leitura. */
+.dot {
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: var(--dot-hue);
+  border-radius: var(--radius-full);
+}
+
+/* Os vínculos: um cartão por linha. */
+.links {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* O identificador e a linha de apoio ganham ar do nome, senão as duas linhas leem como uma só. */
+.linkCopy .linkMeta {
+  margin-block-start: 0.125rem;
+}
+
+/**
+ * O cartão de um vínculo (2026-09-10, a pedido): o container é quem tem fundo, canto e o desvincular dentro,
+ * e não o link. O fundo é sólido, e não o preenchimento translúcido, porque a fila de artes agrupada precisa
+ * de uma cor de anel para separar as bolinhas, e ela sai daqui por `--media-surface`.
+ */
+.linkItem {
+  --media-surface: var(--color-bg-secondary);
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+/* O link é a área de toque do cartão: ele estica e leva o recuo, para o clique em qualquer lugar que não
+   seja o × abrir o registro. */
+.link {
+  display: flex;
+  flex: 1;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+@media (hover: hover) {
+  .link:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.linkCopy {
+  display: grid;
+  min-width: 0;
+}
+
+/* O desvincular fica sempre à vista, dentro do cartão: no toque não há apontar, e um × que só aparece ao
+   passar o ponteiro deixava o vínculo sem como sair. */
+.linkRemove {
+  flex-shrink: 0;
+}
+
+/**
+ * A coluna da conversa: cabeçalho preso em cima, o registro rolando no meio e o cartão do comentário no pé.
+ *
+ * O fundo é um véu de 2,5% da tinta do texto sobre o fundo da página (acerto de 2026-09-10, a pedido): o
+ * cinza agrupado da casa destoava, porque ele é feito para caixa sobre página, e aqui é uma coluna da mesma
+ * página. O véu separa sem trocar de superfície. O fio de cima saiu junto: quem separa as colunas é o fio
+ * lateral, e o de cima cortava a coluna em duas sem motivo.
+ */
+.side {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
+    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
+  );
+}
+
+.sideHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+/* O filtro do registro: dois botões colados, o em vigor erguido no fundo da página, na receita do seletor de
+   visão da barra de página. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.switchOption {
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.switchOption[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (hover: hover) {
+  .switchOption:hover {
+    color: var(--color-label);
+  }
+
+  .switchOption:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* A conversa encosta no pé da coluna, junto do compositor: é lá que a última mensagem está. Com pouca
+   conversa ela desce até o compositor em vez de flutuar no alto da coluna vazia. */
+.feed {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.feed > .thread {
+  margin-block-start: auto;
+}
+
+.composer {
+  position: relative;
+  display: grid;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+/* Os campos de arquivo existem para o clique abrir o seletor do sistema, e não para aparecer. */
+.picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* O que vai junto da mensagem, antes de enviar: o cartão do arquivo ou o player do áudio, com o × ao lado. */
+.composerFiles {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.composerFile {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.composerFile > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* O áudio pendente tem a caixa do cartão de anexo, para a fila ficar de um tamanho só. */
+.composerAudio {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+/**
+ * O cartão **é** o campo (2026-09-10, sobre a referência do chat do Claude): o texto mora dentro dele, sem
+ * moldura própria, e a fila de ações fica no pé do mesmo cartão. Um campo da casa aqui dentro daria duas
+ * molduras, uma dentro da outra, então o texto é cru e quem desenha é o cartão, como a barra de busca da
+ * página já faz com o `input` dela.
+ */
+.composerCard {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.composerCard:focus-within {
+  border-color: var(--color-label-tertiary);
+}
+
+.composerField {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  /* Piso de 16px, senão o iPhone dá zoom ao focar. */
+  font-size: max(16px, var(--text-subheadline));
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  resize: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.composerField::placeholder {
+  color: var(--color-placeholder);
+}
+
+/* O pé do cartão: o que dá para anexar e marcar de um lado, gravar e enviar na outra ponta. Os botões
+   encolhem para 32px, porque são cinco numa coluna estreita. */
+.composerBar {
+  --control-height-sm: 2rem;
+  --icon-button-radius-sm: 1rem;
+  --touch-target: 2rem;
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.composerTools,
+.composerSend {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A janela de marcar um registro: título em cima e o seletor tomando o resto, que rola por dentro. */
+.mention {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: 0;
+  height: 100%;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .mention {
+    padding: var(--space-4);
+  }
+}
+
+.mentionHead {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* Os vínculos agrupados por tipo: um vão entre os grupos, o nome do grupo apagado e recuado como as linhas. */
+.linkGroups {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.linkGroup {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.linkGroupName {
+  padding-inline: var(--space-1);
+}
+
+/* O identificador em etiqueta e a linha de apoio em texto, lado a lado: a etiqueta já se separa sozinha,
+   então não há bolinha no meio. */
+.linkMeta {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.linkMeta .linkReference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/**
+ * Uma marcação desenhada como o que ela aponta: o rosto e o primeiro nome de uma pessoa, o glifo do domínio e
+ * o nome de um registro. É uma pílula no matiz de quem ela aponta, alinhada com o texto em volta, então ela
+ * cabe no meio de uma frase sem empurrar a linha.
+ */
+.mentionChip {
+  --mention-hue: var(--sys-gray);
+
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: min(100%, 15rem);
+  padding-inline: var(--space-1) var(--space-2);
+  vertical-align: middle;
+  background-color: light-dark(
+    color-mix(in oklab, var(--mention-hue) 12%, transparent),
+    color-mix(in oklab, var(--mention-hue) 18%, transparent)
+  );
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+/* Marcação de pessoa não tem matiz de domínio: ela é o preenchimento neutro da casa, porque a cor dela é a
+   do próprio rosto. */
+.mentionChip[data-person] {
+  padding-inline-start: var(--space-half);
+  background-color: var(--color-fill-quaternary);
+}
+
+.mentionChip svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: color-mix(in oklab, var(--mention-hue) 70%, var(--color-label));
+}
+
+/**
+ * A conversa: as mensagens empilhadas de baixo para cima, com o separador do dia entre uma data e outra. O
+ * vão entre mensagens é curto e o do separador é largo, que é o que faz a leitura respirar por dia.
+ */
+.thread {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.day {
+  display: grid;
+  place-items: center;
+  padding-block: var(--space-3) var(--space-2);
+}
+
+/**
+ * Uma mensagem (2026-09-10, na segunda rodada da conversa, sobre referências de conversa de suporte do
+ * usuário): o rosto numa coluna fixa e, ao lado, o autor com a hora e a bolha embaixo. Mensagens seguidas da
+ * mesma pessoa entram como um bloco só, sem repetir rosto e nome, e o vão entre elas é curto; entre blocos
+ * ele abre. A minha vira do outro lado e não tem rosto, porque numa conversa só há um "eu".
+ */
+.message {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.message[data-opens] {
+  margin-block-start: var(--space-2);
+}
+
+.message[data-mine] {
+  flex-direction: row-reverse;
+}
+
+/* A coluna do rosto é reservada mesmo quando ele não aparece, senão a bolha da mensagem seguinte pularia
+   para a esquerda e a conversa perderia a coluna. */
+.face {
+  flex-shrink: 0;
+  width: 1.5rem;
+}
+
+.said {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  max-width: min(20rem, 88%);
+}
+
+.message[data-mine] .said {
+  justify-items: end;
+  /* O espaço do rabo, que sai para fora do balão: sem ele a orelha da minha bolha era cortada pela borda da
+     coluna. Do outro lado quem dá esse espaço é o vão do rosto. */
+  margin-inline-end: 10px;
+}
+
+/* O nome de quem falou e a hora, fora da bolha: dentro dela eles roubavam a linha do texto, e a referência
+   mostra a conversa limpa, com a meta em cima. */
+.author {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  padding-inline: var(--space-1);
+}
+
+.stamp {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/**
+ * A bolha: só o conteúdo por dentro, sem fio. A minha é o matiz da marca cheio, com a tinta de cima dele, e a
+ * dos outros é o preenchimento da casa; é esse par que faz a conversa se ler de relance, sem precisar de
+ * nome em cada linha.
+ */
+.bubble {
+  position: relative;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bubble-bg, var(--color-fill-quaternary));
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+/**
+ * O rabo do balão, na quina de cima do primeiro balão de um bloco, do lado de quem falou: aponta para o rosto
+ * e o nome, que é a lógica do WhatsApp em grupo. A forma é a orelha curva que WhatsApp e Telegram desenham,
+ * feita do mesmo jeito que eles fazem: um caminho em SVG usado como **máscara** de uma caixa pintada com a
+ * cor do balão. Assim a curva é curva de verdade, sem triângulo, e o rabo nasce da quina sem emenda em
+ * qualquer fundo, porque não há segunda cor para casar.
+ *
+ * A quina daquele lado perde o raio para a orelha sair reta dela, e a caixa entra 1px por dentro do balão,
+ * para o encontro das duas não deixar um fio de fundo aparecendo. Só na primeira de um bloco: nas seguintes
+ * ela repetiria a ponta a cada linha, que é o que todo aplicativo de conversa evita.
+ */
+.message[data-opens] .bubble::after {
+  position: absolute;
+  inset-block-start: 0;
+  width: 10px;
+  height: 14px;
+  content: "";
+  background-color: var(--bubble-bg, var(--color-fill-quaternary));
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0h10q-2.5 9-10 14z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0h10q-2.5 9-10 14z'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.message:not([data-mine])[data-opens] .bubble {
+  border-start-start-radius: 0;
+}
+
+.message:not([data-mine])[data-opens] .bubble::after {
+  inset-inline-start: -9px;
+  transform: scaleX(-1);
+}
+
+.message[data-mine][data-opens] .bubble {
+  border-start-end-radius: 0;
+}
+
+.message[data-mine][data-opens] .bubble::after {
+  inset-inline-end: -9px;
+}
+
+/**
+ * A minha bolha é neutra também (a pedido de 2026-09-10, no lugar do matiz da marca cheio): quem diz que a
+ * mensagem é minha é o lado em que ela está e o "Você" em cima, e não a cor. Um degrau acima da bolha dos
+ * outros no mesmo cinza da casa, que é o suficiente para as duas se separarem ao correr o olho.
+ */
+.message[data-mine] .bubble {
+  --bubble-bg: var(--color-fill-secondary);
+}
+
+/* O que mora dentro da bolha desce um degrau de canto, para os dois raios ficarem concêntricos. O
+   cartão do anexo já vem no `md` do módulo dele, então aqui só o que é desta folha. */
+.bubble .mentionCard {
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+/* O que veio junto da mensagem, acima do texto: um por linha, com a superfície da bolha por baixo. */
+.bubbleFiles {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  margin-block-end: var(--space-1);
+}
+
+.bubbleText {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* O que a mensagem aponta, em cartão, acima do texto: um por linha, com o fundo da própria bolha por baixo
+   para o anel das artes agrupadas nascer dele. */
+.bubbleCards {
+  --media-surface: var(--color-bg-secondary);
+
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/**
+ * O cartão de uma marcação: a mídia do registro, o nome, o identificador e a seta de ir. É o mesmo cartão na
+ * bolha e no compositor, então o desenho mora num lugar só. Sem sublinhado: quem diz que é link é a seta e o
+ * cursor, como no resto da ficha.
+ */
+.mentionCard {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  color: inherit;
+  text-decoration: none;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* No compositor o cartão não navega, e o × dele encolhe para caber na linha. */
+.mentionCard[data-editing] {
+  --control-height-sm: 1.5rem;
+  --icon-button-radius-sm: var(--radius-xs);
+  --touch-target: 1.5rem;
+
+  padding-inline-end: var(--space-1);
+}
+
+@media (hover: hover) {
+  a.mentionCard:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  a.mentionCard:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.mentionCardCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.mentionCardMeta {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.mentionCardMeta .mentionCardReference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.mentionCardGo {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+/* Uma mudança de estado no meio da conversa: rosto pequeno, a frase apagada e a hora em etiqueta na ponta.
+   Não é bolha de propósito, porque ninguém falou: é a tarefa contando o que aconteceu. */
+.note {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding-block: var(--space-1);
+}
+
+.noteText {
+  flex: 1;
+  min-width: 0;
+}
+
+.noteStamp {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-tertiary);
+}
+
+/**
+ * A lista de quem marcar, aberta pelo "@" que está sendo escrito: a caixa de vidro da casa, com o fio, a
+ * sombra e o canto do painel do menu de opções, **flutuando** sobre o cartão do comentário (2026-09-10, a
+ * pedido): absoluta, para não empurrar o campo a cada tecla.
+ */
+.suggest {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline: 0;
+  z-index: 1;
+  display: grid;
+  max-height: 13rem;
+  padding: var(--space-1);
+  margin-block-end: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--glass-layer-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.suggestOption {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .suggestOption:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .suggestOption:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+/* A fila do que já foi marcado, dentro do cartão do comentário e acima do texto: um cartão por linha, o
+   mesmo que vai sair publicado. */
+.composerMentions {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}

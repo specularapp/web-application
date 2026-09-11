@@ -6,6 +6,7 @@ import {
   CurrencyCircleDollarIcon,
   FlowArrowIcon,
   GearSixIcon,
+  ListChecksIcon,
   ReceiptIcon,
   SparkleIcon,
   SquaresFourIcon,
@@ -20,7 +21,19 @@ export type NavLink = { label: string; href: Route; icon: Icon };
 
 /** Entrada que abre no lugar da lista, com as páginas dela dentro e um voltar no topo. O matiz é
  *  a cor com que a busca marca as páginas que moram aqui. */
-export type NavFolder = { label: string; icon: Icon; hue: string; items: NavLink[] };
+export type NavFolder = {
+  label: string;
+  icon: Icon;
+  hue: string;
+  items: NavLink[];
+  /**
+   * A pasta abre também a árvore de um domínio abaixo das páginas fixas, e não só elas (2026-09-10, quando
+   * Tarefas virou grupo): pasta e projeto vêm do banco e têm endereço próprio, então não caberiam em
+   * `items`, que é a lista fixa de rotas do menu. O menu pede o desenho a quem sabe montá-la, e a árvore
+   * chega por prop, como as notificações e o aviso. Hoje só as tarefas usam.
+   */
+  tree?: "tarefas";
+};
 
 export type NavEntry = NavLink | NavFolder;
 
@@ -84,7 +97,7 @@ export type NavResult = NavLink & { section: string; hue: string };
 export type NavHighlight = NavLink & { hue: string };
 
 // Só rota que existe entra aqui: `href` é tipado por rota e link para página inventada nem compila.
-// Tarefas, calendário e relatório da referência ficam de fora até as páginas nascerem.
+// Calendário e relatório da referência ficam de fora até as páginas nascerem.
 export const navGroups: NavGroup[] = [
   {
     title: "Área de trabalho",
@@ -92,6 +105,17 @@ export const navGroups: NavGroup[] = [
     hue: "var(--sys-blue)",
     entries: [
       { label: "Espaço de trabalho", href: "/dashboard", icon: SquaresFourIcon },
+      /* Tarefas entrou logo abaixo do painel (2026-09-10): é a página que se abre junto com ele, todo dia, e
+         o glifo é o mesmo do bloco de tarefas do painel, para o bloco e a tela falarem a mesma língua.
+         Virou pasta no mesmo dia, a pedido: escolher Tarefas abre a arquitetura de pastas e projetos dentro
+         do menu, para a pessoa dizer para onde vai, e "Todas as tarefas" é o quadro de tudo. */
+      {
+        label: "Tarefas",
+        icon: ListChecksIcon,
+        hue: "var(--sys-cyan)",
+        tree: "tarefas",
+        items: [{ label: "Todas as tarefas", href: "/tarefas", icon: ListChecksIcon }],
+      },
       /* Clientes e Produtos e serviços são páginas soltas, e não filhas de pasta (pedido de 2026-09-08): são
          as duas bases que a pessoa abre o dia inteiro, e um degrau a mais para chegar nelas só atrasava. */
       { label: "Clientes", href: "/clientes", icon: AddressBookIcon },

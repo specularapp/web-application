@@ -1,0 +1,83 @@
+/* A fila de artes com o total ao lado, na medida do azulejo: ela não encolhe, e o texto do registro cede
+   antes dela. */
+.arts {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* A sobreposição apertada e o anel na cor do fundo, como na coluna de orçamentos. O anel usa a superfície de
+   quem contém a fila, dita por `--media-surface`, senão ele apareceria como um traço claro sobre o
+   preenchimento da linha. */
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.stack > .art + .art {
+  margin-inline-start: calc(var(--space-1) * -1);
+}
+
+/* A bolinha do item: o véu do matiz dele por fundo e a arte por cima, com folga dentro, porque as voltas do
+   desenho encostam na borda dele e a curva cortaria as pontas. */
+.art {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--media-size, 2rem);
+  height: var(--media-size, 2rem);
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--art-hue) 12%, transparent),
+    color-mix(in oklab, var(--art-hue) 18%, transparent)
+  );
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 2px var(--media-surface, var(--color-bg));
+}
+
+.art > img {
+  width: calc(100% - var(--space-1));
+  height: calc(100% - var(--space-1));
+}
+
+/* O azulejo do domínio, para quem não tem rosto nem arte: o glifo no véu do matiz daquele tipo, com o canto
+   da casa. É o que dá identidade a projeto, contrato e tarefa na lista. */
+.tile {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--media-size, 2rem);
+  height: var(--media-size, 2rem);
+  background-color: light-dark(
+    color-mix(in oklab, var(--tile-hue) 14%, transparent),
+    color-mix(in oklab, var(--tile-hue) 22%, transparent)
+  );
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.tile svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: color-mix(in oklab, var(--tile-hue) 70%, var(--color-label));
+}
+
+/* A medida grande, da cabeça de um resumo: o azulejo e as bolinhas crescem juntos, e o glifo com eles. */
+.arts[data-size="lg"],
+.tile[data-size="lg"] {
+  --media-size: 2.75rem;
+}
+
+.tile[data-size="lg"] svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* O azulejo com a arte de um item dentro: a arte tem folga, como no catálogo, porque as voltas do desenho
+   encostam na borda dele e a curva cortaria as pontas. */
+.tile[data-art] img {
+  width: calc(100% - var(--space-2));
+  height: calc(100% - var(--space-2));
+}

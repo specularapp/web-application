@@ -4,9 +4,12 @@ import {
   CheckIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  FolderPlusIcon,
+  KanbanIcon,
   ListIcon,
   MagnifyingGlassIcon,
   CircleHalfIcon,
+  PlusIcon,
   SignOutIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -22,6 +25,7 @@ import {
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/link";
@@ -37,8 +41,10 @@ import { CommandPalette } from "../command-palette";
 import { useFloatingActions } from "../floating-actions";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
 import { Notifications, type AppNotification } from "../notifications";
+import { pathToItem, type TaskTreeItem } from "@/features/tasks/tree";
 import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
+import { TasksTree } from "./tasks-tree";
 import styles from "./sidebar.module.css";
 
 export type SidebarTeam = {
@@ -63,6 +69,14 @@ export type SidebarProps = {
   notifications: AppNotification[];
   /** O aviso mais urgente, escolhido no servidor: reunião, entrega, cobrança ou tarefa. Sem aviso, sem cartão. */
   alert?: SidebarAlert;
+  /** A arquitetura das tarefas, com as contagens resolvidas: é o que a pasta Tarefas abre no lugar da lista. */
+  tasks: TaskTreeItem[];
+  /**
+   * O projeto em vigor na árvore. Normalmente sai do endereço (`/tarefas/<slug>`) e não precisa ser passado;
+   * é a prévia de front que informa, porque ela mora em outro endereço e o menu não teria como saber. Mesma
+   * razão do `demo` da tela do painel.
+   */
+  taskRoute?: string;
 };
 
 /* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
@@ -86,6 +100,18 @@ function scrollRegion(node: HTMLElement | null) {
 function folderIsCurrent(pathname: string, folder: NavFolder) {
   return folder.items.some((item) => isCurrent(pathname, item.href));
 }
+
+/* Criar dentro da pasta que abre árvore: declarado e ainda sem regra, como as opções do cliente nasceram.
+   Pasta e projeto só passam a nascer de verdade quando a tabela existir. */
+const createSections: DropdownSection[] = [
+  {
+    id: "create",
+    items: [
+      { id: "project", label: "Novo projeto", icon: KanbanIcon },
+      { id: "folder", label: "Nova pasta", icon: FolderPlusIcon },
+    ],
+  },
+];
 
 function Row({ item, active, onNavigate }: { item: NavLink; active: boolean; onNavigate?: () => void }) {
   return (
@@ -119,6 +145,8 @@ export function SidebarPanel({
   currentTeamId,
   notifications,
   alert,
+  tasks,
+  taskRoute,
   variant,
   onSearch,
   onNotificationsChange,
@@ -129,6 +157,10 @@ export function SidebarPanel({
   const navRef = useRef<HTMLElement>(null);
   const [folder, setFolder] = useState<NavFolder | null>(null);
   const [motion, setMotion] = useState<NavMotion | null>(null);
+  // O projeto aberto sai do endereço (`/tarefas/<slug>`): é ele que marca a linha da árvore, e o caminho de
+  // pastas até ele é o galho que a árvore abre ao aparecer.
+  const currentProject = taskRoute ?? (pathname.startsWith("/tarefas/") ? pathname.split("/")[2] : undefined);
+  const openBranch = currentProject ? pathToItem(tasks, currentProject) : [];
 
   // Abrir pasta leva a rolagem ao topo: na tela cheia a pasta costuma ser escolhida lá embaixo, e a
   // lista curta que entra no lugar ficava fora da vista, com a tela parada no rodapé.
@@ -267,15 +299,20 @@ export function SidebarPanel({
         >
           {folder ? (
             <div className={styles.group}>
-              <button
-                type="button"
-                className={styles.back}
-                onClick={closeFolder}
-                {...squircle("md")}
-              >
-                <CaretLeftIcon aria-hidden="true" />
-                <span className={styles.label}>{folder.label}</span>
-              </button>
+              {/* O voltar e, na pasta que abre árvore, o criar ao lado dele: é o cabeçalho do galho, e o
+                  lugar onde uma pasta ou um projeto novo nasce. */}
+              <div className={styles.folderHead}>
+                <button
+                  type="button"
+                  className={styles.back}
+                  onClick={closeFolder}
+                  {...squircle("md")}
+                >
+                  <CaretLeftIcon aria-hidden="true" />
+                  <span className={styles.label}>{folder.label}</span>
+                </button>
+                {folder.tree && <DropdownMenu label="Criar em Tarefas" triggerLabel="Criar pasta ou projeto" sections={createSections} icon={<PlusIcon />} size="sm" />}
+              </div>
               {folder.items.map((item) => (
                 <Row
                   key={item.href}
@@ -284,6 +321,12 @@ export function SidebarPanel({
                   onNavigate={onNavigate}
                 />
               ))}
+              {folder.tree === "tarefas" && (
+                <>
+                  <span className={styles.divider} />
+                  <TasksTree items={tasks} current={currentProject} openFolders={openBranch} onNavigate={onNavigate} />
+                </>
+              )}
             </div>
           ) : (
             navGroups.map((group, index) => (

@@ -269,14 +269,26 @@
 }
 
 .fileIcon {
+  position: relative;
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
   color: var(--color-label-secondary);
   background-color: var(--color-bg);
   border-radius: var(--radius-sm);
+}
+
+/* Com prévia de imagem, o azulejo é a moldura dela: a imagem preenche cobrindo, e o fundo passa a ser o
+   preenchimento da casa, que é o que aparece enquanto ela carrega. */
+.fileIcon[data-preview] {
+  background-color: var(--color-fill-quaternary);
+}
+
+.fileIcon[data-preview] img {
+  object-fit: cover;
 }
 
 .fileIcon svg {
@@ -339,4 +351,74 @@
   display: grid;
   gap: var(--space-half);
   min-width: 0;
+}
+
+/**
+ * Uma parte da ficha: o nome e a contagem no cabeçalho, a ação de acrescentar na ponta direita só em glifo, e
+ * o corpo embaixo. É o que faz vínculos, subtarefas e anexos existirem mesmo vazios, esperando o primeiro
+ * item, em vez de desaparecerem quando não há nada.
+ *
+ * **Sem caixa** (acerto de 2026-09-10, a pedido): o fio, o fundo e o recuo saíram. Com eles, a ficha era uma
+ * pilha de caixas com caixa dentro, porque o cartão do anexo e a linha do vínculo já têm as suas; o que
+ * separa uma parte da outra agora é o vão da coluna e o peso do nome.
+ */
+.block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.blockInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* O cabeçalho: o nome com a contagem de um lado e a ação de acrescentar na outra ponta. O botão sobe meio
+   degrau pela margem negativa, para a linha do nome não crescer com a altura dele. */
+.blockHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-end: calc(var(--space-1) * -1);
+}
+
+.blockTitle {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* Parte vazia diz o que falta, na tinta apagada e alinhada com o conteúdo que entraria ali: é um convite, e
+   não um erro. Sem caixa em volta, ela não precisa de altura reservada nem de centro. */
+.blockEmpty {
+  padding-block: var(--space-1);
+}
+
+/* As três atribuições de uma subtarefa, na ponta da linha: prioridade, prazo e quem assume. */
+.subtask .assigns {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Atribuição vazia é só o glifo apagado, do tamanho do rosto que entraria ali, para a fila não desalinhar
+   entre uma linha atribuída e outra não. Acende ao apontar, porque é ele que convida a atribuir. */
+.subtask .assign {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-label-tertiary);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .subtask button:hover .assign {
+    color: var(--color-label);
+  }
 }

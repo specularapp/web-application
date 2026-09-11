@@ -10,6 +10,7 @@ export * from "./container";
 export * from "./date-picker";
 export * from "./dialog";
 export * from "./dropdown-menu";
+export * from "./duration-picker";
 export * from "./empty-state";
 export * from "./field";
 export * from "./field-shell";

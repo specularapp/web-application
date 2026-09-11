@@ -4,11 +4,10 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { useId } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
-import { TaskSheet } from "@/features/tasks/components/task-sheet";
-import { dueOf, statusLabels, statusTones } from "@/features/tasks/labels";
+import { TaskOpener } from "@/features/tasks/components/task-opener";
+import { dueOf, statusLabels, statusOf, statusTones } from "@/features/tasks/labels";
 import type { Task, TasksSummary } from "@/features/tasks/summary";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
@@ -29,17 +28,11 @@ const cardCorner = squircle("md", { clip: true });
 // ponta também abre. A janela é a ficha completa da tarefa.
 function Row({ task }: { task: Task }) {
   const due = dueOf(task);
+  const status = statusOf(task);
   const shown = task.people.slice(0, SHOWN_PEOPLE);
 
   return (
-    <DetailsTrigger
-      dialog={<TaskSheet task={task} />}
-      dialogLabel={`Tarefa ${task.title}`}
-      dialogSize="lg"
-      label={`Ver detalhes de ${task.title}`}
-      className={styles.task}
-      {...cardCorner}
-    >
+    <TaskOpener task={task} label={`Ver detalhes de ${task.title}`} className={styles.task} {...cardCorner}>
       <div className={styles.head}>
         <span className={styles.naming}>
           <Text as="p" variant="headline" truncate>
@@ -48,8 +41,8 @@ function Row({ task }: { task: Task }) {
           <Badge tone={due.tone} size="sm">
             {due.label}
           </Badge>
-          <Badge tone={statusTones[task.status]} size="sm">
-            {statusLabels[task.status]}
+          <Badge tone={statusTones[status]} size="sm">
+            {statusLabels[status]}
           </Badge>
         </span>
         <IconButton label={`Abrir ${task.title}`} variant="ghost" size="sm" data-open-details>
@@ -76,14 +69,14 @@ function Row({ task }: { task: Task }) {
           </Text>
         </div>
       )}
-    </DetailsTrigger>
+    </TaskOpener>
   );
 }
 
 // Uma linha de abertura com o nome da lista e a data de hoje nas pontas, e as tarefas mais próximas do
-// vencimento, cada uma num cartão: título com as etiquetas de prazo e de
-// situação e o chevron na ponta, a descrição, e embaixo quem está envolvido, em bolinhas e por nome. O
-// chevron ainda não abre nada: a tela de tarefas existe só como rota vazia, para o atalho do cabeçalho.
+// vencimento, cada uma num cartão: título com as etiquetas de prazo e de situação e o chevron na ponta, a
+// descrição, e embaixo quem está envolvido, em bolinhas e por nome. O cartão e o chevron abrem a janela da
+// tarefa, a mesma do quadro, e o atalho do cabeçalho leva ao quadro de todas.
 export function TasksBlock({ summary }: TasksBlockProps) {
   const headingId = useId();
   const today = format(new Date(), "d MMM. yyyy", { locale: ptBR });

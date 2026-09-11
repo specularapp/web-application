@@ -1,0 +1,14 @@
+/* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra. A
+   coluna é `minmax(0, 1fr)` porque o trilho de colunas alargaria a página numa trilha automática.
+
+   A altura é fixa **em qualquer largura**, e é aqui que esta tela se separa das outras três com `Topbar`:
+   nelas a lista cresce em fluxo no celular, e por isso elas perderam a altura em 2026-09-09 (com ela, o
+   retângulo em que o topo podia grudar terminava no fim da tela e o topo descolava ao passar dessa altura).
+   O quadro não cresce: ele rola por dentro nos dois eixos, as etapas na horizontal e cada pilha na vertical,
+   então a página não rola verticalmente e o topo não tem de onde descolar. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}

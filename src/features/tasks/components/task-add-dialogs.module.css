@@ -1,0 +1,184 @@
+/* A moldura das janelas de acrescentar: título, campos e os dois botões no pé, empilhados com o recuo da
+   janela pequena da casa. A coluna é `minmax(0, 1fr)` porque campo com valor comprido alargaria a janela. */
+.dialog {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  min-height: 0;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .dialog {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+.head {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* Os campos, um por linha, com o vão do formulário da casa. Rola por dentro quando não couber. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Dois campos curtos dividindo a linha, como nos formulários da casa; no celular eles empilham. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 47.9375rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* O seletor de registro toma a altura que a janela der, porque a lista dele rola por dentro. */
+.picker {
+  min-height: 0;
+  height: 100%;
+}
+
+/* Os dois botões dividem a largura em partes iguais. Sozinho, o fechar não estica: ele é saída, e um botão
+   de largura cheia leria como ação principal. */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.actions[data-single] {
+  grid-template-columns: minmax(0, 12rem);
+  justify-content: end;
+}
+
+/**
+ * A área de soltar arquivo: a caixa tracejada com o azulejo, o convite e o campo escondido por dentro. O
+ * tracejado é o que diz "solte aqui" sem precisar de texto, e acende no arrasto e ao apontar.
+ */
+.drop {
+  display: grid;
+  gap: var(--space-1);
+  place-items: center;
+  width: 100%;
+  padding: var(--space-6) var(--space-4);
+  font-family: var(--font-body);
+  text-align: center;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0937rem dashed var(--color-border);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.drop[data-over] {
+  background-color: color-mix(in oklab, var(--color-accent) 6%, transparent);
+  border-color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .drop:hover {
+    background-color: var(--color-fill-quaternary);
+    border-color: var(--color-label-tertiary);
+  }
+
+  .drop:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* O azulejo do glifo, no preenchimento da casa, com respiro antes do texto. */
+.dropMark {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-block-end: var(--space-2);
+  background-color: var(--color-fill-quaternary);
+}
+
+.dropMark svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--color-label-secondary);
+}
+
+/* O campo de arquivo existe para o clique abrir o seletor do sistema, mas não desenha: o desenho dele não é
+   da casa, e quem recebe o toque é a área inteira. */
+.file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* O que foi escolhido, antes de confirmar: o glifo do formato, o nome, o tamanho e o tirar na ponta. */
+.picked {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pickedItem {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.pickedMark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background-color: var(--color-bg);
+}
+
+.pickedMark svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+.pickedCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Com prévia de imagem, a marca do escolhido é a moldura dela: a imagem preenche cobrindo, e o fundo passa a
+   ser o preenchimento da casa, que é o que aparece enquanto ela carrega. */
+.pickedMark[data-preview] {
+  overflow: hidden;
+  background-color: var(--color-fill-quaternary);
+}
+
+.pickedMark[data-preview] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

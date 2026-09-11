@@ -1,0 +1,268 @@
+/* O fio da caixa é o do `Card` e o dos cartões de cliente e de orçamento: a camada de fora com a cor do fio
+   e um recuo da espessura dele, e a de dentro com a cor do fundo, as duas recortadas pelo sistema de cantos.
+   É o que faz o canto sair em superelipse também onde não há `corner-shape`, o que `border` não permite. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* No celular o canto cai um degrau, como no `Card`: o de 24px lia como pílula num cartão estreito. */
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+/* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a curva de
+   dentro chega perto demais da de fora na quina e o antialias apaga o fio ali.
+
+   O vão entre as linhas é 8px, e não o recuo cheio: o cartão tem seis faixas e a 12px ele virava uma torre.
+   As faixas que precisam de mais ar pedem por conta própria, na margem. */
+.inner {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-3);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque com
+   o dedo ou o mouse não acende anel nenhum. Entra por dentro, porque o canto vai recortado. */
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* A prioridade e o aviso de um lado, o leque na outra ponta. */
+.head {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.menu {
+  margin-inline-start: auto;
+}
+
+/* O título em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. Cola na linha de
+   contexto, que é continuação dele, e não uma faixa nova. */
+.title {
+  margin-block-end: calc(var(--space-2) * -1 + var(--space-half));
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Projeto e identificador na mesma linha, apagados: contexto, não assunto. O nome do projeto cede por
+   reticências e o identificador nunca encolhe, porque é ele que a pessoa procura. */
+.context {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-1);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+}
+
+.contextIcon {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.project {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  flex-shrink: 0;
+  color: var(--color-label-tertiary);
+}
+
+.reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-tertiary);
+}
+
+/* A descrição em duas linhas, como na referência: o suficiente para saber do que se trata sem abrir. */
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* As etiquetas numa linha só, sem quebrar: as duas primeiras cedem por reticências e o resto vira "+N". Duas
+   classes para vencer o `flex-shrink: 0` que o `Badge` declara, que aqui empurraria o "+N" para fora. */
+.tags {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.tags .tag {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* A linha do trabalho: a barra tomando o espaço que sobra, a conta ao lado e a estimativa na outra ponta. */
+.work {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.progress {
+  flex: 1;
+  min-width: 0;
+}
+
+.workCount {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.estimate {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: auto;
+  color: var(--color-label-secondary);
+}
+
+.estimate svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+/* O pé, com mais ar em cima: ele é a outra metade do cartão, e colado às etiquetas lia como mais uma faixa
+   de classificação. Quem cede espaço são os rostos; o prazo e as contagens não encolhem. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-start: var(--space-1);
+}
+
+.people {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.faces {
+  flex-shrink: 0;
+}
+
+.more {
+  flex-shrink: 0;
+}
+
+.meta {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Uma contagem do pé: o glifo apagado e o número na tinta secundária, como a data da tabela da casa. */
+.count {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  color: var(--color-label-secondary);
+}
+
+.count svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+/**
+ * O arraste do quadro (2026-09-10, a pedido): o cartão inteiro é a alça, então ele mostra a mão aberta ao
+ * apontar e a mão fechada enquanto se arrasta. `touch-action: manipulation` deixa a rolagem do trilho e do
+ * dedo passarem: quem decide que o gesto é arraste é a folga de 6px do sensor, e não o navegador.
+ */
+.inner[data-grab] {
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.inner[data-grab]:active {
+  cursor: grabbing;
+}
+
+/**
+ * No lugar de onde o cartão saiu fica o vazio dele: a caixa some e sobra o contorno tracejado, para a pilha
+ * não pular de altura enquanto o cartão está no ar. É o mesmo raio, então o buraco tem a forma do que saiu.
+ */
+.card[data-dragging] {
+  padding: 0;
+  background-color: transparent;
+  border: 1px dashed var(--color-border);
+  opacity: 0.6;
+}
+
+.card[data-dragging] .inner {
+  visibility: hidden;
+}
+
+/**
+ * O cartão na mão: erguido do quadro pela sombra, inclinado um grau e meio e um tiquinho maior, que é o
+ * suficiente para ele parecer solto sem virar cambalhota. A mão fechada segue com ele.
+ */
+.card[data-overlay] {
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(1.5deg) scale(1.02);
+}
+
+.card[data-overlay] .inner {
+  background-color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-overlay] {
+    transform: none;
+  }
+}

@@ -1,0 +1,236 @@
+/* A coluna não tem caixa (a pedido, 2026-09-10): ela é o cabeçalho e a pilha, soltos na página, e quem
+   separa uma etapa da outra é o vão do trilho. Uma bandeja cinza atrás durou uma rodada e saiu, porque
+   empilhava caixa dentro de caixa com o cartão. Largura fixa, porque quem rola é o trilho. */
+.column {
+  --column-width: 19rem;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: var(--column-width);
+  min-width: var(--column-width);
+  min-height: 0;
+}
+
+/* No celular a coluna cabe quase inteira na tela e o trilho encaixa nela, então a pessoa passa de etapa em
+   etapa com o dedo em vez de parar no meio de duas. */
+@media (max-width: 47.9375rem) {
+  .column {
+    --column-width: min(80vw, 19rem);
+    scroll-snap-align: start;
+  }
+}
+
+/* Recolhida, sobra o trilho estreito do cabeçalho em pé: a pílula no topo e o menu no pé, que é o mesmo
+   arranjo do cabeçalho aberto virado de lado. A largura é a do alvo de toque, então o botão do menu fica
+   centrado nela em qualquer ponteiro. */
+.column[data-collapsed] {
+  --column-width: var(--touch-target);
+
+  grid-template-rows: minmax(0, 1fr);
+  justify-items: center;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.column[data-collapsed] .head {
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 0;
+}
+
+/**
+ * A etiqueta da etapa: glifo, nome e contagem numa pílula só, tingida pelo matiz que a etapa traz em
+ * `--stage-hue`. As contas de cor são as do `Badge` suave da casa (70% do matiz sobre a tinta do texto, véu
+ * de 9% no claro e 12% no escuro), mas a pílula é montada aqui porque o primitivo não tem lugar para um chip
+ * no fim: como `children` a contagem cairia dentro do texto que corta por reticências.
+ *
+ * A geometria é a de um chip dentro de uma caixa: 4px em volta da contagem nos três lados que ela encosta,
+ * então o recuo de cima, o de baixo e o da direita são o mesmo e ela fica **grudada na direita** com a mesma
+ * folga em volta (pedido de 2026-09-10). Só o lado do glifo abre mais, 12px, porque ali o que encosta é
+ * texto. O canto é o `md` do sistema de cantos, e não pílula: 12px num bloco de 32 fica abaixo da metade da
+ * altura, como a regra da casa pede, e a contagem por dentro cai no `sm` pela conta concêntrica (12 − 4).
+ *
+ * Um degrau acima na escala de texto e de glifo (mesmo pedido): o nome da etapa é o título da coluna, e em
+ * `footnote` com glifo de 16px ele cedia destaque para o cartão. É `h2` porque nomeia a coluna, e a coluna é
+ * uma seção da página.
+ */
+/* O `h2` só carrega a semântica; quem desenha e recebe o clique é o botão dentro dele. */
+.heading {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+}
+
+.stage {
+  --stage-hue: var(--sys-gray);
+  --stage-ink: color-mix(in oklab, var(--stage-hue) 70%, var(--color-label));
+  --stage-tint: light-dark(
+    color-mix(in oklab, var(--stage-hue) 9%, transparent),
+    color-mix(in oklab, var(--stage-hue) 12%, transparent)
+  );
+  --stage-chip: light-dark(
+    color-mix(in oklab, var(--stage-hue) 20%, transparent),
+    color-mix(in oklab, var(--stage-hue) 26%, transparent)
+  );
+
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-1);
+  padding-inline-start: var(--space-3);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  text-align: start;
+  cursor: pointer;
+  background-color: var(--stage-tint);
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* O véu sobe um degrau ao apontar, para o cabeçalho dizer que é clicável sem precisar de mais nada. */
+@media (hover: hover) {
+  .stage:hover {
+    background-color: light-dark(
+      color-mix(in oklab, var(--stage-hue) 16%, transparent),
+      color-mix(in oklab, var(--stage-hue) 20%, transparent)
+    );
+    transition-duration: var(--duration-base);
+  }
+
+  .stage:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Em pé, a mesma conta virada: 12px do lado do glifo, que agora é o de cima, e 4px em volta da contagem. */
+.column[data-collapsed] .stage {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  padding-block-start: var(--space-3);
+}
+
+.column[data-collapsed] .name {
+  writing-mode: vertical-rl;
+}
+
+.glyph {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--stage-ink);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A contagem dentro da pílula, num véu mais forte do mesmo matiz: ela é a medida da etapa, não uma segunda
+   etiqueta, então fica na tinta do texto e só o fundo a separa. Algarismo tabular para a pílula não pulsar
+   de largura quando o número troca. */
+.count {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: var(--space-1);
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  background-color: var(--stage-chip);
+  border-radius: var(--radius-sm);
+}
+
+.tools {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+}
+
+/* Recolhida, as ações não são desenhadas (2026-09-10, a pedido): o chevron duplo e o "+" são coisas que se
+   faz numa etapa que está à vista, e num trilho de 44px eles empilhavam ruído embaixo do nome. Quem abre é o
+   próprio cabeçalho, no clique, então nada se perde. Quem tira as ações da árvore é o componente, e não uma
+   regra aqui: recolhida, elas não chegam a existir. */
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Etapa sem tarefa continua no quadro, com a frase no lugar da pilha: coluna é lugar, e não conteúdo. */
+.empty {
+  display: grid;
+  place-content: center;
+  min-height: 5rem;
+  padding: var(--space-4);
+  text-align: center;
+}
+
+/**
+ * A etapa que vai receber o cartão (2026-09-10): um véu do matiz dela por baixo da pilha, para a coluna
+ * inteira responder ao gesto, e não só o lugar onde ele cai. O véu é de 6%, o mesmo peso do realce de linha
+ * da casa: acende o bastante para se ver de canto de olho e não muda a leitura do que está na coluna.
+ *
+ * Vale enquanto o cartão está sobre ela (`data-landing`), e não no `:hover`: é o gesto que manda aqui.
+ */
+.column[data-landing] {
+  background-color: color-mix(in oklab, var(--stage-hue) 6%, transparent);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--stage-hue) 24%, transparent);
+}
+
+/* Recolhida, ela acende do mesmo jeito, e soltar ali a abre: o trilho estreito é alvo como qualquer outro. */
+.column[data-landing][data-collapsed] {
+  background-color: color-mix(in oklab, var(--stage-hue) 12%, transparent);
+}
+
+/**
+ * O lugar do cartão que vem: a caixa tracejada no matiz da etapa, na medida de um cartão curto, dizendo onde
+ * ele cai. Fica no fim da pilha porque a ordem de dentro é a da coluna, e não a do gesto: arrastar muda a
+ * etapa, e o lugar na fila quem decide é a ordenação escolhida no cabeçalho.
+ */
+.landing {
+  display: grid;
+  place-items: center;
+  min-height: 3.25rem;
+  color: color-mix(in oklab, var(--stage-hue) 72%, var(--color-label));
+  background-color: color-mix(in oklab, var(--stage-hue) 8%, transparent);
+  border: 1px dashed color-mix(in oklab, var(--stage-hue) 40%, transparent);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+}

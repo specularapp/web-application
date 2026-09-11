@@ -14,11 +14,14 @@ export function buildContentSecurityPolicy(nonce: string) {
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' blob: data: https://*.supabase.co https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://*.stripe.com",
     "font-src 'self' data:",
+    // O áudio gravado na conversa da tarefa e o arquivo anexado por upload vivem em `blob:` até o
+    // armazenamento existir, e sem isto o `default-src` recusaria os dois: o player ficava mudo.
+    "media-src 'self' blob: data:",
     // O Payment Element fala com api.stripe.com, manda telemetria para r.stripe.com e busca a
     // configuração de meios de pagamento em merchant-ui-api.stripe.com. Sem os três, o formulário
     // monta e não carrega o cartão.
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://r.stripe.com https://merchant-ui-api.stripe.com https://challenges.cloudflare.com",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
+    "frame-src 'self' blob: https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

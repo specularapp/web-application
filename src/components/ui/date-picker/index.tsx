@@ -36,6 +36,18 @@ export type DatePickerProps = {
   min?: Date;
   max?: Date;
   iconEnd?: ReactNode;
+  /**
+   * Sem a moldura de campo e sem o glifo do calendário: sobra a data como texto, e o clique nela abre o
+   * calendário (2026-09-10, das informações da tarefa). É o mesmo motivo do gatilho sem caixa do
+   * `DropdownMenu`: numa ficha, o valor tem de continuar parecendo valor, e não formulário.
+   */
+  plain?: boolean;
+  /**
+   * Como a data escolhida é escrita, no padrão do `date-fns`. O campo mostra `dd/MM/yyyy`, que é o formato
+   * de digitar; sem moldura, quem lê a data está lendo um valor de ficha, e ali "domingo, 13 de set." diz
+   * mais que os números (2026-09-10). O que vai para o formulário, no campo escondido, é sempre ISO.
+   */
+  display?: string;
   className?: string;
   style?: CSSProperties;
   "aria-describedby"?: string;
@@ -99,6 +111,17 @@ const Trigger = styled.button`
   &:disabled {
     cursor: not-allowed;
   }
+`;
+
+/* O invólucro sem moldura: só o lugar de onde o calendário se posiciona. O texto herda a tipografia de quem
+   o contém, então a data lê como o resto da linha em vez de como campo. */
+const PlainShell = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
 `;
 
 const Glyph = styled(FieldAdornment)`
@@ -223,6 +246,8 @@ export function DatePicker({
   min,
   max,
   iconEnd,
+  plain = false,
+  display = "dd/MM/yyyy",
   className,
   style,
   ...aria
@@ -308,8 +333,13 @@ export function DatePicker({
     />
   );
 
+  /* Sem moldura, o invólucro é só o lugar de onde o calendário se posiciona, e o glifo do campo sai: sobra a
+     data como texto. Com moldura, é o `FieldShell` de sempre. */
+  const Shell = plain ? PlainShell : FieldShell;
+  const shellProps = plain ? {} : { size, invalid: flagged };
+
   return (
-    <FieldShell ref={shellRef} size={size} invalid={flagged} className={className} style={style}>
+    <Shell ref={shellRef} {...shellProps} className={className} style={style}>
       <Trigger
         ref={triggerRef}
         id={id}
@@ -324,12 +354,14 @@ export function DatePicker({
         aria-describedby={aria["aria-describedby"]}
         onClick={() => setOpen((state) => !state)}
       >
-        {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : placeholder}
+        {date ? format(date, display, { locale: ptBR }) : placeholder}
       </Trigger>
       {iconEnd && <FieldAdornment>{iconEnd}</FieldAdornment>}
-      <Glyph aria-hidden="true">
-        <CalendarBlankIcon />
-      </Glyph>
+      {!plain && (
+        <Glyph aria-hidden="true">
+          <CalendarBlankIcon />
+        </Glyph>
+      )}
       {name && <input type="hidden" name={name} value={date ? format(date, "yyyy-MM-dd") : ""} readOnly />}
       {open && sheet && (
         <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="glass" scrim={false} focusOnOpen={false}>
@@ -354,6 +386,6 @@ export function DatePicker({
           </Popover>,
           document.body,
         )}
-    </FieldShell>
+    </Shell>
   );
 }

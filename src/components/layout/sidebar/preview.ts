@@ -1,3 +1,6 @@
+import { previewTasks } from "@/features/tasks/list-preview";
+import { buildTaskTree } from "@/features/tasks/tree";
+import { previewTaskTree } from "@/features/tasks/tree-preview";
 import { pickAlert, previewAlerts } from "../alerts";
 import { previewNotifications } from "../notifications/preview";
 import type { SidebarProps } from "./index";
@@ -14,4 +17,5 @@ export const previewSidebar: SidebarProps = {
   currentTeamId: "aurora",
   notifications: previewNotifications,
   alert: pickAlert(previewAlerts),
+  tasks: buildTaskTree(previewTaskTree, previewTasks),
 };

@@ -207,6 +207,15 @@
   color: var(--color-label-tertiary);
 }
 
+/* O cabeçalho do galho: o voltar tomando a linha e, na pasta que abre árvore, o criar na ponta. Sem o criar
+   a caixa não muda nada, porque o voltar já ocupava a largura toda. */
+.folderHead {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
 .back {
   display: flex;
   align-items: center;

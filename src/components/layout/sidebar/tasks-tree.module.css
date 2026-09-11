@@ -1,0 +1,144 @@
+/**
+ * A árvore repete a coluna do menu, então as linhas dela ficam no mesmo vão das outras.
+ *
+ * As medidas do galho ficam aqui, num lugar só, porque as três se amarram: `--tree-indent` é o degrau de cada
+ * nível, `--tree-axis` é a distância do fio até a borda da linha, e `--tree-row` é a altura da linha, de onde
+ * sai a meia altura em que o cotovelo vira. O eixo cai no centro do azulejo da linha de cima: recuo da linha
+ * (8px) mais metade do azulejo (10px) dá 18px, e o degrau de 24px menos esses 18 dá os 6px do eixo.
+ *
+ * O fio é **1px cheio**, e não o `--menu-line` de 0,6px do resto do menu (acerto de 2026-09-10, do relato de
+ * que a árvore saía quebrada): 0,6px em tela de duas vezes cai em 1,2 pixel de aparelho, e a borda do
+ * cotovelo e o fio que desce, sendo dois elementos, arredondavam para pixels diferentes — o galho aparecia
+ * picado, com um degrauzinho a cada linha. Com 1px e todas as medidas em número inteiro os dois caem no mesmo
+ * pixel e o galho fecha.
+ */
+.tree {
+  --tree-indent: 1.5rem;
+  --tree-axis: 0.375rem;
+  --tree-row: 2.25rem;
+  --tree-elbow: 0.375rem;
+  --tree-line: 1px;
+  --tree-ink: var(--color-border);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+/* Em ponteiro grosso a linha volta aos 44px da regra, e o cotovelo acompanha, senão ele viraria acima do
+   meio da linha. */
+@media (pointer: coarse) {
+  .tree {
+    --tree-row: var(--touch-target);
+  }
+}
+
+.root,
+.limb {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+/* O galho: o cotovelo que liga o filho ao pai e, quando ele não é o último, o fio que segue para o irmão de
+   baixo. Os dois são desenhados no invólucro, e não na linha, para não atravessarem o realce do hover.
+   `position: relative` sem `overflow`, porque o cotovelo mora fora da caixa, à esquerda dela. */
+.limb {
+  position: relative;
+}
+
+/**
+ * O caminho até o projeto aberto sai mais forte (2026-09-10, a pedido): é o único galho que a pessoa precisa
+ * enxergar de longe, porque é a rota completa de onde ela está. O resto da árvore fica no fio de sempre, no
+ * peso de estrutura; se tudo ficasse forte, nada ficaria em evidência.
+ */
+.limb[data-route] {
+  --tree-ink: var(--color-label-secondary);
+}
+
+/* O cotovelo é uma caixa sem fundo com dois lados: o esquerdo desce do topo do galho até a meia altura da
+   linha e o de baixo vira para a direita, com o canto arredondado ligando os dois. É o que faz a árvore
+   parecer conectada em vez de recuada, e é um elemento só, sem SVG. */
+.limb::before {
+  content: "";
+  position: absolute;
+  /* Sobe o vão do menu, para o fio sair de dentro da linha de cima em vez de começar 4px abaixo dela: sem
+     isso a árvore aparecia picada, um traço solto por filho. */
+  inset-block-start: calc(var(--space-1) * -1);
+  inset-inline-start: calc(var(--tree-axis) * -1);
+  width: var(--tree-axis);
+  height: calc(var(--tree-row) / 2 + var(--space-1));
+  border-inline-start: var(--tree-line) solid var(--tree-ink);
+  border-block-end: var(--tree-line) solid var(--tree-ink);
+  border-end-start-radius: var(--tree-elbow);
+}
+
+/* O fio que continua para baixo, em todo filho que não é o último: ele atravessa o galho inteiro, então
+   passa também pelos filhos de uma pasta aberta e chega no irmão seguinte. No último, o cotovelo fecha
+   sozinho e nada desce, que é o `└` da referência. */
+.limb:not([data-last])::after {
+  content: "";
+  position: absolute;
+  /* Sai e entra pelo vão do menu nas duas pontas, para o fio atravessar o respiro entre as linhas e chegar
+     inteiro no irmão de baixo. */
+  inset-block: calc(var(--space-1) * -1);
+  inset-inline-start: calc(var(--tree-axis) * -1);
+  width: var(--tree-line);
+  background-color: var(--tree-ink);
+}
+
+/* O degrau: os filhos entram recuados, e é do recuo deles que o eixo do fio é medido. Aninhado, o recuo
+   acumula sozinho, sem ninguém precisar contar o nível. */
+.children {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  padding-inline-start: var(--tree-indent);
+}
+
+/* A linha da árvore é a linha do menu com o vão menor entre o glifo e o nome: o azulejo já tem ar por
+   dentro, e o vão cheio do menu o soltava do nome. */
+.node {
+  gap: var(--space-2);
+}
+
+/* O lugar do glifo, igual para pasta e projeto, para os dois alinharem na mesma coluna. Dois nomes na classe
+   para ganhar do `.row svg`, que dimensiona os ícones da linha. */
+.node .mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.node .mark svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* O azulejo do projeto: o véu do matiz dele com o glifo na tinta cheia da cor, nas mesmas contas do `Badge`
+   suave da casa. É o que distingue um quadro do outro de relance. O canto é o `sm` da casa com a superelipse
+   pelo sistema de cantos (o `data-squircle` do componente), e não um arredondamento solto. */
+.node .tile {
+  --tile-ink: color-mix(in oklab, var(--project-hue) 70%, var(--color-label));
+
+  background-color: light-dark(
+    color-mix(in oklab, var(--project-hue) 14%, transparent),
+    color-mix(in oklab, var(--project-hue) 20%, transparent)
+  );
+  border-radius: var(--radius-sm);
+}
+
+.node .tile svg {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  color: var(--tile-ink);
+}
+
+/* A contagem na ponta direita, como na referência: o que está em aberto abaixo daquele nó. Zero não desenha
+   nada, porque um zero em cada linha é ruído, e não informação. */
+.node .count {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}

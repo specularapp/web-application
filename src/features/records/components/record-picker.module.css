@@ -1,0 +1,210 @@
+/* A busca em cima, as abas abaixo dela e a lista rolando no que sobra: a caixa toma a altura de quem a
+   monta, então quem rola é a lista e as duas primeiras faixas ficam no lugar. */
+.picker {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+  height: 100%;
+}
+
+/* O campo de busca na receita do campo do menu lateral e da barra de página: fio fino, raio `md`, lupa na
+   frente e o preenchimento da casa ao apontar. */
+.find {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  cursor: text;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (pointer: coarse) {
+  .find {
+    height: max(var(--control-height-sm), var(--touch-target));
+  }
+}
+
+@media (hover: hover) {
+  .find:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.find:focus-within {
+  background-color: var(--color-fill-quaternary);
+  border-color: var(--color-label-tertiary);
+}
+
+.find > svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* O campo cru: quem desenha é o invólucro. Piso de 16px na fonte, senão o iPhone dá zoom ao focar. */
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-size: max(16px, var(--text-subheadline));
+  color: var(--color-label);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-label-secondary);
+}
+
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
+  appearance: none;
+}
+
+/* As abas numa fila que rola na horizontal, sem quebrar linha: são oito, e empilhadas elas tomavam a caixa
+   inteira antes do primeiro resultado. A barra de rolagem some, como no menu. */
+/* As abas quebram linha em vez de rolar: com sete tipos, a rolagem escondia a última ponta sem avisar. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.tab[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-fill-tertiary);
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.results {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.group {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* O nome do grupo com a contagem ao lado, recuados como as linhas. */
+.groupHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding-inline: var(--space-2);
+}
+
+/* O identificador e a linha de apoio numa fila: a etiqueta se separa sozinha, sem bolinha no meio. */
+.meta {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.meta .reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* A linha do registro: o azulejo ou o rosto, o nome e a linha de apoio. Vestida como a linha do menu, no
+   mesmo tom e na mesma altura, porque é a mesma natureza de escolha. */
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  font-family: var(--font-body);
+  text-align: start;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .row:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+    border-radius: var(--radius-md);
+  }
+}
+
+.copy {
+  display: grid;
+  min-width: 0;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  padding: var(--space-4);
+  text-align: center;
+}

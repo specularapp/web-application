@@ -1,0 +1,7 @@
+/* O `li` é só o lugar na lista: quem desenha o cartão é o invólucro de dentro, com as classes de quem
+   chama. `display: grid` para o invólucro tomar a largura toda sem herdar nada. */
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}

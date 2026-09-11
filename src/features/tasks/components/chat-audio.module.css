@@ -1,0 +1,102 @@
+/**
+ * O áudio de uma mensagem: tocar, a onda e o tempo, numa linha só. Dentro da bolha ele não desenha caixa
+ * própria: a bolha já é a caixa, e caixa dentro de caixa é o que a casa não faz.
+ */
+.audio {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  min-width: 12rem;
+}
+
+/* A onda é o alvo de pular para um ponto, então ela é botão, e toma a largura que sobra. */
+.wave {
+  display: flex;
+  flex: 1;
+  gap: 0.125rem;
+  align-items: center;
+  min-width: 0;
+  height: 1.5rem;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+@media (hover: hover) {
+  .wave:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+}
+
+/* Cada barra da onda: apagada no que falta e cheia no que já tocou, que é o que mostra onde a fala está. */
+.bar {
+  flex: 1;
+  min-width: 0.0625rem;
+  background-color: var(--color-label-tertiary);
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.bar[data-on] {
+  background-color: var(--color-accent);
+}
+
+.clock {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+/* O elemento nativo existe para tocar, e não para aparecer: o desenho dos controles dele não é da casa. */
+.element {
+  display: none;
+}
+
+/**
+ * Gravando: o ponto pulsando, o tempo correndo e o botão de encerrar, no lugar do microfone. Em vermelho,
+ * porque é o estado em que algo está sendo capturado, e isso precisa ficar claro sem ler.
+ */
+.recording {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding-inline-start: var(--space-2);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-danger) 10%, transparent),
+    color-mix(in oklab, var(--color-danger) 18%, transparent)
+  );
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.recording .clock {
+  color: var(--color-danger);
+}
+
+.recording svg {
+  color: var(--color-danger);
+}
+
+.pulse {
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--color-danger);
+  border-radius: var(--radius-full);
+  animation: blink 1.2s var(--ease-standard) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}

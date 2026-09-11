@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FigmaLogoIcon, FileImageIcon, FilePdfIcon, GlobeSimpleIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FigmaLogoIcon, FileIcon, FileImageIcon, FilePdfIcon, GlobeSimpleIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -36,6 +36,9 @@ const kinds: Record<TaskAttachmentType, AttachmentKind> = {
   image: { icon: FileImageIcon, label: "Imagem", downloadable: true, stage: "image" },
   figma: { icon: FigmaLogoIcon, label: "Figma", downloadable: false, stage: "card", brand: "figma" },
   link: { icon: GlobeSimpleIcon, label: "Link", downloadable: false, stage: "card" },
+  /* Arquivo que a nossa tela não abre por dentro (planilha, documento, compactado): baixa, e o palco mostra
+     a ficha dele em vez de uma moldura vazia. Nasceu com o upload de 2026-09-10. */
+  file: { icon: FileIcon, label: "Arquivo", downloadable: true, stage: "card" },
 };
 
 /* Endereços que a casa reconhece pela marca: o anexo mostra o logo do serviço em vez do globo genérico,
@@ -236,10 +239,17 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
   return (
     <>
       <button type="button" className={styles.file} aria-haspopup="dialog" onClick={() => setOpen(true)} {...cardCorner}>
-        {/* O chip mostra a marca do serviço quando a casa a conhece, e o glifo do formato quando não:
-            no meio de uma lista de anexos é o logo que diz na hora o que é cada um. */}
-        <span className={styles.fileIcon} aria-hidden="true" {...chipCorner}>
-          {brand ? <BrandIcon name={brand} color className={styles.fileBrand} /> : <Glyph weight="duotone" />}
+        {/* A prévia (2026-09-10, a pedido): imagem mostra a imagem em miniatura, e o resto mostra a marca do
+            serviço quando a casa a conhece, ou o glifo do formato quando não. No meio de uma lista de
+            anexos, é a prévia que diz na hora o que é cada um. */}
+        <span className={styles.fileIcon} data-preview={kind.stage === "image" || undefined} aria-hidden="true" {...chipCorner}>
+          {kind.stage === "image" ? (
+            <Image src={file.url} alt="" fill sizes="72px" />
+          ) : brand ? (
+            <BrandIcon name={brand} color className={styles.fileBrand} />
+          ) : (
+            <Glyph weight="duotone" />
+          )}
         </span>
         <span className={styles.fileCopy}>
           <Text as="span" variant="subheadline" weight="medium" truncate>
