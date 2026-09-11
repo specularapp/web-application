@@ -2,6 +2,7 @@
    por conta. A altura vem da `Dialog` `xl`, que é fixa, então quem tem `minmax(0, 1fr)` aqui é a faixa do
    corpo, e é dela que as duas colunas tiram o piso de zero para rolar por dentro. */
 .dialog {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
@@ -28,6 +29,12 @@
        recuo, senão o miolo pediria mais altura do que a bandeja tem e o pé vazaria. */
     min-height: calc(85dvh - env(safe-area-inset-bottom));
   }
+
+  /* O cabeçalho desce o bastante para o seletor da faixa da alça caber acima dele: o seletor é absoluto e
+     não empurra nada, então quem abre o espaço é este recuo. */
+  .top {
+    padding-block-start: calc(var(--space-2) + var(--control-height-sm) + var(--space-3));
+  }
 }
 
 .top {
@@ -49,8 +56,12 @@
   min-width: 0;
 }
 
+/* Quem cede por reticências é o nome do projeto, e só ele: no celular a rota inteira encolhia junto e
+   "Tarefas" saía como "Taref", que não é palavra nenhuma (visto no print de 2026-09-11). O primeiro degrau
+   é curto e fixo; o do projeto é que tem tamanho imprevisível. */
 .crumb {
   display: inline-flex;
+  flex-shrink: 0;
   gap: var(--space-1);
   align-items: center;
   min-width: 0;
@@ -79,6 +90,11 @@
   }
 }
 
+/* O degrau do projeto é o único que encolhe, porque o nome dele é que é longo. */
+.route .crumb:last-of-type {
+  flex-shrink: 1;
+}
+
 .slash {
   flex-shrink: 0;
   font-size: var(--text-footnote);
@@ -98,88 +114,99 @@
 }
 
 /**
- * O botão que vira a página (2026-09-11, a pedido, no lugar da faixa de abas): preso no meio da lateral,
- * apontando para onde se vai. Na ficha ele fica na direita e leva à conversa; na conversa ele vira para a
- * esquerda e traz de volta. Ocupa o alvo de toque e nada mais, então não rouba linha do conteúdo, que era
- * o problema da faixa cheia.
+ * O seletor entre as duas metades (2026-09-11, a pedido, no lugar do botão da lateral): mora na primeira
+ * linha da bandeja, logo abaixo da alça, que é o espaço que sobrava vazio acima do caminho da tarefa.
  *
- * Ele flutua **sobre** o conteúdo, e não no fluxo, senão empurraria a ficha inteira para o lado. O meio da
- * lateral é onde o polegar chega sem mudar a pegada, que é o mesmo motivo de a barra da casa morar no pé.
+ * Ele é absoluto e o cabeçalho abre o recuo de cima que o acomoda, em vez de entrar no fluxo como uma
+ * terceira faixa: assim ele não empurra o conteúdo nem cria mais uma linha de moldura, que era o problema
+ * da faixa de abas que ele veio substituir. Toma a largura da bandeja menos os recuos, então as duas
+ * metades dividem a linha em partes iguais.
  */
-.flip {
+.switcher {
   position: absolute;
-  top: 50%;
-  z-index: 1;
-  display: inline-flex;
-  gap: var(--space-half);
+  top: var(--space-2);
+  inset-inline: var(--space-4);
+  z-index: 2;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  min-width: var(--touch-target);
-  height: var(--touch-target);
-  padding-inline: var(--space-2);
-  color: var(--color-label);
+  padding: 0.125rem;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+@media (width >= 64rem) {
+  .switcher {
+    display: none;
+  }
+}
+
+/**
+ * O deslizante: uma faixa que corre por trás das duas opções, e é ela que dá a suavidade. O fundo é do
+ * elemento que anda, e não do botão em vigor, porque acender e apagar dois fundos pisca, enquanto uma faixa
+ * que desliza é um movimento só, em `translate`, que o compositor resolve sem tocar em layout.
+ *
+ * Metade da caixa menos o recuo dos dois lados, que é o tamanho de uma opção quando as duas dividem a
+ * largura; `left` fica na primeira e o `translate` leva à segunda.
+ */
+.switcherThumb {
+  position: absolute;
+  top: 0.125rem;
+  bottom: 0.125rem;
+  left: 0.125rem;
+  width: calc(50% - 0.125rem);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+  transition: translate var(--duration-base) var(--ease-settle);
+}
+
+.switcherThumb[data-at="activity"] {
+  translate: 100% 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switcherThumb {
+    transition: none;
+  }
+}
+
+/* As duas opções por cima do deslizante, dividindo a largura em partes iguais para ele casar com qualquer
+   uma. O alvo de toque vem da altura da faixa da alça, que é onde ele mora. */
+.switcherOption {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-align: center;
+  white-space: nowrap;
   cursor: pointer;
-  background-color: light-dark(
-    color-mix(in oklab, var(--color-bg) 82%, transparent),
-    color-mix(in oklab, var(--color-bg) 76%, transparent)
-  );
-  border: 0.0375rem solid var(--color-border);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(var(--blur-md));
-  translate: 0 -50%;
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    translate var(--duration-base) var(--ease-settle);
-}
-
-/* Encostado na borda, com o canto arredondado só do lado de dentro: ele é uma aba presa na parede da
-   janela, e não um botão solto no meio dela. */
-.flip[data-side="end"] {
-  inset-inline-end: 0;
-  border-inline-end: 0;
-  border-start-start-radius: var(--radius-lg);
-  border-end-start-radius: var(--radius-lg);
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
   corner-shape: squircle;
+  transition: color var(--duration-base) var(--ease-standard);
 }
 
-.flip[data-side="start"] {
-  inset-inline-start: 0;
-  border-inline-start: 0;
-  border-start-end-radius: var(--radius-lg);
-  border-end-end-radius: var(--radius-lg);
-  corner-shape: squircle;
+.switcherOption[data-on] {
+  color: var(--color-label);
 }
 
-.flip svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.flip:focus-visible {
+.switcherOption:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
-  .flip:hover {
-    background-color: var(--color-bg);
-  }
-}
-
-/* Quantas coisas a conversa tem, no botão: a mesma contagem que a aba levava, para a pessoa saber se vale
-   virar a página sem virar. Algarismo tabular, para o botão não pulsar de largura. */
-.flipCount {
-  font-size: var(--text-caption-1);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--weight-medium);
-  color: var(--color-label-secondary);
-}
-
-/* Acima de 64rem as duas metades estão à vista, então não há página ao lado para virar. */
-@media (width >= 64rem) {
-  .flip {
-    display: none;
+  .switcherOption:hover {
+    color: var(--color-label);
   }
 }
 
@@ -560,6 +587,16 @@
  * junto (`min-height` de três linhas): com o rodapé de ações fora do cartão, sobrava um campo de duas linhas
  * dentro de uma caixa alta, que é o que deixava tudo apertado e desencontrado.
  */
+/**
+ * O cartão do comentário no celular, com a barra flutuante encaixada nele (acerto de 2026-09-11, sobre um
+ * print): a barra pousa **dentro** do cartão, então o recuo de fim é o que ela ocupa de verdade, e não o
+ * `--floating-bar-inset` inteiro.
+ *
+ * O `inset` é a folga que uma bandeja precisa abrir **abaixo de si** para não ficar debaixo da barra: a
+ * altura dela mais o afastamento do rodapé, duas vezes, mais a área segura. Dentro do cartão, quem conta é
+ * só a altura da barra e um respiro de cada lado, porque o resto já é o recuo do compositor e o do painel.
+ * Somando o inset inteiro, como estava, sobrava o vão enorme do print, com o texto perdido no alto.
+ */
 @media (max-width: 47.9375rem) {
   .composer {
     padding: var(--space-2) var(--space-3) var(--space-3);
@@ -568,12 +605,11 @@
   .composerCard {
     gap: var(--space-3);
     padding: var(--space-4);
-    /* A barra sempre tem ações na conversa, então a folga é declarada direto: presa a
-       `data-floating-actions` ela dependia de um efeito que só marca o `html` depois do primeiro render, e
-       o cartão nascia sem o recuo por um quadro. */
-    padding-block-end: calc(var(--floating-bar-inset) - var(--space-3));
+    padding-block-end: calc(var(--control-height-md) + var(--space-4));
   }
 
+  /* Com o rodapé de ações fora do cartão, um campo de duas linhas boiava numa caixa alta: o piso de três
+     linhas é o que faz o texto começar onde o olho espera. */
   .composerField {
     min-height: calc(var(--leading-normal) * 3em);
   }

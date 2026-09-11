@@ -4,7 +4,6 @@ import {
   ArrowUpRightIcon,
   AtIcon,
   CalendarBlankIcon,
-  ChatCircleIcon,
   CheckCircleIcon,
   FileTextIcon,
   FlagIcon,
@@ -12,7 +11,6 @@ import {
   HashIcon,
   ImageIcon,
   KanbanIcon,
-  ListBulletsIcon,
   MicrophoneIcon,
   PaperclipIcon,
   PaperPlaneTiltIcon,
@@ -897,6 +895,38 @@ function TaskDetail({
 
   return (
     <div className={frame.dialog}>
+      {/* A troca entre as duas metades (2026-09-11, a pedido, sobre um print da bandeja): um seletor suave
+          na faixa da alça, que é a única linha livre da bandeja e estava vazia dos dois lados do risquinho.
+          Absoluto, então não rouba altura de ninguém e o cabeçalho segue inteiro embaixo dele.
+
+          É o seletor de visão da casa, o mesmo do filtro do registro: a metade em vigor sobe no fundo da
+          página e a outra fica apagada. O deslizante corre por trás das duas, e não é o fundo do botão que
+          acende, porque é ele que dá a suavidade: uma faixa que anda de um lado para o outro, em transform,
+          que o compositor resolve sem tocar em layout. Some acima de 64rem, onde as duas estão à vista. */}
+      <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa">
+        <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" />
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "details"}
+          className={frame.switcherOption}
+          data-on={tab === "details" || undefined}
+          onClick={() => setTab("details")}
+        >
+          Informações
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "activity"}
+          className={frame.switcherOption}
+          data-on={tab === "activity" || undefined}
+          onClick={() => setTab("activity")}
+        >
+          Atividade
+        </button>
+      </div>
+
       <header className={frame.top}>
         <nav className={frame.route} aria-label="Onde a tarefa mora">
           <Link href="/tarefas" className={frame.crumb}>
@@ -926,11 +956,6 @@ function TaskDetail({
         </div>
       </header>
 
-      {/* A troca entre as duas metades, enquanto elas não cabem lado a lado (2026-09-11, a pedido, no lugar
-          da faixa de abas que ocupava uma linha inteira): um botão preso no meio da lateral, apontando para
-          onde se vai, mais o arrasto para o lado dentro do próprio conteúdo. Na ficha ele fica na direita e
-          leva à conversa; na conversa ele vira para a esquerda e traz de volta. É a navegação de página ao
-          lado, e não um seletor, então ele some acima de 64rem junto com a divisão. */}
       <div
         className={frame.body}
         data-tab={tab}
@@ -938,24 +963,6 @@ function TaskDetail({
         onPointerUp={onSwipeEnd}
         onPointerCancel={onSwipeCancel}
       >
-        <button
-          type="button"
-          className={frame.flip}
-          data-side={tab === "details" ? "end" : "start"}
-          aria-label={tab === "details" ? "Ver a atividade da tarefa" : "Ver as informações da tarefa"}
-          onClick={() => setTab(tab === "details" ? "activity" : "details")}
-        >
-          {/* O glifo diz **para onde se vai**, e não o sentido do movimento (2026-09-11, a pedido): o balão da
-              conversa quando o botão leva à atividade, a lista quando ele traz de volta para a ficha. Seta
-              dizia só "para o lado", que numa janela de duas metades não informa nada. */}
-          {tab === "details" ? <ChatCircleIcon weight="bold" aria-hidden="true" /> : <ListBulletsIcon weight="bold" aria-hidden="true" />}
-          {tab === "details" && events.length > 0 && (
-            <span className={frame.flipCount} aria-hidden="true">
-              {events.length}
-            </span>
-          )}
-        </button>
-
         <section className={frame.main} aria-label="Informações da tarefa">
           <InlineText value={draft.title} onChange={(title) => patch({ title })} label="Título da tarefa" as="h2" variant="title2" weight="semibold" single />
 

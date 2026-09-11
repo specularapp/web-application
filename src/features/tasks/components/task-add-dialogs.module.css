@@ -9,6 +9,21 @@
   padding: var(--space-5);
 }
 
+/**
+ * No celular a janela **não fecha embaixo** (acerto de 2026-09-11, a pedido): com o pé de ações fora, o
+ * recuo de fim deixava uma faixa da superfície da janela abaixo do conteúdo, e a barra flutuante pousava em
+ * cima dela, o que lia como um fundo atrás da barra. Agora a caixa termina onde o conteúdo termina, e quem
+ * abre a folga é o corpo que rola: chegando ao fim dele, sobra o espaço exato da barra, e ela encaixa sem
+ * cobrir nada.
+ */
+@media (max-width: 47.9375rem) {
+  .dialog {
+    gap: var(--space-4);
+    padding: var(--space-4);
+    padding-block-end: 0;
+  }
+}
+
 @media (max-width: 47.9375rem) {
   .dialog {
     gap: var(--space-4);
@@ -34,6 +49,8 @@
   overscroll-behavior: contain;
 }
 
+/* O fim do que rola abre o espaço da barra, no `--floating-bar-inset` da casa: é a única folga de baixo da
+   janela no celular, porque a caixa já não fecha embaixo. */
 @media (max-width: 47.9375rem) {
   .body {
     padding-block-end: var(--floating-bar-inset);
