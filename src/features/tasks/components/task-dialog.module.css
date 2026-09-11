@@ -900,6 +900,11 @@
  * ele abre. A minha vira do outro lado e não tem rosto, porque numa conversa só há um "eu".
  */
 .message {
+  /* O quanto o rabo do balão avança para fora, num número só: o gancho o usa como largura, o deslocamento o
+     puxa de volta (menos 1px, para as duas formas se sobreporem e não deixar fio de fundo no encontro) e a
+     minha bolha reserva o mesmo tanto na margem, senão a ponta é cortada pela borda da coluna. */
+  --tail: 12px;
+
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
@@ -930,9 +935,10 @@
 
 .message[data-mine] .said {
   justify-items: end;
-  /* O espaço do rabo, que sai para fora do balão: sem ele a orelha da minha bolha era cortada pela borda da
-     coluna. Do outro lado quem dá esse espaço é o vão do rosto. */
-  margin-inline-end: 10px;
+  /* O espaço do rabo, que sai para fora do balão: sem ele a ponta da minha bolha era cortada pela borda da
+     coluna. É a mesma medida que o gancho ocupa, então as duas andam juntas. Do outro lado quem dá esse
+     espaço é o vão do rosto. */
+  margin-inline-end: var(--tail);
 }
 
 /* O nome de quem falou e a hora, fora da bolha: dentro dela eles roubavam a linha do texto, e a referência
@@ -965,46 +971,60 @@
 }
 
 /**
- * O rabo do balão, na quina de cima do primeiro balão de um bloco, do lado de quem falou: aponta para o rosto
- * e o nome, que é a lógica do WhatsApp em grupo. A forma é a orelha curva que WhatsApp e Telegram desenham,
- * feita do mesmo jeito que eles fazem: um caminho em SVG usado como **máscara** de uma caixa pintada com a
- * cor do balão. Assim a curva é curva de verdade, sem triângulo, e o rabo nasce da quina sem emenda em
- * qualquer fundo, porque não há segunda cor para casar.
+ * O rabo do balão, na quina **de baixo** do último balão de quem falou (2026-09-11, sobre uma referência de
+ * conversa do usuário, em que o balão sai da bolha como uma gota).
  *
- * A quina daquele lado perde o raio para a orelha sair reta dela, e a caixa entra 1px por dentro do balão,
- * para o encontro das duas não deixar um fio de fundo aparecendo. Só na primeira de um bloco: nas seguintes
- * ela repetiria a ponta a cada linha, que é o que todo aplicativo de conversa evita.
+ * Ele mudou de lugar e de forma nessa data. Antes era uma orelha na quina de cima, apontando para o rosto;
+ * agora nasce na base, que é onde a conversa "termina de falar", e a ponta cai para fora do balão em vez de
+ * subir. A forma vem da referência: a borda desce reta, faz a curva da quina e, em vez de fechar, **continua
+ * para fora** num gancho que se afina até a ponta.
+ *
+ * O desenho é o mesmo recurso de antes, uma máscara em SVG sobre uma caixa pintada com a cor do balão, e é o
+ * que mantém a curva curva de verdade em qualquer fundo, sem segunda cor para casar. O que mudou é o caminho:
+ * a curva de saída sai tangente à quina do balão e a de volta é mais fechada, então o gancho tem barriga de um
+ * lado e ponta fina do outro, como na referência.
+ *
+ * Fica no **último** balão de um bloco, e não no primeiro: é de lá que a ponta cai sem cruzar as mensagens
+ * seguintes do mesmo autor.
  */
-.message[data-opens] .bubble::after {
+.message[data-closes] .bubble::after {
   position: absolute;
-  inset-block-start: 0;
-  width: 10px;
+  /* A base do rabo é a **base do balão**, e não a linha de baixo dele: com o alinhamento pelo fim o gancho
+     descia abaixo do balão e o encontro virava um degrau, em vez de a lateral continuar para fora. */
+  inset-block-end: 0;
+  width: calc(var(--tail) + 1px);
   height: 14px;
   content: "";
   background-color: var(--bubble-bg, var(--color-fill-quaternary));
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0h10q-2.5 9-10 14z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0h10q-2.5 9-10 14z'/%3E%3C/svg%3E");
+  /* O caminho é a esquina do balão continuando para fora, e não uma peça colada nela: a lateral desce reta
+     (`v6`), a quina faz a curva do raio do balão e, em vez de fechar, o traço segue numa curva larga até a
+     ponta e volta por uma mais fechada. É a diferença entre as duas curvaturas que dá a barriga de um lado e
+     a ponta fina do outro, que é o desenho da referência. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 14'%3E%3Cpath d='M0 0v6a8 8 0 0 0 8 8h5c-4 -1.4 -7.2 -4.6 -8.6 -8.6C3.4 3.2 1.9 1.3 0 0z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 14'%3E%3Cpath d='M0 0v6a8 8 0 0 0 8 8h5c-4 -1.4 -7.2 -4.6 -8.6 -8.6C3.4 3.2 1.9 1.3 0 0z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
 
-.message:not([data-mine])[data-opens] .bubble {
-  border-start-start-radius: 0;
+/* A quina daquele lado perde o raio para o gancho sair reto dela, e a caixa entra 1px por dentro do balão,
+   senão o encontro das duas deixa um fio do fundo aparecendo entre elas. */
+.message:not([data-mine])[data-closes] .bubble {
+  border-end-start-radius: 0;
 }
 
-.message:not([data-mine])[data-opens] .bubble::after {
-  inset-inline-start: -9px;
+.message:not([data-mine])[data-closes] .bubble::after {
+  inset-inline-start: calc(var(--tail) * -1);
   transform: scaleX(-1);
 }
 
-.message[data-mine][data-opens] .bubble {
-  border-start-end-radius: 0;
+.message[data-mine][data-closes] .bubble {
+  border-end-end-radius: 0;
 }
 
-.message[data-mine][data-opens] .bubble::after {
-  inset-inline-end: -9px;
+.message[data-mine][data-closes] .bubble::after {
+  inset-inline-end: calc(var(--tail) * -1);
 }
 
 /**

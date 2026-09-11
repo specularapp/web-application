@@ -661,7 +661,16 @@ function TaskDetail({
       /* Mensagens seguidas da mesma pessoa, no mesmo dia, entram como um bloco só: o rosto e o nome aparecem
          na primeira e as outras só continuam, que é o que faz uma conversa longa ficar legível. */
       const opensAuthor = opens || !previous || previous.person.name !== event.person.name || previous.kind !== event.kind;
-      return { event, day: opens ? dayName(event.at) : null, opensAuthor };
+      /* Quem fecha o bloco é quem leva o rabo do balão (2026-09-11): ele nasce na base, então precisa da
+         última mensagem de quem falou, e não da primeira, senão a ponta cairia por cima das seguintes do
+         mesmo autor. A seguinte inicia outro bloco, ou não existe. */
+      const next = ordered[index + 1];
+      const closesAuthor =
+        !next ||
+        next.at.slice(0, 10) !== event.at.slice(0, 10) ||
+        next.person.name !== event.person.name ||
+        next.kind !== event.kind;
+      return { event, day: opens ? dayName(event.at) : null, opensAuthor, closesAuthor };
     });
   }, [shownEvents]);
 
@@ -1266,7 +1275,7 @@ function TaskDetail({
               </Text>
             ) : (
               <ol className={frame.thread}>
-                {talk.map(({ event, day, opensAuthor }) => {
+                {talk.map(({ event, day, opensAuthor, closesAuthor }) => {
                   const mine = event.person.name === viewer.name;
 
                   return (
@@ -1279,7 +1288,12 @@ function TaskDetail({
                         </li>
                       )}
                       {event.kind === "comment" ? (
-                        <li className={frame.message} data-mine={mine || undefined} data-opens={opensAuthor || undefined}>
+                        <li
+                          className={frame.message}
+                          data-mine={mine || undefined}
+                          data-opens={opensAuthor || undefined}
+                          data-closes={closesAuthor || undefined}
+                        >
                           {/* O rosto só na primeira de um bloco; nas seguintes ele fica reservado, para as
                               bolhas continuarem na mesma coluna. Na minha não há rosto: numa conversa só há
                               um "eu". */}
