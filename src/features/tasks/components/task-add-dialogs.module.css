@@ -18,6 +18,18 @@
  */
 @media (max-width: 47.9375rem) {
   .dialog {
+    /**
+     * A trilha do meio é `minmax(0, auto)`, e não `minmax(0, 1fr)` como no desktop: `1fr` **estica** o corpo
+     * até o fim da caixa mesmo com pouco conteúdo, e o que sobrava abaixo do último campo era a folga da
+     * barra virada superfície pintada, parada, com a barra pousando em cima dela. É a mesma faixa que o
+     * vincular tinha, e ela aparece em toda janela cujo conteúdo não chega a rolar, que é o caso da subtarefa
+     * e do anexo.
+     *
+     * Em `auto` o corpo mede o que tem e a bandeja cresce com ele; o `minmax(0, …)` mantém o piso zero, então
+     * conteúdo longo ainda encolhe e rola por dentro, e aí a folga volta a ser o fim da rolagem. Os dois
+     * casos com uma regra só.
+     */
+    grid-template-rows: auto minmax(0, auto) auto;
     gap: var(--space-4);
     /* O recuo de fim é zero e vai escrito na propriedade longa, depois do atalho: em `padding` ele voltava a
        ser `--space-4` e a faixa da superfície reaparecia embaixo do conteúdo. Um segundo bloco `@media`
@@ -45,8 +57,21 @@
   overscroll-behavior: contain;
 }
 
-/* O fim do que rola abre o espaço da barra, no `--floating-bar-inset` da casa: é a única folga de baixo da
-   janela no celular, porque a caixa já não fecha embaixo. */
+/**
+ * O fim do que rola abre o espaço da barra, no `--floating-bar-inset` da casa: é a única folga de baixo da
+ * janela no celular, porque a caixa já não fecha embaixo.
+ *
+ * **E só quando há o que rolar** (acerto de 2026-09-11, do relato da faixa parada). A folga existe para o
+ * último campo escapar da barra ao chegar no fim da rolagem; numa janela curta, que cabe inteira, não há
+ * rolagem nenhuma e ela vira superfície pintada abaixo do último campo, com a barra pousando em cima —
+ * exatamente a faixa que a bandeja não pode ter. Sem rolagem a caixa termina no conteúdo e a barra flutua
+ * sobre a página, como em toda bandeja da casa.
+ *
+ * A bandeja cola no rodapé por construção, então ela sempre toca a base da tela: o que não pode existir é
+ * **área vazia da janela** abaixo do último campo. Com a trilha em `auto` o corpo não estica mais, e o recuo
+ * de fim é exatamente o espaço em que a barra pousa — a barra fica sobre o vão do conteúdo, e não sobre uma
+ * faixa de superfície que sobrou.
+ */
 @media (max-width: 47.9375rem) {
   .body {
     padding-block-end: var(--floating-bar-inset);
