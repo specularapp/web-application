@@ -1,5 +1,15 @@
+/* O texto que só o leitor de tela lê: sai da vista sem sair da árvore de acessibilidade.
+
+   A âncora nas duas pontas não é enfeite (correção de 2026-09-11, medida no navegador): sem ela o elemento
+   é `absolute` sem posição escrita, então ele fica no lugar em que a linha o deixaria, e dentro de algo que
+   rola na horizontal esse lugar é lá adiante. Escondido ele continua sendo, mas o **documento** passa a
+   medir até onde ele foi: na tela de tarefas eram setenta e quatro deles, um por cartão, esticando a página
+   para 2477px numa tela de 390 e criando rolagem lateral que não levava a lugar nenhum. Preso em zero, ele
+   não estica mais nada. */
 .hidden {
   position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   width: 1px;
   height: 1px;
   padding: 0;

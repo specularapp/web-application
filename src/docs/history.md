@@ -586,3 +586,19 @@ Pendências:
 - O menu é apresentacional e vive só de prévia: ligar time, pessoa, meta e contador ao banco vem junto com o `AppShell`, que segue `return null`.
 - O formulário de cartão novo ainda não passou por um teste de ponta a ponta no navegador. A confirmação mudou de `confirmSetup({elements})` para `confirmCardSetup(clientSecret, ...)`, e nenhum check automático cobre isso.
 - Mensagem de erro do campo de cartão é escrita pelo Stripe (em pt-BR). Se incomodar, dá para mapear os códigos para texto nosso.
+
+## 2026-09-11
+
+Tempo: sessão de acertos do celular na tela de tarefas.
+
+Feito:
+
+- **Sonda de tela no navegador** (`scripts/probe-mobile.mjs`, `probe-ficha.mjs`, `probe-janelas.mjs`): abre a rota no Chrome pelo protocolo de depuração, num visor de 390x844, e mede o que só o navegador sabe dizer. Sem dependência nova: usa o `WebSocket` nativo do Node 24 e o Chrome já instalado. É o que permitiu achar os três defeitos abaixo, todos invisíveis na leitura do CSS.
+- **Rolagem lateral da página, morta na raiz.** O `VisuallyHidden` era `position: absolute` sem posição escrita, então cada um dos setenta e quatro (um por cartão) parava onde a linha o deixasse, e dentro do trilho que rola esse lugar é lá adiante. O documento media 2477px numa tela de 390 e a página rolava 917px para o lado. Com `inset-block-start`/`inset-inline-start` em zero, o documento voltou a medir 390 e a rolagem lateral é zero; quem rola segue sendo o trilho, por dentro. Vale para a aplicação inteira, e não só para tarefas.
+- **Seletor de metade desmontado, em dois defeitos somados.** Ele abria com o dobro da altura, com "Informações" e "Atividade" empilhadas, e com a metade esquerda fora da tela. O primeiro era de grade: o deslizante fixa `grid-area: 1 / 1` e os botões seguiam o fluxo automático, que pula a célula tomada, então o segundo descia de linha; agora cada um é posto na própria célula. O segundo era de âncora: `position: absolute` o prendia ao elemento que a `Dialog` põe em volta do conteúdo, que tem largura zero, então `left: 50%` resolvia para `0px` e o `translate: -50%` levava metade para fora. Preso ao visor com `fixed`, e um degrau acima do modal, ele nasce centrado. Medido: de `l: -111, h: 80` para `l: 84, h: 44`, centro em 195 numa tela de 390.
+- **Compositor com o recuo do celular sem efeito.** A regra da bandeja vinha **antes** da regra base no arquivo, com a mesma especificidade, então a base ganhava e devolvia o recuo de fim para 12px: a barra flutuante pousava por cima do campo em vez de dentro da folga dele. O bloco passou para depois da base e o recuo voltou a valer (60px), com o cartão em 148px de altura.
+
+Pendências:
+
+- As janelas de acrescentar (vínculo, subtarefa, anexo) não foram conferidas pela sonda: os botões que as abrem moram no corpo rolável da ficha e o alcance por texto não chega neles. O contrato de camada da barra está conferido nos dois extremos (ficha aberta mostra "Concluir", ficha fechada devolve a paginação do quadro).
+- `/tarefas` só abre com sessão, e o `.env.local` desta máquina aponta para um Supabase de fachada: a conferência foi feita em `/previa/tarefas`, que monta o **mesmo** `TasksScreen` com os **mesmos** dados de `list-preview`. Sem query de projeto, as duas rotas são a mesma árvore.

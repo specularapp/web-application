@@ -117,9 +117,15 @@
  * com nada.
  */
 .switcher {
-  position: absolute;
+  /* Preso ao **visor**, e não ao que estiver em volta (correção de 2026-09-11, medida no navegador): a peça
+     mora fora da bandeja, e o elemento que a `Dialog` põe em volta do conteúdo é uma âncora de largura zero,
+     então `left: 50%` resolvia para `0px` e o `translate: -50%` levava metade dela para fora da tela. Com
+     `fixed` o `50%` é o da janela do navegador, que é o centro que ela sempre quis. */
+  position: fixed;
   bottom: calc(85dvh + var(--space-3));
   left: 50%;
+  /* Um degrau acima da bandeja: presa ao visor, ela sai da pilha da janela e ficaria por baixo dela. */
+  z-index: calc(var(--z-modal) + 1);
   /* Duas colunas iguais, e a medida é a do **maior** texto: `1fr` reparte o que a grade tem, e a grade toma
      o que o conteúdo pede, então a coluna nasce do lado mais largo e nada é recortado em nenhuma tradução
      nem em tamanho de fonte grande. Com as duas do mesmo tamanho, o deslizante é metade e anda metade. */
@@ -176,10 +182,17 @@
 
 /* As duas opções por cima do deslizante, cada uma medindo o próprio texto: nada é recortado em nenhuma
    tradução, que é o problema de repartir a largura em metades fixas. A altura é a do controle pequeno,
-   porque a peça flutua sobre a página e precisa ser discreta. */
+   porque a peça flutua sobre a página e precisa ser discreta.
+
+   Cada uma é **posta na própria célula** (correção de 2026-09-11, medida no navegador): o deslizante já
+   ocupa a célula `1 / 1` de propósito, e sem dizer onde os botões ficam eles seguiam o fluxo automático da
+   grade, que pula a célula tomada. O primeiro caía em `1 / 2` e o segundo **descia para a linha 2**, então a
+   peça saía com o dobro da altura, empilhada, e a metade esquerda terminava fora da tela por causa do
+   `translate: -50%`. Ancoradas, as duas voltam a dividir a única linha. */
 .switcherOption {
   position: relative;
   z-index: 1;
+  grid-row: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -197,6 +210,16 @@
   border: 0;
   border-radius: var(--radius-md);
   transition: color var(--duration-base) var(--ease-standard);
+}
+
+/* A ordem das duas na linha, dita à mão pelo mesmo motivo: com a célula `1 / 1` tomada pelo deslizante, o
+   fluxo automático não as reparte sozinho. */
+.switcherOption:nth-of-type(1) {
+  grid-column: 1;
+}
+
+.switcherOption:nth-of-type(2) {
+  grid-column: 2;
 }
 
 .switcherOption[data-on] {
@@ -581,41 +604,9 @@
   padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
-/**
- * O cartão do comentário no celular (refeito em 2026-09-11, a pedido): a barra flutuante encaixa **dentro**
- * dele, então o cartão abre no pé a folga da barra e as duas leem como uma peça só, com o campo em cima e as
- * ações embaixo.
- *
- * A medida da folga é a da barra **menos o respiro que o compositor já abre embaixo**: somando os dois o
- * cartão ficava com um vazio do tamanho de uma barra e meia, e o texto boiava lá no alto. O campo cresce
- * junto (`min-height` de três linhas): com o rodapé de ações fora do cartão, sobrava um campo de duas linhas
- * dentro de uma caixa alta, que é o que deixava tudo apertado e desencontrado.
- */
-/**
- * O cartão do comentário no celular, com a barra flutuante encaixada nele (acerto de 2026-09-11, sobre um
- * print): a barra pousa **dentro** do cartão, então o recuo de fim é o que ela ocupa de verdade, e não o
- * `--floating-bar-inset` inteiro.
- *
- * O `inset` é a folga que uma bandeja precisa abrir **abaixo de si** para não ficar debaixo da barra: a
- * altura dela mais o afastamento do rodapé, duas vezes, mais a área segura. Dentro do cartão, quem conta é
- * só a altura da barra e um respiro de cada lado, porque o resto já é o recuo do compositor e o do painel.
- * Somando o inset inteiro, como estava, sobrava o vão enorme do print, com o texto perdido no alto.
- */
 @media (max-width: 47.9375rem) {
   .composer {
     padding: var(--space-2) var(--space-3) var(--space-3);
-  }
-
-  .composerCard {
-    gap: var(--space-3);
-    padding: var(--space-4);
-    padding-block-end: calc(var(--control-height-md) + var(--space-4));
-  }
-
-  /* Com o rodapé de ações fora do cartão, um campo de duas linhas boiava numa caixa alta: o piso de três
-     linhas é o que faz o texto começar onde o olho espera. */
-  .composerField {
-    min-height: calc(var(--leading-normal) * 3em);
   }
 }
 
@@ -675,6 +666,32 @@
 
 .composerCard:focus-within {
   border-color: var(--color-label-tertiary);
+}
+
+/**
+ * O cartão do comentário no celular: a barra flutuante encaixa **dentro** dele, então o cartão abre no pé a
+ * folga que ela ocupa e as duas leem como uma peça só, com o campo em cima e as ações embaixo.
+ *
+ * A conta é a altura da barra mais um respiro, e não o `--floating-bar-inset` inteiro: o inset é a folga que
+ * uma bandeja abre **abaixo de si**, com o afastamento contado duas vezes, e aqui o resto já vem do recuo do
+ * compositor e do painel. Somando o inset cheio sobrava o vão enorme do relato, com o texto perdido no alto.
+ *
+ * O bloco mora **depois** da regra base de propósito (correção de 2026-09-11, medida no navegador): as duas
+ * têm a mesma especificidade, e enquanto ele vinha antes era a base que ganhava, devolvendo o recuo a 12px.
+ * A barra então pousava por cima do campo em vez de dentro da folga dele.
+ */
+@media (max-width: 47.9375rem) {
+  .composerCard {
+    gap: var(--space-3);
+    padding: var(--space-4);
+    padding-block-end: calc(var(--control-height-md) + var(--space-4));
+  }
+
+  /* Com o rodapé de ações fora do cartão, um campo de duas linhas boiava numa caixa alta: o piso de três
+     linhas é o que faz o texto começar onde o olho espera. */
+  .composerField {
+    min-height: calc(var(--leading-normal) * 3em);
+  }
 }
 
 .composerField {
