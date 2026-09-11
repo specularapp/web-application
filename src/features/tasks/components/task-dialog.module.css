@@ -628,10 +628,12 @@
    saem de sincronia no primeiro acerto. */
 .composer {
   --composer-inset: var(--space-4);
+  /* O recuo de cima sai de variável porque o leque o desconta para pousar sempre a 8px do cartão. */
+  --composer-top: var(--space-3);
 
   position: relative;
   display: grid;
-  padding: var(--space-3) var(--composer-inset) var(--space-4);
+  padding: var(--composer-top) var(--composer-inset) var(--space-4);
 }
 
 /**
@@ -646,8 +648,9 @@
 @media (max-width: 47.9375rem) {
   .composer {
     --composer-inset: var(--space-3);
+    --composer-top: var(--space-2);
 
-    padding: var(--space-2) var(--composer-inset) var(--floating-bar-inset);
+    padding: var(--composer-top) var(--composer-inset) var(--floating-bar-inset);
   }
 }
 
@@ -1157,14 +1160,18 @@
   gap: var(--space-half);
   max-height: 13rem;
   padding: var(--space-2);
-  margin-block-end: var(--space-2);
+  /* Oito pixels até o cartão, sempre (a pedido, 2026-09-11). `inset-block-end: 100%` apoia a base do leque no
+     topo do compositor, então o que separa os dois é o recuo de cima dele — 8 no celular e 12 no desktop. A
+     margem negativa cancela esse recuo e a positiva devolve os 8, então o vão é o mesmo nos dois formatos em
+     vez de depender de quanto o compositor respira. Antes eram dezesseis, medidos: os 8 da margem somavam ao
+     recuo em vez de substituí-lo. */
+  margin-block-end: calc(var(--space-2) - var(--composer-top));
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
-  box-shadow: var(--shadow-md);
 }
 
 /* O título diz o que a lista é, na mesma tinta de rótulo do resto da ficha: sem ele a caixa aparecia do nada
