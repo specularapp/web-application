@@ -4,14 +4,13 @@ import {
   ArrowUpRightIcon,
   AtIcon,
   CalendarBlankIcon,
-  ChatCircleIcon,
   FileTextIcon,
   FlagIcon,
   FolderIcon,
   HashIcon,
   ImageIcon,
   KanbanIcon,
-  ListBulletsIcon,
+  PaperclipIcon,
   PaperPlaneTiltIcon,
   PlusIcon,
   TagIcon,
@@ -800,25 +799,32 @@ function TaskDetail({
 
   /**
    * A ficha pendura as próprias ações na barra flutuante do celular (2026-09-11, a pedido), no contrato de
-   * toda janela da casa: conteúdo na bandeja, ações na barra. A principal segue a aba em vigor, que é o que
-   * a pessoa está fazendo naquele instante: na ficha ela **abre a conversa**, que é o caminho que a janela
-   * estreita escondeu atrás da aba; na conversa ela **envia** o que está escrito, e fica apagada enquanto
-   * não há texto, arquivo nem áudio, como o botão de enviar do próprio cartão. Ao lado, em glifo, o leque da
-   * tarefa não cabe (ele é um menu, e a barra hospeda ação), então o que entra é voltar para as informações.
-   * Sair é o X, como em toda janela.
+   * toda janela da casa: conteúdo na bandeja, ações na barra.
+   *
+   * **Trocar de aba não entra aqui** (segundo pedido do dia): quem faz isso é a faixa lá em cima, e ter a
+   * mesma escolha nos dois lugares era a mesma coisa duas vezes na tela.
+   *
+   * Na aba da conversa a barra vira o **rodapé do compositor**: enviar como principal, apagada enquanto não
+   * há texto, arquivo nem áudio, e ao lado, em glifo, o que se pendura na mensagem — anexar, marcar alguém,
+   * marcar um registro e gravar. São as mesmas ações do cartão, que no celular desce para a barra em vez de
+   * espremer cinco alvos de toque na largura de um campo de texto.
+   *
+   * Na aba das informações a ficha **não registra nada**: ali não há ação própria, e uma barra com sair dos
+   * dois lados (o botão com nome e o X dizendo a mesma coisa) seria ruído. Sem registro, a barra volta ao
+   * que ela é na tela, com a busca e o menu, e fechar a janela continua no X do cabeçalho e no arrasto da
+   * bandeja.
    */
   useFloatingActionsRegistration(
-    mobile
-      ? tab === "details"
-        ? {
-            primary: { label: "Atividade", icon: <ChatCircleIcon weight="bold" />, onClick: () => setTab("activity") },
-            cancel: { label: "Fechar tarefa", onClick: onClose },
-          }
-        : {
-            primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
-            extras: [{ label: "Ver informações", icon: <ListBulletsIcon weight="bold" />, onClick: () => setTab("details") }],
-            cancel: { label: "Fechar tarefa", onClick: onClose },
-          }
+    mobile && tab === "activity"
+      ? {
+          primary: { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, disabled: !canPublish, onClick: publish },
+          extras: [
+            { label: "Anexar imagem", icon: <ImageIcon weight="bold" />, onClick: () => imageInput.current?.click() },
+            { label: "Anexar arquivo", icon: <PaperclipIcon weight="bold" />, onClick: () => fileInput.current?.click() },
+            { label: "Marcar um registro da aplicação", icon: <HashIcon weight="bold" />, onClick: () => setMentioning(true) },
+          ],
+          cancel: { label: "Fechar tarefa", onClick: onClose },
+        }
       : null,
   );
 

@@ -180,10 +180,17 @@
    próprio cabeçalho, no clique, então nada se perde. Quem tira as ações da árvore é o componente, e não uma
    regra aqui: recolhida, elas não chegam a existir. */
 
+/* A pilha rola por dentro, e a barra de rolagem tem lugar próprio (acerto de 2026-09-11, a pedido): no
+   celular ela era desenhada **por cima** do canto do cartão, porque a pilha ia de ponta a ponta da coluna e
+   a barra não tinha onde cair. `scrollbar-gutter: stable` reserva a canaleta antes de a barra existir, então
+   a pilha não salta de largura quando ela aparece, e o recuo de fim afasta o cartão dela. Vale nas duas
+   larguras, que é o pedido: o desktop já parecia certo por acaso, e agora é por construção. */
 .body {
   min-height: 0;
+  padding-inline-end: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .list {

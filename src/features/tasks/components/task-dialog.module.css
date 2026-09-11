@@ -108,16 +108,20 @@
   }
 }
 
+/* A aba tem a altura do alvo de toque (acerto de 2026-09-11, a pedido): em `control-height-sm` ela ficava
+   com 36px, abaixo dos 44 que a casa pede para qualquer coisa que se toca, e a faixa lia como filtro
+   miúdo em vez da escolha principal da janela. O texto subiu um degrau junto, para `subheadline`, porque
+   numa faixa dessa altura o `footnote` boiava no meio. */
 .tab {
   display: inline-flex;
   gap: var(--space-2);
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-height: var(--control-height-sm);
+  min-height: var(--touch-target);
   padding: var(--space-1) var(--space-3);
   font-family: var(--font-body);
-  font-size: var(--text-footnote);
+  font-size: var(--text-subheadline);
   font-weight: var(--weight-medium);
   letter-spacing: var(--tracking-tight);
   color: var(--color-label-secondary);
@@ -154,10 +158,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  padding-inline: var(--space-half);
-  font-size: var(--text-caption-2);
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: var(--space-1);
+  font-size: var(--text-caption-1);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--color-label-secondary);
@@ -495,6 +499,19 @@
   padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
+/* Com a barra flutuante no ar, o compositor fecha acima dela (2026-09-11, a pedido): a folga é o
+   `--floating-bar-inset` da casa, o mesmo respiro que toda bandeja com ações usa, senão o cartão do
+   comentário ficava debaixo da barra e o campo não dava para tocar.
+
+   Presa a `html[data-floating-actions]`, como toda camada da casa faz: a marca só existe enquanto alguém
+   registrou ações, que aqui é a aba da conversa. Na aba das informações a ficha não registra nada, e sem a
+   condição sobraria uma faixa vazia do tamanho de uma barra que não está lá. */
+@media (max-width: 47.9375rem) {
+  html[data-floating-actions] .composer {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
 /* Os campos de arquivo existem para o clique abrir o seletor do sistema, e não para aparecer. */
 .picker {
   position: absolute;
@@ -586,6 +603,20 @@
   align-items: center;
   justify-content: space-between;
   min-width: 0;
+}
+
+/* No celular a fila de ações do cartão sobe para a barra flutuante (2026-09-11, a pedido), e o rodapé do
+   compositor sai: as mesmas cinco ações nos dois lugares seriam a mesma coisa duas vezes na tela, e na
+   largura de um campo de texto elas ficavam abaixo do alvo de toque. Gravar áudio é a exceção e continua
+   aqui, porque é um botão que muda de estado enquanto grava e a barra hospeda ação, e não estado. */
+@media (max-width: 47.9375rem) {
+  .composerTools {
+    display: none;
+  }
+
+  .composerBar {
+    justify-content: flex-end;
+  }
 }
 
 .composerTools,
