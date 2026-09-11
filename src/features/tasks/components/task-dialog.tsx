@@ -497,9 +497,26 @@ function Block({
 /** Quanto o dedo precisa andar na horizontal para o arrasto virar troca de página, e não rolagem torta. */
 const SWIPE = 56;
 
+/** Qual metade da ficha está à vista enquanto as duas não cabem lado a lado. */
+type TaskTab = "details" | "activity";
+
 export function TaskDialog({ task, open, onClose, stages, team, records = [], onStageChange }: TaskDialogProps) {
+  /**
+   * Qual metade a janela mostra enquanto as duas não cabem lado a lado. Mora **aqui**, e não no miolo, porque
+   * o seletor que a troca flutua acima da bandeja, fora dela, e é a `Dialog` quem desenha esse lugar: dentro
+   * da bandeja ele seria recortado pela borda dela.
+   */
+  const [tab, setTab] = useState<TaskTab>("details");
+
   return (
-    <Dialog open={open} onClose={onClose} label={task ? `Tarefa ${task.title}` : "Tarefa"} size="xl" focusOnOpen={false}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      label={task ? `Tarefa ${task.title}` : "Tarefa"}
+      size="xl"
+      focusOnOpen={false}
+      above={task && <TabSwitcher tab={tab} onChange={setTab} />}
+    >
       {task && (
         <TaskDetail
           key={task.id}
@@ -509,9 +526,47 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
           team={team ?? task.people}
           records={records}
           onStageChange={onStageChange}
+          tab={tab}
+          onTabChange={setTab}
         />
       )}
     </Dialog>
+  );
+}
+
+/**
+ * O seletor entre as duas metades (2026-09-11, a pedido, sobre um print): uma peça solta **acima** da
+ * bandeja, na área escura, e não dentro dela. Ele é a única coisa da janela que vive fora da caixa, porque é
+ * navegação da janela inteira, e não conteúdo dela.
+ *
+ * O deslizante corre por trás das duas opções e é ele que dá a suavidade: uma faixa que anda em `translate`,
+ * que o compositor resolve sem tocar em layout, em vez de dois fundos acendendo e apagando.
+ */
+function TabSwitcher({ tab, onChange }: { tab: TaskTab; onChange: (tab: TaskTab) => void }) {
+  return (
+    <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa">
+      <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" />
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "details"}
+        className={frame.switcherOption}
+        data-on={tab === "details" || undefined}
+        onClick={() => onChange("details")}
+      >
+        Informações
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "activity"}
+        className={frame.switcherOption}
+        data-on={tab === "activity" || undefined}
+        onClick={() => onChange("activity")}
+      >
+        Atividade
+      </button>
+    </div>
   );
 }
 
@@ -522,6 +577,8 @@ function TaskDetail({
   team,
   records,
   onStageChange,
+  tab,
+  onTabChange,
 }: {
   task: Task;
   onClose: () => void;
@@ -529,17 +586,14 @@ function TaskDetail({
   team: TaskPerson[];
   records: AppRecord[];
   onStageChange?: (stage: TaskStage) => void;
+  /** Qual metade está à vista; mora na janela, porque quem a troca flutua fora da bandeja. */
+  tab: TaskTab;
+  onTabChange: (tab: TaskTab) => void;
 }) {
   const [draft, setDraft] = useState(task);
   const [events, setEvents] = useState<TaskEvent[]>(task.activity);
   const [comment, setComment] = useState("");
   const [feed, setFeed] = useState<"all" | "comments">("all");
-  /**
-   * Qual metade a janela mostra enquanto as duas não cabem lado a lado (2026-09-11, a pedido): a ficha ou a
-   * conversa. Acima de 64rem a escolha não vale, porque ali as duas estão à vista ao mesmo tempo e a faixa
-   * de abas nem é desenhada; o estado fica montado assim mesmo, então girar o aparelho não perde o lugar.
-   */
-  const [tab, setTab] = useState<"details" | "activity">("details");
   /* No celular a janela é bandeja e as ações dela moram na barra flutuante, como em toda janela da casa. */
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [linking, setLinking] = useState(false);
@@ -832,7 +886,7 @@ function TaskDetail({
     const moveX = event.clientX - from.x;
     const moveY = event.clientY - from.y;
     if (Math.abs(moveX) < SWIPE || Math.abs(moveY) > Math.abs(moveX)) return;
-    setTab(moveX < 0 ? "activity" : "details");
+    onTabChange(moveX < 0 ? "activity" : "details");
   };
 
   /**
@@ -895,38 +949,6 @@ function TaskDetail({
 
   return (
     <div className={frame.dialog}>
-      {/* A troca entre as duas metades (2026-09-11, a pedido, sobre um print da bandeja): um seletor suave
-          na faixa da alça, que é a única linha livre da bandeja e estava vazia dos dois lados do risquinho.
-          Absoluto, então não rouba altura de ninguém e o cabeçalho segue inteiro embaixo dele.
-
-          É o seletor de visão da casa, o mesmo do filtro do registro: a metade em vigor sobe no fundo da
-          página e a outra fica apagada. O deslizante corre por trás das duas, e não é o fundo do botão que
-          acende, porque é ele que dá a suavidade: uma faixa que anda de um lado para o outro, em transform,
-          que o compositor resolve sem tocar em layout. Some acima de 64rem, onde as duas estão à vista. */}
-      <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa">
-        <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" />
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "details"}
-          className={frame.switcherOption}
-          data-on={tab === "details" || undefined}
-          onClick={() => setTab("details")}
-        >
-          Informações
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "activity"}
-          className={frame.switcherOption}
-          data-on={tab === "activity" || undefined}
-          onClick={() => setTab("activity")}
-        >
-          Atividade
-        </button>
-      </div>
-
       <header className={frame.top}>
         <nav className={frame.route} aria-label="Onde a tarefa mora">
           <Link href="/tarefas" className={frame.crumb}>

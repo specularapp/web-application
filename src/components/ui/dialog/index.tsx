@@ -33,6 +33,13 @@ export type DialogProps = {
   scrim?: boolean;
   /** Desligado, o foco para na própria janela: no celular, focar um campo abre o teclado sozinho. */
   focusOnOpen?: boolean;
+  /**
+   * Uma peça solta **acima** da bandeja do celular, fora da caixa dela (2026-09-11, para o seletor de metade
+   * da ficha da tarefa): a bandeja recorta o que passa das bordas, então quem precisa flutuar por cima da
+   * página, encostado no topo dela, não pode morar dentro. Só aparece no modo bandeja, que é onde existe
+   * espaço acima; na caixa centralizada do desktop não há lugar para ela e ela não é desenhada.
+   */
+  above?: ReactNode;
   children: ReactNode;
   className?: string;
 };
@@ -102,6 +109,15 @@ const Backdrop = styled.div`
 
 /* A moldura cobre a tela só para posicionar a caixa, e não recebe ponteiro: assim o clique na área
    vazia atravessa e chega no fundo, que é quem fecha. */
+/* O invólucro da peça de cima: fica onde quem a usa mandar, e por isso não pinta nem mede nada. Ela é a
+   única coisa clicável fora da bandeja, então o ponteiro volta a valer aqui dentro, porque o `Frame` o
+   desliga para o fundo receber o toque de fechar. */
+const Above = styled.div`
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+`;
+
 const Frame = styled.div`
   position: fixed;
   inset: 0;
@@ -297,6 +313,7 @@ export function Dialog({
   surface = "solid",
   scrim = true,
   focusOnOpen = true,
+  above,
   children,
   className,
 }: DialogProps) {
@@ -481,6 +498,10 @@ export function Dialog({
         />
       )}
       <Frame data-mode={mode} data-placement={placement}>
+        {/* A peça que flutua acima da bandeja: sai do fluxo do `Frame` para não virar uma segunda linha da
+            grade dele, que empurraria a bandeja para cima. Ela se posiciona sozinha, ancorada no `Frame`,
+            que cobre a tela inteira. */}
+        {mode === "sheet" && above && <Above>{above}</Above>}
         <Panel
           ref={panelRef}
           role="dialog"
