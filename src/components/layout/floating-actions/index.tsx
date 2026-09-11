@@ -67,7 +67,7 @@ type ContextValue = {
   runExtra: (index: number) => void;
   runCancel: () => void;
   goToPage: (page: number) => void;
-  register: (actions: FloatingActions | null) => void;
+  register: (actions: FloatingActions | null, depth?: number) => void;
   registerPager: (pager: FloatingPager | null) => void;
 };
 
@@ -126,9 +126,24 @@ export function FloatingActionsProvider({ children }: { children: ReactNode }) {
   const [shape, setShape] = useState<Shape>(null);
   const [pager, setPager] = useState<PagerShape>(null);
 
-  const register = useCallback((actions: FloatingActions | null) => {
-    handlers.current = actions;
-    const next = shapeOf(actions);
+  /**
+   * O que cada profundidade pendurou, e não só o último a falar: guardando por camada, a de cima manda
+   * enquanto existe e a de baixo **volta sozinha** quando ela sai, sem depender de um render novo para se
+   * registrar de novo. É o que faz fechar a bandeja de anexo devolver a barra à ficha da tarefa no mesmo
+   * instante.
+   */
+  const byDepth = useRef(new Map<number, FloatingActions>());
+
+  const register = useCallback((actions: FloatingActions | null, from = 0) => {
+    const map = byDepth.current;
+    if (actions) map.set(from, actions);
+    else map.delete(from);
+
+    /* Quem responde é sempre a camada mais alta que tem algo pendurado. */
+    const top = map.size === 0 ? null : Math.max(...map.keys());
+    const winner = top === null ? null : (map.get(top) ?? null);
+    handlers.current = winner;
+    const next = shapeOf(winner);
     setShape((current) => (sameShape(current, next) ? current : next));
   }, []);
 
@@ -172,17 +187,39 @@ export function useFloatingActions() {
   return { shape: context.shape, pager: context.pager, runPrimary: context.runPrimary, runExtra: context.runExtra, runCancel: context.runCancel, goToPage: context.goToPage };
 }
 
-/** A janela pendura as ações enquanto está aberta e as tira ao fechar ou sair; nulo é o mesmo que tirar,
- *  para quem fica montado fechado. Fora da concha, não faz nada. */
+/**
+ * A janela pendura as ações enquanto está aberta e as tira ao fechar ou sair; nulo é o mesmo que tirar, para
+ * quem fica montado fechado. Fora da concha, não faz nada.
+ *
+ * **Camada de cima manda** (2026-09-11): com uma bandeja aberta por dentro de uma janela, as duas registram,
+ * e sem uma regra quem ganhava era o efeito que rodasse por último — que é o do **pai**, porque o React roda
+ * os efeitos dos filhos primeiro. Ou seja, a janela de baixo vencia a de cima, e a barra mostrava as ações
+ * erradas. Agora quem registra declara a própria profundidade, contada pelo `Nesting` que cada camada abre
+ * em volta do conteúdo dela, e o provider só aceita quem está na mesma altura ou acima da que já mandava.
+ */
 export function useFloatingActionsRegistration(actions: FloatingActions | null) {
   const context = useContext(FloatingActionsContext);
+  const depth = useContext(FloatingDepthContext);
   const register = context?.register;
 
   useEffect(() => {
-    register?.(actions);
+    register?.(actions, depth);
   });
 
-  useEffect(() => () => register?.(null), [register]);
+  useEffect(() => () => register?.(null, depth), [register, depth]);
+}
+
+const FloatingDepthContext = createContext(0);
+
+/**
+ * Marca que o que está aqui dentro é uma camada acima da de fora, para a barra saber quem manda quando duas
+ * registram ao mesmo tempo. A `Dialog` abre um destes em volta do conteúdo dela, então bandeja aberta dentro
+ * de janela conta como um degrau a mais sem ninguém precisar dizer nada.
+ */
+export function FloatingLayer({ children }: { children: ReactNode }) {
+  const depth = useContext(FloatingDepthContext);
+  const next = useMemo(() => depth + 1, [depth]);
+  return <FloatingDepthContext.Provider value={next}>{children}</FloatingDepthContext.Provider>;
 }
 
 /** A lista pendura a paginação enquanto ela vale, no mesmo contrato das ações de janela: nulo tira. */

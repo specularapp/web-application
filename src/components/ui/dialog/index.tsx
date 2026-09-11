@@ -5,6 +5,7 @@ import styled from "@emotion/styled";
 import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
+import { FloatingLayer } from "@/components/layout/floating-actions";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { usePresence } from "@/hooks/use-presence";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -526,7 +527,9 @@ export function Dialog({
               onPointerCancel={dragEnd}
             />
           )}
-          {children}
+          {/* O conteúdo é uma camada acima de quem abriu esta janela: é assim que a barra flutuante sabe
+              que, com uma bandeja aberta por dentro de outra, quem manda nela é a de cima. */}
+          <FloatingLayer>{children}</FloatingLayer>
         </Panel>
       </Frame>
     </>,

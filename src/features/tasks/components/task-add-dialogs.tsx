@@ -38,6 +38,10 @@ const linkKinds: RecordKind[] = ["client", "quote", "project", "contract"];
 
 const isoDay = (date: Date) => format(date, "yyyy-MM-dd");
 
+/* O glifo do fechar na barra, quando a janela não tem o que confirmar: montado uma vez, porque a barra
+   compara as ações pelo nome e um elemento novo a cada render não muda nada além de trabalho. */
+const closeIcon = <XIcon weight="bold" />;
+
 /** A moldura das três: título, o que muda no meio e os dois botões no pé. */
 function AddDialog({
   open,
@@ -72,17 +76,30 @@ function AddDialog({
    * no ar é ela quem manda na barra, e a ficha volta a mandar quando ela fecha — quem registrar por último
    * ganha, e a bandeja de cima monta depois.
    *
-   * Sem `onSubmit` a janela não tem o que confirmar, que é o caso do vincular, em que escolher já vincula:
-   * ali a principal é o próprio fechar, como no editor de orçamento.
+   * **A barra é o botão da janela, e não um botão genérico** (2026-09-11, a pedido): ela leva o mesmo nome,
+   * o mesmo glifo e o mesmo impedimento do confirmar que a janela desenharia no pé, então "Adicionar" na
+   * subtarefa, "Anexar" ou "Anexar 3" no anexo, e ela nasce apagada enquanto falta o que a janela exige.
+   * Cancelar é o gêmeo do botão de cancelar dela, e o X ao lado fecha a mesma janela: os dois saem só desta
+   * bandeja, e a ficha da tarefa continua aberta atrás.
+   *
+   * Sem `onSubmit` a janela não tem o que confirmar, que é o caso do vincular: ali escolher já vincula **e
+   * fecha**, então não existe estado esperando um "salvar". A principal vira o próprio fechar, com o nome
+   * dizendo o que ela faz de verdade — sair sem escolher nada —, e não um "Concluir" que promete gravar
+   * algo que já foi gravado no toque anterior.
    */
   useFloatingActionsRegistration(
     open && mobile
       ? onSubmit
         ? {
-            primary: { label: submitLabel ?? "Salvar", disabled, onClick: () => submit.current?.requestSubmit() },
+            primary: {
+              label: submitLabel ?? "Salvar",
+              icon: submitIcon,
+              disabled,
+              onClick: () => submit.current?.requestSubmit(),
+            },
             cancel: { label: "Cancelar", onClick: onClose },
           }
-        : { primary: { label: "Concluir", onClick: onClose }, cancel: { label: "Fechar", onClick: onClose } }
+        : { primary: { label: "Fechar", icon: closeIcon, onClick: onClose }, cancel: { label: "Fechar", onClick: onClose } }
       : null,
   );
 
