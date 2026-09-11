@@ -535,14 +535,18 @@
  * lateral, e o de cima cortava a coluna em duas sem motivo.
  */
 .side {
+  /* A superfície da coluna sai de variável porque o rabo do balão precisa dela: ele é pintado em cor sólida,
+     e sólido aqui é a cor da bolha já resolvida **sobre este fundo**. */
+  --feed-surface: light-dark(
+    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
+    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
+  );
+
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
-  background-color: light-dark(
-    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
-    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
-  );
+  background-color: var(--feed-surface);
 }
 
 .sideHead {
@@ -993,28 +997,37 @@
   position: absolute;
   /* A ponta fica na linha da base do balão, como na referência: as duas bases se alinham. */
   inset-block-end: 0;
-  /* A caixa começa **na parede** e vai até o bico, sem invadir o balão: as duas cores de bolha da casa são
-     semitransparentes (alfa 0.18 e 0.32), então onde as duas formas se sobrepõem os alfas somam e a área sai
-     mais clara — era o vinco que aparecia no encontro, visto na captura ampliada. Sem sobreposição, a parede
-     do balão e a do rabo são a mesma linha e a cor é uma só. */
-  width: 7.6px;
+  /* A caixa cobre o vão entre o **arco da quina** e o rabo, e é por isso que ela começa 10px à esquerda da
+     parede: a quina do balão continua arredondada (raio 20) e o arco recua para dentro conforme desce, então
+     sem essa faixa o rabo saía de um corte reto em vez de nascer da curva.
+
+     O preenchimento é sólido aqui (`--bubble-solid`, a cor da bolha já resolvida sobre o fundo da coluna) e
+     não o `--bubble-bg` semitransparente: onde a máscara passa por cima do balão os dois alfas somariam e o
+     encontro ficaria com um vinco mais claro, que foi o que a captura ampliada mostrou. */
+  width: 17.6px;
   height: 18.8px;
   content: "";
-  background-color: var(--bubble-bg, var(--color-fill-quaternary));
-  /* Coordenadas do SVG do usuário multiplicadas por 20/32, com a origem na parede: a parede desce inclinando
-     para fora até o bico, na linha da base, e o arco côncavo volta dali até a parede de novo. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7.62 18.82'%3E%3Cpath d='M0 0 L2.56 9.79 L7.62 18.82 L6.89 18.73 C4.6 18.5 2.1 17.6 0 16.09 Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7.62 18.82'%3E%3Cpath d='M0 0 L2.56 9.79 L7.62 18.82 L6.89 18.73 C4.6 18.5 2.1 17.6 0 16.09 Z'/%3E%3C/svg%3E");
+  /* Duas camadas, e não uma cor calculada: a de baixo é a superfície da coluna e a de cima é a bolha, que é
+     translúcida. Empilhadas, o resultado é exatamente a cor que o balão tem ali, e o rabo pode cobrir a quina
+     sem somar um segundo alfa por cima do que já está pintado. */
+  background-image: linear-gradient(var(--bubble-bg, var(--color-fill-quaternary)) 0 100%),
+    linear-gradient(var(--feed-surface) 0 100%);
+  /* O caminho, do SVG do usuário em 20/32, com a origem deslocada 10 à direita: a borda esquerda acompanha o
+     arco da quina (o `A` de raio 20), a parede desce inclinando até o bico na linha da base e o arco côncavo
+     volta dali para dentro do balão. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17.62 18.82'%3E%3Cpath d='M0 0 L10 0 L12.56 9.79 L17.62 18.82 L16.89 18.73 C14.6 18.5 12.1 17.6 10 16.09 C7.5 17.9 4 18.82 0 18.82 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17.62 18.82'%3E%3Cpath d='M0 0 L10 0 L12.56 9.79 L17.62 18.82 L16.89 18.73 C14.6 18.5 12.1 17.6 10 16.09 C7.5 17.9 4 18.82 0 18.82 Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
 
-/* A quina daquele lado perde o raio: na referência a parede desce reta e vira a diagonal do rabo, sem arco
-   de quina nenhum entre as duas. */
+/* A quina **mantem o raio** (acerto a pedido de 2026-09-11): zerado, o rabo saia de um corte reto, e na
+   referencia o balao continua arredondado e o rabo nasce da curva. Quem cobre o vao entre o arco e a diagonal
+   e a propria mascara do rabo, que comeca a esquerda da parede justamente para isso. */
 .message:not([data-mine])[data-closes] .bubble {
-  border-end-start-radius: 0;
+  border-end-start-radius: var(--radius-lg);
 }
 
 /* O deslocamento é o avanço para fora; o resto da caixa fica por cima do balão, fechando o encontro. */
@@ -1024,7 +1037,7 @@
 }
 
 .message[data-mine][data-closes] .bubble {
-  border-end-end-radius: 0;
+  border-end-end-radius: var(--radius-lg);
 }
 
 .message[data-mine][data-closes] .bubble::after {
