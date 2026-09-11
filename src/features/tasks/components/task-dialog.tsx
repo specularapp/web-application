@@ -544,8 +544,8 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
  */
 function TabSwitcher({ tab, onChange }: { tab: TaskTab; onChange: (tab: TaskTab) => void }) {
   return (
-    <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa">
-      <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" />
+    <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa" {...squircle("lg")}>
+      <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" {...squircle("md")} />
       <button
         type="button"
         role="tab"
@@ -553,6 +553,7 @@ function TabSwitcher({ tab, onChange }: { tab: TaskTab; onChange: (tab: TaskTab)
         className={frame.switcherOption}
         data-on={tab === "details" || undefined}
         onClick={() => onChange("details")}
+        {...squircle("md")}
       >
         Informações
       </button>
@@ -563,6 +564,7 @@ function TabSwitcher({ tab, onChange }: { tab: TaskTab; onChange: (tab: TaskTab)
         className={frame.switcherOption}
         data-on={tab === "activity" || undefined}
         onClick={() => onChange("activity")}
+        {...squircle("md")}
       >
         Atividade
       </button>

@@ -120,12 +120,18 @@
   position: absolute;
   bottom: calc(85dvh + var(--space-3));
   left: 50%;
-  display: flex;
+  /* Duas colunas iguais, e a medida é a do **maior** texto: `1fr` reparte o que a grade tem, e a grade toma
+     o que o conteúdo pede, então a coluna nasce do lado mais largo e nada é recortado em nenhuma tradução
+     nem em tamanho de fonte grande. Com as duas do mesmo tamanho, o deslizante é metade e anda metade. */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   align-items: center;
+  width: max-content;
+  max-width: calc(100vw - var(--space-8));
   padding: 0.1875rem;
   background-color: var(--glass-layer-bg);
   border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   backdrop-filter: var(--glass-layer-blur);
   translate: -50% 0;
@@ -147,14 +153,13 @@
  * Metade da caixa menos o recuo dos dois lados, que é o tamanho de uma opção quando as duas dividem a
  * largura; `left` fica na primeira e o `translate` leva à segunda.
  */
+/* O deslizante ocupa uma coluna e anda a largura de uma coluna, em `translate`, que o compositor resolve
+   sem tocar em layout: é ele que dá a suavidade, em vez de dois fundos acendendo e apagando. */
 .switcherThumb {
-  position: absolute;
-  top: 0.1875rem;
-  bottom: 0.1875rem;
-  left: 0.1875rem;
-  width: calc(50% - 0.1875rem);
+  grid-area: 1 / 1;
+  align-self: stretch;
   background-color: var(--color-bg);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   transition: translate var(--duration-base) var(--ease-settle);
 }
@@ -169,16 +174,15 @@
   }
 }
 
-/* As duas opções por cima do deslizante, dividindo a largura em partes iguais para ele casar com qualquer
-   uma. O alvo de toque vem da altura da faixa da alça, que é onde ele mora. */
-/* As duas dividem a largura em partes iguais, para o deslizante casar com qualquer uma. A altura é a do
-   controle pequeno: a peça flutua sobre a página e precisa ser discreta, mas o alvo continua acima do
-   mínimo de toque pela área que o botão ocupa na pílula. */
+/* As duas opções por cima do deslizante, cada uma medindo o próprio texto: nada é recortado em nenhuma
+   tradução, que é o problema de repartir a largura em metades fixas. A altura é a do controle pequeno,
+   porque a peça flutua sobre a página e precisa ser discreta. */
 .switcherOption {
   position: relative;
   z-index: 1;
-  flex: 1 1 0;
-  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: var(--control-height-sm);
   padding-inline: var(--space-4);
   font-family: var(--font-body);
@@ -191,7 +195,7 @@
   cursor: pointer;
   background-color: transparent;
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   transition: color var(--duration-base) var(--ease-standard);
 }
 
