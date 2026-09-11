@@ -1251,7 +1251,7 @@ function TaskDetail({
               nasce embaixo, junto do compositor, que é onde a última mensagem está. */}
           <div className={frame.feed} ref={thread}>
             {shownEvents.length === 0 ? (
-              <Text variant="footnote" tone="tertiary">
+              <Text variant="footnote" tone="tertiary" align="center" className={frame.feedEmpty}>
                 {feed === "comments" ? "Nenhum comentário ainda." : "Nada registrado ainda."}
               </Text>
             ) : (

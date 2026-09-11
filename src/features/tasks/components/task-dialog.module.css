@@ -25,9 +25,12 @@
     --text-subheadline: 0.875rem;
 
     height: auto;
-    /* O teto do painel é 85dvh, e ele ainda abre o recuo da área segura por dentro: o piso desconta esse
-       recuo, senão o miolo pediria mais altura do que a bandeja tem e o pé vazaria. */
-    min-height: calc(85dvh - env(safe-area-inset-bottom));
+    /* O teto do painel é 85dvh, e ele ainda gasta altura por dentro em duas coisas: o recuo da área segura,
+       embaixo, e a alça de arrastar, em cima (4px de traço e 12px de margem). O piso desconta as duas, senão
+       o miolo pede mais altura do que a bandeja tem e o pé vaza para fora dela — era isso que fazia o
+       compositor da conversa terminar dezessete pixels abaixo da base da janela, cortado pelo fim da tela,
+       com a barra flutuante pousando por cima do campo (medido em 2026-09-11). */
+    min-height: calc(85dvh - env(safe-area-inset-bottom) - var(--space-3) - 0.25rem);
   }
 }
 
@@ -314,11 +317,15 @@
    ele ficava curto, porque a marca entra num efeito depois da primeira pintura e o recuo chegava atrasado;
    e somado ao `padding` genérico, o atalho vencia a propriedade longa em parte dos casos. Aqui o recuo de
    fim é declarado em `padding-block`, que é o que a casa faz, então ele é sempre o da barra. */
+/* O recuo de fim é o da barra **mais um respiro** (acerto de 2026-09-11, a pedido, medido no navegador): com
+   o inset seco o último bloco fechava em 777 e a barra começava em 776, ou seja, o conteúdo encostava nela e
+   a ficha terminava apertada. O degrau a mais é o mesmo `--space-6` que separa os blocos da ficha, então a
+   última linha respira como as outras em vez de ser espremida contra a barra. */
 @media (max-width: 47.9375rem) {
   .main {
     gap: var(--space-4);
     padding-inline: var(--space-4);
-    padding-block: var(--space-4) var(--floating-bar-inset);
+    padding-block: var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
   }
 }
 
@@ -609,15 +616,31 @@
   margin-block-start: auto;
 }
 
+/* A conversa vazia fica no meio do que sobra, e não colada no alto (2026-09-11): a coluna tem a altura da
+   janela, então com a frase presa no topo sobrava meia tela de nada entre ela e o compositor. Centrada, o
+   vazio lê como estado da conversa em vez de um texto esquecido no canto. */
+.feedEmpty {
+  margin-block: auto;
+}
+
 .composer {
   position: relative;
   display: grid;
   padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
+/**
+ * No celular o compositor reserva embaixo o espaço da barra flutuante (acerto de 2026-09-11, medido no
+ * navegador): sem ele o cartão descia até depois da base da bandeja — o compositor terminava dezessete
+ * pixels fora da janela, o cartão era cortado pelo fim da tela e a barra pousava por cima do campo em vez de
+ * encaixar no vão dele.
+ *
+ * A folga é do compositor, e não do cartão: assim ela empurra o cartão para cima, dentro da janela, em vez
+ * de inchar a caixa por dentro e deixar o texto boiando no alto de um retângulo alto e vazio.
+ */
 @media (max-width: 47.9375rem) {
   .composer {
-    padding: var(--space-2) var(--space-3) var(--space-3);
+    padding: var(--space-2) var(--space-3) var(--floating-bar-inset);
   }
 }
 
@@ -680,28 +703,23 @@
 }
 
 /**
- * O cartão do comentário no celular: a barra flutuante encaixa **dentro** dele, então o cartão abre no pé a
- * folga que ela ocupa e as duas leem como uma peça só, com o campo em cima e as ações embaixo.
+ * O cartão do comentário no celular é **só o campo**, compacto (acerto de 2026-09-11, a pedido): ele abria no
+ * pé a altura de um controle inteiro para a barra flutuante encaixar ali dentro, e o resultado era um
+ * retângulo alto com o texto no topo e um vão morto embaixo — a barra nem chegava a pousar nele, porque o
+ * conjunto transbordava a bandeja e ela ficava por cima do campo.
  *
- * A conta é a altura da barra mais um respiro, e não o `--floating-bar-inset` inteiro: o inset é a folga que
- * uma bandeja abre **abaixo de si**, com o afastamento contado duas vezes, e aqui o resto já vem do recuo do
- * compositor e do painel. Somando o inset cheio sobrava o vão enorme do relato, com o texto perdido no alto.
- *
- * O bloco mora **depois** da regra base de propósito (correção de 2026-09-11, medida no navegador): as duas
- * têm a mesma especificidade, e enquanto ele vinha antes era a base que ganhava, devolvendo o recuo a 12px.
- * A barra então pousava por cima do campo em vez de dentro da folga dele.
+ * Agora quem reserva o espaço da barra é o compositor em volta, que empurra o cartão para dentro da janela, e
+ * o cartão fica com o recuo de um campo da casa. O piso de duas linhas guarda o lugar do texto sem inchar a
+ * caixa: com três, um comentário de uma linha já nascia com metade da caixa vazia.
  */
 @media (max-width: 47.9375rem) {
   .composerCard {
-    gap: var(--space-3);
-    padding: var(--space-4);
-    padding-block-end: calc(var(--control-height-md) + var(--space-4));
+    gap: var(--space-2);
+    padding: var(--space-3);
   }
 
-  /* Com o rodapé de ações fora do cartão, um campo de duas linhas boiava numa caixa alta: o piso de três
-     linhas é o que faz o texto começar onde o olho espera. */
   .composerField {
-    min-height: calc(var(--leading-normal) * 3em);
+    min-height: calc(var(--leading-normal) * 2em);
   }
 }
 
