@@ -643,7 +643,9 @@ export function Sidebar(props: SidebarProps) {
                   </IconButton>
                 </>
               )}
-              <span className={styles.barDivider} aria-hidden="true" />
+              {/* O fio antes do sair só existe quando há algo para separar dele: numa janela de escolha, que
+                  não tem principal nem secundárias, ele ficava solto ao lado do X. */}
+              {(shownActions.primaryLabel || shownActions.extras.length > 0) && <span className={styles.barDivider} aria-hidden="true" />}
               <IconButton label={shownActions.cancelLabel} variant="ghost" size="md" radius="md" onClick={runCancel}>
                 <XIcon />
               </IconButton>

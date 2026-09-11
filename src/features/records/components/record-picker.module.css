@@ -120,9 +120,8 @@
 }
 
 /* A lista reserva no fim o espaço que quem a monta pedir por `--record-list-inset`, e nada por padrão: numa
-   bandeja do celular esse espaço é o da barra flutuante, para o último registro fechar acima dela em vez de
-   ficar atrás. O recuo mora aqui, e não no invólucro, porque é esta caixa que rola: acima dela ele encolheria
-   a lista e o fim chegaria antes da barra. */
+   bandeja do celular esse espaço é o da barra flutuante, e é aqui que ele mora, porque a busca e as abas
+   ficam presas no topo e quem desce é só esta caixa. */
 .results {
   display: grid;
   align-content: start;

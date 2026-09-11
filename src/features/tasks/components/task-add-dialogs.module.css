@@ -66,19 +66,29 @@
   }
 }
 
-/* O seletor de registro toma a altura que a janela der, porque a lista dele rola por dentro. */
+/* No desktop o seletor toma a altura que a janela der, porque ali a caixa é de altura fixa e quem rola é a
+   lista dele por dentro. */
 .picker {
   min-height: 0;
   height: 100%;
 }
 
-/* No celular a folga da barra é da **lista que rola**, lá dentro do `RecordPicker`, e não deste invólucro:
-   com o recuo aqui a caixa encolheria e a lista terminaria acima da barra, em vez de correr por baixo dela
-   até o fim. O seletor lê `--record-list-inset` para saber quanto reservar, e quem o monta numa bandeja é
-   quem diz o valor, porque o mesmo seletor também abre no comentário, onde a barra é outra. */
+/**
+ * No celular a folga da barra é da **lista que rola**, lá dentro do seletor (acerto de 2026-09-11, medido no
+ * navegador). A busca e as abas do seletor ficam presas no topo e só a lista desce, então é no fim dela que
+ * a barra precisa de espaço; no corpo que a envolve, o recuo virava faixa parada da superfície embaixo da
+ * lista, com a barra flutuando por cima dela em vez de encaixar no vão.
+ */
 @media (max-width: 47.9375rem) {
   .picker {
     --record-list-inset: var(--floating-bar-inset);
+  }
+
+  /* E o corpo em volta devolve a folga dele: com a lista já reservando o espaço da barra, o recuo do corpo
+     somava um segundo vão, que não rola com nada e ficava parado como faixa da superfície. A folga da barra
+     existe **uma vez**, no fim do que de fato desce. */
+  .body:has(.picker) {
+    padding-block-end: 0;
   }
 }
 
