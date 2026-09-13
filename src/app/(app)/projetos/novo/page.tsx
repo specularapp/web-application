@@ -7,14 +7,16 @@ import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
-  title: "Projetos",
-  description: "Projetos executados, base do portfólio e do currículo",
-  path: "/projetos",
+  title: "Novo projeto",
+  description: "Cadastro de um projeto, com cliente, ferramentas, prazo e valor",
+  path: "/projetos/novo",
+  noIndex: true,
 });
 
-export default async function ProjectsPage({ searchParams }: PageProps<"/projetos">) {
+// A mesma tela da lista, com a gaveta de criar já aberta: a ficha tem endereço próprio, e abrir pela lista
+// só troca a URL, sem sair da tela. Mesmo contrato de `/clientes/novo` e `/catalogo/novo`.
+export default async function NewProjectPage({ searchParams }: PageProps<"/projetos/novo">) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
-  // Quantos por página, quando a URL não diz, é o que a grade mediu e guardou no cookie na última visita.
   const gridSize = parseProjectsGridSize(cookieStore.get(PROJECTS_GRID_COOKIE)?.value);
   const query = parseProjectsQuery(
     {
@@ -28,11 +30,5 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/projeto
     gridSize,
   );
 
-  // A lista vem do store em memória enquanto o domínio não existe no banco: quando a tabela nascer, muda só
-  // esta linha, porque quem filtra, ordena e corta a página é `listProjects`, que recebe a lista de fora.
-  const page = listProjects(readProjects(), query);
-
-  // O uso da IA vem de `features/ai/preview.ts` enquanto o domínio não existe no banco, no mesmo contrato
-  // das outras telas: o widget do topo recebe por prop e não sabe de onde vem.
-  return <ProjectsScreen page={page} query={query} ai={previewAiUsage} clients={readProjectClients()} owners={readProjectOwners()} />;
+  return <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} editing="new" clients={readProjectClients()} owners={readProjectOwners()} />;
 }

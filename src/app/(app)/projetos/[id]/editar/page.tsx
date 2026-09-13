@@ -7,25 +7,22 @@ import { findProject, readProjectClients, readProjectOwners, readProjects } from
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
-/** O nome do projeto no título da aba: é a ficha dele que a página abre, e não "Projetos" outra vez. */
-export async function generateMetadata({ params }: PageProps<"/projetos/[id]">) {
+export async function generateMetadata({ params }: PageProps<"/projetos/[id]/editar">) {
   const { id } = await params;
   const project = findProject(id);
 
   return createMetadata({
-    title: project ? project.name : "Projeto",
-    description: "Ficha do projeto, com equipe, tarefas, orçamentos e atividade",
-    path: `/projetos/${id}`,
+    title: project ? `Editar ${project.name}` : "Editar projeto",
+    description: "Edição da ficha do projeto",
+    path: `/projetos/${id}/editar`,
     noIndex: true,
   });
 }
 
-// A mesma tela da lista, com a janela do projeto já aberta no do endereço: assim a ficha pode ser
-// compartilhada e aberta direto, e pela lista abrir só troca a URL, sem sair da tela.
-export default async function ProjectPage({ params, searchParams }: PageProps<"/projetos/[id]">) {
+// A mesma tela da lista, com a janela do projeto aberta e a gaveta de editar por cima dela: é onde a pessoa
+// cai ao editar a partir da ficha, então fechar a gaveta devolve à ficha, e não à lista nua.
+export default async function EditProjectPage({ params, searchParams }: PageProps<"/projetos/[id]/editar">) {
   const [{ id }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
-  // O projeto vem do store em memória enquanto o domínio não existe no banco: quando a tabela nascer, muda
-  // só esta linha, no mesmo contrato da listagem.
   const project = findProject(id);
   if (!project) notFound();
 
@@ -42,5 +39,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     gridSize,
   );
 
-  return <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} viewing={project} clients={readProjectClients()} owners={readProjectOwners()} />;
+  return (
+    <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} viewing={project} editing={project} clients={readProjectClients()} owners={readProjectOwners()} />
+  );
 }

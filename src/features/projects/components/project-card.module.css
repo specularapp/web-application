@@ -1,0 +1,246 @@
+/* O fio da caixa é o do `Card`: a camada de fora com a cor do fio e um recuo da espessura dele, e a de
+   dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. É o que faz o canto sair em
+   superelipse também onde não há `corner-shape`, o que `border` não permite. Mesma receita dos cartões de
+   cliente, do catálogo e de orçamento. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* No celular o canto cai um degrau, como no `Card`: o de 24px lia como pílula num cartão estreito. */
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+/* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a curva
+   de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. As partes são uma pilha em
+   coluna, assentada no topo: o que sobra de altura fica abaixo do pé, porque cada cartão tem o que o projeto
+   tiver. O anel das bolinhas da fila (`--bubble-ring`) é o fundo do cartão, e acompanha o hover. */
+.inner {
+  --bubble-ring: var(--color-bg);
+
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    padding: var(--space-5);
+  }
+}
+
+/* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque ou o
+   site com o dedo ou o mouse não acende anel nenhum. */
+@media (hover: hover) {
+  .inner:hover {
+    --bubble-ring: var(--color-bg-secondary);
+
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  --bubble-ring: var(--color-fill-quaternary);
+
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Concluído ou cancelado, o cartão apaga o que é do projeto e deixa quem contratou, a situação e o leque
+   inteiros, porque é por eles que se lê e se reabre. Só opacidade, sem trocar cor, como nos outros cartões. */
+.card[data-status="done"] .cover,
+.card[data-status="done"] .copy,
+.card[data-status="done"] .tags,
+.card[data-status="done"] .tools,
+.card[data-status="cancelled"] .cover,
+.card[data-status="cancelled"] .copy,
+.card[data-status="cancelled"] .tags,
+.card[data-status="cancelled"] .tools {
+  opacity: 0.55;
+}
+
+/* Quem contratou de um lado, com a empresa em cima e a data embaixo, e na outra ponta a situação e o leque,
+   colados. A empresa cede por reticências; a etiqueta e o leque nunca. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.end {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* A capa em 16 por 9, no canto `md` pelo sistema de cantos (a pedido, 2026-09-13: o concêntrico de 4px saía
+   reto demais para a imagem anexada, e é a mesma escolha do cartão do caixa, que também tem raio próprio). O
+   véu do matiz do projeto é a receita do azulejo do catálogo, e é sobre ele que a arte gerada assenta enquanto
+   não há imagem. `position: relative` porque a foto entra em `fill`. */
+.cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--project-hue) 14%, transparent),
+    color-mix(in oklab, var(--project-hue) 20%, transparent)
+  );
+  border-radius: var(--radius-md);
+}
+
+.photo {
+  object-fit: cover;
+}
+
+/* A arte toma pouco mais de metade da altura da capa: centrada e com ar em volta, ela lê como marca do
+   projeto, e não como imagem esticada. */
+.art {
+  width: auto;
+  height: 62%;
+}
+
+/* O nome com o botão do endereço e, colada embaixo, a descrição: um bloco só, com o vão pequeno entre as
+   duas linhas, e não o vão das partes do cartão. */
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* O nome de um lado e o botão do endereço na outra ponta da mesma linha, alinhado pelo topo do nome, que pode
+   ter duas linhas. O nome cede; o botão não. */
+.body {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* O nome em duas linhas, e não numa com reticências: é o nome do projeto, e cortá-lo tira justamente o que o
+   identifica. */
+.title {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* A descrição em até duas linhas, pelo mesmo corte: cem caracteres cabem em duas na largura do cartão, e o
+   que passar (num cartão estreito) fecha em reticências em vez de empurrar o pé. */
+.description {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* O botão do site fica na linha do nome sem empurrá-la: a folga do controle pequeno é devolvida em margem
+   negativa, então o glifo se alinha ao topo do texto e o botão continua com o alvo inteiro. */
+.site {
+  flex-shrink: 0;
+  margin-block-start: calc((var(--control-height-sm) - var(--text-headline) * var(--leading-normal)) / -2);
+}
+
+/* As etiquetas em fila, quebrando linha quando não cabem: é lista porque é uma lista de fatos do projeto. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* O pé: as ferramentas de um lado e a entrega do outro, na receita do pé do cartão de tarefas. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.tools {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A fila agrupada, na receita da fila de artes dos registros: as bolinhas da marca (`ToolBubble`), de 24px,
+   uma entrando 6px sobre a outra, com o anel na cor do fundo do cartão separando as vizinhas. */
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.stack > * + * {
+  margin-inline-start: calc((var(--space-1) + var(--space-half)) * -1);
+}
+
+/* O resto da fila, em número, na mesma bolinha das marcas mas no preenchimento da casa: é botão só para o
+   teclado alcançar a dica com os nomes das demais. */
+.more {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  color: var(--color-label-secondary);
+  cursor: default;
+  background-color: var(--color-fill-tertiary);
+  border: 0;
+  border-radius: var(--radius-full);
+  box-shadow:
+    inset 0 0 0 0.0625rem light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 22%)),
+    0 0 0 2px var(--bubble-ring);
+}
+
+@media (hover: hover) {
+  .more:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}

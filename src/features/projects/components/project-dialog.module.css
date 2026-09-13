@@ -1,0 +1,361 @@
+/* A janela por dentro, na moldura da ficha da tarefa: o topo sangrando as duas colunas e, embaixo, a ficha e
+   a coluna lateral. A altura vem da `Dialog` `xl`, que é fixa, então quem tem `minmax(0, 1fr)` aqui é a faixa
+   do corpo, e é dela que as colunas tiram o piso de zero para rolar por dentro. */
+.dialog {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* No celular a janela é bandeja, com `height: auto` e teto de 85dvh, e `height: 100%` de um pai `auto` não
+   resolve: o teto é declarado aqui, descontando a área segura e a alça de arrastar que o painel gasta por
+   dentro, para a faixa do corpo ganhar altura definida e rolar. Os textos descem um degrau pelos tokens
+   redeclarados, em valor, senão encolhem duas vezes. */
+@media (max-width: 47.9375rem) {
+  .dialog {
+    --text-title-2: 1.25rem;
+    --text-title-3: 1.0625rem;
+    --text-callout: 0.9375rem;
+    --text-subheadline: 0.875rem;
+
+    height: auto;
+    max-height: calc(85dvh - env(safe-area-inset-bottom) - var(--space-3) - 0.25rem);
+  }
+}
+
+.top {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+/* A rota de onde o projeto mora: Projetos e o cliente, separados por barra, com o identificador em etiqueta
+   na ponta. O cliente cede por reticências; o primeiro degrau e a etiqueta não. */
+.route {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.crumb svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.route .crumb:last-of-type {
+  flex-shrink: 1;
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+.route .reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O corpo: a ficha e a coluna lateral lado a lado a partir de 64rem, com um fio entre elas e cada uma rolando
+   por conta. Abaixo disso a coluna desce para baixo da ficha e o corpo inteiro rola como um só, porque duas
+   áreas que rolam empilhadas não se percorrem. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (width >= 64rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    overflow: hidden;
+  }
+
+  .main,
+  .side {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .side {
+    border-inline-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+/* `min-width: 0` nas duas metades, pela mesma lição da ficha da tarefa: filha de grid nasce com o mínimo no
+   tamanho do conteúdo, e um nome de arquivo ou um título comprido alargava a janela inteira. */
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .main {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+}
+
+/* A capa como abertura da ficha, no canto `md` pelo sistema de cantos e sobre o véu do matiz do projeto, como
+   no cartão. A altura é **declarada**, e não por `aspect-ratio` (correção de 2026-09-13, medida no navegador):
+   como item de uma grade com altura definida e rolagem por dentro, a linha da capa resolvia para zero enquanto
+   a caixa pintava 366px, e a arte, em porcentagem, resolvia contra a largura; a ficha inteira nascia por cima da
+   capa. Com a altura em rem e a arte em rem, a linha da grade mede o que a capa tem. */
+.cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 18rem;
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--project-hue) 14%, transparent),
+    color-mix(in oklab, var(--project-hue) 20%, transparent)
+  );
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 47.9375rem) {
+  .cover {
+    height: 11rem;
+  }
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.art {
+  width: auto;
+  height: 7rem;
+}
+
+@media (max-width: 47.9375rem) {
+  .art {
+    height: 4.5rem;
+  }
+}
+
+/* Quem contratou, o nome com a situação e os atalhos em glifo na outra ponta. No celular os atalhos ficam na
+   mesma linha, porque são só dois botões de ícone. */
+.identity {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.naming {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.shortcuts {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* A descrição logo abaixo da identidade, em texto corrido: é a linha do cartão, inteira. */
+.description {
+  min-width: 0;
+}
+
+/* Os números do projeto em azulejos com fio, o rótulo em cima e o valor embaixo, como na ficha do cliente:
+   quatro no desktop e dois no celular, sem espremer o valor. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.tile {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.tileValue {
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+/* As seções nos primitivos de perfil, com o vão das seções da casa. */
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .sections {
+    gap: var(--space-4);
+  }
+}
+
+/* O rosto ao lado do nome, num fato da ficha. */
+.person {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A ferramenta numa etiqueta de contorno com a bolinha da marca na frente: o recuo da ponta de dentro cede
+   para a bolinha encostar na curva, como o rosto numa pílula de pessoa. O anel da bolinha sai aqui, porque
+   dentro da etiqueta não há vizinha para separar. */
+.toolTag {
+  --bubble-ring: transparent;
+
+  padding-inline-start: 0.125rem;
+}
+
+/* Enquanto a ficha vem, o giro toma o lugar do miolo: o cabeçalho, a capa e a identidade já mostram o que o
+   cartão sabia, então a janela nunca abre vazia. */
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+}
+
+/* A coluna lateral: a equipe e a atividade, num véu leve da tinta do texto sobre o fundo da página, como a
+   coluna da conversa da tarefa. No celular ela fecha a ficha com a folga da barra flutuante embaixo, porque é
+   o último bloco do que rola. */
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5) var(--space-4);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
+    color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
+  );
+}
+
+@media (width < 64rem) {
+  .side {
+    border-block-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .side {
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
+  }
+}
+
+.sideBlock {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.people {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.personCopy {
+  display: grid;
+  min-width: 0;
+}
+
+/* A atividade em linha do tempo: o rosto pequeno, a frase e a hora embaixo. */
+.events {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.event {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.eventCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}

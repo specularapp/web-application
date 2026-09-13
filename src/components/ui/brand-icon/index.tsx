@@ -26,7 +26,11 @@ export function BrandIcon({ name, label, color = false, weight: _weight, classNa
         style={style}
         {...props}
       >
-        <Image src={src} alt="" width={INTRINSIC_SIZE} height={INTRINSIC_SIZE} className={styles.image} />
+        {/* Sem o otimizador (acerto de 2026-09-13, medido: `/_next/image` devolvia 400 e a marca em cores não
+            aparecia em lugar nenhum): ele recusa SVG a menos que `dangerouslyAllowSVG` seja ligado, e ligar
+            isso serviria qualquer SVG de fora pelo nosso domínio. As marcas são arquivos nossos, pequenos e
+            já otimizados, então vão direto. */}
+        <Image src={src} alt="" width={INTRINSIC_SIZE} height={INTRINSIC_SIZE} unoptimized className={styles.image} />
       </span>
     );
   }

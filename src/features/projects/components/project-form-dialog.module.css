@@ -1,0 +1,266 @@
+/* Cabeçalho e rodapé fixos, o meio rola: a gaveta tem a altura da tela e a ficha é longa. Os fios seguem o
+   menu, 0,6px em `--color-border`, nascendo aqui e descendo por cascata para cabeçalho, divisor e rodapé.
+   Mesma moldura da gaveta do cliente e do catálogo. */
+.dialog {
+  --panel-line: 0.0375rem;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+/* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
+   ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-height: 0;
+  padding-block: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* No celular o rodapé some: salvar e sair estão na barra flutuante, acima da bandeja, e o corpo que rola
+   leva a folga dela embaixo, para o último campo fechar acima da barra. */
+@media (max-width: 47.9375rem) {
+  .body {
+    gap: var(--space-4);
+    padding-block: var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .section {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* O glifo e o título do bloco, na cor do título, herdada. */
+.heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding-block-end: var(--space-1);
+}
+
+.heading > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+/* O divisor no fio da casa: o `Separator` puro traz `--color-separator`, quase três vezes mais opaco. */
+.divider.divider {
+  height: var(--panel-line);
+  background-color: var(--color-border);
+}
+
+/* Dois campos lado a lado no desktop; no celular empilham, porque cliente e responsável são compridos. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A capa como vai aparecer no cartão, em 9rem por 5,0625rem (16 por 9), com o rótulo e os botões ao lado: a
+   mesma linha da arte do item do catálogo. Altura declarada, e não por `aspect-ratio`, pela lição da janela
+   do projeto. */
+.artwork {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.cover {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 9rem;
+  height: 5.0625rem;
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--project-hue) 14%, transparent),
+    color-mix(in oklab, var(--project-hue) 20%, transparent)
+  );
+  border-radius: var(--radius-md);
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.art {
+  width: auto;
+  height: 2.75rem;
+}
+
+.artworkCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.artworkActions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding-block-start: var(--space-half);
+}
+
+/* O campo de arquivo fica fora da vista, mas não fora da árvore: o botão ao lado é quem o abre. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A linha do interruptor de público: o nome e a explicação de um lado, o interruptor na outra ponta, tudo
+   numa caixa com o fio da casa; a linha inteira é o rótulo, então alterna ao toque em qualquer ponto. */
+.toggle {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--space-3);
+  cursor: pointer;
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.toggleCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O que já foi escolhido em fichas, com o botão de somar no fim da fila, quebrando linha: é o desenho dos
+   dois seletores da ficha, o de ferramentas e o de etiquetas. O anel da bolinha sai aqui, porque dentro da
+   ficha não há vizinha para separar. */
+.picker {
+  --bubble-ring: transparent;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A ficha de uma escolha: pílula no preenchimento da casa, a bolinha da marca ou a bolinha da cor da
+   etiqueta encostada na ponta redonda, o nome e o × para tirar. */
+.chip {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: 100%;
+  height: 2rem;
+  padding-inline: 0.25rem var(--space-1);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+/* A bolinha da cor da etiqueta, a mesma da ficha da tarefa: encostada no nome, com o recuo da ponta. */
+.dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-inline-start: var(--space-half);
+  background-color: var(--dot-hue);
+  border-radius: var(--radius-full);
+}
+
+.chipRemove {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+}
+
+.chipRemove svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+@media (hover: hover) {
+  .chipRemove:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill);
+  }
+
+  .chipRemove:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* A bolinha na linha do seletor, sem anel: a linha do menu não tem fundo para o anel casar. */
+.menuBubble {
+  --bubble-ring: transparent;
+}
+
+.alert {
+  padding-inline: var(--space-5);
+}
+
+/* Cancelar e salvar fixos no rodapé, à direita. No celular o rodapé some: os dois moram na barra
+   flutuante do menu. */
+.foot {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: var(--panel-line) solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+}
