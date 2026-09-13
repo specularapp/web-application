@@ -46,13 +46,14 @@ import { DurationPicker } from "@/components/ui/duration-picker";
 import { Dialog } from "@/components/ui/dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
+import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { RecordHoverCard } from "@/features/records/components/record-hover-card";
 import { RecordMediaView } from "@/features/records/components/record-media";
 import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord } from "@/features/records/records";
-import { iconButtonCornerRadius, squircle, squirclePx } from "@/lib/corners";
+import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { slugify } from "@/lib/utils/slug";
 import { cx } from "@/lib/utils/cx";
@@ -500,14 +501,11 @@ const SWIPE = 56;
 /** Qual metade da ficha está à vista enquanto as duas não cabem lado a lado. */
 type TaskTab = "details" | "activity";
 
-/**
- * O canto de dentro do seletor de metade: o raio da caixa menos o recuo que os separa (`lg` 20 menos
- * `--space-half` 2), que é a regra concêntrica da casa. O resultado cai no raio do botão de ícone pequeno, e
- * não por acaso: a altura ali é a do controle pequeno, 36, e este raio é metade dela, então o deslizante fica
- * com a geometria de metade do lado que o `IconButton` já tem. O número sai daqui para o atributo do motor e
- * o CSS declara o mesmo token, senão a superelipse do fallback discordaria do desenho da folha.
- */
-const SWITCHER_CORNER = iconButtonCornerRadius.sm;
+/* As duas metades no seletor que flutua acima da bandeja, no celular. */
+const taskTabs = [
+  { id: "details", label: "Informações" },
+  { id: "activity", label: "Atividade" },
+] as const satisfies readonly { id: TaskTab; label: string }[];
 
 export function TaskDialog({ task, open, onClose, stages, team, records = [], onStageChange }: TaskDialogProps) {
   /**
@@ -534,7 +532,7 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
       label={task ? `Tarefa ${task.title}` : "Tarefa"}
       size="xl"
       focusOnOpen={false}
-      above={task && <TabSwitcher tab={tab} onChange={setTab} />}
+      above={task && <SheetSwitcher label="O que ver da tarefa" options={taskTabs} value={tab} onChange={setTab} />}
     >
       {task && (
         <TaskDetail
@@ -550,44 +548,6 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
         />
       )}
     </Dialog>
-  );
-}
-
-/**
- * O seletor entre as duas metades (2026-09-11, a pedido, sobre um print): uma peça solta **acima** da
- * bandeja, na área escura, e não dentro dela. Ele é a única coisa da janela que vive fora da caixa, porque é
- * navegação da janela inteira, e não conteúdo dela.
- *
- * O deslizante corre por trás das duas opções e é ele que dá a suavidade: uma faixa que anda em `translate`,
- * que o compositor resolve sem tocar em layout, em vez de dois fundos acendendo e apagando.
- */
-function TabSwitcher({ tab, onChange }: { tab: TaskTab; onChange: (tab: TaskTab) => void }) {
-  return (
-    <div className={frame.switcher} role="tablist" aria-label="O que ver da tarefa" {...squircle("lg")}>
-      <span className={frame.switcherThumb} data-at={tab} aria-hidden="true" {...squirclePx(SWITCHER_CORNER)} />
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "details"}
-        className={frame.switcherOption}
-        data-on={tab === "details" || undefined}
-        onClick={() => onChange("details")}
-        {...squirclePx(SWITCHER_CORNER)}
-      >
-        Informações
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "activity"}
-        className={frame.switcherOption}
-        data-on={tab === "activity" || undefined}
-        onClick={() => onChange("activity")}
-        {...squirclePx(SWITCHER_CORNER)}
-      >
-        Atividade
-      </button>
-    </div>
   );
 }
 

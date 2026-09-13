@@ -28,6 +28,7 @@ export * from "./progress";
 export * from "./radio";
 export * from "./select";
 export * from "./separator";
+export * from "./sheet-switcher";
 export * from "./skeleton";
 export * from "./spinner";
 export * from "./stack";

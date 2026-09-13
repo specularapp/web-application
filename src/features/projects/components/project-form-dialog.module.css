@@ -171,10 +171,10 @@
 }
 
 /* O que já foi escolhido em fichas, com o botão de somar no fim da fila, quebrando linha: é o desenho dos
-   dois seletores da ficha, o de ferramentas e o de etiquetas. O anel da bolinha sai aqui, porque dentro da
+   dois seletores da ficha, o de ferramentas e o de etiquetas. O anel do azulejo sai aqui, porque dentro da
    ficha não há vizinha para separar. */
 .picker {
-  --bubble-ring: transparent;
+  --tile-ring: transparent;
 
   display: flex;
   flex-wrap: wrap;
@@ -183,8 +183,9 @@
   min-width: 0;
 }
 
-/* A ficha de uma escolha: pílula no preenchimento da casa, a bolinha da marca ou a bolinha da cor da
-   etiqueta encostada na ponta redonda, o nome e o × para tirar. */
+/* A ficha de uma escolha: caixa no preenchimento da casa, no canto `md` do sistema de cantos, com o azulejo
+   da marca (concêntrico: 12 de fora menos os 4 de recuo dão os 8 dele) ou a bolinha da cor da etiqueta
+   encostados na ponta, o nome e o × para tirar. */
 .chip {
   display: inline-flex;
   gap: var(--space-1);
@@ -193,7 +194,8 @@
   height: 2rem;
   padding-inline: 0.25rem var(--space-1);
   background-color: var(--color-fill-tertiary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
 }
 
 /* A bolinha da cor da etiqueta, a mesma da ficha da tarefa: encostada no nome, com o recuo da ponta. */
@@ -239,9 +241,9 @@
   }
 }
 
-/* A bolinha na linha do seletor, sem anel: a linha do menu não tem fundo para o anel casar. */
-.menuBubble {
-  --bubble-ring: transparent;
+/* O azulejo na linha do seletor, sem anel: a linha do menu não tem fundo para o anel casar. */
+.menuTile {
+  --tile-ring: transparent;
 }
 
 .alert {

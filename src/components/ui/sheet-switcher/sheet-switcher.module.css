@@ -1,0 +1,116 @@
+/**
+ * O seletor entre as metades de uma janela, **acima** da bandeja, na área escura, flutuando sobre a página.
+ * Vai ali pela prop `above` da `Dialog`, e não dentro do miolo, porque a bandeja recorta o que passa das
+ * bordas dela: dentro, ele era cortado ou roubava uma linha do conteúdo.
+ *
+ * A bandeja ocupa 85dvh e cola no rodapé, então o topo dela está a 85dvh do fundo; o seletor fica logo acima
+ * disso, com um respiro. Centrado, porque ali ele é a única coisa na faixa e não disputa lugar com nada.
+ */
+.switcher {
+  /* Preso ao **visor**, e não ao que estiver em volta (correção de 2026-09-11, medida no navegador): a peça
+     mora fora da bandeja, e o elemento que a `Dialog` põe em volta do conteúdo é uma âncora de largura zero,
+     então `left: 50%` resolvia para `0px` e o `translate: -50%` levava metade dela para fora da tela. Com
+     `fixed` o `50%` é o da janela do navegador, que é o centro que ela sempre quis. */
+  position: fixed;
+  bottom: calc(85dvh + var(--space-3));
+  left: 50%;
+  /* Um degrau acima da bandeja: presa ao visor, ela sai da pilha da janela e ficaria por baixo dela. */
+  z-index: calc(var(--z-modal) + 1);
+  /* Colunas iguais, e a medida é a do **maior** texto: `1fr` reparte o que a grade tem, e a grade toma o que
+     o conteúdo pede, então a coluna nasce do lado mais largo e nada é recortado em nenhuma tradução nem em
+     tamanho de fonte grande. Com todas do mesmo tamanho, o deslizante é uma coluna e anda uma coluna. */
+  display: grid;
+  grid-template-columns: repeat(var(--count, 2), 1fr);
+  align-items: center;
+  width: max-content;
+  max-width: calc(100vw - var(--space-8));
+  /* O recuo é `--space-half`, e não um número solto, porque é ele que decide o canto de dentro: com 2px, o
+     raio interno é 20 menos 2, que dá os 18 do deslizante. Fora da escala, a conta concêntrica não fecha em
+     token nenhum. */
+  padding: var(--space-half);
+  background-color: var(--glass-layer-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: var(--glass-layer-blur);
+  translate: -50% 0;
+}
+
+/* Acima de 64rem as metades estão à vista e não há o que escolher; e no desktop a janela nem é bandeja,
+   então a peça de cima não chega a ser desenhada. */
+@media (width >= 64rem) {
+  .switcher {
+    display: none;
+  }
+}
+
+/* O deslizante ocupa uma coluna e anda a largura de uma coluna por opção, em `translate`, que o compositor
+   resolve sem tocar em layout: é ele que dá a suavidade, em vez de dois fundos acendendo e apagando. */
+.thumb {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  background-color: var(--color-bg);
+  /* Canto concêntrico: o raio da caixa menos o recuo que a separa dele (20 menos 2), e não um token escolhido
+     à parte. Com o `--radius-md`, 12 contra 20, a curva de dentro abria folga na de fora e o deslizante lia
+     como uma peça de outro lugar posta ali. Em 18 as duas curvas correm juntas, e o número é o mesmo
+     `--icon-button-radius-sm` da casa, porque a altura aqui é a do controle pequeno e metade de 36 é 18. O
+     `data-squircle-radius` do TS carrega o mesmo número, senão o motor do fallback desenharia uma superelipse
+     e o CSS outra. */
+  border-radius: var(--icon-button-radius-sm);
+  box-shadow: var(--shadow-sm);
+  translate: calc(var(--at, 0) * 100%) 0;
+  transition: translate var(--duration-base) var(--ease-settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition: none;
+  }
+}
+
+/* As opções por cima do deslizante, cada uma medindo o próprio texto: nada é recortado em nenhuma tradução,
+   que é o problema de repartir a largura em metades fixas. A altura é a do controle pequeno, porque a peça
+   flutua sobre a página e precisa ser discreta.
+
+   Cada uma é **posta na própria célula** (correção de 2026-09-11, medida no navegador): o deslizante já
+   ocupa a célula `1 / 1` de propósito, e sem dizer onde os botões ficam eles seguiam o fluxo automático da
+   grade, que pula a célula tomada, e o segundo descia para a linha de baixo. A coluna vem em linha do TS. */
+.option {
+  position: relative;
+  z-index: 1;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  /* O mesmo canto do deslizante, porque a opção ocupa exatamente o lugar dele: é o que faz o anel de foco
+     acompanhar a curva que a pessoa vê em vez de cortá-la. */
+  border-radius: var(--icon-button-radius-sm);
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+.option[data-on] {
+  color: var(--color-label);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .option:hover {
+    color: var(--color-label);
+  }
+}

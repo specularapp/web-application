@@ -100,8 +100,8 @@
 }
 
 /* O corpo: a ficha e a coluna lateral lado a lado a partir de 64rem, com um fio entre elas e cada uma rolando
-   por conta. Abaixo disso a coluna desce para baixo da ficha e o corpo inteiro rola como um só, porque duas
-   áreas que rolam empilhadas não se percorrem. */
+   por conta. Entre 48 e 64rem a coluna desce para baixo da ficha e o corpo inteiro rola como um só, porque
+   duas áreas que rolam empilhadas não se percorrem. */
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -109,6 +109,20 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* No celular uma metade por vez, na receita da ficha da tarefa (a pedido, 2026-09-13): a escondida sai por
+   `display: none` e quem sobra toma a faixa inteira, trocadas pelo seletor acima da bandeja ou pelo arrasto.
+   Uma linha só, com piso zero, para a metade à vista rolar dentro da bandeja. */
+@media (max-width: 47.9375rem) {
+  .body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .body[data-tab="details"] .side,
+  .body[data-tab="activity"] .main {
+    display: none;
+  }
 }
 
 @media (width >= 64rem) {
@@ -140,10 +154,12 @@
   padding: var(--space-5);
 }
 
+/* No celular a ficha é a metade à vista sozinha, então é ela que leva a folga da barra flutuante embaixo, para
+   a última seção fechar acima da barra. */
 @media (max-width: 47.9375rem) {
   .main {
     gap: var(--space-4);
-    padding: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
   }
 }
 
@@ -167,7 +183,7 @@
 
 @media (max-width: 47.9375rem) {
   .cover {
-    height: 11rem;
+    height: 10rem;
   }
 }
 
@@ -215,6 +231,14 @@
   flex-shrink: 0;
   gap: var(--space-1);
   align-items: center;
+}
+
+/* No celular os atalhos saem da identidade: as três ações já moram na barra flutuante, e na linha do nome
+   eles roubavam a largura dele, como na ficha da tarefa, em que toda ação é da barra. */
+@media (max-width: 47.9375rem) {
+  .shortcuts {
+    display: none;
+  }
 }
 
 /* A descrição logo abaixo da identidade, em texto corrido: é a linha do cartão, inteira. */
@@ -273,11 +297,12 @@
   min-width: 0;
 }
 
-/* A ferramenta numa etiqueta de contorno com a bolinha da marca na frente: o recuo da ponta de dentro cede
-   para a bolinha encostar na curva, como o rosto numa pílula de pessoa. O anel da bolinha sai aqui, porque
-   dentro da etiqueta não há vizinha para separar. */
+/* A ferramenta numa etiqueta de contorno com o azulejo da marca na frente: o recuo da ponta de dentro cede
+   para o azulejo encostar na curva, e o canto dele é concêntrico ao da etiqueta (o `md` dela menos o fio e
+   o recuo), para os dois lerem como uma peça só. O anel do azulejo sai aqui, porque dentro da etiqueta não há
+   vizinho para separar. */
 .toolTag {
-  --bubble-ring: transparent;
+  --tile-ring: transparent;
 
   padding-inline-start: 0.125rem;
 }
@@ -306,7 +331,9 @@
   );
 }
 
-@media (width < 64rem) {
+/* Empilhada sob a ficha, entre 48 e 64rem, a coluna leva o fio em cima; no celular ela é a metade à vista
+   sozinha e não há o que separar. */
+@media (48rem <= width < 64rem) {
   .side {
     border-block-start: 0.0375rem solid var(--color-border);
   }

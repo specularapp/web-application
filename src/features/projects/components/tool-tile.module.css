@@ -1,0 +1,72 @@
+/* O azulejo da ferramenta: quadrado de canto squircle, o fundo chapado na cor da marca e a marca por cima. O
+   fio por dentro sai em tinta escura no tema claro e clara no escuro (a pedido, 2026-09-13: toda peça precisa
+   de fio), porque o azulejo tem cor própria e nenhum token da casa acerta o contraste com ele; o anel de fora,
+   na cor da superfície de quem o monta (`--tile-ring`, o fundo do cartão por padrão), é o que separa os
+   vizinhos na fila sobreposta. `overflow: hidden` para a marca que cobre a peça inteira ser recortada no
+   canto em vez de passar por cima do vizinho. O raio vem de quem monta (`--tile-radius`), para ser
+   concêntrico ao da caixa em volta quando há uma. */
+.tile {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  overflow: hidden;
+  background-color: var(--tool-bg);
+  border-radius: var(--tile-radius, var(--radius-sm));
+  corner-shape: squircle;
+  box-shadow:
+    inset 0 0 0 0.0625rem light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 22%)),
+    0 0 0 2px var(--tile-ring, var(--color-bg));
+}
+
+.tile[data-size="md"] {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* A marca que é o azulejo inteiro, com o fundo dela dentro: cobre a peça de ponta a ponta. `cover` num
+   quadrado dentro de um quadrado é encaixe exato, e o canto squircle recorta as quinas, que é o desenho de
+   um ícone de aplicativo. */
+.mark[data-fit="tile"] {
+  position: absolute;
+  inset: 0;
+  background: var(--tool-mark) center / cover no-repeat;
+}
+
+/* O glifo: as cores são do arquivo, e ele fica centrado com folga em volta, na medida de um ícone dentro do
+   próprio azulejo. */
+.mark[data-fit="glyph"] {
+  width: 62%;
+  height: 62%;
+  background: var(--tool-mark) center / contain no-repeat;
+}
+
+/* A marca de uma cor só, pintada na tinta que ela usa sobre o fundo da marca: é o que faz uma marca preta
+   aparecer sobre fundo escuro. */
+.mark[data-fit="mask"] {
+  width: 58%;
+  height: 58%;
+  background-color: var(--tool-ink);
+  -webkit-mask: var(--tool-mark) center / contain no-repeat;
+  mask: var(--tool-mark) center / contain no-repeat;
+}
+
+/* Sem ferramenta informada, a interrogação no preenchimento da casa segura o lugar da fila: o pé não fica
+   torto e a pergunta fica feita. */
+.empty {
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+}
+
+.empty svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: currentColor;
+}
+
+.empty[data-size="md"] svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}

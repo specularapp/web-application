@@ -14,7 +14,7 @@ import { dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../l
 import { projectArtworkUrl } from "../list-options";
 import type { Project } from "../summary";
 import { ProjectMenu } from "./project-menu";
-import { ToolBubble } from "./tool-bubble";
+import { ToolTile } from "./tool-tile";
 import styles from "./project-card.module.css";
 
 export type ProjectCardProps = {
@@ -42,7 +42,7 @@ const nameList = new Intl.ListFormat("pt-BR", { type: "conjunction" });
 // projeto; o nome do projeto, que é o nome do site ou de para quem foi feito, com o botão do endereço na
 // outra ponta da mesma linha, e a descrição de até cem caracteres embaixo, em duas linhas; as etiquetas em
 // contorno; e o pé na receita do cartão de tarefas: as ferramentas na fila agrupada de um lado, até cinco
-// bolinhas na cor da marca e o resto em "+N" que lista as demais ao apontar (a bolinha da interrogação quando
+// azulejos na cor da marca e o resto em "+N" que lista as demais ao apontar (o azulejo da interrogação quando
 // ninguém informou nenhuma), e a entrega na etiqueta do prazo do outro. O cartão inteiro abre a janela do
 // projeto; o leque e o botão do endereço têm ação própria e não abrem nada. O fio da caixa é o do `Card`, em
 // duas camadas recortadas pelo sistema de cantos.
@@ -145,12 +145,12 @@ export function ProjectCard({ project, onOpen, onEdit }: ProjectCardProps) {
 
         {/* O pé: as ferramentas de um lado, na fila agrupada da casa, e a entrega do outro, na etiqueta do prazo
             das tarefas. As marcas passam de vinte em projeto grande, então a fila mostra cinco e resume o resto
-            em "+N", com os nomes das demais ao apontar; sem nenhuma informada fica uma bolinha só, a da
+            em "+N", com os nomes das demais ao apontar; sem nenhuma informada fica um azulejo só, o da
             interrogação, para a fila nunca ficar vazia. Os nomes inteiros seguem na leitura por voz. */}
         <div className={styles.foot}>
           <span className={styles.tools}>
             <span className={styles.stack} aria-hidden="true">
-              {shownTools.length === 0 ? <ToolBubble tool={null} /> : shownTools.map((tool) => <ToolBubble key={tool} tool={tool} />)}
+              {shownTools.length === 0 ? <ToolTile tool={null} /> : shownTools.map((tool) => <ToolTile key={tool} tool={tool} />)}
             </span>
             {restTools.length > 0 && (
               <Tooltip content={nameList.format(restTools.map((tool) => projectTools[tool]))}>

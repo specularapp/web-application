@@ -30,7 +30,7 @@ import { projectArtworkUrl, projectHueFor } from "../list-options";
 import { COVER_MAX_CHARS, MAX_TAGS, projectLimits, projectStatusValues, projectToolValues, type ProjectFormInput } from "../schemas";
 import type { Project, ProjectClient, ProjectOwnerOption, ProjectStatus, ProjectTool } from "../summary";
 import { projectTagGroups, projectTagHue, projectTags } from "../tags";
-import { ToolBubble } from "./tool-bubble";
+import { ToolTile } from "./tool-tile";
 import styles from "./project-form-dialog.module.css";
 
 /** O que a gaveta edita: um projeto da lista (que já é a ficha inteira) ou `"new"` para criar. Nulo fecha. */
@@ -156,7 +156,7 @@ function Section({ icon: Glyph, title, children }: { icon: Icon; title: string; 
 // fixos no rodapé. No celular o rodapé some e salvar e sair vão para a barra flutuante do menu. Três blocos
 // separados por fio: o projeto (a capa anexada, nome, endereço, a descrição de até cem caracteres, cliente,
 // quem responde, a situação e o interruptor de público), prazo e valor (começo, entrega, a faixa de valor e o
-// andamento) e ferramentas e etiquetas (as marcas escolhidas num seletor com busca, cada uma com a bolinha da
+// andamento) e ferramentas e etiquetas (as marcas escolhidas num seletor com busca, cada uma com o azulejo da
 // cor dela, e as etiquetas). O estado é local e o envio é a action, que valida com zod de novo no servidor;
 // erro de campo volta para o campo, e sucesso avisa e devolve o id.
 export function ProjectFormDialog({ editor, clients, owners, onClose, onSaved }: ProjectFormDialogProps) {
@@ -436,9 +436,9 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   );
 }
 
-/* As ferramentas escolhidas, cada uma numa ficha com a bolinha da marca, o nome e o × para tirar, e no fim o
+/* As ferramentas escolhidas, cada uma numa ficha com o azulejo da marca, o nome e o × para tirar, e no fim o
    botão de somar, só em glifo, que abre o leque com busca: todas as marcas da casa em interruptores, com a
-   bolinha da cor de cada uma na frente, para escolher pelo desenho e não só pelo nome. A ordem é a de entrada,
+   azulejo da cor de cada uma na frente, para escolher pelo desenho e não só pelo nome. A ordem é a de entrada,
    que é a que o cartão mostra. */
 function ToolPicker({ id, value, disabled, onChange }: { id?: string; value: ProjectTool[]; disabled?: boolean; onChange: (tools: ProjectTool[]) => void }) {
   const toggle = (tool: ProjectTool, checked: boolean) => onChange(checked ? [...value, tool] : value.filter((entry) => entry !== tool));
@@ -446,8 +446,8 @@ function ToolPicker({ id, value, disabled, onChange }: { id?: string; value: Pro
   return (
     <div id={id} className={styles.picker}>
       {value.map((tool) => (
-        <span key={tool} className={styles.chip}>
-          <ToolBubble tool={tool} />
+        <span key={tool} className={styles.chip} {...squircle("md")}>
+          <ToolTile tool={tool} />
           <Text as="span" variant="footnote" weight="medium" truncate>
             {projectTools[tool]}
           </Text>
@@ -469,7 +469,7 @@ function ToolPicker({ id, value, disabled, onChange }: { id?: string; value: Pro
               kind: "toggle" as const,
               id: tool,
               label: projectTools[tool],
-              media: <ToolBubble tool={tool} className={styles.menuBubble} />,
+              media: <ToolTile tool={tool} className={styles.menuTile} />,
               checked: value.includes(tool),
               onChange: (checked: boolean) => toggle(tool, checked),
             })),
@@ -495,7 +495,7 @@ function TagPicker({ id, value, disabled, onChange }: { id?: string; value: stri
   return (
     <div id={id} className={styles.picker}>
       {value.map((tag) => (
-        <span key={tag} className={styles.chip}>
+        <span key={tag} className={styles.chip} {...squircle("md")}>
           <span className={styles.dot} style={{ "--dot-hue": projectTagHue(tag) } as CSSProperties} aria-hidden="true" />
           <Text as="span" variant="footnote" weight="medium" truncate>
             {tag}

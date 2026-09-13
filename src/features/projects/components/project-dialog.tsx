@@ -20,7 +20,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { TextLink } from "@/components/ui/link";
 import { ProfileFact, ProfileFacts, ProfileList, ProfileRow, ProfileSection, ProfileTags } from "@/components/ui/profile";
 import { Progress } from "@/components/ui/progress";
+import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -44,7 +45,7 @@ import { projectArtworkUrl } from "../list-options";
 import type { Project, ProjectDetails } from "../summary";
 import { projectTagHue } from "../tags";
 import { ProjectMenu } from "./project-menu";
-import { ToolBubble } from "./tool-bubble";
+import { ToolTile } from "./tool-tile";
 import styles from "./project-dialog.module.css";
 
 export type ProjectDialogProps = {
@@ -57,6 +58,21 @@ export type ProjectDialogProps = {
 
 /** Quantas tarefas a ficha lista antes de mandar para o quadro. */
 const SHOWN_TASKS = 6;
+
+/** Quanto o dedo precisa andar na horizontal para o arrasto virar troca de metade, e não rolagem torta. */
+const SWIPE = 56;
+
+/** Qual metade da janela está à vista no celular, onde as duas não cabem lado a lado. */
+type ProjectTab = "details" | "activity";
+
+/* As duas metades no seletor que flutua acima da bandeja, no celular, com os mesmos nomes da ficha da tarefa. */
+const projectTabs = [
+  { id: "details", label: "Informações" },
+  { id: "activity", label: "Atividade" },
+] as const satisfies readonly { id: ProjectTab; label: string }[];
+
+/** O canto do azulejo dentro da etiqueta `lg`: o raio `md` dela (12) menos o fio e o recuo que os separam. */
+const TAG_TILE_CORNER = 9;
 
 /* Links que saem da aplicação abrem em outra aba. */
 const external = { target: "_blank", rel: "noreferrer" };
@@ -71,21 +87,50 @@ const firstName = (name: string) => name.split(" ")[0] ?? name;
 // os atalhos só em glifo (o site, editar e o quadro de tarefas; a versão com texto durou uma rodada e saiu a
 // pedido), a descrição, os números em azulejo e as seções nos primitivos de perfil da casa (detalhes,
 // ferramentas, etiquetas, tarefas, orçamentos, contratos e cobranças). À direita, numa coluna própria, a
-// equipe e a atividade recente. Abaixo de 64rem a coluna desce para baixo da ficha e tudo rola junto; no
-// celular a janela é a bandeja da casa e as ações moram na barra flutuante.
+// equipe e a atividade recente. Entre 48 e 64rem a coluna desce para baixo da ficha e tudo rola junto.
+//
+// **No celular a janela segue a ficha da tarefa** (a pedido, 2026-09-13): a bandeja da casa mostra uma metade
+// por vez, Informações ou Atividade, trocadas pelo seletor que flutua acima da bandeja (`SheetSwitcher`, pela
+// prop `above` da `Dialog`) ou pelo arrasto para o lado; os atalhos saem da identidade, porque as ações moram
+// na barra flutuante. Toda abertura começa em Informações: a janela é uma só para a grade inteira, e sem
+// isso quem tivesse ido para a atividade abriria o projeto seguinte já nela.
 //
 // Uma janela só para a grade inteira, guardando quem está aberto: com doze cartões seriam doze janelas
 // montadas, a mesma decisão da ficha do cliente. A ficha completa é buscada ao abrir, e o cabeçalho já
 // mostra o que o cartão sabia, então a janela nunca abre vazia.
 export function ProjectDialog({ project, onClose, onEdit }: ProjectDialogProps) {
+  /* A metade à vista mora aqui, e não no miolo, porque o seletor que a troca é desenhado pela `Dialog` fora da
+     bandeja. Volta para Informações a cada projeto novo, ajustado durante o render, como o React pede. */
+  const [tab, setTab] = useState<ProjectTab>("details");
+  const [seen, setSeen] = useState(project?.id);
+  if (project && project.id !== seen) {
+    setSeen(project.id);
+    setTab("details");
+  }
+
   return (
-    <Dialog open={Boolean(project)} onClose={onClose} label={project ? `Projeto ${project.name}` : "Projeto"} size="xl" focusOnOpen={false}>
-      {project && <ProjectDetail key={project.id} project={project} onClose={onClose} onEdit={() => onEdit(project)} />}
+    <Dialog
+      open={Boolean(project)}
+      onClose={onClose}
+      label={project ? `Projeto ${project.name}` : "Projeto"}
+      size="xl"
+      focusOnOpen={false}
+      above={project && <SheetSwitcher label="O que ver do projeto" options={projectTabs} value={tab} onChange={setTab} />}
+    >
+      {project && <ProjectDetail key={project.id} project={project} tab={tab} onTabChange={setTab} onClose={onClose} onEdit={() => onEdit(project)} />}
     </Dialog>
   );
 }
 
-function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose: () => void; onEdit: () => void }) {
+type ProjectDetailProps = {
+  project: Project;
+  tab: ProjectTab;
+  onTabChange: (tab: ProjectTab) => void;
+  onClose: () => void;
+  onEdit: () => void;
+};
+
+function ProjectDetail({ project, tab, onTabChange, onClose, onEdit }: ProjectDetailProps) {
   const router = useRouter();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [full, setFull] = useState<ProjectDetails | null>(null);
@@ -94,6 +139,33 @@ function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose
   const board = `/tarefas/${project.slug}` as Route;
   const hue = { "--project-hue": `var(--sys-${project.hue})` } as CSSProperties;
   const site = project.url;
+
+  /* O arrasto para o lado que vira a metade, na receita da ficha da tarefa: puxar para a esquerda vai para a
+     atividade e para a direita volta para a ficha. A conta é feita no soltar: o dedo precisa andar `SWIPE` na
+     horizontal e menos que isso na vertical, senão a rolagem viraria troca de metade no primeiro deslize
+     torto; gesto que nasce num controle é do controle, e não da janela. */
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+
+  const onSwipeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") return;
+    const from = event.target as HTMLElement;
+    if (from.closest("input, textarea, button, a, [role='button'], [role='menuitem']")) return;
+    swipe.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const onSwipeCancel = () => {
+    swipe.current = null;
+  };
+
+  const onSwipeEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const from = swipe.current;
+    swipe.current = null;
+    if (!from) return;
+    const moveX = event.clientX - from.x;
+    const moveY = event.clientY - from.y;
+    if (Math.abs(moveX) < SWIPE || Math.abs(moveY) > Math.abs(moveX)) return;
+    onTabChange(moveX < 0 ? "activity" : "details");
+  };
 
   // Refeita a cada projeto novo que chega, e não só a cada id: depois de editar, o projeto volta do servidor
   // como outro objeto com o mesmo id, e a ficha completa acompanha sem piscar, porque a anterior fica no
@@ -109,13 +181,14 @@ function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose
   }, [project]);
 
   /* No celular as ações da janela moram na barra flutuante, no contrato de toda janela da casa: o quadro de
-     tarefas como principal, que é para onde se vai a partir do projeto, editar e o site em glifo, e o X que
-     fecha. Registrado aqui dentro, e não em quem monta a janela, porque a barra elege quem registrou na maior
+     tarefas como principal, que é para onde se vai a partir do projeto ("Tarefas", curto, porque a barra
+     divide a largura da tela com duas secundárias e o sair), editar e o site em glifo, e o X que fecha.
+     Registrado aqui dentro, e não em quem monta a janela, porque a barra elege quem registrou na maior
      profundidade. */
   useFloatingActionsRegistration(
     mobile
       ? {
-          primary: { label: "Quadro de tarefas", icon: <KanbanIcon weight="bold" />, onClick: () => router.push(board) },
+          primary: { label: "Tarefas", icon: <KanbanIcon weight="bold" />, onClick: () => router.push(board) },
           extras: [
             { label: "Editar projeto", icon: <PencilSimpleIcon weight="bold" />, onClick: onEdit },
             ...(site ? [{ label: `Abrir ${siteLabel(site)}`, icon: <GlobeSimpleIcon weight="bold" />, onClick: () => window.open(site, "_blank", "noreferrer") }] : []),
@@ -151,7 +224,7 @@ function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose
         </div>
       </header>
 
-      <div className={styles.body}>
+      <div className={styles.body} data-tab={tab} onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
         <section className={styles.main} aria-label="Ficha do projeto">
           {/* A capa como abertura da ficha, na mesma receita do cartão: a imagem anexada ou a arte gerada no
               matiz do projeto, numa faixa mais deitada que a do cartão porque aqui ela tem largura de sobra. */}
@@ -284,8 +357,9 @@ function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose
                 </ProfileFacts>
               </ProfileSection>
 
-              {/* Todas as ferramentas, cada uma numa etiqueta com a bolinha da marca e o nome (a etiqueta
-                  voltou a pedido, 2026-09-13: a lista em colunas durou uma rodada e lia pior). */}
+              {/* Todas as ferramentas, cada uma numa etiqueta com o azulejo da marca e o nome (a etiqueta
+                  voltou a pedido, 2026-09-13: a lista em colunas durou uma rodada e lia pior). O canto do
+                  azulejo é concêntrico ao da etiqueta, para os dois lerem como uma peça só. */}
               <ProfileSection title="Ferramentas">
                 {project.tools.length === 0 ? (
                   <Text variant="footnote" tone="secondary">
@@ -294,7 +368,7 @@ function ProjectDetail({ project, onClose, onEdit }: { project: Project; onClose
                 ) : (
                   <ProfileTags>
                     {project.tools.map((tool) => (
-                      <Badge key={tool} variant="outline" size="lg" className={styles.toolTag} icon={<ToolBubble tool={tool} />}>
+                      <Badge key={tool} variant="outline" size="lg" className={styles.toolTag} icon={<ToolTile tool={tool} radius={TAG_TILE_CORNER} />}>
                         {projectTools[tool]}
                       </Badge>
                     ))}
