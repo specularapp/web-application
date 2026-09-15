@@ -1,8 +1,13 @@
 /* Concha do app: a trilha do menu é limite duro de 16rem e o conteúdo rola sozinho na segunda
-   coluna. A concha não abre recuo nenhum: cada tela traz o seu por dentro. */
+   coluna. A concha não abre recuo nenhum: cada tela traz o seu por dentro.
+
+   A terceira trilha é a coluna do assistente, e ela mede o que a coluna pedir: fechada, a coluna não existe
+   na árvore e a trilha zera; aberta, ela anda na própria largura e o conteúdo é empurrado pela grade. O
+   `relative` é para quando ela flutua, em notebook estreito, em vez de empurrar. */
 .shell {
+  position: relative;
   display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-columns: 16rem minmax(0, 1fr) auto;
   height: 100dvh;
   background-color: var(--color-bg);
 }

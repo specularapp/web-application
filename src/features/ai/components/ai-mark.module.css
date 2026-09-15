@@ -1,0 +1,7 @@
+/* O símbolo da casa no degradê da IA, com um halo da própria cor saindo por trás. O halo é sombra do
+   desenho, e não do retângulo, porque `drop-shadow` segue o recorte da máscara: uma sombra de caixa aqui
+   desenharia um quadrado brilhante em volta do símbolo. */
+.glyph {
+  background-image: var(--gradient-ai);
+  filter: drop-shadow(0 0 0.5rem color-mix(in oklab, var(--sys-blue) 45%, transparent));
+}

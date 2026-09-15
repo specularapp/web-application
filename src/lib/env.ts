@@ -32,6 +32,10 @@ export function hasStripe() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 }
 
+export function hasAi() {
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
 export const env = {
   supabase: define(
     "Supabase",

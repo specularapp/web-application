@@ -1,0 +1,222 @@
+/**
+ * A coluna do assistente é a terceira trilha da concha: ela abre espaço andando na própria largura, e a
+ * grade repassa o empurrão para a coluna do conteúdo. A caixa de dentro tem largura fixa e desliza por cima
+ * desse espaço, então o que se vê é a coluna entrando pela lateral, e não o texto se espremendo.
+ *
+ * Animar largura mexe no layout a cada quadro, e é o preço de empurrar em vez de cobrir: é o que a coluna
+ * **é**. Quem não pode pagar isso é camada flutuante, e essa anda em `translate`, como a gaveta da casa.
+ */
+.panel {
+  --ai-width: clamp(19rem, 26vw, 24.5rem);
+
+  position: relative;
+  width: var(--ai-width);
+  overflow: hidden;
+}
+
+/**
+ * As manchas de cor moram **atrás** do vidro, e não dentro dele (2026-09-14, a pedido, depois de o vidro não
+ * aparecer). É o que faltava para ele existir aqui: empurrando, atrás da coluna só há o fundo chapado da
+ * concha, e borrão sobre cor lisa não desenha nada. Com as manchas nesta camada, o `backdrop-filter` da
+ * caixa de cima tem o que borrar, e o que se vê é o vidro da janela de plano, que é o pedido.
+ */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(80% 30% at 100% 0%, color-mix(in oklab, var(--sys-cyan) 30%, transparent), transparent 70%),
+    radial-gradient(70% 26% at 0% 100%, color-mix(in oklab, var(--sys-green) 22%, transparent), transparent 70%),
+    radial-gradient(120% 40% at 50% 108%, color-mix(in oklab, var(--color-ai) 34%, transparent), transparent 72%);
+}
+
+/**
+ * Colada na borda e sem canto, como o menu lateral do outro lado (a pedido, 2026-09-14, depois de uma rodada
+ * em cartão solto): a coluna é parte da concha, e não uma caixa pousada sobre ela. O que a separa do
+ * conteúdo é o mesmo fio de sempre.
+ */
+.inner {
+  position: relative;
+  display: flex;
+  width: var(--ai-width);
+  height: 100%;
+  /* A receita de vidro das camadas, a mesma da janela de plano: fundo a 20% e borrão de 16px. O que ele
+     borra são as manchas de cor da camada de baixo, e é daí que vem o brilho difuso atrás da conversa. */
+  background-color: var(--glass-layer-bg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  border-inline-start: 0.0375rem solid var(--color-border);
+}
+
+@keyframes widen {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes narrow {
+  to {
+    width: 0;
+  }
+}
+
+@keyframes slide {
+  from {
+    translate: 100% 0;
+  }
+}
+
+@keyframes leave {
+  to {
+    translate: 100% 0;
+  }
+}
+
+/* Entra com a curva que assenta, em 420ms, e sai mais curta, em 320: quem fecha já decidiu. */
+.panel[data-state="open"] {
+  animation: widen var(--duration-glide) var(--ease-settle) both;
+}
+
+.panel[data-state="closed"] {
+  animation: narrow var(--duration-slow) var(--ease-leave) both;
+}
+
+.panel[data-state="open"] .inner {
+  animation: slide var(--duration-glide) var(--ease-settle) both;
+}
+
+.panel[data-state="closed"] .inner {
+  animation: leave var(--duration-slow) var(--ease-leave) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel[data-state="open"] .inner,
+  .panel[data-state="closed"] .inner {
+    animation: none;
+  }
+}
+
+/**
+ * Em notebook estreito a coluna para de empurrar e flutua sobre o conteúdo: com o menu de 16rem de um lado e
+ * a coluna do outro, a página ficaria com pouco mais de duzentos pixels, que não servem para ler tabela
+ * nenhuma. Fora do fluxo, a trilha da grade zera sozinha e o conteúdo continua inteiro por baixo.
+ *
+ * Um degrau acima do topo grudado da página, que é `z-index: 1`, e nada além disso: os menus e as janelas
+ * moram no `body`, em camadas muito acima, e a coluna não pode passar na frente deles.
+ */
+@media (min-width: 48rem) and (max-width: 63.9375rem) {
+  .panel {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: 2;
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* Cabeçalho, a conversa e o compositor no pé. */
+.body {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Na bandeja do celular a altura é fixa: sem ela a bandeja teria o tamanho do vazio, e a conversa depois
+   faria a caixa saltar de altura a cada resposta. Abaixo do teto de 85dvh da bandeja, para a alça e a faixa
+   de segurança do aparelho ainda caberem. */
+@media (max-width: 47.9375rem) {
+  .body {
+    height: 78dvh;
+  }
+}
+
+/* O mesmo brilho para a bandeja do celular, onde não existe a camada de trás para o vidro borrar: ali ele é
+   pintado por dentro mesmo, mais fraco, só para a bandeja não ler como caixa chapada. */
+@media (max-width: 47.9375rem) {
+  .body::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 0;
+    height: 62%;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--color-ai) 22%, transparent),
+      color-mix(in oklab, var(--color-ai) 8%, transparent) 45%,
+      transparent
+    );
+  }
+}
+
+.body > * {
+  position: relative;
+  z-index: 1;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  /* A mesma altura do topo da página, para a emenda entre as duas colunas ser uma linha contínua (a pedido,
+     2026-09-14): meio pixel de diferença ali já lê como desalinho. */
+  min-height: var(--topbar-height);
+  padding-inline: var(--space-3) var(--space-2);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+}
+
+.headEnd {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* A conversa rola por dentro e o conteúdo pousa no pé: ela cresce de baixo para cima. Quem empurra para
+   baixo é a margem automática do conteúdo, e não um alinhamento do container: alinhar no fim deixa o começo
+   do que transborda fora do alcance da rolagem, e a conversa comprida não subiria inteira. */
+.scroller {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* O vazio no desenho das referências: a marca, a saudação em corpo grande e, abaixo, as pílulas do que dá
+   para pedir. Centralizado, porque não há conversa nenhuma em volta para alinhar. */
+.empty {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  /* No meio do que rola, e não encostado no compositor (a pedido, 2026-09-14): a saudação é a tela de
+     abertura do SpeculAI, e tela de abertura mora no centro. As duas margens automáticas é que a centram, e
+     não um alinhamento do container, que deixaria o começo do que transborda fora do alcance da rolagem. */
+  margin-block: auto;
+  text-align: center;
+}
+
+.greetingMark {
+  margin-block-end: var(--space-3);
+}
+
+.greetingLine {
+  max-width: 17rem;
+}

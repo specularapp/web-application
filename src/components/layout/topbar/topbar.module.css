@@ -12,7 +12,9 @@
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  min-height: 3.25rem;
+  /* Do token, e não solto aqui: o cabeçalho do assistente na coluna ao lado mede pela mesma variável, e a
+     emenda entre as duas colunas tem de ser uma linha contínua (2026-09-14). */
+  min-height: var(--topbar-height);
   padding-inline: var(--space-4);
   background-color: var(--color-bg);
   border-block-end: 0.0375rem solid var(--color-border);
@@ -82,8 +84,7 @@
 }
 
 /* O uso da IA sem caixa nenhuma: a marca e a régua soltas na moldura, no fantasma dos controles da casa,
-   que só ganha preenchimento no hover. A altura é a do controle pequeno, e o `font-size` é o que
-   dimensiona a marca, porque o `BrandIcon` mede em `em`. */
+   que só ganha preenchimento no hover. A altura é a do controle pequeno. */
 .ai {
   display: inline-flex;
   flex-shrink: 0;
@@ -106,6 +107,12 @@
     background-color: var(--color-fill-quaternary);
     transition-duration: var(--duration-base);
   }
+}
+
+/* Com a coluna do assistente aberta o widget fica preenchido: ele é um botão que liga e desliga, e sem sinal
+   nenhum a pessoa não saberia que é ele quem fecha. */
+.ai[data-open] {
+  background-color: var(--color-fill-tertiary);
 }
 
 /* Anel de foco só onde há teclado de verdade: no toque ele acendia azul depois do dedo. */

@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
      rastreamento do build não enxerga essa leitura, porque o caminho é montado em tempo de execução. */
   outputFileTracingIncludes: {
     "/orcamento/*/pdf": ["./public/fonts/inter/**"],
+    "/contrato/*/pdf": ["./public/fonts/inter/**"],
+    "/api/contratos/*/pdf": ["./public/fonts/inter/**"],
   },
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],

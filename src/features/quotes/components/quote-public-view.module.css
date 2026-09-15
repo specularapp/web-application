@@ -41,7 +41,7 @@
   align-items: center;
   max-width: calc(100vw - var(--space-8));
   padding: var(--space-1);
-  background-color: var(--glass-layer-bg);
+  background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);

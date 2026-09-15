@@ -1310,6 +1310,7 @@ const pending = [
   {
     area: "layout",
     names: [
+      "AiPanel",
       "AppShell",
       "CommandPalette",
       "Sidebar",

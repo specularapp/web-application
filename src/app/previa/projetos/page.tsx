@@ -46,7 +46,7 @@ export default async function ProjectsPreviewPage({ searchParams }: PageProps<"/
   const editing = first(params.novo) ? "new" : editingId ? findProject(editingId) : null;
 
   return (
-    <AppFrame sidebar={<Sidebar {...previewSidebar} />}>
+    <AppFrame ai={{ usage: previewAiUsage, viewer: previewSidebar.user.name }} sidebar={<Sidebar {...previewSidebar} />}>
       <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} viewing={viewing} editing={editing} clients={readProjectClients()} owners={readProjectOwners()} />
     </AppFrame>
   );

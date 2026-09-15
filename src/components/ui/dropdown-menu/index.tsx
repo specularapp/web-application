@@ -88,6 +88,12 @@ export type DropdownMenuProps = {
    * um rosto com o nome, texto solto) continuar parecendo o que é e ainda dar as opções.
    */
   triggerContent?: ReactNode;
+  /**
+   * A superfície do painel: o vidro da casa, ou sólida (2026-09-15) para o leque que abre sobre conteúdo
+   * de outra luz, como a folha branca do contrato no tema escuro, em que o vidro a 20% deixava o texto do
+   * menu quase invisível.
+   */
+  surface?: "glass" | "solid";
 };
 
 export type DropdownTrigger = Pick<ButtonProps, "variant" | "radius" | "background" | "foreground" | "border">;
@@ -128,6 +134,12 @@ const Popover = styled.div`
   transform-origin: top left;
 
   ${layerMotion};
+
+  &[data-surface="solid"] {
+    background-color: var(--color-bg-tertiary);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 
   /* Só a lista rola, e a busca fica parada no topo: com o painel inteiro rolando, o campo de busca saía
      de vista no primeiro giro da roda. */
@@ -421,7 +433,7 @@ function isExternal(href: string) {
 // rota ou endereço externo), com seta de mais opções, selo do plano que libera e contagem no fim da
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
-export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent }: DropdownMenuProps) {
+export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "glass" }: DropdownMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -678,7 +690,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       )}
 
       {mobile ? (
-        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface={surface === "solid" ? "solid" : "glass"} scrim={false} focusOnOpen={false}>
           <Sheet role="menu" aria-label={label} onKeyDown={onKeyDown}>
             {list}
           </Sheet>
@@ -690,6 +702,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
             ref={popoverRef}
             role="menu"
             aria-label={label}
+            data-surface={surface}
             data-placement={resolved?.placement ?? position?.placement ?? "below"}
             data-state={state}
             style={resolved ? { top: resolved.top, left: resolved.left } : { visibility: "hidden" }}

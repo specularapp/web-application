@@ -149,6 +149,24 @@
   --color-whatsapp: #25d366;
   --color-on-whatsapp: #ffffff;
 
+  /* A cor da IA (2026-09-14): um azul calmo, mais lavado e mais frio que o azul de acento, que é o da ação e
+     não podia virar marca de outra coisa. É ela que veste a marca da casa dentro do assistente, o cursor da
+     resposta e o brilho que sobe do pé da coluna. Mais fechada no claro e mais aberta no escuro, como toda
+     cor daqui, para o contraste ser o mesmo nos dois temas. */
+  --color-ai: light-dark(#5b84b8, #8fb6e0);
+  /* A marca da casa dentro do SpeculAI não é chapada: ela é este degradê, que **varre do frio ao quente**,
+     do azul ao amarelo passando pelo ciano e pelo verde. É o espírito da marca do Gemini, que o usuário deu
+     de referência, sem ser a paleta dela: o vermelho, que é o que a identifica de relance, fica de fora, e as
+     quatro paradas são as cores do sistema da casa. Duas rodadas só de cores frias saíram antes desta, e o
+     que faltava nelas era justamente a ponta quente. */
+  --gradient-ai: linear-gradient(
+    135deg,
+    var(--sys-blue) 0%,
+    var(--sys-cyan) 28%,
+    var(--sys-green) 62%,
+    var(--sys-yellow) 100%
+  );
+
   --color-label: light-dark(#000000, #ffffff);
   --color-label-secondary: light-dark(rgb(60 60 67 / 0.6), rgb(235 235 245 / 0.6));
   --color-label-tertiary: light-dark(rgb(60 60 67 / 0.3), rgb(235 235 245 / 0.3));

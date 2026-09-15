@@ -49,7 +49,7 @@ export default async function TasksPreviewPage({ searchParams }: PageProps<"/pre
   const stages = project ? project.stages : stagesInUse(previewTasks);
 
   return (
-    <AppFrame sidebar={<Sidebar {...previewSidebar} taskRoute={project?.slug} />}>
+    <AppFrame ai={{ usage: previewAiUsage, viewer: previewSidebar.user.name }} sidebar={<Sidebar {...previewSidebar} taskRoute={project?.slug} />}>
       <TasksScreen
         board={buildTasksBoard(tasks, query, stages)}
         query={query}

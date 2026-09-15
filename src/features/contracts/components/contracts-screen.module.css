@@ -1,0 +1,21 @@
+/* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra. A
+   coluna é `minmax(0, 1fr)` porque conteúdo largo alargaria a página numa trilha automática, e a altura é a
+   da área de conteúdo, com a trilha em `minmax(0, 1fr)`, na mesma moldura da base de clientes, do catálogo e
+   dos projetos: é o que deixa a prancha ter altura fixa e rolar por dentro quando a lista existir. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+/* No celular a tela não tem altura fixa: a prancha cresce em fluxo e quem rola é a coluna de conteúdo da
+   concha. Com `height: 100%` aqui, o retângulo em que o topo pode grudar terminava no fim da tela, e ao
+   passar dessa altura ele descolava e subia junto com o conteúdo (lição de 2026-09-09). */
+@media (max-width: 47.9375rem) {
+  .screen {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100%;
+  }
+}

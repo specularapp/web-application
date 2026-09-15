@@ -18,3 +18,15 @@ export function aiShare(usage: AiUsage) {
 export function aiRemaining(usage: AiUsage) {
   return Math.max(0, usage.limit - usage.used);
 }
+
+/** Um áudio ditado no compositor: onde ele está e quanto dura. Mesma forma do áudio da conversa da tarefa,
+ *  que é de onde vem o gravador. */
+export type AiVoice = { url: string; seconds: number };
+
+/** Um arquivo pendurado na mensagem antes de ela sair: o nome e o tamanho já escritos como a pessoa lê. */
+export type AiAttachment = { id: string; name: string; size: string };
+
+/** O primeiro nome de quem está na conta, para a saudação do vazio falar com a pessoa e não com o cadastro. */
+export function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] ?? name;
+}

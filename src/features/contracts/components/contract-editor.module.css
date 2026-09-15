@@ -1,0 +1,426 @@
+/* O editor toma a área de conteúdo: a barra em cima e, embaixo, o trabalho em colunas que rolam por dentro
+   no desktop. No celular tudo segue em fluxo. */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100%;
+}
+
+@media (min-width: 48rem) {
+  .editor {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+/* A barra: voltar, a rota com o título e o identificador, o estado do salvamento e as ações na ponta. */
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.crumbs {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+.reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.saveState {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 47.9375rem) {
+  .crumbs .reference,
+  .saveState {
+    display: none;
+  }
+}
+
+.barActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* Enviar com texto no desktop e só o glifo no celular, por CSS. */
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}
+
+/* O trabalho: só o documento abaixo de 64rem; a partir daí a ficha ao lado, em 22rem (acerto de 2026-09-14:
+   os 18rem quebravam os rótulos), e, só no PDF anexado, a coluna dos campos à direita. Cada uma rola por conta. */
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 64rem) {
+  .work {
+    grid-template-columns: 22rem minmax(0, 1fr);
+  }
+
+  .work[data-tools] {
+    grid-template-columns: 22rem minmax(0, 1fr) 17rem;
+  }
+
+  .panel,
+  .stage {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Os painéis: a ficha à esquerda e, no PDF, os campos à direita, com o fio para o documento. */
+.panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+}
+
+.setup {
+  border-inline-end: 0.0375rem solid var(--color-border);
+}
+
+.tools {
+  border-inline-start: 0.0375rem solid var(--color-border);
+}
+
+.panelBody {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Os grupos da ficha: o título miúdo em cima e os campos embaixo, separados por fio. */
+.setupGroup {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.setupGroup + .setupGroup {
+  padding-block-start: var(--space-4);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.setupTitle {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* O palco do documento: a barra de ferramentas presa em cima e a folha centrada sobre o fundo agrupado,
+   como papel na mesa. `align-items: start` para a folha medir o próprio conteúdo, e não a linha da grade. */
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-content: start;
+  align-items: start;
+  justify-items: center;
+  min-width: 0;
+  padding: var(--space-4) var(--space-4) var(--space-16);
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+/* A caixa das ferramentas, presa no topo enquanto o documento rola: a barra e, quando aberta, a linha do
+   link embaixo. Na largura do que tem dentro, e não da folha (acerto de 2026-09-14: "um pouco menor, para
+   ficar mais fluido"), centrada sobre o papel. */
+.toolbox {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* A barra: uma linha no vidro da bandeja (o de mais corpo, porque ela passa por cima da folha branca e o
+   vidro a 20% deixava o texto do documento aparecer por baixo), com os grupos separados por fio e o botão da
+   IA na ponta. Sem quebrar linha: quando não cabe, rola de lado. */
+.toolbar {
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--space-half);
+  overflow-x: auto;
+  scrollbar-width: none;
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+/* A linha do link: o endereço, o botão de aplicar e o X, no mesmo vidro, na largura da barra. */
+.linkBar {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-half);
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.linkBar > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbarGroup {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+}
+
+.toolbarRule {
+  flex-shrink: 0;
+  width: 0.0375rem;
+  height: 1.25rem;
+  margin-inline: var(--space-half);
+  background-color: var(--color-border);
+}
+
+/* O tipo do bloco cabe numa medida fixa, para a barra não mudar de tamanho a cada bloco. */
+.blockTrigger {
+  justify-content: space-between;
+  width: 7.5rem;
+  font-weight: var(--weight-medium);
+}
+
+/* Os botões de leque com nome (Opções e IA), vestidos de botão de contorno com o glifo, o nome e a seta. */
+.menuTrigger {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-3) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  white-space: nowrap;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.menuTrigger svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.menuTrigger[data-busy] {
+  opacity: 0.6;
+}
+
+.menuCaret {
+  color: var(--color-label-tertiary);
+}
+
+@media (hover: hover) {
+  .menuTrigger:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .stage {
+    padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
+  }
+}
+
+/* A folha no editor: a mesma da página pública, com a sombra de papel e o canto, porque aqui é quem a
+   emoldura. O texto é o Tiptap, com a tipografia do documento na raiz editável. A partir do tablet a folha
+   tem a proporção da A4 (acerto de 2026-09-14, "bem encaixado"): com pouco texto as assinaturas pousam no pé
+   da página, e com mais texto ela cresce, porque a razão é preferência e o mínimo automático é o conteúdo. */
+.stage .sheet {
+  width: 100%;
+  max-width: 52rem;
+  min-height: 30rem;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 48rem) {
+  .stage .sheet {
+    aspect-ratio: 210 / 297;
+    min-height: auto;
+  }
+}
+
+.content :global(.ProseMirror) {
+  min-height: 20rem;
+  outline: none;
+}
+
+/* O texto de convite no documento vazio, do Tiptap: aparece no primeiro parágrafo enquanto não há nada. */
+.content :global(.is-editor-empty)::before {
+  float: left;
+  height: 0;
+  color: var(--color-placeholder);
+  pointer-events: none;
+  content: attr(data-placeholder);
+}
+
+/* A bolinha da cor do estilo no leque, no lugar do glifo: diz qual opção é, como nas etiquetas. */
+.dot {
+  --dot-hue: var(--color-label);
+
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-inline-start: var(--space-half);
+  background-color: var(--dot-hue);
+  border-radius: var(--radius-full);
+}
+
+.dot[data-theme="blue"] {
+  --dot-hue: var(--sys-blue);
+}
+
+.dot[data-theme="green"] {
+  --dot-hue: var(--sys-green);
+}
+
+.dot[data-theme="yellow"] {
+  --dot-hue: var(--sys-yellow);
+}
+
+.dot[data-theme="purple"] {
+  --dot-hue: var(--sys-purple);
+}
+
+/* O menu que flutua sobre a seleção: vidro da casa, o fio e o canto `md`, com os glifos e a reescrita. */
+.bubble {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  padding: var(--space-half);
+  background-color: var(--glass-layer-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.bubbleRule {
+  width: 0.0375rem;
+  height: 1.25rem;
+  margin-inline: var(--space-half);
+  background-color: var(--color-border);
+}
+
+/* Um painel virado gaveta: título com o X e o conteúdo rolando, com a folga da barra flutuante no celular.
+   Classe própria, e não `.sheet` (acerto de 2026-09-14, medido: com o mesmo nome da folha do documento, o
+   `height: 100%` daqui prendia a folha à altura do palco e o texto vazava por baixo das assinaturas). */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+.drawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.drawerBody {
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .drawerBody {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}

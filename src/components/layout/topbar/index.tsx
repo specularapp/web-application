@@ -1,11 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { BrandIcon } from "@/components/ui/brand-icon";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { AiUsageDialog } from "@/features/ai/components/ai-usage-dialog";
+import { AiMark } from "@/features/ai/components/ai-mark";
+import { useAiPanel } from "@/features/ai/components/ai-panel-context";
 import { aiShare, type AiUsage } from "@/features/ai/summary";
 import { navLocation } from "../nav";
 import styles from "./topbar.module.css";
@@ -34,13 +33,14 @@ const usageLabel = (usage: AiUsage) => `${usage.used} de ${usage.limit} ações 
 // o topo de graça e não há um segundo mapa para sair de sincronia. A página troca o nome por `title`
 // quando se chama diferente do menu.
 //
-// O widget da IA é um botão: abre a janela com o resumo do ciclo e o caminho para comprar mais crédito.
-// A janela só monta aberta, então não pesa na carga da página.
+// O widget da IA é o botão que abre e fecha a coluna do SpeculAI (a pedido, 2026-09-14): a régua continua
+// dizendo quanto do ciclo já foi, e o resumo do uso, que era o que ele abria antes, virou atalho de dentro
+// da coluna. Assim a IA mora num lugar só, e não em dois que abrem do mesmo canto.
 export function Topbar({ title, ai }: TopbarProps) {
   const pathname = usePathname();
   const location = navLocation(pathname);
   const name = title ?? location?.page.label;
-  const [usageOpen, setUsageOpen] = useState(false);
+  const panel = useAiPanel();
 
   if (!name) return null;
 
@@ -80,30 +80,33 @@ export function Topbar({ title, ai }: TopbarProps) {
       </Text>
 
       <div className={styles.end}>
-        {ai && (
-          <>
-            <button
-              type="button"
-              className={styles.ai}
-              title={usageLabel(ai)}
-              aria-haspopup="dialog"
-              aria-expanded={usageOpen}
-              onClick={() => setUsageOpen(true)}
-            >
-              {/* A marca de quem responde, em máscara na tinta do texto, e a régua de barras dizendo o quanto
-                  do ciclo já foi, sem número na tela: cada degrau é uma fatia do plano, os acesos até onde
-                  chegou e os apagados até o fim. O número por extenso fica na leitura por voz e na dica do
-                  ponteiro. Monocromático porque mora na moldura e não é etiqueta de estado. */}
-              <BrandIcon name="openai" />
-              <span className={styles.meter} aria-hidden="true">
-                {Array.from({ length: AI_SEGMENTS }, (_, index) => (
-                  <span key={index} className={styles.bar} data-on={index < litSegments(ai) || undefined} />
-                ))}
-              </span>
-              <VisuallyHidden>{usageLabel(ai)}</VisuallyHidden>
-            </button>
-            <AiUsageDialog usage={ai} open={usageOpen} onClose={() => setUsageOpen(false)} />
-          </>
+        {/* Sem a concha em volta não há coluna para abrir, e um gatilho que não leva a lugar nenhum não
+            aparece: é o caso da tela pública, que não tem assistente. */}
+        {ai && panel && (
+          <button
+            type="button"
+            className={styles.ai}
+            title={usageLabel(ai)}
+            data-open={panel.open || undefined}
+            aria-expanded={panel.open}
+            onClick={panel.toggle}
+          >
+            {/* A marca da **casa**, no degradê da IA (a pedido, 2026-09-14): quem responde aqui é o SpeculAI, e
+                a marca do provedor no topo de toda página dizia o contrário. Ao lado, a régua de barras com o
+                quanto do ciclo já foi, sem número na tela: cada degrau é uma fatia do plano, os acesos até
+                onde chegou e os apagados até o fim. O número por extenso fica na leitura por voz e na dica do
+                ponteiro, e a régua segue monocromática, porque mora na moldura e não é etiqueta de estado. */}
+            <AiMark size={16} />
+            <span className={styles.meter} aria-hidden="true">
+              {Array.from({ length: AI_SEGMENTS }, (_, index) => (
+                <span key={index} className={styles.bar} data-on={index < litSegments(ai) || undefined} />
+              ))}
+            </span>
+            <VisuallyHidden>
+              {panel.open ? "Fechar o SpeculAI. " : "Abrir o SpeculAI. "}
+              {usageLabel(ai)}
+            </VisuallyHidden>
+          </button>
         )}
       </div>
     </header>

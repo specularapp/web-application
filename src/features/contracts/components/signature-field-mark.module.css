@@ -1,0 +1,51 @@
+/* O campo sobre a página: uma caixa tracejada no acento da casa, com o traço ou o rótulo em cima, a linha de
+   assinar e o registro miúdo embaixo. Assinado, o tracejado some e fica só o traço sobre a linha, como no
+   papel. Papel é branco, então as tintas aqui são fixas, e não do tema. */
+.field {
+  position: absolute;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  min-width: 0;
+  padding: 2% 3%;
+  overflow: hidden;
+  font-size: 0.6875rem;
+  background-color: rgb(0 122 255 / 6%);
+  border: 0.0625rem dashed rgb(0 122 255 / 55%);
+  border-radius: 0.375rem;
+  box-sizing: border-box;
+}
+
+.field[data-highlighted] {
+  background-color: rgb(0 122 255 / 12%);
+  border-color: rgb(0 122 255 / 90%);
+  box-shadow: 0 0 0 0.1875rem rgb(0 122 255 / 20%);
+}
+
+.field[data-signed] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.trace {
+  align-self: end;
+  justify-self: start;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+.label {
+  align-self: center;
+  color: rgb(0 73 158);
+}
+
+.line {
+  display: block;
+  height: 0.0625rem;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.stamp {
+  color: rgb(60 60 67 / 60%);
+}

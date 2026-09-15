@@ -1,0 +1,198 @@
+/* O fio da caixa é o do `Card`: a camada de fora com a cor do fio e um recuo da espessura dele, e a de
+   dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. É o que faz o canto sair em
+   superelipse também onde não há `corner-shape`, o que `border` não permite. Mesma receita dos cartões de
+   cliente, do catálogo, de orçamento e de projeto. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* No celular o canto cai um degrau, como no `Card`: o de 24px lia como pílula num cartão estreito. */
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+/* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a curva
+   de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. As partes são uma pilha em
+   coluna, assentada no topo. O anel dos rostos do pé (`--face-ring`) é o fundo do cartão, e acompanha o
+   hover. */
+.inner {
+  --face-ring: var(--color-bg);
+
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    padding: var(--space-5);
+  }
+}
+
+/* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque com o
+   dedo ou o mouse não acende anel nenhum. */
+@media (hover: hover) {
+  .inner:hover {
+    --face-ring: var(--color-bg-secondary);
+
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  --face-ring: var(--color-fill-quaternary);
+
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Cancelado, o cartão apaga o que é do contrato e deixa o tipo, a situação e o leque inteiros, porque é por
+   eles que se lê e se reabre. Só opacidade, sem trocar cor, como nos outros cartões. */
+.card[data-status="cancelled"] .copy,
+.card[data-status="cancelled"] .link,
+.card[data-status="cancelled"] .parties {
+  opacity: 0.55;
+}
+
+/* O tipo de um lado e, na outra ponta, a situação e o leque, colados. A etiqueta do tipo cede por reticências
+   se precisar; a situação e o leque nunca. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.end {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* O título e, colada embaixo, a descrição: um bloco só, com o vão pequeno entre as duas, e não o vão das
+   partes do cartão. */
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* O título em duas linhas, e não numa com reticências: é o nome do contrato, e cortá-lo tira justamente o
+   que o identifica. A descrição pelo mesmo corte. */
+.title,
+.description {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* A ficha pequena do vínculo, como a da referência: um bloco no preenchimento da casa, com o glifo num
+   azulejo de fundo, o nome e o endereço ou o valor embaixo. Canto `md` pelo sistema de cantos, e o azulejo
+   no `sm`, concêntrico com o recuo. */
+.link {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.linkIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.linkIcon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.linkCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+/* O pé: as partes de um lado e a data do outro, na receita do pé do cartão de projeto. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* Os rostos das partes, um entrando 6px sobre o outro, com o anel na cor do fundo do cartão separando os
+   vizinhos, como toda fila de rostos da casa. */
+.parties {
+  display: inline-flex;
+  align-items: center;
+}
+
+.party {
+  position: relative;
+  display: inline-flex;
+}
+
+.party + .party {
+  margin-inline-start: calc((var(--space-1) + var(--space-half)) * -1);
+}
+
+.face {
+  box-shadow: 0 0 0 2px var(--face-ring);
+}
+
+/* Quem já assinou leva o check em verde na quina do rosto, com o mesmo anel do fundo: é o que diz, sem
+   abrir nada, em que pé a assinatura está. */
+.mark {
+  position: absolute;
+  inset-block-end: -0.125rem;
+  inset-inline-end: -0.125rem;
+  display: grid;
+  place-items: center;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-on-accent);
+  background-color: var(--color-success);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 2px var(--face-ring);
+}
+
+.mark svg {
+  width: 0.5rem;
+  height: 0.5rem;
+}

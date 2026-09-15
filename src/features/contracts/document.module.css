@@ -1,0 +1,204 @@
+/* A folha do contrato, na forma da norma brasileira para documentos (decisão de 2026-09-14: "um documento
+   mais sério", com a identidade e a fonte da casa): papel branco em qualquer tema, margens de 3 cm em cima e
+   à esquerda e 2 cm embaixo e à direita, na proporção de uma A4 de 52rem, texto justificado com entrelinha
+   de 1,5 e corpo no tamanho de 12 pontos da tela. A Inter fica, porque a fonte é da casa; o que é da norma é
+   a mancha, o alinhamento e a hierarquia. O acento do tema tinge só as citações, os links e os fios, porque
+   as cláusulas de um contrato são pretas. Sem cabeçalho dentro da folha (2026-09-14): o título abre o
+   documento, como na norma. */
+.sheet {
+  --doc-pad-block: 4.6rem 3rem;
+  --doc-pad-inline: 4.6rem 3rem;
+  --doc-line: 0.0375rem;
+  --doc-accent: var(--color-label);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  padding-block: var(--doc-pad-block);
+  padding-inline: var(--doc-pad-inline);
+  margin-inline: auto;
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  border: var(--doc-line) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.sheet[data-theme="blue"] {
+  --doc-accent: var(--sys-blue);
+}
+
+.sheet[data-theme="green"] {
+  --doc-accent: var(--sys-green);
+}
+
+.sheet[data-theme="yellow"] {
+  --doc-accent: color-mix(in oklab, var(--sys-yellow) 75%, var(--color-label));
+}
+
+.sheet[data-theme="purple"] {
+  --doc-accent: var(--sys-purple);
+}
+
+/* Dentro do editor a folha não tem moldura nem canto: quem emoldura é o editor, e a folha é só o papel. */
+.sheet[data-variant="preview"] {
+  max-width: none;
+  margin-inline: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* No celular as margens da norma não cabem: a mancha toma a tela com o recuo da casa, e a folha continua
+   justificada com a mesma entrelinha. */
+@media (max-width: 47.9375rem) {
+  .sheet {
+    --doc-pad-block: var(--space-6) var(--space-5);
+    --doc-pad-inline: var(--space-5);
+
+    gap: var(--space-5);
+  }
+}
+
+/* O texto do documento: corpo de 16px (os 12 pontos da norma), entrelinha de 1,5, justificado. Os
+   elementos são os que o editor grava, então o seletor é por elemento, e não por classe. */
+.body {
+  font-family: var(--font-body);
+  font-size: var(--text-callout);
+  line-height: 1.5;
+  letter-spacing: var(--tracking-tight);
+  text-align: justify;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.body h1,
+.body h2,
+.body h3 {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  text-align: left;
+}
+
+/* O título do instrumento: caixa alta, centrado, no tamanho do corpo com um degrau, e a folga da norma
+   embaixo antes do preâmbulo. */
+.body h1 {
+  margin-block-end: var(--space-8);
+  font-size: var(--text-headline);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* A cláusula: caixa alta, em negrito e no tamanho do corpo, com uma linha e meia de respiro em cima e
+   meia embaixo. Preta, como em todo contrato. */
+.body h2 {
+  margin-block: var(--space-6) var(--space-2);
+  font-size: var(--text-callout);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.body h3 {
+  margin-block: var(--space-4) var(--space-1);
+  font-size: var(--text-callout);
+}
+
+.body p {
+  margin: 0;
+}
+
+.body p + p,
+.body h2 + p,
+.body h3 + p {
+  margin-block-start: var(--space-3);
+}
+
+.body ul,
+.body ol {
+  padding-inline-start: var(--space-6);
+  margin-block: var(--space-3);
+}
+
+.body li + li {
+  margin-block-start: var(--space-1);
+}
+
+.body li > p {
+  margin: 0;
+}
+
+.body blockquote {
+  padding-inline-start: var(--space-4);
+  margin: var(--space-3) 0;
+  color: var(--color-label-secondary);
+  border-inline-start: 0.1875rem solid var(--doc-accent);
+}
+
+.body hr {
+  height: var(--doc-line);
+  margin-block: var(--space-6);
+  background-color: var(--color-border);
+  border: 0;
+}
+
+.body a {
+  color: var(--doc-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.body strong {
+  font-weight: var(--weight-semibold);
+}
+
+/* O bloco de assinaturas: uma coluna por parte, lado a lado, cada uma com o espaço do traço, a linha de
+   assinar e o registro embaixo, com o papel da parte em caixa alta como nos contratos. Desce para uma coluna
+   no celular. */
+.signatures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-6) var(--space-8);
+  padding-block-start: var(--space-6);
+}
+
+.foot {
+  margin-block-start: auto;
+}
+
+.signer {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O lugar do traço, com altura fixa para a linha ficar no mesmo lugar em quem já assinou e em quem ainda
+   não. A imagem cabe dentro e assenta na linha. */
+.stroke {
+  display: flex;
+  align-items: flex-end;
+  height: 3.5rem;
+}
+
+.trace {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+.line {
+  display: block;
+  height: 0.0625rem;
+  margin-block-end: var(--space-1);
+  background-color: var(--color-label);
+}
+
+.signerName {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}

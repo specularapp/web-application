@@ -1,0 +1,244 @@
+/* A conversa: um vão generoso entre as falas, porque pergunta e resposta são blocos de leitura, e não itens
+   de lista. A lista é `ol` porque a ordem é o que a conversa é. */
+.thread {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: 0;
+  /* Encostada no pé do que rola, como o vazio: a conversa cresce de baixo para cima. */
+  margin: auto 0 0;
+  list-style: none;
+}
+
+/* A pergunta vai em balão, à direita, e não toma a coluna inteira: é ela que marca de quem é a vez. */
+.person {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* A fala e o que veio junto dela, empilhados e encostados à direita: o anexo em cima, o balão embaixo. */
+.sent {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+  max-width: 85%;
+  min-width: 0;
+}
+
+.sentAudio {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.sentFiles {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sentFile {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-sm);
+}
+
+.sentFile svg {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-label-tertiary);
+}
+
+.bubble {
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow-wrap: anywhere;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+/* A resposta vem solta na coluna, com a marca da casa na margem: sem balão, porque resposta longa dentro de
+   balão estreita o texto e faz a leitura pular de margem em margem. */
+.answer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  min-width: 0;
+}
+
+/* A marca na margem da resposta, alinhada com a primeira linha do texto: é o que diz de quem é a fala sem
+   escrever um nome em cima de cada resposta. */
+.mark {
+  margin-block-start: 0.0625rem;
+}
+
+.said {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.text {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.text strong {
+  font-weight: var(--weight-semibold);
+}
+
+/* A lista da resposta com o marcador no recuo, e não solto na margem: o texto dos itens alinha com o dos
+   parágrafos em volta. */
+.list {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.list li {
+  position: relative;
+  padding-inline-start: var(--space-4);
+}
+
+.list li::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0.5em;
+  inset-inline-start: var(--space-2);
+  width: 0.25rem;
+  height: 0.25rem;
+  background-color: var(--color-label-quaternary);
+  border-radius: var(--radius-full);
+}
+
+/**
+ * A palavra que chega **surge do borrão** (a pedido, 2026-09-14): ela entra desfocada e transparente e
+ * assenta em foco, um pouco depois da anterior, então a resposta parece sendo escrita em vez de aparecer
+ * pronta. Cada palavra é um elemento próprio, então só a nova anima e as que já estão na tela não se mexem.
+ */
+@keyframes surface {
+  from {
+    opacity: 0;
+    filter: blur(0.25rem);
+    translate: 0 0.0625rem;
+  }
+}
+
+.word {
+  display: inline-block;
+  /* Duzentos milissegundos, e não os 420 do que percorre distância: aqui não há distância, há uma palavra
+     assentando, e com a entrada longa a linha inteira ficava borrada enquanto a seguinte já chegava. */
+  animation: surface var(--duration-base) var(--ease-settle) both;
+}
+
+/* "Pensando" numa tinta que anda da apagada para a viva e volta: é o único jeito honesto de dizer que algo
+   está acontecendo antes de existir texto para mostrar. */
+.thinking {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  line-height: var(--leading-normal);
+  color: var(--color-label-tertiary);
+  background: linear-gradient(
+    100deg,
+    var(--color-label-tertiary) 20%,
+    var(--color-label) 40%,
+    var(--color-label-tertiary) 60%
+  );
+  background-clip: text;
+  background-size: 250% 100%;
+  -webkit-text-fill-color: transparent;
+  animation:
+    sweep 1.6s linear infinite,
+    surface var(--duration-base) var(--ease-settle) both;
+}
+
+@keyframes sweep {
+  to {
+    background-position: -250% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking {
+    background: none;
+    -webkit-text-fill-color: var(--color-label-secondary);
+    animation: none;
+  }
+
+  .word {
+    animation: none;
+  }
+}
+
+/* De onde saiu o que a resposta diz, em pílulas: o registro lido, para dar para conferir. */
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  height: 1.375rem;
+  padding-inline: var(--space-2);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+/* Copiar e refazer. No computador só aparecem com o ponteiro na resposta, como fazem os assistentes que
+   servem de referência: a fila de ações fixa embaixo de cada resposta polui a leitura. No toque não há
+   ponteiro, então ficam sempre. */
+.actions {
+  --control-height-sm: 1.75rem;
+  --control-padding-sm: var(--space-2);
+
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  margin-inline-start: calc(var(--space-2) * -1);
+}
+
+@media (hover: hover) {
+  .actions {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  .answer:hover .actions,
+  .actions:focus-within {
+    opacity: 1;
+  }
+}

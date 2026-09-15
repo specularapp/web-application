@@ -1,11 +1,36 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { ContractPublicView } from "@/features/contracts/components/contract-public-view";
+import { findContractByPartyToken, markViewed } from "@/features/contracts/store";
 import { createMetadata } from "@/lib/metadata";
 
-export const metadata = createMetadata({
-  title: "Contrato",
-  description: "Contrato enviado para sua revisão e assinatura",
-  noIndex: true,
-});
+type Params = { token: string };
 
-export default function PublicContractPage() {
-  return null;
+/** O título é o número e o nome do contrato; a descrição diz para quem. `noIndex`, porque a página é da parte, não do buscador. */
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { token } = await params;
+  const found = await findContractByPartyToken(token);
+  if (!found) return createMetadata({ title: "Contrato", description: "Este contrato não está mais disponível.", noIndex: true });
+
+  return createMetadata({
+    title: `${found.contract.reference}: ${found.contract.title}`,
+    description: `Contrato enviado para ${found.party.name} revisar e assinar.`,
+    path: `/contrato/${token}`,
+    noIndex: true,
+    absoluteTitle: true,
+  });
+}
+
+// A página pública do contrato, a que cada parte abre pelo link do e-mail: só por token, que é a credencial
+// **da parte**, e não do contrato, então um convite não assina pelo outro. Abrir marca a visualização na
+// linha do tempo. Hoje lê do store em memória porque **o domínio não existe no banco**; com a tabela, a
+// leitura por token entra em `service.ts` e a página continua igual.
+export default async function PublicContractPage({ params }: { params: Promise<Params> }) {
+  const { token } = await params;
+  const found = await findContractByPartyToken(token);
+  if (!found) notFound();
+
+  await markViewed(token);
+
+  return <ContractPublicView contract={found.contract} party={found.party} />;
 }

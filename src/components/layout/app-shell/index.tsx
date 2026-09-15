@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
+import { AiPanel } from "@/features/ai/components/ai-panel";
+import { AiPanelProvider, type AiPanelData } from "@/features/ai/components/ai-panel-context";
+import { previewAiUsage } from "@/features/ai/preview";
 import { getOnboardingBilling } from "@/features/billing/queries";
 import { planBadges } from "@/features/billing/plans";
 import { roleLabels } from "@/features/onboarding/labels";
@@ -32,6 +35,9 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <AppFrame
+      /* O assistente recebe o uso do ciclo e com quem ele fala. Vem de prévia enquanto o domínio não
+         existe no banco, e troca só esta linha quando existir. */
+      ai={{ usage: previewAiUsage, viewer: user.name }}
       sidebar={
         <Sidebar
           team={team}
@@ -57,19 +63,24 @@ export async function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** A moldura sem dado nenhum: trilha do menu e coluna que rola. O `AppShell` a preenche com o banco;
- *  a prévia do painel, com dados de exemplo. */
-export function AppFrame({ sidebar, children }: { sidebar: ReactNode; children: ReactNode }) {
+/** A moldura sem dado nenhum: trilha do menu, coluna que rola e a coluna do assistente. O `AppShell` a
+ *  preenche com o banco; a prévia do painel, com dados de exemplo. */
+export function AppFrame({ sidebar, children, ai }: { sidebar: ReactNode; children: ReactNode; ai?: AiPanelData }) {
   return (
     <FloatingActionsProvider>
-      <div className={styles.shell}>
-        {sidebar}
-        {/* Quem rola na aplicação é esta coluna, e não o documento: a concha tem a altura do visor. O
-            atributo é o que as camadas procuram para travar a rolagem certa ao abrir. */}
-        <main className={styles.content} {...{ [SCROLL_CONTAINER]: "" }}>
-          {children}
-        </main>
-      </div>
+      {/* Quem abre o assistente é o widget do topo, lá dentro da página, e quem aparece é uma coluna irmã do
+          conteúdo: os dois só se encontram aqui em cima. */}
+      <AiPanelProvider data={ai}>
+        <div className={styles.shell}>
+          {sidebar}
+          {/* Quem rola na aplicação é esta coluna, e não o documento: a concha tem a altura do visor. O
+              atributo é o que as camadas procuram para travar a rolagem certa ao abrir. */}
+          <main className={styles.content} {...{ [SCROLL_CONTAINER]: "" }}>
+            {children}
+          </main>
+          <AiPanel />
+        </div>
+      </AiPanelProvider>
     </FloatingActionsProvider>
   );
 }

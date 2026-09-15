@@ -1,0 +1,109 @@
+/* A página pública é o documento: o fundo agrupado da casa, o cabeçalho curto com o que a pessoa precisa
+   saber, a folha centrada e o container flutuante das ações no rodapé. */
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  min-height: 100dvh;
+  padding: var(--space-8) var(--space-4) calc(var(--space-16) + var(--space-6));
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+@media (max-width: 47.9375rem) {
+  .page {
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-3) var(--floating-bar-inset);
+  }
+}
+
+/* O cabeçalho na largura da folha: o identificador, o título e para quem é de um lado, o aviso da situação
+   do outro. */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.paper {
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+/* O container das ações, na receita do visualizador de anexos e da página do orçamento: vidro da casa, fio
+   fino, sombra grande e o raio `lg`, preso no rodapé e centrado. */
+.toolbar {
+  position: fixed;
+  inset-block-end: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: var(--z-popover);
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: calc(100vw - var(--space-8));
+  padding: var(--space-1);
+  /* O vidro da bandeja, e não o das camadas (acerto de 2026-09-15): ele flutua sobre a folha branca, e a 20%
+     o texto do documento passava por baixo dos botões no tema escuro. */
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  translate: -50% 0;
+}
+
+/* A janela de assinar: o título com o X, o nome, o quadro e o aviso, e os botões no rodapé (no celular eles
+   moram na barra flutuante). */
+.sheet {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .sheet {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.sheetHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.terms {
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.sheetFoot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+@media (max-width: 47.9375rem) {
+  .sheetFoot {
+    display: none;
+  }
+}

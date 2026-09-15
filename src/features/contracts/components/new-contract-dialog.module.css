@@ -1,0 +1,352 @@
+/* A janela da escolha: o título com a pergunta e o X em cima, e o passo embaixo. A galeria é mais longa e
+   rola por dentro. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+  max-height: inherit;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .dialog {
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* As três origens lado a lado, em cartões; a galeria em duas colunas. Abaixo do tablet tudo desce para uma
+   coluna, e as origens viram linhas para caber na bandeja. */
+.options,
+.gallery {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.gallery {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-block-end: var(--space-1);
+}
+
+@media (max-width: 47.9375rem) {
+  .options,
+  .gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Um cartão de origem ou de modelo: o fio da casa, o canto `lg`, o fundo acendendo no hover e no foco de
+   teclado. O matiz de cada um tinge o fio no hover, no mesmo espírito do azulejo do catálogo. */
+.option,
+.template {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.option {
+  --card-hue: var(--option-hue);
+
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-4);
+}
+
+.template {
+  --card-hue: var(--template-hue);
+
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (hover: hover) {
+  .option:hover,
+  .template:hover,
+  .dropzone:hover {
+    background-color: var(--color-fill-quaternary);
+    border-color: color-mix(in oklab, var(--card-hue, var(--color-label-tertiary)) 55%, var(--color-border));
+  }
+
+  .template:hover {
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.option:focus-visible,
+.template:focus-visible,
+.dropzone:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.option:active,
+.template:active {
+  background-color: var(--color-fill-tertiary);
+}
+
+.option:disabled,
+.template:disabled {
+  cursor: progress;
+}
+
+.option:disabled:not([aria-busy]),
+.template:disabled:not([aria-busy]) {
+  opacity: 0.6;
+}
+
+/* O glifo num azulejo tingido pelo matiz da origem (a receita da capa do projeto): véu do matiz no fundo e o
+   glifo na cor cheia. */
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--card-hue, var(--color-accent));
+  background-color: light-dark(
+    color-mix(in oklab, var(--card-hue, var(--color-accent)) 14%, transparent),
+    color-mix(in oklab, var(--card-hue, var(--color-accent)) 20%, transparent)
+  );
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.glyph svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.copy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O caminho em três palavras no pé do cartão, com a seta acendendo no hover. */
+.path {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding-block-start: var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.arrow {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    translate var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .option:hover .arrow {
+    color: var(--card-hue);
+    translate: var(--space-half) 0;
+  }
+}
+
+/* No celular a origem vira linha: o azulejo à esquerda, o texto ao lado e a seta na ponta, sem o pé. */
+@media (max-width: 47.9375rem) {
+  .option {
+    flex-direction: row;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-3);
+  }
+
+  .path {
+    padding: 0;
+    border: 0;
+  }
+
+  .path > :first-child {
+    display: none;
+  }
+}
+
+/* O passo do PDF: a área de soltar, no fio tracejado, e os botões embaixo. */
+.upload {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.dropzone {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 8rem;
+  padding: var(--space-4);
+  cursor: pointer;
+  border: 0.0625rem dashed var(--color-label-tertiary);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.uploadGlyph {
+  --card-hue: var(--sys-red);
+}
+
+.dropzoneActive {
+  background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
+  border-color: var(--color-accent);
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+}
+
+/* A folha em miniatura no topo do cartão do modelo: papel branco em qualquer tema (é uma ilha de tema claro,
+   como a folha de verdade), o título em caixa alta centrado e os blocos da abertura em corpo miúdo, esmaecendo
+   no pé para dizer que continua. `pointer-events: none` porque é só ilustração do botão. */
+.paper {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  align-content: start;
+  aspect-ratio: 5 / 3;
+  padding: 0.85rem 1rem 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--color-label);
+  pointer-events: none;
+  background-color: var(--color-bg-tertiary);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.paper::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  content: "";
+  background: linear-gradient(to bottom, transparent, var(--color-bg-tertiary));
+}
+
+.paperTitle {
+  display: -webkit-box;
+  margin-block-end: 0.25rem;
+  overflow: hidden;
+  font-size: 0.5rem;
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.paperLine {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.4rem;
+  line-height: 1.4;
+  text-align: justify;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.paperLine[data-heading] {
+  margin-block-start: 0.2rem;
+  font-weight: var(--weight-semibold);
+  text-align: start;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* O giro de criar por cima da folha, no lugar de escurecer o cartão inteiro. */
+.paperBusy {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background-color: color-mix(in oklab, var(--color-bg-tertiary) 70%, transparent);
+}
+
+/* O corpo do cartão do modelo: o tipo e a contagem de cláusulas, o nome, a frase e as entregas. */
+.templateBody {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.templateHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--space-1);
+}
+
+.summary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-block-start: var(--space-2);
+}

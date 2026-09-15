@@ -1,0 +1,248 @@
+/* O compositor mora no pé da coluna, com o recuo da coluna inteira. A fila de anexos fica acima do cartão,
+   e o que vai junto da pergunta, dentro dele, na primeira linha: um é o que está sendo enviado, o outro é
+   quem está sendo lido. */
+.composer {
+  --composer-inset: var(--space-4);
+
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--composer-inset) var(--space-4);
+}
+
+/* Na bandeja do celular o compositor reserva embaixo o espaço da barra flutuante, como o da conversa da
+   tarefa: sem isso o cartão desce até depois da base da bandeja e a barra pousa por cima do campo. */
+@media (max-width: 47.9375rem) {
+  .composer {
+    --composer-inset: var(--space-3);
+
+    padding: var(--space-2) var(--composer-inset) var(--floating-bar-inset);
+  }
+}
+
+/**
+ * O que vai junto da pergunta: a tela aberta atrás, numa caixa **só de fio** no alto do cartão, com o glifo
+ * que o menu dá àquela página. Sem preenchimento, porque o que pesava na rodada anterior era o fundo, e não
+ * a caixa; e com o canto quase igual ao do cartão em volta (a pedido, 2026-09-14), e não o concêntrico exato
+ * de 8, que ali dentro lia como uma etiqueta e não como uma caixa da mesma família.
+ */
+.context {
+  /* O × da casa em tamanho de linha: o botão de ícone encolhe pelas próprias variáveis, como o pé do cartão
+     já faz, em vez de um botão cru com outro desenho. */
+  --control-height-sm: 1.5rem;
+  --icon-button-radius-sm: 0.75rem;
+  --touch-target: 1.5rem;
+
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.contextGlyph {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.contextName {
+  flex: 1;
+  min-width: 0;
+}
+
+/* O cartão **é** o campo, como na conversa da tarefa: o texto mora dentro dele, sem moldura própria, e a
+   fila de ações fica no pé do mesmo cartão. */
+.card {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.card:focus-within {
+  border-color: var(--color-label-tertiary);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  /* Piso de 16px, senão o iPhone dá zoom ao focar. */
+  font-size: max(16px, var(--text-subheadline));
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  resize: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--color-placeholder);
+}
+
+/* A gravação em curso, dentro do cartão: a onda que se move com a voz e o relógio correndo. */
+.recording {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+}
+
+/* O áudio pendurado antes de enviar, com o × ao lado. */
+.pending {
+  --control-height-sm: 1.75rem;
+  --icon-button-radius-sm: 0.875rem;
+  --touch-target: 1.75rem;
+
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.audio {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+/* Os arquivos pendurados: nome e tamanho numa tira só, porque aqui o anexo é um detalhe da pergunta e não
+   o assunto, como é na conversa da tarefa. */
+.files {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.file {
+  --control-height-sm: 1.5rem;
+  --icon-button-radius-sm: 0.75rem;
+  --touch-target: 1.5rem;
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-sm);
+}
+
+.file > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* O pé do cartão: o que anexa e ajusta de um lado, ditar e enviar na outra ponta. Os botões encolhem para
+   32px, porque a coluna é estreita. */
+.bar {
+  --control-height-sm: 2rem;
+  --icon-button-radius-sm: 1rem;
+  --touch-target: 2rem;
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* O saldo do ciclo entre os ajustes e as ações, encostado no enviar: é informação, e por isso não encolhe
+   nem some no celular, onde as ações vão para a barra flutuante. */
+.balance {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  padding-inline-end: var(--space-1);
+}
+
+.tools,
+.send {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  min-width: 0;
+}
+
+.tools {
+  gap: var(--space-1);
+}
+
+/* A pílula do modo de resposta, que abre o menu: ela diz como a pergunta vai ser respondida, e por isso não
+   é um botão de ícone como o clipe ao lado. */
+.pill {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: 1.75rem;
+  padding-inline: var(--space-2);
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  /* Pílula inteira, como a etiqueta de contagem da casa: o raio é a metade da altura e o motor de cantos o
+     limita sozinho. */
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.pill svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (hover: hover) {
+  .pill:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* No celular o clipe, a voz e o enviar viram glifos da barra flutuante, e repetir os dois lugares seria a
+   mesma coisa duas vezes na tela. O que fica no cartão é ajuste, e não ação: o modo da resposta. */
+@media (max-width: 47.9375rem) {
+  .attach,
+  .send {
+    display: none;
+  }
+}
+
+/* O campo de arquivo existe para o clique abrir o seletor do sistema, e não para aparecer. */
+.picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
