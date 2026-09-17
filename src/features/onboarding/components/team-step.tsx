@@ -21,6 +21,8 @@ import { uploadTeamImage } from "@/features/organizations/upload";
 import { industryOptions } from "../labels";
 import { ImageGroup, ImagePicker } from "./image-picker";
 import styles from "./onboarding.module.css";
+import { callAction } from "@/lib/action";
+import { siteValue } from "@/lib/utils/site";
 
 type TeamStepProps = {
   team: Team | null;
@@ -81,7 +83,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
       return;
     }
 
-    const result = await saveTeamAction({ organizationId: team?.id, name, industry, website });
+    const result = await callAction(saveTeamAction({ organizationId: team?.id, name, industry, website }));
     if (!result.ok) {
       toast({ title: "Não foi possível salvar", description: result.error, tone: "danger" });
       setSaving(false);
@@ -157,7 +159,7 @@ export function TeamStep({ team, demo = false, onDone }: TeamStepProps) {
               inputMode="url"
               spellCheck={false}
               iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
-              onChange={(event) => setWebsite(event.target.value.replace(/^https?:\/\//i, ""))}
+              onChange={(event) => setWebsite(siteValue(event.target.value))}
             />
           </Field>
         </div>

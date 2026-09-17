@@ -249,3 +249,21 @@
     outline-offset: 2px;
   }
 }
+
+/* O lugar do rosto quando o projeto não é de ninguém: o glifo do que ele é, no preenchimento da casa, na
+   medida exata do avatar pequeno para a linha não dançar de um cartão para o outro. */
+.own {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-sm);
+}
+
+.own svg {
+  width: 1rem;
+  height: 1rem;
+}

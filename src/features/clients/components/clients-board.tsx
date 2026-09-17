@@ -25,6 +25,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
 import { ConfirmDialog, confirmNames } from "@/components/ui/confirm-dialog";
@@ -252,7 +253,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
   const removeSelected = async () => {
     setDeleting(true);
-    const result = await deleteClientsAction(selectedClients.map((client) => client.id));
+    const result = await callAction(deleteClientsAction(selectedClients.map((client) => client.id)));
     setDeleting(false);
     setConfirming(false);
 

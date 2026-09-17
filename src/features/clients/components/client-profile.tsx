@@ -66,7 +66,7 @@ export function ClientProfile({ client }: ClientProfileProps) {
       avatar={{ name: client.name, src: client.avatarUrl ?? undefined, seed }}
       title={client.name}
       badges={<ClientBadges client={client} />}
-      menu={<ClientMenu client={client} historyCount={12} />}
+      menu={<ClientMenu client={client} />}
       handle={client.email ?? undefined}
       subtitle={[client.company, client.role].filter(Boolean).join(", ") || undefined}
       stats={[

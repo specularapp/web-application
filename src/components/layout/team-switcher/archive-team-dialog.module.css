@@ -1,0 +1,24 @@
+/* A janela curta de confirmar: o que se pergunta, o que acontece e as duas saídas. */
+.dialog {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+/* As duas saídas na ponta, com o arquivar por último: é o gesto que muda alguma coisa. No celular elas moram
+   na barra flutuante, e a linha some. */
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-block-start: var(--space-3);
+}
+
+@media (max-width: 47.9375rem) {
+  .actions {
+    display: none;
+  }
+}

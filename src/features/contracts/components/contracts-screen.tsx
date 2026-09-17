@@ -13,6 +13,8 @@ export type ContractsScreenProps = {
   viewing?: Contract | null;
   /** A janela de criar já aberta, quando a URL é `/contratos/novo`. */
   creating?: boolean;
+  /** O que a URL manda preencher na janela de criar: hoje o cliente, vindo do leque da ficha dele. */
+  prefill?: { clientId?: string };
 };
 
 // A tela de contratos inteira: o topo padrão da aplicação, que sangra de ponta a ponta e traz o `h1`, e abaixo
@@ -20,11 +22,11 @@ export type ContractsScreenProps = {
 // mesma moldura da base de clientes, do catálogo e dos projetos: quem tem estado é a prancha. `/contratos/[id]`
 // e `/contratos/novo` montam a mesma tela com a janela do contrato ou a de criar já abertas, então as duas têm
 // endereço próprio sem deixar de ser camadas sobre a lista.
-export function ContractsScreen({ page, query, ai, viewing, creating }: ContractsScreenProps) {
+export function ContractsScreen({ page, query, ai, viewing, creating, prefill }: ContractsScreenProps) {
   return (
     <div className={styles.screen}>
       <Topbar ai={ai} />
-      <ContractsBoard page={page} query={query} viewing={viewing} creating={creating} />
+      <ContractsBoard page={page} query={query} viewing={viewing} creating={creating} prefill={prefill} />
     </div>
   );
 }

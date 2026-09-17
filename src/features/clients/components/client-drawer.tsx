@@ -96,7 +96,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
               <IconButton label="Editar cliente" variant="ghost" size="sm" onClick={onEdit}>
                 <PencilSimpleIcon />
               </IconButton>
-              {full && <ClientMenu client={full} historyCount={12} onEdit={onEdit} />}
+              {full && <ClientMenu client={full} onEdit={onEdit} onDeleted={onClose} />}
               <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
                 <XIcon />
               </IconButton>

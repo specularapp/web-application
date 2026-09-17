@@ -383,3 +383,21 @@
   gap: var(--space-half);
   min-width: 0;
 }
+
+/* O lugar do rosto do cliente quando o projeto não é de ninguém: o glifo do que ele é, na medida do avatar
+   grande, para a linha de identidade não mudar de altura entre um projeto e outro. */
+.own {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+.own svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}

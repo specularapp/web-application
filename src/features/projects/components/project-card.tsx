@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarBlankIcon, GlobeSimpleIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, FolderSimpleIcon, GlobeSimpleIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
@@ -83,10 +83,18 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
         {...squircleAuto({ clip: true })}
       >
         <header className={styles.head}>
-          <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          {/* Sem cliente, o projeto é independente e o lugar do rosto fica com o glifo do que ele é: estudo,
+              projeto próprio, protótipo. O bloco não some, senão a linha do cartão dançaria de um para outro. */}
+          {project.client ? (
+            <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          ) : (
+            <span className={styles.own} aria-hidden="true" {...squircle("sm")}>
+              <FolderSimpleIcon />
+            </span>
+          )}
           <span className={styles.who}>
             <Text as="span" variant="footnote" weight="semibold" truncate>
-              {project.client.company ?? project.client.name}
+              {project.client ? (project.client.company ?? project.client.name) : "Projeto independente"}
             </Text>
             <Text as="span" variant="caption1" tone="secondary" truncate>
               {shortDate(project.startedAt)}

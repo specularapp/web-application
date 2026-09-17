@@ -1,0 +1,192 @@
+/* A janela do mapa: o título em cima e o quadro ocupando o resto. A altura é declarada porque o React Flow
+   mede o pai, e pai sem altura desenha um quadro de zero pixel. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: min(80vh, 42rem);
+}
+
+@media (max-width: 47.9375rem) {
+  .dialog {
+    height: 100%;
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O quadro, com os tokens da casa nas variáveis do React Flow: os mesmos do editor de automação, porque é o
+   mesmo motor e duas paletas para ele seriam duas coisas para manter. */
+.canvas {
+  --xy-background-color: var(--color-bg);
+  --xy-background-pattern-color: var(--color-fill);
+  --xy-edge-stroke: var(--color-label-tertiary);
+  --xy-edge-stroke-width: 2;
+  --xy-handle-background-color: var(--color-bg-tertiary);
+  --xy-handle-border-color: var(--color-label-tertiary);
+  --xy-attribution-background-color: transparent;
+
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas :global(.react-flow) {
+  font-family: var(--font-body);
+}
+
+.canvas :global(.react-flow__attribution) {
+  font-size: 0.5625rem;
+  color: var(--color-label-tertiary);
+}
+
+.canvas :global(.react-flow__attribution a) {
+  color: inherit;
+}
+
+/* O mesmo conserto do editor: o SVG das ligações não tem medida própria, e o `max-width: 100%` do reset da
+   casa o deixava com largura zero, que não desenha nada. */
+.canvas :global(.react-flow__edges svg) {
+  max-width: none;
+}
+
+/* O nome da ligação ("virou", "formaliza", "cobra") sobre o fio, na caixinha do fundo da página para não
+   sumir em cima do pontilhado. */
+.canvas :global(.react-flow__edge-text) {
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  fill: var(--color-label-secondary);
+}
+
+.canvas :global(.react-flow__edge-textbg) {
+  fill: var(--color-bg);
+}
+
+.center {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-5);
+}
+
+/* O dock flutuante de aproximar e enquadrar, o mesmo do editor de automação. */
+.dock {
+  position: absolute;
+  inset-block-end: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: 4;
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  padding: var(--space-half);
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  translate: -50% 0;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+@media (max-width: 47.9375rem) {
+  .dock {
+    inset-block-end: var(--floating-bar-inset, 5rem);
+  }
+}
+
+/* Um registro no mapa: caixa com o fio da casa e uma trilha do matiz do domínio na borda de entrada, que é
+   o que deixa distinguir orçamento de contrato antes de ler. */
+.node {
+  position: relative;
+  width: 15rem;
+  background-color: var(--color-bg-tertiary);
+  border: 0.0375rem solid var(--color-border);
+  border-inline-start: 0.1875rem solid var(--node-hue);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+}
+
+/* A raiz é o cliente: ganha o fio de acento inteiro, porque é dela que todo o resto pende. */
+.node[data-root] {
+  border-color: var(--node-hue);
+  box-shadow: var(--shadow-md);
+}
+
+/* O card inteiro é o link: é o que faz o mapa servir de navegação, e não só de desenho. */
+.nodeLink {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  border-radius: inherit;
+  corner-shape: inherit;
+}
+
+.nodeLink:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  a.nodeLink:hover {
+    background-color: var(--color-fill-tertiary);
+  }
+}
+
+.nodeGlyph {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--node-hue);
+  background-color: light-dark(color-mix(in oklab, var(--node-hue) 14%, transparent), color-mix(in oklab, var(--node-hue) 22%, transparent));
+  border-radius: var(--radius-md);
+}
+
+.nodeGlyph svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.nodeCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O identificador que a pessoa lê e a etiqueta da situação, na mesma linha acima do nome. */
+.nodeTop {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* As alças existem só para o fio saber onde encostar: aqui nada se liga a nada com o mouse. */
+.canvas :global(.react-flow__handle).handle {
+  width: 0.5rem;
+  height: 0.5rem;
+  pointer-events: none;
+  background-color: var(--color-bg-tertiary);
+  border-width: 0.0625rem;
+}

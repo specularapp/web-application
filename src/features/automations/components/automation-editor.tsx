@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { cx } from "@/lib/utils/cx";
 import { saveAutomationAction, setAutomationStatusAction, testAutomationAction } from "../actions";
 import { isTrigger, nodeCatalog } from "../catalog";
@@ -143,7 +144,7 @@ function Editor({ automation }: AutomationEditorProps) {
 
   const save = useCallback(async () => {
     setSaveState("saving");
-    const result = await saveAutomationAction(payload());
+    const result = await callAction(saveAutomationAction(payload()));
     if (!result.ok) {
       setSaveState("error");
       toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
@@ -323,7 +324,7 @@ function Editor({ automation }: AutomationEditorProps) {
       setToggling(false);
       return;
     }
-    const result = await setAutomationStatusAction({ id: automation.id, status: status === "active" ? "paused" : "active" });
+    const result = await callAction(setAutomationStatusAction({ id: automation.id, status: status === "active" ? "paused" : "active" }));
     setToggling(false);
     if (!result.ok) {
       toast({ title: "Não deu para ativar", description: result.error, tone: "danger" });
@@ -366,7 +367,7 @@ function Editor({ automation }: AutomationEditorProps) {
       setTesting(false);
       return;
     }
-    const result = await testAutomationAction({ id: automation.id });
+    const result = await callAction(testAutomationAction({ id: automation.id }));
     if (!result.ok) {
       setTesting(false);
       toast({ title: "Não deu para testar", description: result.error, tone: "danger" });

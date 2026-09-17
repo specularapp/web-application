@@ -61,7 +61,7 @@ export function ClientCard({ client, selected, onSelectedChange, onOpen, onEdit 
             aria-label={`Selecionar ${client.name}`}
           />
           <span className={styles.menu}>
-            <ClientMenu client={client} onEdit={onEdit} />
+            <ClientMenu client={client} onView={onOpen} onEdit={onEdit} />
           </span>
         </div>
 

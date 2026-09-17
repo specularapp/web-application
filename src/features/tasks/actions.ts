@@ -3,7 +3,7 @@
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
 import { subtaskToggleSchema, taskCommentSchema, taskFormSchema, taskIdSchema, taskMoveSchema } from "./schemas";
-import { addTaskComment, deleteTask, getTask, moveTask, saveTask, toggleSubtask } from "./service";
+import { addTaskComment, deleteTask, duplicateTask, getTask, moveTask, saveTask, toggleSubtask } from "./service";
 import type { Task } from "./summary";
 
 export type TaskSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
@@ -107,6 +107,21 @@ export async function commentTaskAction(input: unknown): Promise<TaskResult> {
     parsed.data.mentions,
   );
   if (!added.ok) return { ok: false, error: added.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
+  return { ok: true };
+}
+
+/** Uma cópia da tarefa, na mesma etapa e logo abaixo dela. */
+export async function duplicateTaskAction(input: unknown): Promise<TaskResult> {
+  const guard = await guardAction("task-duplicate");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = taskIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Escolha uma tarefa." };
+
+  const copy = await duplicateTask(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!copy.ok) return { ok: false, error: copy.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
   return { ok: true };

@@ -253,7 +253,11 @@ export async function getContractLookups(client: ContractsClient, organizationId
     clients: (clients.data ?? [])
       .map((row) => ({ id: row.id, name: row.name, company: row.company ?? undefined, email: row.email, avatarUrl: row.avatar_url }))
       .sort((a, b) => (a.company ?? a.name).localeCompare(b.company ?? b.name, "pt-BR")),
-    projects: (projects.data ?? []).map((row) => ({ id: row.id, name: row.name, clientId: row.client_id, url: row.url })),
+    projects: (projects.data ?? [])
+      /* Projeto independente não entra na lista do contrato: contrato é sempre com alguém, e escolher um
+         projeto sem cliente deixaria o campo de cliente sem o que adiantar. */
+      .filter((row): row is typeof row & { client_id: string } => row.client_id !== null)
+      .map((row) => ({ id: row.id, name: row.name, clientId: row.client_id, url: row.url })),
     quotes: (quotes.data ?? []).map((row) => ({
       id: row.id,
       number: row.reference,
@@ -298,7 +302,7 @@ async function createIssuerParty(client: ContractsClient, organizationId: string
   });
 }
 
-type CreateInput = { source: "template" | "scratch"; templateId?: string; kind?: ContractKind };
+type CreateInput = { source: "template" | "scratch"; templateId?: string; kind?: ContractKind; clientId?: string };
 
 /** Um rascunho novo, escrito: do zero, com o esqueleto, ou de um modelo, já preenchido com o que se sabe. */
 export async function createContract(
@@ -315,6 +319,7 @@ export async function createContract(
     title: "Contrato sem título",
     kind: input.kind ?? "other",
     source: input.source,
+    client_id: input.clientId ?? null,
     owner_id: userId,
     expires_in_days: 15,
   });
@@ -349,7 +354,7 @@ export async function createPdfContract(
   client: ContractsClient,
   organizationId: string,
   userId: string,
-  input: { name: string; bytes: Uint8Array; pages: number },
+  input: { name: string; bytes: Uint8Array; pages: number; clientId?: string },
 ): Promise<ServiceResult<Contract>> {
   const id = crypto.randomUUID();
   const path = `${organizationId}/${id}.pdf`;
@@ -362,6 +367,7 @@ export async function createPdfContract(
     organization_id: organizationId,
     title: input.name.replace(/\.pdf$/i, "").slice(0, 90) || "Contrato anexado",
     source: "pdf",
+    client_id: input.clientId ?? null,
     owner_id: userId,
     file_name: input.name,
     file_size: input.bytes.byteLength,

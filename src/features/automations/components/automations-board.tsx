@@ -19,6 +19,7 @@ import { AutomationCard } from "./automation-card";
 import { NewAutomationDialog } from "./new-automation-dialog";
 import { RunLogDialog } from "./run-log-dialog";
 import styles from "./automations-board.module.css";
+import { callAction } from "@/lib/action";
 
 export type AutomationsBoardProps = {
   page: AutomationsListPage;
@@ -83,7 +84,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
   const [toggling, setToggling] = useState<string | null>(null);
   const toggle = async (automation: Automation) => {
     setToggling(automation.id);
-    const result = await setAutomationStatusAction({ id: automation.id, status: automation.status === "active" ? "paused" : "active" });
+    const result = await callAction(setAutomationStatusAction({ id: automation.id, status: automation.status === "active" ? "paused" : "active" }));
     setToggling(null);
     if (!result.ok) {
       toast({ title: "Não deu para ativar", description: result.error, tone: "danger" });
@@ -94,7 +95,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
   };
 
   const duplicate = async (automation: Automation) => {
-    const result = await duplicateAutomationAction({ id: automation.id });
+    const result = await callAction(duplicateAutomationAction({ id: automation.id }));
     if (!result.ok) {
       toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
       return;
@@ -107,7 +108,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
   const [testing, setTesting] = useState<string | null>(null);
   const test = async (automation: Automation) => {
     setTesting(automation.id);
-    const result = await testAutomationAction({ id: automation.id });
+    const result = await callAction(testAutomationAction({ id: automation.id }));
     setTesting(null);
     if (!result.ok) {
       toast({ title: "Não deu para testar", description: result.error, tone: "danger" });
@@ -128,7 +129,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
   const remove = async () => {
     if (!deleting) return;
     setRemoving(true);
-    const result = await deleteAutomationAction({ id: deleting.id });
+    const result = await callAction(deleteAutomationAction({ id: deleting.id }));
     setRemoving(false);
     if (!result.ok) {
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });

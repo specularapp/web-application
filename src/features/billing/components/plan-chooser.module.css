@@ -319,3 +319,11 @@
     font-size: var(--text-caption-1);
   }
 }
+
+/* O plano que destrava o que a pessoa tentou fazer, quando a escolha abriu por um bloqueio: o fio ganha a
+   cor de acento e o cartão, uma aura fina. Só o modal central usa; nos primeiros passos nada está bloqueado
+   e nenhum cartão recebe a marca. */
+.card[data-needed] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}

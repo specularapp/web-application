@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/features/auth/session";
+import { getOrganizationContext } from "@/features/organizations/context";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -14,6 +15,7 @@ import {
   cancelSubscription,
   confirmPaymentMethod,
   confirmSubscription,
+  getBillingState,
   resumeSubscription,
   startPaymentMethodUpdate,
   startSubscription,
@@ -116,4 +118,15 @@ export async function confirmPaymentMethodAction(input: unknown): Promise<Servic
   const result = await confirmPaymentMethod(supabase, parsed.data);
   if (result.ok) refresh();
   return result;
+}
+
+/**
+ * O estado de cobrança do time, buscado quando o modal central de plano abre pela primeira vez. Não vem com
+ * a concha de propósito: quem nunca esbarra num bloqueio não paga por essa leitura.
+ */
+export async function loadBillingStateAction(): Promise<BillingState | null> {
+  const context = await getOrganizationContext();
+  if (!context) return null;
+
+  return getBillingState(context.supabase, context.organizationId);
 }

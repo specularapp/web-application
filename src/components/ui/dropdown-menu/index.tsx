@@ -8,6 +8,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { usePlanGate } from "@/features/billing/components/plan-gate";
 import { planBadges, type PlanId } from "@/features/billing/plans";
 import { useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -436,6 +437,7 @@ function isExternal(href: string) {
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
 export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "glass" }: DropdownMenuProps) {
+  const gate = usePlanGate();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -577,12 +579,23 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       </>
     );
 
+    /* O selo do plano deixou de ser decoração (2026-09-16): a linha bloqueada fecha o menu e abre o modal
+       central de plano, dizendo o que faltou, em vez de navegar para uma tela que a pessoa não pode usar. */
+    const blocked = item.plan !== undefined && !gate.allows(item.plan);
+
     const select = () => {
+      if (blocked && item.plan) {
+        setOpen(false);
+        gate.require(item.plan);
+        return;
+      }
       item.onSelect?.();
       if (!item.keepOpen) setOpen(false);
     };
 
-    if (item.href && isExternal(item.href)) {
+    /* Bloqueado vira botão, e não link: link bloqueado ainda abriria a rota no meio do clique, e o menu do
+       navegador ofereceria "abrir em nova aba" para uma tela que a pessoa não pode usar. */
+    if (item.href && !blocked && isExternal(item.href)) {
       return (
         <ActionAnchor key={item.id} role={role} aria-checked={checked} href={item.href} target="_blank" rel="noreferrer" data-tone={item.tone} onClick={select} tabIndex={-1}>
           {content}
@@ -590,7 +603,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       );
     }
 
-    if (item.href) {
+    if (item.href && !blocked) {
       return (
         <ActionLink key={item.id} role={role} aria-checked={checked} href={item.href as Route} data-tone={item.tone} onClick={item.onSelect} tabIndex={-1}>
           {content}

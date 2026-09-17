@@ -82,5 +82,8 @@ export type QuoteResponseInput = z.infer<typeof quoteResponseSchema>;
 /** Um orçamento apontado pela tela: uuid, porque é o que a tabela gera. */
 export const quoteIdSchema = z.uuid();
 
+/** Marcar a situação à mão pelo leque: só os três desfechos que a pessoa declara, e nunca "visto". */
+export const quoteStatusSchema = z.object({ id: z.uuid(), status: z.enum(["sent", "approved", "declined"]) });
+
 /** Os orçamentos marcados para excluir de uma vez: ao menos um, e não mais que uma página. */
 export const quoteIdsSchema = z.array(z.uuid()).min(1).max(100);

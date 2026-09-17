@@ -66,6 +66,9 @@ export const createContractSchema = z.object({
   source: z.enum(["template", "scratch"]),
   templateId: z.string().trim().min(1).max(60).optional(),
   kind: z.enum(contractKindValues).optional(),
+  /* Quando o contrato nasce da ficha de um cliente ("Gerar contrato" no leque dele): o modelo já sai com o
+     nome e o endereço dele preenchidos, em vez de a pessoa escolher de novo quem ela acabou de abrir. */
+  clientId: z.uuid().optional(),
 });
 
 /**

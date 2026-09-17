@@ -1,0 +1,32 @@
+/* A caixa do modal central de plano. O mapa de planos por dentro é o `PlanChooser`, o mesmo do passo 3 dos
+   primeiros passos: aqui fica só o que é da janela. */
+
+/* A janela `xl` da casa é a de trabalho (o editor de orçamento) e por isso tem altura cheia, para as colunas
+   de dentro rolarem sozinhas. Aqui a largura dela serve, mas a altura não: os três planos terminam antes do
+   fim da tela e sobrava uma faixa vazia embaixo deles. A altura volta a ser a do conteúdo.
+
+   A classe é repetida de propósito: a folha do `Dialog` é do Emotion e entra depois desta no pacote, então
+   com o mesmo peso ela venceria e a altura cheia continuaria valendo. */
+.panel.panel[data-size="xl"] {
+  height: auto;
+  max-height: calc(100dvh - var(--space-8));
+}
+
+.dialog {
+  min-height: 0;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .dialog {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  padding-block: var(--space-8);
+}

@@ -39,6 +39,7 @@ import { catalogUnits } from "@/features/catalog/schemas";
 import type { CatalogItem, CatalogUnit } from "@/features/catalog/summary";
 import type { ClientListItem } from "@/features/clients/list-options";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import { saveQuoteAction } from "../actions";
@@ -562,7 +563,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
      deixar, e a confirmação não é lugar de corrigir campo. */
   const saveAndClose = async () => {
     setSaving("draft");
-    const result = await saveQuoteAction(inputFor("draft"));
+    const result = await callAction(saveQuoteAction(inputFor("draft")));
     setSaving(null);
     setConfirmingClose(false);
 
@@ -585,7 +586,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     setSaving(next);
     setError(null);
 
-    const result = await saveQuoteAction(inputFor(next));
+    const result = await callAction(saveQuoteAction(inputFor(next)));
     setSaving(null);
 
     if (!result.ok) {

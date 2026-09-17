@@ -46,3 +46,10 @@ export type ClientFormInput = z.infer<typeof clientFormSchema>;
 
 /** Os clientes marcados para excluir de uma vez: ao menos um, e não mais que uma página. */
 export const clientIdsSchema = z.array(z.string().trim().min(1)).min(1).max(100);
+
+/** Um dos dois interruptores do leque, ligado ou desligado. */
+export const clientFlagSchema = z.object({
+  id: z.uuid(),
+  flag: z.enum(["active", "favorite"]),
+  value: z.boolean(),
+});

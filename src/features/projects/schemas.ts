@@ -76,6 +76,29 @@ export const COVER_MAX_CHARS = 500;
 
 const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data");
 
+/**
+ * As pastas de projeto (2026-09-16, a pedido). Elas já existiam no banco e já eram lidas pelo menu de
+ * tarefas, que é a mesma árvore; o que faltava era poder criar, renomear, apagar e mover, que é o que estes
+ * esquemas abrem.
+ */
+export const folderLimits = { name: 60 } as const;
+
+export const saveFolderSchema = z.object({
+  /** Presente ao renomear; ausente ao criar. */
+  id: z.uuid().optional(),
+  name: z.string().trim().min(1, "Dê um nome à pasta").max(folderLimits.name, "Nome longo demais"),
+  /** A pasta de cima, quando ela nasce dentro de outra. */
+  parentId: z.uuid().nullable().default(null),
+});
+
+export const folderIdSchema = z.uuid();
+
+/** Para onde o projeto vai: uma pasta, ou a raiz quando é nulo. */
+export const moveProjectSchema = z.object({
+  id: z.uuid(),
+  folderId: z.uuid().nullable(),
+});
+
 /* Vazio é sem capa; com protocolo é o endereço do arquivo no armazenamento. */
 const coverUrl = z
   .string()
@@ -95,7 +118,8 @@ export const projectFormSchema = z
     /** Sem protocolo vale também: a action recoloca o `https://` antes de guardar. */
     url: z.string().trim().max(projectLimits.url, "Endereço longo demais"),
     description: z.string().trim().max(projectLimits.description, "Descrição longa demais"),
-    clientId: z.uuid("Escolha o cliente"),
+    /* Vazio é projeto sem cliente; com valor, precisa ser um cliente de verdade. */
+    clientId: z.union([z.literal(""), z.uuid("Escolha o cliente")]),
     ownerId: z.uuid("Escolha quem responde pelo projeto"),
     status: z.enum(projectStatusValues),
     isPublic: z.boolean(),

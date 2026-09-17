@@ -23,6 +23,7 @@ import type { MemberRole } from "@/features/organizations/schemas";
 import type { Team, TeamInvite, TeamMember } from "@/features/organizations/service";
 import { invitableRoleOptions, memberRoleOptions } from "../labels";
 import styles from "./onboarding.module.css";
+import { callAction } from "@/lib/action";
 
 type MembersStepProps = {
   team: Team;
@@ -62,7 +63,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
       ]);
       toast({ title: "Convite enviado", description: `${name} entrou na lista de pendentes`, tone: "success" });
     } else {
-      const result = await inviteMemberAction({ organizationId: team.id, email, name, role: "member" });
+      const result = await callAction(inviteMemberAction({ organizationId: team.id, email, name, role: "member" }));
       if (!result.ok) {
         toast({ title: "Não foi possível convidar", description: result.error, tone: "danger" });
         setInviting(false);
@@ -83,7 +84,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     setPeople((current) => current.map((person) => (person.userId === userId ? { ...person, role: next } : person)));
     if (demo) return;
 
-    const result = await changeMemberRoleAction({ organizationId: team.id, userId, role: next });
+    const result = await callAction(changeMemberRoleAction({ organizationId: team.id, userId, role: next }));
     if (!result.ok) {
       setPeople(previous);
       toast({ title: "Não foi possível trocar o papel", description: result.error, tone: "danger" });
@@ -95,7 +96,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     setPeople((current) => current.filter((person) => person.userId !== userId));
 
     if (!demo) {
-      const result = await removeMemberAction({ organizationId: team.id, userId });
+      const result = await callAction(removeMemberAction({ organizationId: team.id, userId }));
       if (!result.ok) {
         setPeople(previous);
         toast({ title: "Não foi possível remover", description: result.error, tone: "danger" });
@@ -112,7 +113,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     setPending((current) => current.map((item) => (item.id === inviteId ? { ...item, role: next } : item)));
     if (demo) return;
 
-    const result = await changeInviteRoleAction({ organizationId: team.id, inviteId, role: next });
+    const result = await callAction(changeInviteRoleAction({ organizationId: team.id, inviteId, role: next }));
     if (!result.ok) {
       setPending(previous);
       toast({ title: "Não foi possível trocar o papel", description: result.error, tone: "danger" });
@@ -124,7 +125,7 @@ export function MembersStep({ team, members, invites, currentUser, demo = false,
     setPending((current) => current.filter((item) => item.id !== inviteId));
 
     if (!demo) {
-      const result = await cancelInviteAction({ organizationId: team.id, inviteId });
+      const result = await callAction(cancelInviteAction({ organizationId: team.id, inviteId }));
       if (!result.ok) {
         setPending(previous);
         toast({ title: "Não foi possível cancelar", description: result.error, tone: "danger" });

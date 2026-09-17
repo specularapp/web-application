@@ -21,7 +21,8 @@ export const metadata = createMetadata({
   noIndex: true,
 });
 
-// A mesma tela da lista, com a gaveta de criar já aberta: a criação tem endereço próprio.
+// A mesma tela da lista, com a gaveta de criar já aberta: a criação tem endereço próprio. `?cliente=` chega
+// do leque da ficha do cliente e entra já preenchido, como em `/orcamentos/novo`.
 export default async function NewChargePage({ searchParams }: PageProps<"/cobrancas/nova">) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const view = parseChargesView(cookieStore.get(CHARGES_VIEW_COOKIE)?.value);
@@ -39,5 +40,7 @@ export default async function NewChargePage({ searchParams }: PageProps<"/cobran
 
   const [data, ai] = await Promise.all([loadChargesScreenData(), getAiUsageData()]);
 
-  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} creating />;
+  const prefill = { clientId: first(params.cliente) || undefined };
+
+  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} creating prefill={prefill} />;
 }

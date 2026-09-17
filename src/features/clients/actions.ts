@@ -2,12 +2,13 @@
 
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
-import { clientFormSchema, clientIdsSchema } from "./schemas";
-import { deleteClients, getClient, saveClient } from "./service";
+import { clientFlagSchema, clientFormSchema, clientIdsSchema } from "./schemas";
+import { deleteClients, getClient, saveClient, setClientFlag } from "./service";
 import type { Client } from "./summary";
 
 export type ClientSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
 export type ClientDeleteResult = { ok: true; deleted: number } | { ok: false; error: string };
+export type ClientFlagResult = { ok: true } | { ok: false; error: string };
 
 /**
  * A ficha completa de um cliente, buscada quando a gaveta lateral abre. É buscada, e não mandada junto da
@@ -54,4 +55,24 @@ export async function deleteClientsAction(input: unknown): Promise<ClientDeleteR
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.clients], ["/clientes"]);
   return { ok: true, deleted: removed.data.deleted };
+}
+
+/**
+ * Os dois interruptores do leque: ativo e favorito. Ação própria, e não o formulário inteiro, porque quem
+ * abre o leque de um cartão não tem a ficha em mãos, e mandar o resto em branco apagaria o que não foi
+ * editado.
+ */
+export async function setClientFlagAction(input: unknown): Promise<ClientFlagResult> {
+  const guard = await guardAction("client-flag");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = clientFlagSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+
+  const { id, flag, value } = parsed.data;
+  const saved = await setClientFlag(guard.context.supabase, guard.context.organizationId, id, flag, value);
+  if (!saved.ok) return { ok: false, error: saved.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.clients], ["/clientes"]);
+  return { ok: true };
 }

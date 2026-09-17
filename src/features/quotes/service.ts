@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getIssuer } from "@/features/organizations/service";
 import { shareCredentials, shareToken, shareTokenHash } from "@/lib/security/share-token";
+import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { QuotesListPage, QuotesQuery } from "./list-options";
 import type { QuoteFormInput } from "./schemas";
@@ -351,6 +352,13 @@ export async function saveQuote(
 
   if (linesError) return { ok: false, error: linesError.message || SAVE_FAILED };
 
+  await logRecordEvent(client, organizationId, {
+    recordType: "quote",
+    recordId: id,
+    action: input.id ? "updated" : "created",
+    summary: input.id ? (sending ? "Salvou e enviou ao cliente" : "Editou o orçamento") : "Criou o orçamento",
+  });
+
   return { ok: true, data: { id, status: sending ? "sent" : "draft" } };
 }
 
@@ -367,6 +375,12 @@ export async function deleteQuotes(
     .select("id");
 
   if (error) return { ok: false, error: error.message };
+
+  /* O histórico sobrevive ao documento: apagar um orçamento não pode apagar quem o apagou. */
+  for (const row of data ?? []) {
+    await logRecordEvent(client, organizationId, { recordType: "quote", recordId: row.id, action: "deleted", summary: "Excluiu o orçamento" });
+  }
+
   return { ok: true, data: { deleted: data?.length ?? 0 } };
 }
 
@@ -443,4 +457,96 @@ export async function respondToQuote(
     ok: true,
     data: { status: approved ? "approved" : "declined", organizationId: found?.organizationId ?? "" },
   };
+}
+
+/**
+ * Marca o orçamento à mão: enviado, para quem mandou por fora, e aprovado, para quem fechou no telefone.
+ *
+ * É escrita própria, e não `saveQuote` com a ficha inteira, porque quem clica no leque de um cartão não tem
+ * a ficha em mãos: mandar o resto em branco apagaria as linhas e o desconto. As datas que cada situação
+ * carrega entram junto, senão a linha do tempo do documento ficaria contando outra história.
+ */
+export async function markQuoteStatus(
+  client: QuotesClient,
+  organizationId: string,
+  id: string,
+  status: Extract<QuoteStatus, "sent" | "approved" | "declined">,
+): Promise<ServiceResult<{ id: string }>> {
+  const now = new Date().toISOString();
+  const stamps =
+    status === "sent"
+      ? { sent_at: now, responded_at: null }
+      : { responded_at: now };
+
+  const { data, error } = await client
+    .from("quotes")
+    .update({ status, ...stamps })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, {
+    recordType: "quote",
+    recordId: id,
+    action: "updated",
+    summary: status === "sent" ? "Marcou como enviado" : status === "approved" ? "Marcou como aprovado" : "Marcou como recusado",
+  });
+
+  return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Uma cópia do orçamento, em rascunho: as mesmas linhas, o mesmo cliente e as mesmas condições, com número
+ * novo e link novo. É o caminho de quem manda a mesma proposta para o segundo cliente, e de quem quer
+ * refazer uma que foi recusada sem perder a original.
+ *
+ * O que **não** vem junto: a situação, as datas de envio e resposta e o token. Uma cópia nasce rascunho, e
+ * herdar "aprovado" faria a conta do faturamento contar duas vezes o mesmo dinheiro.
+ */
+export async function duplicateQuote(
+  client: QuotesClient,
+  organizationId: string,
+  id: string,
+): Promise<ServiceResult<{ id: string }>> {
+  const { data: source } = await client
+    .from("quotes")
+    .select(
+      "title, client_id, client_name, client_company, client_email, client_phone, client_city, client_avatar_url, owner_id, discount_kind, discount_value, installments, payment_methods, cash_discount, notes, valid_until, quote_lines(catalog_item_id, name, description, quantity, unit_price, unit, courtesy, position)",
+    )
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!source) return { ok: false, error: "Esse orçamento não está mais na base." };
+
+  const copyId = crypto.randomUUID();
+  const { hash } = shareCredentials("quote", copyId);
+  const { quote_lines: lines, ...fields } = source;
+
+  const { error } = await client.from("quotes").insert({
+    ...fields,
+    id: copyId,
+    organization_id: organizationId,
+    title: `${fields.title} (cópia)`,
+    status: "draft",
+    sent_at: null,
+    share_token_hash: hash,
+    issued_at: new Date().toISOString().slice(0, 10),
+  });
+
+  if (error) return { ok: false, error: error.message || SAVE_FAILED };
+
+  if ((lines ?? []).length > 0) {
+    const { error: linesError } = await client.from("quote_lines").insert(
+      (lines ?? []).map((line) => ({ ...line, organization_id: organizationId, quote_id: copyId })),
+    );
+    if (linesError) return { ok: false, error: linesError.message || SAVE_FAILED };
+  }
+
+  await logRecordEvent(client, organizationId, { recordType: "quote", recordId: copyId, action: "created", summary: "Nasceu como cópia de outro orçamento" });
+
+  return { ok: true, data: { id: copyId } };
 }

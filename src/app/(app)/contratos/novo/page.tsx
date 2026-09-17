@@ -32,5 +32,8 @@ export default async function NewContractPage({ searchParams }: PageProps<"/cont
 
   const [page, ai] = await Promise.all([getContractsPage(query), getAiUsageData()]);
 
-  return <ContractsScreen page={page} query={query} ai={ai} creating />;
+  /* `?cliente=` chega do leque da ficha do cliente: o rascunho nasce já ligado a ele, pelas três origens. */
+  const prefill = { clientId: first(params.cliente) || undefined };
+
+  return <ContractsScreen page={page} query={query} ai={ai} creating prefill={prefill} />;
 }

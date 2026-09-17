@@ -1,0 +1,158 @@
+/* A gaveta do histórico: o mesmo desenho da gaveta de execuções da automação, porque é a mesma pergunta
+   ("o que aconteceu aqui?") e duas gavetas diferentes para ela é como elas saem de sincronia. */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  padding-block: var(--space-8);
+}
+
+.entries {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Uma entrada: a trilha com o glifo à esquerda e o texto à direita. */
+.entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  padding-block-end: var(--space-4);
+}
+
+/* O fio que desce do glifo até o próximo ato: é ele que faz a lista ler como linha do tempo. A última
+   entrada não tem próximo, então não tem fio. */
+.rail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  justify-items: center;
+}
+
+.entry:not(:last-child) .rail::after {
+  width: 0.0375rem;
+  content: "";
+  background-color: var(--color-border);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-block-end: var(--space-1);
+  color: var(--act-hue);
+  background-color: light-dark(color-mix(in oklab, var(--act-hue) 14%, transparent), color-mix(in oklab, var(--act-hue) 22%, transparent));
+  border-radius: var(--radius-full);
+}
+
+.glyph svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* O resumo e o quando, na mesma linha: o quando encolhe para o canto e nunca empurra o resumo. */
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.actor {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O campo a campo: rótulo em cima e o de → para embaixo, numa caixa apagada que separa do resumo. */
+.changes {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  margin: var(--space-1) 0 0;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.change {
+  display: grid;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+@media (max-width: 30rem) {
+  .change {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+.change dt {
+  min-width: 0;
+}
+
+.change dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* O que estava fica riscado: é o que deixa ler a mudança sem precisar do rótulo "de". */
+.from {
+  text-decoration: line-through;
+}
+
+.arrow {
+  color: var(--color-label-tertiary);
+}

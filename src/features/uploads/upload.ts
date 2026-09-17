@@ -3,6 +3,7 @@
 import { createUploadAction, attachUploadAction, clearUploadAction } from "./actions";
 import { contentTypesOf, uploadMaxBytes, uploadTargets, type UploadTarget } from "./schemas";
 import type { ServiceResult } from "./service";
+import { callAction } from "@/lib/action";
 
 /**
  * A subida de uma imagem, do lado de quem escolheu o arquivo: o servidor assina o endereço, o navegador
@@ -22,7 +23,7 @@ export async function uploadImage(target: UploadTarget, recordId: string, file: 
     return { ok: false, error: `A imagem passa de ${Math.round(uploadMaxBytes[target] / (1024 * 1024))} MB.` };
   }
 
-  const prepared = await createUploadAction({ target, recordId, contentType: contentType.data });
+  const prepared = await callAction(createUploadAction({ target, recordId, contentType: contentType.data }));
   if (!prepared.ok) return prepared;
 
   const { createClient } = await import("@/lib/supabase/client");

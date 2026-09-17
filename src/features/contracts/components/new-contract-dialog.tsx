@@ -12,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { createContractAction } from "../actions";
@@ -24,6 +25,8 @@ import styles from "./new-contract-dialog.module.css";
 export type NewContractDialogProps = {
   open: boolean;
   onClose: () => void;
+  /** De quem é o contrato, quando ele nasce da ficha de um cliente: o rascunho já sai com ele. */
+  clientId?: string;
   /** O rascunho nasceu: quem monta leva a pessoa para o editor dele. */
   onCreated: (id: string) => void;
 };
@@ -69,15 +72,15 @@ const previews = new Map(contractTemplates.map((template) => [template.id, previ
 // editor. A galeria mostra cada modelo como um cartão com a folha em miniatura do documento de verdade, o
 // tipo, o nome, a frase e as entregas. No celular é a bandeja da casa, com o sair na barra flutuante. Tem
 // endereço (`/contratos/novo`).
-export function NewContractDialog({ open, onClose, onCreated }: NewContractDialogProps) {
+export function NewContractDialog({ open, onClose, clientId, onCreated }: NewContractDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} label="Novo contrato" size="lg" focusOnOpen={false}>
-      <Chooser onClose={onClose} onCreated={onCreated} />
+      <Chooser onClose={onClose} clientId={clientId} onCreated={onCreated} />
     </Dialog>
   );
 }
 
-function Chooser({ onClose, onCreated }: Pick<NewContractDialogProps, "onClose" | "onCreated">) {
+function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, "onClose" | "clientId" | "onCreated">) {
   const { toast } = useToast();
   const titleId = useId();
   const [step, setStep] = useState<Step>("choose");
@@ -92,7 +95,7 @@ function Chooser({ onClose, onCreated }: Pick<NewContractDialogProps, "onClose" 
 
   const create = async (input: { source: "template" | "scratch"; templateId?: string }) => {
     setBusy(input.templateId ?? input.source);
-    const result = await createContractAction(input);
+    const result = await callAction(createContractAction({ ...input, clientId }));
     setBusy(null);
     if (!result.ok) {
       toast({ title: "Não deu para criar", description: result.error, tone: "danger" });
@@ -109,6 +112,7 @@ function Chooser({ onClose, onCreated }: Pick<NewContractDialogProps, "onClose" 
     try {
       const form = new FormData();
       form.set("arquivo", file);
+      if (clientId) form.set("cliente", clientId);
       const response = await fetch("/api/contratos/arquivo", { method: "POST", body: form });
       const data = (await response.json().catch(() => ({}))) as { id?: string; error?: string };
       if (!response.ok || !data.id) throw new Error(data.error ?? "Não deu para enviar o arquivo.");

@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { CaretUpDownIcon, CheckIcon, MagnifyingGlassIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, CaretUpDownIcon, CheckIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
@@ -19,8 +20,10 @@ import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
 import type { TeamOwner } from "@/features/organizations/components/create-team-panel";
 import { CREATE_TEAM_PLAN } from "@/features/organizations/constants";
+import { callAction } from "@/lib/action";
 import { slugify } from "@/lib/utils/slug";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -28,6 +31,8 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 /* A gaveta de criar equipe entra por importação dinâmica (varredura de peso de 2026-09-08): ela leva o
    seletor de imagem com o `react-dropzone` e o envio para o Storage, e nasce fechada. A `Dialog` não
    renderiza o conteúdo enquanto está fechada, então o pedaço só é buscado quando a pessoa escolhe criar. */
+import { ArchiveTeamDialog } from "./archive-team-dialog";
+
 const CreateTeamPanel = dynamic(() =>
   import("@/features/organizations/components/create-team-panel").then((module) => module.CreateTeamPanel),
 );
@@ -192,6 +197,17 @@ const Mark = styled.span`
   }
 `;
 
+/* O leque de ações na ponta da linha: o botão encolhe para a altura da linha, como o × do compositor faz. */
+const Actions = styled.span`
+  --control-height-sm: 1.5rem;
+  --icon-button-radius-sm: 0.75rem;
+  --touch-target: 1.5rem;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+`;
+
 const Empty = styled.div`
   display: grid;
   gap: var(--space-3);
@@ -296,7 +312,14 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
   const [active, setActive] = useState(0);
   const [switching, setSwitching] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  /* Qual equipe está sendo editada e qual está prestes a ser arquivada: as duas saem do leque da linha. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState<SwitcherTeam | null>(null);
   const { present, state, onAnimationEnd } = usePresence(open && !sheet);
+  /* A caixa entra na pilha de camadas da casa. Sem isso o leque de opções de uma equipe, que nasce num
+     portal fora desta caixa, contava como "toque fora": o ponteiro descia, a caixa fechava levando a linha
+     junto, e o engolidor comia o clique que vinha atrás. As opções apareciam e nenhuma acontecia. */
+  const layer = useLayer(open && !sheet);
 
   const filtered = useMemo(
     () => (query.trim() ? teams.filter((team) => matches(team.name, query)) : teams),
@@ -321,22 +344,29 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
   // A bandeja fecha por Escape e por toque fora dentro do próprio Dialog; no desktop a caixa é avulsa
   // e precisa dos dois aqui. O toque fora engole o clique, para o botão embaixo não disparar junto, e
   // enquanto a troca corre nada fecha.
-  useOutsideDismiss(open && !sheet, [popoverRef, triggerRef], () => {
-    if (!switching) setOpen(false);
-  });
+  useOutsideDismiss(
+    open && !sheet,
+    [popoverRef, triggerRef],
+    () => {
+      if (!switching) setOpen(false);
+    },
+    () => isTopLayer(layer),
+  );
 
   useEffect(() => {
     if (!open || sheet) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || switching) return;
+      /* Com um leque aberto por cima, o Escape é dele: fechar a caixa junto tiraria da tela a linha que a
+         pessoa estava usando. */
+      if (event.key !== "Escape" || switching || !isTopLayer(layer)) return;
       setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
     };
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, sheet, switching]);
+  }, [open, sheet, switching, layer]);
 
   const close = () => {
     if (switching) return;
@@ -353,7 +383,7 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
     }
 
     setSwitching(team.id);
-    const result = await switchTeamAction({ organizationId: team.id });
+    const result = await callAction(switchTeamAction({ organizationId: team.id }));
     setSwitching(null);
 
     if (!result.ok) {
@@ -381,6 +411,40 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
       if (team) void choose(team);
     }
   };
+
+  /* As ações de uma equipe, no leque de vidro da casa: editar abre a gaveta preenchida, e arquivar tira a
+     equipe da lista sem apagar nada. Arquivar pede confirmação, porque quem estiver dentro dela sai junto. */
+  const actionsOf = (team: SwitcherTeam): DropdownSection[] => [
+    {
+      id: "editar",
+      items: [
+        {
+          id: "editar",
+          label: "Editar equipe",
+          icon: PencilSimpleIcon,
+          onSelect: () => {
+            setOpen(false);
+            setEditing(team.id);
+          },
+        },
+      ],
+    },
+    {
+      id: "arquivar",
+      items: [
+        {
+          id: "arquivar",
+          label: "Arquivar equipe",
+          icon: ArchiveIcon,
+          tone: "danger" as const,
+          onSelect: () => {
+            setOpen(false);
+            setArchiving(team);
+          },
+        },
+      ],
+    },
+  ];
 
   const content = (
     <>
@@ -433,6 +497,15 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
                     team.id === currentId && <CheckIcon aria-hidden="true" />
                   )}
                 </Mark>
+                {/* O clique no leque não escolhe a equipe: ele é uma ação sobre ela, e não a troca. */}
+                <Actions onClick={(event) => event.stopPropagation()}>
+                  <DropdownMenu
+                    label={`Ações de ${team.name}`}
+                    triggerLabel={`Mais opções de ${team.name}`}
+                    sections={actionsOf(team)}
+                    size="sm"
+                  />
+                </Actions>
               </Option>
             ))}
           </List>
@@ -526,6 +599,9 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
       )}
 
       <CreateTeamPanel open={creating} owner={owner} onClose={() => setCreating(false)} />
+      <CreateTeamPanel open={editing !== null} teamId={editing} owner={owner} onClose={() => setEditing(null)} />
+
+      <ArchiveTeamDialog team={archiving} onClose={() => setArchiving(null)} />
     </>
   );
 }

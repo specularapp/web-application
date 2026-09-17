@@ -13,6 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import {
   CATALOG_PER_PAGE,
@@ -125,7 +126,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   const removeItem = async () => {
     if (!deleting) return;
     setRemoving(true);
-    const result = await deleteCatalogItemsAction([deleting.id]);
+    const result = await callAction(deleteCatalogItemsAction([deleting.id]));
     setRemoving(false);
 
     if (!result.ok) {

@@ -13,6 +13,8 @@ export type ClientQuote = {
   date: string;
 };
 
+import type { ProjectHue } from "@/features/projects/summary";
+
 export type ClientProjectStatus = "ongoing" | "done" | "paused";
 
 /** Um projeto do cliente, como aparece na ficha dele. */
@@ -23,6 +25,9 @@ export type ClientProject = {
   status: ClientProjectStatus;
   /** De 0 a 100. */
   progress: number;
+  /** O que a marca do projeto precisa: a logo dele e o matiz. Sem logo, a ficha empresta a do cliente. */
+  logoUrl: string | null;
+  hue: ProjectHue;
 };
 
 export type Client = {

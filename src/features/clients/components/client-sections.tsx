@@ -20,6 +20,7 @@ import { applyPattern } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import type { Client, ClientProjectStatus } from "../summary";
 import styles from "./client-sections.module.css";
+import { ProjectMark } from "@/features/projects/components/project-mark";
 
 export type ClientSectionsProps = { client: Client };
 
@@ -158,6 +159,21 @@ export function ClientSections({ client }: ClientSectionsProps) {
                   key={project.id}
                   href={`/projetos/${project.id}` as Route}
                   icon={FolderOpenIcon}
+                  /* A marca do projeto, e não o glifo de pasta igual em todos: numa lista de cinco projetos
+                     o glifo repetido não ajuda ninguém a achar o certo. Sem logo própria, ela empresta a
+                     deste cliente, que é justamente quem está sendo visto. */
+                  media={
+                    <ProjectMark
+                      size="sm"
+                      project={{
+                        id: project.id,
+                        name: project.name,
+                        hue: project.hue,
+                        logoUrl: project.logoUrl,
+                        client: { logoUrl: client.companyLogoUrl, avatarUrl: client.avatarUrl },
+                      }}
+                    />
+                  }
                   title={project.name}
                   caption={<ProfileProgress value={project.progress} done={project.status === "done"} />}
                   end={

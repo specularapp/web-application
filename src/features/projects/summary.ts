@@ -31,11 +31,16 @@ export type ProjectPerson = { name: string; avatarUrl: string | null };
 export type ProjectOwnerOption = ProjectPerson & { id: string; role: string };
 
 /** Para quem é o trabalho: o rosto e o nome de quem contratou, com a empresa quando há. */
+/** Uma pasta como um seletor a mostra: o nome curto, o caminho inteiro e a profundidade, para o recuo. */
+export type ProjectFolderOption = { id: string; name: string; path: string; depth: number };
+
 export type ProjectClient = {
   id: string;
   name: string;
   company?: string;
   avatarUrl: string | null;
+  /** A logo da empresa do cliente: é ela que o projeto sem logo própria veste. */
+  logoUrl?: string | null;
 };
 
 /**
@@ -116,7 +121,11 @@ export type Project = {
   description: string;
   /** Aparece no portfólio público da equipe. */
   isPublic: boolean;
-  client: ProjectClient;
+  /** A marca quadrada do projeto. Nula cai na do cliente, e sem cliente na arte gerada (`ProjectMark`). */
+  logoUrl: string | null;
+  /** De quem é o projeto. **Nulo é projeto independente** (2026-09-16, a pedido): estudo, projeto próprio,
+   *  protótipo. Ele continua contando para o portfólio e para o currículo, que é o que a página serve. */
+  client: ProjectClient | null;
   /** Quem da equipe responde pelo projeto: o id é o que o formulário guarda, e o resto é o que o cartão desenha. */
   ownerId: string | null;
   owner: ProjectPerson;

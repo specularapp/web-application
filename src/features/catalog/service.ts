@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { QuoteStatus } from "@/features/quotes/summary";
+import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import { catalogHueFor } from "./list-options";
 import type { CatalogListPage, CatalogQuery } from "./list-options";
@@ -212,6 +213,25 @@ export async function getCatalogItem(
  * nome, e na edição o que o item já tem fica, para a arte de um item conhecido não trocar de cor quando o
  * renomeiam. O que não se aplica ao tipo vai como nulo, que é o que os `check` da tabela exigem.
  */
+/* Os nomes que a pessoa lê no histórico: só o que ela mesma edita no formulário. */
+const historyLabels = {
+  name: "nome",
+  description: "descrição",
+  kind: "tipo",
+  category: "categoria",
+  price: "preço",
+  unit: "unidade",
+  cost: "custo",
+  max_discount: "desconto máximo",
+  revisions: "revisões",
+  support_days: "dias de suporte",
+  deliverables: "entregas",
+  requirements: "o que precisa",
+  tags: "etiquetas",
+  notes: "anotações",
+  active: "situação",
+} as const;
+
 export async function saveCatalogItem(
   client: CatalogClient,
   organizationId: string,
@@ -245,6 +265,14 @@ export async function saveCatalogItem(
   };
 
   if (input.id) {
+    /* O que estava, para o histórico dizer o de e o para. Uma leitura a mais só na edição. */
+    const { data: before } = await client
+      .from("catalog_items")
+      .select("name, description, kind, category, price, unit, cost, max_discount, revisions, support_days, deliverables, requirements, tags, notes, active")
+      .eq("organization_id", organizationId)
+      .eq("id", input.id)
+      .maybeSingle();
+
     const { data, error } = await client
       .from("catalog_items")
       .update(values)
@@ -254,6 +282,18 @@ export async function saveCatalogItem(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const changes = diffFields(before, values, historyLabels);
+    if (changes.length > 0) {
+      await logRecordEvent(client, organizationId, {
+        recordType: "catalog",
+        recordId: data.id,
+        action: "updated",
+        summary: summarize(changes),
+        changes,
+      });
+    }
+
     return { ok: true, data: { id: data.id } };
   }
 
@@ -264,6 +304,9 @@ export async function saveCatalogItem(
     .single();
 
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, { recordType: "catalog", recordId: data.id, action: "created", summary: `Cadastrou ${input.name}` });
+
   return { ok: true, data: { id: data.id } };
 }
 
@@ -280,6 +323,11 @@ export async function deleteCatalogItems(
     .select("id");
 
   if (error) return { ok: false, error: error.message };
+
+  for (const row of data ?? []) {
+    await logRecordEvent(client, organizationId, { recordType: "catalog", recordId: row.id, action: "deleted", summary: "Excluiu o item" });
+  }
+
   return { ok: true, data: { deleted: data?.length ?? 0 } };
 }
 

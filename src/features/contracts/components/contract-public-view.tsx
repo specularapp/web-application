@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { SignaturePad } from "@/components/ui/signature-pad";
 import { Text } from "@/components/ui/text";
 import { signatureStamp } from "@/features/quotes/signature";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { signContractAction } from "../actions";
 import { ContractDocument, partyRoles } from "../document";
@@ -61,7 +62,7 @@ export function ContractPublicView({ contract: initial, party: initialParty }: C
       return;
     }
     setPending(true);
-    const result = await signContractAction({ token: party.token, name, signature: trace });
+    const result = await callAction(signContractAction({ token: party.token, name, signature: trace }));
     setPending(false);
     if (!result.ok) {
       toast({ title: "Não deu para assinar", description: result.error, tone: "danger" });

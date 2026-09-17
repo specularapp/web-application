@@ -116,6 +116,9 @@ export const imageAttachSchema = z.object({
 
 export const organizationIdSchema = z.object({ organizationId: z.uuid() });
 
+/** Arquivar ou reabrir uma equipe: o mesmo caminho nos dois sentidos. */
+export const archiveTeamSchema = z.object({ organizationId: z.uuid(), archived: z.boolean() });
+
 // Acento vira letra simples antes do corte para "Ateliê Três" virar "atelie-tres", e não "atelie-tr-s".
 /* `slugify` mudou para `lib/utils/slug.ts` e continua saindo daqui para quem já a importava do domínio.
    Componente de cliente importa direto de lá, senão leva o zod deste arquivo junto para o navegador. */

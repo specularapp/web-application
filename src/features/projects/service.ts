@@ -1,5 +1,6 @@
 import "server-only";
 import { differenceInCalendarDays, format } from "date-fns";
+import type { ProjectFolderOption } from "./summary";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeWebsite } from "@/features/organizations/schemas";
 import { listTeamMembers } from "@/features/organizations/service";
@@ -33,8 +34,8 @@ const SAVE_FAILED = "Não foi possível salvar o projeto. Tente de novo em insta
 
 const columns = `
   id, slug, reference, name, url, description, is_public, status, tags, tools, stages, glyph, hue,
-  budget_min, budget_max, started_at, due_at, progress, cover_url, owner_id, folder_id,
-  clients!inner(id, name, company, avatar_url)
+  budget_min, budget_max, started_at, due_at, progress, cover_url, logo_url, owner_id, folder_id,
+  clients(id, name, company, avatar_url, company_logo_url)
 `;
 
 type Row = {
@@ -45,6 +46,7 @@ type Row = {
   url: string | null;
   description: string;
   is_public: boolean;
+  logo_url: string | null;
   status: ProjectStatus;
   tags: string[];
   tools: ProjectTool[];
@@ -59,7 +61,8 @@ type Row = {
   cover_url: string | null;
   owner_id: string | null;
   folder_id: string | null;
-  clients: { id: string; name: string; company: string | null; avatar_url: string | null };
+  /* Junção à esquerda, e não interna: projeto sem cliente existe, e com junção interna ele sumia da lista. */
+  clients: { id: string; name: string; company: string | null; avatar_url: string | null; company_logo_url: string | null } | null;
 };
 
 type Person = { name: string; avatarUrl: string | null };
@@ -73,12 +76,16 @@ function toProject(row: Row, owner: Person): Project {
     url: row.url,
     description: row.description,
     isPublic: row.is_public,
-    client: {
-      id: row.clients.id,
-      name: row.clients.name,
-      company: row.clients.company ?? undefined,
-      avatarUrl: row.clients.avatar_url,
-    },
+    logoUrl: row.logo_url,
+    client: row.clients
+      ? {
+          id: row.clients.id,
+          name: row.clients.name,
+          company: row.clients.company ?? undefined,
+          avatarUrl: row.clients.avatar_url,
+          logoUrl: row.clients.company_logo_url,
+        }
+      : null,
     ownerId: row.owner_id,
     owner,
     status: row.status,
@@ -205,7 +212,7 @@ export async function getProjectDetails(
       .from("quotes")
       .select("id, reference, title, status, issued_at, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")
       .eq("organization_id", organizationId)
-      .eq("client_id", project.client.id)
+      .eq("client_id", project.client?.id ?? "")
       .order("issued_at", { ascending: false })
       .limit(10),
     client
@@ -278,7 +285,7 @@ export async function getProjectsSummary(
 ): Promise<ProjectsSummary> {
   const { data, count } = await client
     .from("projects")
-    .select("started_at, status, due_at, progress, clients!inner(id, name, avatar_url)", { count: "exact" })
+    .select("started_at, status, due_at, progress, clients(id, name, avatar_url)", { count: "exact" })
     .eq("organization_id", organizationId)
     .order("started_at", { ascending: false })
     .limit(400);
@@ -286,7 +293,10 @@ export async function getProjectsSummary(
   const rows = data ?? [];
   const clients = new Map<string, { name: string; avatarUrl: string | null }>();
   for (const row of rows) {
-    if (!clients.has(row.clients.id)) clients.set(row.clients.id, { name: row.clients.name, avatarUrl: row.clients.avatar_url });
+    /* Projeto sem cliente não entra na contagem de clientes atendidos, que é o que o bloco mostra. */
+    if (row.clients && !clients.has(row.clients.id)) {
+      clients.set(row.clients.id, { name: row.clients.name, avatarUrl: row.clients.avatar_url });
+    }
   }
 
   const buckets = new Map<string, { started: number; completed: number }>();
@@ -349,7 +359,7 @@ export async function saveProject(
     url: normalizeWebsite(input.url),
     description: input.description,
     is_public: input.isPublic,
-    client_id: input.clientId,
+    client_id: input.clientId || null,
     owner_id: input.ownerId || null,
     status: input.status,
     tags: input.tags,
@@ -474,6 +484,93 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
   ];
 
   return children(null);
+}
+
+/**
+ * As pastas da organização em lista rasa, do jeito que um seletor precisa: o nome já vem com o caminho
+ * inteiro ("Clientes / Aurora"), porque numa lista de escolha a pessoa precisa saber qual "Aurora" é.
+ */
+export async function listProjectFolders(client: ProjectsClient, organizationId: string): Promise<ProjectFolderOption[]> {
+  const { data } = await client
+    .from("project_folders")
+    .select("id, parent_id, name, position")
+    .eq("organization_id", organizationId)
+    .order("position");
+
+  const rows = data ?? [];
+  const walk = (parentId: string | null, trail: string[]): ProjectFolderOption[] =>
+    rows
+      .filter((row) => row.parent_id === parentId)
+      .flatMap((row) => {
+        const path = [...trail, row.name];
+        return [{ id: row.id, name: row.name, path: path.join(" / "), depth: trail.length }, ...walk(row.id, path)];
+      });
+
+  return walk(null, []);
+}
+
+/** Cria uma pasta, ou renomeia a que veio com id. A posição nasce no fim do nível, que é onde a última entra. */
+export async function saveProjectFolder(
+  client: ProjectsClient,
+  organizationId: string,
+  input: { id?: string; name: string; parentId: string | null },
+): Promise<ServiceResult<{ id: string }>> {
+  if (input.id) {
+    const { data, error } = await client
+      .from("project_folders")
+      .update({ name: input.name, parent_id: input.parentId })
+      .eq("id", input.id)
+      .eq("organization_id", organizationId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    return { ok: true, data: { id: data.id } };
+  }
+
+  /* Quantas já existem no mesmo nível, para a nova entrar no fim. O filtro do pai muda de operador conforme
+     ele exista ou não: `is` só aceita nulo, e `eq` não acha nulo nenhum. */
+  const level = client.from("project_folders").select("id", { count: "exact", head: true }).eq("organization_id", organizationId);
+  const { count } = await (input.parentId ? level.eq("parent_id", input.parentId) : level.is("parent_id", null));
+
+  const { data, error } = await client
+    .from("project_folders")
+    .insert({ organization_id: organizationId, name: input.name, parent_id: input.parentId, position: count ?? 0 })
+    .select("id")
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Apaga uma pasta. Os projetos dentro dela **não** somem: o vínculo é `on delete set null`, então eles voltam
+ * para a raiz da árvore. Pasta é organização, e apagar a gaveta não é apagar o que estava nela.
+ */
+export async function deleteProjectFolder(
+  client: ProjectsClient,
+  organizationId: string,
+  id: string,
+): Promise<ServiceResult<undefined>> {
+  const { error } = await client.from("project_folders").delete().eq("id", id).eq("organization_id", organizationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+/** Move um projeto para uma pasta, ou para a raiz quando ela é nula. */
+export async function moveProject(
+  client: ProjectsClient,
+  organizationId: string,
+  input: { id: string; folderId: string | null },
+): Promise<ServiceResult<undefined>> {
+  const { error } = await client
+    .from("projects")
+    .update({ folder_id: input.folderId })
+    .eq("id", input.id)
+    .eq("organization_id", organizationId);
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
 }
 
 /** Quanto falta para a entrega, em dias: negativo é atraso. Usado pelo aviso da ficha e pelo menu. */

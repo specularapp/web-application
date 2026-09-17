@@ -949,7 +949,17 @@ function TaskDetail({
         </nav>
 
         <div className={frame.actions}>
-          <TaskMenu task={task} />
+          {/* O leque da ficha move de etapa e conclui pelas mesmas etapas do quadro de onde ela veio: sem
+              isto, "Mover para" e "Marcar como concluída" apareciam aqui dentro sem para onde ir. Abrir e
+              excluir ficam de fora, porque a ficha já está aberta e quem apaga é o quadro. */}
+          <TaskMenu
+            task={task}
+            stages={stages}
+            onMove={(next) => {
+              patch({ stage: next });
+              onStageChange?.(next);
+            }}
+          />
           <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
             <XIcon />
           </IconButton>

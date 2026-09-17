@@ -23,9 +23,11 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip } from "@/components/ui/tooltip";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
+import { ProjectMark } from "./project-mark";
 import { saveProjectAction } from "../actions";
 import { projectStatuses, projectTools } from "../labels";
 import { projectArtworkUrl, projectHueFor } from "../list-options";
@@ -34,6 +36,7 @@ import type { Project, ProjectClient, ProjectOwnerOption, ProjectStatus, Project
 import { projectTagCatalog } from "../tags";
 import { ToolTile } from "./tool-tile";
 import styles from "./project-form-dialog.module.css";
+import { siteUrl, siteValue } from "@/lib/utils/site";
 
 /** O que a gaveta edita: um projeto da lista (que já é a ficha inteira) ou `"new"` para criar. Nulo fecha. */
 export type ProjectEditor = Project | "new" | null;
@@ -73,9 +76,9 @@ function valuesOf(project?: Project) {
   const digits = (value: number | null | undefined) => (value === null || value === undefined ? "" : String(value));
   return {
     name: project?.name ?? "",
-    url: project?.url ?? "",
+    url: siteValue(project?.url ?? ""),
     description: project?.description ?? "",
-    clientId: project?.client.id ?? "",
+    clientId: project?.client?.id ?? "",
     ownerId: project?.ownerId ?? "",
     status: project?.status ?? ("active" as ProjectStatus),
     isPublic: project?.isPublic ?? false,
@@ -91,6 +94,10 @@ function valuesOf(project?: Project) {
 }
 
 type Values = ReturnType<typeof valuesOf>;
+
+/* O valor do "sem cliente" na lista: o campo guarda texto vazio, e o seletor da casa não aceita vazio como
+   escolha, porque vazio para ele é "nada escolhido". */
+const NO_CLIENT = "sem-cliente";
 
 /* A imagem decodificada já na orientação certa, pelo `createImageBitmap`, que lê a orientação do arquivo;
    onde ele não existe, o `<img>` cru resolve. */
@@ -201,9 +208,17 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
      local, que só existe nesta janela e é desfeita ao trocar ou ao fechar. */
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  /* A logo do projeto, pelo mesmo caminho da capa: o arquivo sobe depois de salvar, e a prévia é local. */
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoDropped, setLogoDropped] = useState(false);
+  const logoInput = useRef<HTMLInputElement>(null);
   useEffect(() => () => {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
   }, [coverPreview]);
+  useEffect(() => () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+  }, [logoPreview]);
   const editing = Boolean(project);
   const titleId = useId();
   const publicId = useId();
@@ -250,6 +265,22 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
     set("coverUrl", "");
   };
 
+  const pickLogo = (file: File) => {
+    if (file.size > IMAGE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A logo passa de 8 MB. Escolha uma menor.", tone: "warning" });
+      return;
+    }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setLogoDropped(false);
+  };
+
+  const dropLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoDropped(true);
+  };
+
   /* Sobe a capa escolhida, ou tira a que havia. Devolve a mensagem de erro, ou nada quando deu certo. */
   const saveCover = async (id: string) => {
     if (coverFile) {
@@ -263,6 +294,19 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
     return undefined;
   };
 
+  /* Mesma regra da capa: sobe a escolhida, ou tira a que havia. */
+  const saveLogo = async (id: string) => {
+    if (logoFile) {
+      const sent = await uploadImage("project-logo", id, logoFile);
+      return sent.ok ? undefined : sent.error;
+    }
+    if (project?.logoUrl && logoDropped) {
+      const cleared = await removeImage("project-logo", id);
+      return cleared.ok ? undefined : cleared.error;
+    }
+    return undefined;
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
@@ -271,7 +315,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
     const input: ProjectFormInput = {
       id: project?.id,
       name: values.name,
-      url: values.url,
+      url: siteUrl(values.url),
       description: values.description,
       clientId: values.clientId,
       ownerId: values.ownerId,
@@ -287,7 +331,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
       coverUrl: values.coverUrl,
     };
 
-    const result = await saveProjectAction(input);
+    const result = await callAction(saveProjectAction(input));
 
     if (!result.ok) {
       setSaving(false);
@@ -297,8 +341,14 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
 
     /* A capa vai depois do salvamento, e não junto: o arquivo mora numa pasta com o id do projeto, e na
        criação esse id só existe agora. Falha de capa não desfaz o projeto, que já está gravado. */
-    const cover = await saveCover(result.id);
+    const [cover, logo] = await Promise.all([saveCover(result.id), saveLogo(result.id)]);
     setSaving(false);
+
+    if (logo && !cover) {
+      toast({ title: "Projeto salvo, logo não", description: logo, tone: "warning" });
+      onSaved(result.id);
+      return;
+    }
 
     if (cover) {
       toast({ title: "Projeto salvo, capa não", description: cover, tone: "warning" });
@@ -318,6 +368,9 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   const known = error?.field !== undefined && error.field in values;
   /* O que a janela mostra: a prévia da escolha de agora, ou a capa que já estava guardada. */
   const shownCover = coverPreview ?? (values.coverUrl || null);
+  const shownLogo = logoPreview ?? (logoDropped ? null : (project?.logoUrl ?? null));
+  /* O cliente escolhido agora, para a prévia da marca já mostrar de quem ela vai ser emprestada. */
+  const shownClient = clients.find((entry) => entry.id === values.clientId) ?? null;
 
   // A cor da arte sai do nome, e não de uma escolha: a prévia deriva pelo mesmo caminho do servidor, então o
   // que aparece enquanto se digita é o que fica gravado. Projeto que já tem matiz mantém o dele.
@@ -325,12 +378,17 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   const hue = { "--project-hue": `var(--sys-${preview.hue})` } as CSSProperties;
   const busy = saving || reading;
 
-  const clientOptions = clients.map((client) => ({
-    value: client.id,
-    label: client.company ?? client.name,
-    caption: client.company ? client.name : undefined,
-    media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
-  }));
+  /* "Sem cliente" no topo da lista, e não um campo que se deixa em branco (2026-09-16, a pedido): projeto de
+     estudo e projeto próprio existem, e escolher explicitamente é o que diz que o branco foi de propósito. */
+  const clientOptions = [
+    { value: NO_CLIENT, label: "Sem cliente", caption: "Projeto independente, de estudo ou próprio" },
+    ...clients.map((client) => ({
+      value: client.id,
+      label: client.company ?? client.name,
+      caption: client.company ? client.name : undefined,
+      media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
+    })),
+  ];
 
   const ownerOptions = owners.map((owner) => ({
     value: owner.id,
@@ -399,18 +457,59 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
             />
           </div>
 
+          {/* A logo do projeto, ao lado da capa: a capa é a faixa do cartão, e a logo é a marca quadrada que
+              aparece toda vez que o projeto vira uma linha de lista. Sem ela, a tela usa a do cliente, e por
+              isso o campo não é obrigatório nem pede nada de quem tem cliente cadastrado. */}
+          <div className={styles.artwork}>
+            <ProjectMark size="lg" project={{ id: preview.id, name: preview.name, hue: preview.hue, logoUrl: shownLogo, client: shownClient }} />
+            <div className={styles.artworkCopy}>
+              <Text as="span" variant="footnote" weight="medium" truncate>
+                Logo
+              </Text>
+              <Text as="span" variant="caption1" tone="secondary">
+                Sem logo própria, entra a do cliente; sem cliente, a arte do projeto.
+              </Text>
+              <div className={styles.artworkActions}>
+                <Tooltip content={shownLogo ? "Trocar logo" : "Enviar logo"}>
+                  <IconButton label={shownLogo ? "Trocar logo" : "Enviar logo"} variant="outline" size="sm" radius="md" disabled={busy} onClick={() => logoInput.current?.click()}>
+                    <UploadSimpleIcon />
+                  </IconButton>
+                </Tooltip>
+                {shownLogo && (
+                  <Tooltip content="Remover logo">
+                    <IconButton label="Remover logo" variant="ghost" size="sm" radius="md" disabled={busy} onClick={dropLogo}>
+                      <XIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+            <input
+              ref={logoInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className={styles.fileInput}
+              aria-label="Enviar a logo do projeto"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                event.target.value = "";
+                if (file) pickLogo(file);
+              }}
+            />
+          </div>
+
           <Field label="Nome" required hint="O nome do site ou de para quem o trabalho é feito" error={errorOf("name")}>
             <Input type="text" name="name" value={values.name} maxLength={projectLimits.name} placeholder="Estúdio Aurora" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
           <Field label="Endereço do site" hint="Sem site fica em branco" error={errorOf("url")}>
-            <Input type="text" name="url" inputMode="url" autoComplete="off" value={values.url} maxLength={projectLimits.url} placeholder="estudioaurora.com.br" disabled={saving} iconStart={<GlobeSimpleIcon />} onChange={(event) => set("url", event.target.value)} />
+            <Input type="text" name="url" inputMode="url" autoComplete="off" value={values.url} maxLength={projectLimits.url} placeholder="estudioaurora.com.br" disabled={saving} iconStart={<GlobeSimpleIcon />} onChange={(event) => set("url", siteValue(event.target.value))} />
           </Field>
           <Field label="Descrição" hint={`${values.description.length} de ${projectLimits.description} caracteres, a linha que o cartão mostra sob o nome`} error={errorOf("description")}>
             <Textarea name="description" value={values.description} rows={2} maxLength={projectLimits.description} placeholder="Site institucional com portfólio e formulário de contato" disabled={saving} onChange={(event) => set("description", event.target.value)} />
           </Field>
           <div className={styles.pair}>
-            <Field label="Cliente" required error={errorOf("clientId")}>
-              <Select<string> label="Cliente do projeto" options={clientOptions} value={values.clientId || undefined} placeholder="Escolha o cliente" searchable searchPlaceholder="Buscar cliente" emptyLabel="Nenhum cliente com esse nome" disabled={saving} onChange={(clientId) => set("clientId", clientId)} />
+            <Field label="Cliente" error={errorOf("clientId")}>
+              <Select<string> label="Cliente do projeto" options={clientOptions} value={values.clientId || NO_CLIENT} placeholder="Escolha o cliente" searchable searchPlaceholder="Buscar cliente" emptyLabel="Nenhum cliente com esse nome" disabled={saving} onChange={(clientId) => set("clientId", clientId === NO_CLIENT ? "" : clientId)} />
             </Field>
             <Field label="Responsável" required error={errorOf("ownerId")}>
               <Select<string> label="Quem responde pelo projeto" options={ownerOptions} value={values.ownerId || undefined} placeholder="Escolha quem responde" searchable searchPlaceholder="Buscar na equipe" disabled={saving} onChange={(ownerId) => set("ownerId", ownerId)} />

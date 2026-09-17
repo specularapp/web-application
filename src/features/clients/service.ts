@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { quoteTotals } from "@/features/quotes/totals";
 import type { QuoteStatus } from "@/features/quotes/summary";
+import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { ClientListItem, ClientsListPage, ClientsQuery } from "./list-options";
 import type { ClientFormInput } from "./schemas";
@@ -99,6 +100,8 @@ async function statsFor(client: ClientsClient, organizationId: string, ids: stri
   }
 
   for (const row of projects.data ?? []) {
+    /* Projeto independente não é de cliente nenhum e não entra na contagem de ninguém. */
+    if (!row.client_id) continue;
     const entry = stats.get(row.client_id);
     if (entry) entry.projects += 1;
   }
@@ -196,7 +199,7 @@ export async function getClient(client: ClientsClient, organizationId: string, i
       .limit(20),
     client
       .from("projects")
-      .select("id, reference, name, status, progress")
+      .select("id, reference, name, status, progress, logo_url, hue")
       .eq("organization_id", organizationId)
       .eq("client_id", id)
       .order("started_at", { ascending: false })
@@ -224,6 +227,8 @@ export async function getClient(client: ClientsClient, organizationId: string, i
     name: row.name,
     status: projectStatus[row.status] ?? "ongoing",
     progress: row.progress,
+    logoUrl: row.logo_url,
+    hue: row.hue,
   }));
 
   return {
@@ -280,6 +285,22 @@ export async function getClientsSummary(
   };
 }
 
+/* Os nomes que a pessoa lê no histórico. Só o que ela mesma edita: o que o sistema preenche não é mudança
+   dela e só encheria a linha do tempo. */
+const historyLabels = {
+  name: "nome",
+  company: "empresa",
+  role: "área",
+  email: "e-mail",
+  phone: "telefone",
+  website: "site",
+  city: "cidade",
+  about: "anotações",
+  tags: "etiquetas",
+  active: "situação",
+  favorite: "favorito",
+} as const;
+
 /** Criar e editar são o mesmo formulário, então são a mesma escrita: com id atualiza, sem id insere. */
 export async function saveClient(
   client: ClientsClient,
@@ -303,6 +324,15 @@ export async function saveClient(
   };
 
   if (input.id) {
+    /* O que estava, para o histórico dizer o de e o para. Uma leitura a mais só na edição, e só das colunas
+       que a pessoa edita. */
+    const { data: before } = await client
+      .from("clients")
+      .select("name, company, role, email, phone, website, city, about, tags, active, favorite")
+      .eq("organization_id", organizationId)
+      .eq("id", input.id)
+      .maybeSingle();
+
     const { data, error } = await client
       .from("clients")
       .update(values)
@@ -312,17 +342,82 @@ export async function saveClient(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const changes = diffFields(before, values, historyLabels);
+    if (changes.length > 0) {
+      await logRecordEvent(client, organizationId, {
+        recordType: "client",
+        recordId: data.id,
+        action: "updated",
+        summary: summarize(changes),
+        changes,
+      });
+    }
+
     return { ok: true, data: { id: data.id } };
   }
 
   const { data, error } = await client
     .from("clients")
     .insert({ ...values, created_by: userId })
-    .select("id")
+    .select("id, reference")
     .single();
 
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, {
+    recordType: "client",
+    recordId: data.id,
+    action: "created",
+    summary: `Cadastrou ${input.name}`,
+  });
+
   return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Os dois interruptores do leque: ativo e favorito. Escrita própria, e não o formulário inteiro, porque o
+ * leque do cartão não tem a ficha em mãos e mandar o resto em branco apagaria o que não foi editado.
+ */
+export async function setClientFlag(
+  client: ClientsClient,
+  organizationId: string,
+  id: string,
+  flag: "active" | "favorite",
+  value: boolean,
+): Promise<ServiceResult<undefined>> {
+  /* A coluna por extenso nos dois casos, e não montada em texto: o tipo gerado do banco recusa chave
+     dinâmica, e escrita assim ela é conferida na compilação. */
+  const values = flag === "active" ? { active: value } : { favorite: value };
+
+  const { data, error } = await client
+    .from("clients")
+    .update(values)
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("name")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  const summary =
+    flag === "active"
+      ? value
+        ? "Reativou o cliente"
+        : "Desativou o cliente"
+      : value
+        ? "Marcou como favorito"
+        : "Tirou dos favoritos";
+
+  await logRecordEvent(client, organizationId, {
+    recordType: "client",
+    recordId: id,
+    action: "updated",
+    summary,
+    changes: [{ field: flag, label: flag === "active" ? "situação" : "favorito", from: value ? "não" : "sim", to: value ? "sim" : "não" }],
+  });
+
+  return { ok: true, data: undefined };
 }
 
 /**
@@ -346,6 +441,17 @@ export async function deleteClients(
       return { ok: false, error: "Há cliente com projeto ligado. Apague ou mova os projetos antes." };
     }
     return { ok: false, error: error.message || LOAD_FAILED };
+  }
+
+  /* O histórico não tem chave estrangeira para o registro justamente por isto: apagar o cliente não pode
+     apagar a prova de que ele existiu e de quem o apagou. */
+  for (const row of data ?? []) {
+    await logRecordEvent(client, organizationId, {
+      recordType: "client",
+      recordId: row.id,
+      action: "deleted",
+      summary: "Excluiu o cliente",
+    });
   }
 
   return { ok: true, data: { deleted: data?.length ?? 0 } };

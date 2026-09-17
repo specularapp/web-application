@@ -55,6 +55,7 @@ import { OpportunityCard } from "./opportunity-card";
 import { OpportunityColumn } from "./opportunity-column";
 import { OpportunityDialog } from "./opportunity-dialog";
 import styles from "./crm-board.module.css";
+import { callAction } from "@/lib/action";
 
 export type CrmBoardProps = {
   board: CrmBoardData;
@@ -138,7 +139,7 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team }: Crm
   const removeOpportunity = async () => {
     if (!deleting) return;
     setRemoving(true);
-    const result = await deleteOpportunityAction(deleting.id);
+    const result = await callAction(deleteOpportunityAction(deleting.id));
     setRemoving(false);
 
     if (!result.ok) {

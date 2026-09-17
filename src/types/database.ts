@@ -1680,6 +1680,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          archived_at: string | null
           banner_url: string | null
           city: string | null
           created_at: string
@@ -1697,6 +1698,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          archived_at?: string | null
           banner_url?: string | null
           city?: string | null
           created_at?: string
@@ -1714,6 +1716,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          archived_at?: string | null
           banner_url?: string | null
           city?: string | null
           created_at?: string
@@ -1969,7 +1972,7 @@ export type Database = {
         Row: {
           budget_max: number | null
           budget_min: number | null
-          client_id: string
+          client_id: string | null
           cover_url: string | null
           created_at: string
           description: string
@@ -1979,6 +1982,7 @@ export type Database = {
           hue: Database["public"]["Enums"]["palette_hue"]
           id: string
           is_public: boolean
+          logo_url: string | null
           name: string
           organization_id: string
           owner_id: string | null
@@ -1996,7 +2000,7 @@ export type Database = {
         Insert: {
           budget_max?: number | null
           budget_min?: number | null
-          client_id: string
+          client_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string
@@ -2006,6 +2010,7 @@ export type Database = {
           hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           is_public?: boolean
+          logo_url?: string | null
           name: string
           organization_id: string
           owner_id?: string | null
@@ -2023,7 +2028,7 @@ export type Database = {
         Update: {
           budget_max?: number | null
           budget_min?: number | null
-          client_id?: string
+          client_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string
@@ -2033,6 +2038,7 @@ export type Database = {
           hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           is_public?: boolean
+          logo_url?: string | null
           name?: string
           organization_id?: string
           owner_id?: string | null
@@ -2239,6 +2245,50 @@ export type Database = {
           },
           {
             foreignKeyName: "quotes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      record_history: {
+        Row: {
+          action: Database["public"]["Enums"]["history_action"]
+          actor_id: string | null
+          at: string
+          changes: Json
+          id: string
+          organization_id: string
+          record_id: string
+          record_type: Database["public"]["Enums"]["record_kind"]
+          summary: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["history_action"]
+          actor_id?: string | null
+          at?: string
+          changes?: Json
+          id?: string
+          organization_id: string
+          record_id: string
+          record_type: Database["public"]["Enums"]["record_kind"]
+          summary: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["history_action"]
+          actor_id?: string | null
+          at?: string
+          changes?: Json
+          id?: string
+          organization_id?: string
+          record_id?: string
+          record_type?: Database["public"]["Enums"]["record_kind"]
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_history_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2775,6 +2825,17 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { p_organization_id: string }; Returns: boolean }
+      log_record_event: {
+        Args: {
+          p_action: Database["public"]["Enums"]["history_action"]
+          p_changes?: Json
+          p_organization_id: string
+          p_record_id: string
+          p_record_type: Database["public"]["Enums"]["record_kind"]
+          p_summary: string
+        }
+        Returns: string
+      }
       mark_charge_viewed: { Args: { p_token_hash: string }; Returns: undefined }
       mark_contract_party_viewed: {
         Args: { p_token_hash: string }
@@ -2864,6 +2925,10 @@ export type Database = {
       }
       set_current_org: {
         Args: { p_organization_id: string }
+        Returns: undefined
+      }
+      set_organization_archived: {
+        Args: { p_archived: boolean; p_organization_id: string }
         Returns: undefined
       }
       shares_org_with: { Args: { p_user_id: string }; Returns: boolean }
@@ -2984,6 +3049,12 @@ export type Database = {
         | "target"
         | "buildings"
         | "tray"
+      history_action:
+        | "created"
+        | "updated"
+        | "archived"
+        | "restored"
+        | "deleted"
       member_role: "owner" | "admin" | "member"
       notification_kind: "acao" | "revisao" | "sistema"
       opportunity_source:
@@ -3082,6 +3153,16 @@ export type Database = {
         | "approved"
         | "declined"
         | "expired"
+      record_kind:
+        | "client"
+        | "catalog"
+        | "project"
+        | "task"
+        | "quote"
+        | "contract"
+        | "charge"
+        | "opportunity"
+        | "automation"
       subscription_status:
         | "incomplete"
         | "incomplete_expired"
@@ -3297,6 +3378,7 @@ export const Constants = {
         "buildings",
         "tray",
       ],
+      history_action: ["created", "updated", "archived", "restored", "deleted"],
       member_role: ["owner", "admin", "member"],
       notification_kind: ["acao", "revisao", "sistema"],
       opportunity_source: [
@@ -3400,6 +3482,17 @@ export const Constants = {
         "approved",
         "declined",
         "expired",
+      ],
+      record_kind: [
+        "client",
+        "catalog",
+        "project",
+        "task",
+        "quote",
+        "contract",
+        "charge",
+        "opportunity",
+        "automation",
       ],
       subscription_status: [
         "incomplete",

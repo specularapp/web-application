@@ -13,6 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { saveProjectsGridSize } from "../grid-cookie";
 import { projectStatuses } from "../labels";
@@ -112,7 +113,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
   const removeProject = async () => {
     if (!deleting) return;
     setRemoving(true);
-    const result = await deleteProjectAction(deleting.id);
+    const result = await callAction(deleteProjectAction(deleting.id));
     setRemoving(false);
 
     if (!result.ok) {

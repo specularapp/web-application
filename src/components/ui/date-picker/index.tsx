@@ -16,6 +16,7 @@ import {
 } from "react";
 import { DayPicker, useDayPicker } from "react-day-picker";
 import { createPortal } from "react-dom";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Dialog } from "../dialog";
 import { FieldAdornment, FieldShell } from "../field-shell";
@@ -261,6 +262,8 @@ export function DatePicker({
   const dialogId = useId();
 
   const sheet = useMediaQuery(MOBILE_QUERY);
+  /* A camada do calendário flutuante, para os seletores de mês e de ano abrirem por cima dele sem fechá-lo. */
+  const layer = useLayer(open && !sheet);
   const date = value ?? inner;
   const flagged = invalid || aria["aria-invalid"] === true;
 
@@ -295,15 +298,21 @@ export function DatePicker({
 
   // Flutuando, quem fecha ao toque fora e ao Escape é o próprio calendário; na bandeja é o `Dialog`, que
   // também sabe se é a camada de cima (os seletores de mês e ano abrem outra bandeja por cima dela).
+  //
+  // **Flutuando, ele também entra na fila de camadas** (2026-09-16, correção): os seletores de mês e de ano
+  // abrem a caixa deles por portal, fora do calendário na árvore, então escolher um mês era um toque "fora"
+  // e fechava o calendário inteiro antes de o mês trocar. Com a fila, enquanto o seletor está aberto quem
+  // responde é ele, e o calendário só volta a ouvir quando ele fecha.
   useEffect(() => {
     if (!open || sheet) return;
     const onPointerDown = (event: PointerEvent) => {
+      if (!isTopLayer(layer)) return;
       const target = event.target as Node;
       if (shellRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
       setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || !isTopLayer(layer)) return;
       setOpen(false);
       triggerRef.current?.focus();
     };
@@ -313,7 +322,7 @@ export function DatePicker({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, sheet]);
+  }, [open, sheet, layer]);
 
   const currentYear = new Date().getFullYear();
 

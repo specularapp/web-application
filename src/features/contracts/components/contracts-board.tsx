@@ -14,6 +14,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { cancelContractAction, sendContractAction } from "../actions";
 import { saveContractsGridSize } from "../grid-cookie";
@@ -54,6 +55,8 @@ export type ContractsBoardProps = {
   viewing?: Contract | null;
   /** A janela de criar já aberta, quando a URL é `/contratos/novo`. */
   creating?: boolean;
+  /** O que a URL manda preencher na janela de criar: hoje o cliente, vindo do leque da ficha dele. */
+  prefill?: { clientId?: string };
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -82,7 +85,7 @@ function downloadPdf(contract: Contract) {
 // clientes, do catálogo e dos projetos. O filtro vive na URL e quem faz o trabalho é o servidor, então a
 // página é compartilhável e volta igual pelo histórico; aqui ficam a espera do campo de busca, o filtro
 // adiantado, a janela do contrato e a de criar. Trocar qualquer filtro leva de volta para a primeira página.
-export function ContractsBoard({ page, query, viewing: initialViewing, creating: initialCreating = false }: ContractsBoardProps) {
+export function ContractsBoard({ page, query, viewing: initialViewing, creating: initialCreating = false, prefill }: ContractsBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
@@ -139,7 +142,7 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
 
   /* Enviar, reenviar e cancelar: a regra é do servidor, e a lista e a janela são refeitas por ele depois. */
   const send = async (contract: Contract) => {
-    const result = await sendContractAction({ id: contract.id });
+    const result = await callAction(sendContractAction({ id: contract.id }));
     if (!result.ok) {
       toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
       return;
@@ -153,7 +156,7 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
   };
 
   const cancel = async (contract: Contract) => {
-    const result = await cancelContractAction({ id: contract.id });
+    const result = await callAction(cancelContractAction({ id: contract.id }));
     if (!result.ok) {
       toast({ title: "Não deu para cancelar", description: result.error, tone: "danger" });
       return;
@@ -393,7 +396,7 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
         onDownload={() => viewing && downloadPdf(viewing)}
         onCancel={() => viewing && void cancel(viewing)}
       />
-      <NewContractDialog open={creating} onClose={() => show(viewing, false)} onCreated={created} />
+      <NewContractDialog open={creating} clientId={prefill?.clientId} onClose={() => show(viewing, false)} onCreated={created} />
     </div>
   );
 }

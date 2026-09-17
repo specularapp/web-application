@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { formatMoney } from "@/lib/utils/format";
 import { cancelChargeAction, payInstallmentAction, reopenInstallmentAction, sendChargeAction } from "../actions";
@@ -57,6 +58,8 @@ export type ChargesBoardProps = {
   lookups: ChargeLookups;
   viewing?: Charge | null;
   creating?: boolean;
+  /** O que a URL manda preencher na janela de criar: hoje o cliente, vindo do leque da ficha dele. */
+  prefill?: { clientId?: string };
 };
 
 const TYPING_PAUSE = 320;
@@ -76,7 +79,7 @@ const pathOf = (viewing: Charge | null, creating: boolean) => (creating ? "/cobr
 // quem faz o trabalho é o servidor. A ficha (`/cobrancas/<id>`) e a gaveta de criar (`/cobrancas/nova`) têm
 // endereço, por `pushState`. As ações (enviar, confirmar parcela, reabrir, cancelar) são do servidor, que
 // devolve a cobrança já mudada para a ficha e refaz a lista.
-export function ChargesBoard({ page, query, view: saved, lookups, viewing: initialViewing, creating: initialCreating = false }: ChargesBoardProps) {
+export function ChargesBoard({ page, query, view: saved, lookups, viewing: initialViewing, creating: initialCreating = false, prefill }: ChargesBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
@@ -135,7 +138,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   };
 
   const send = async (charge: Charge) => {
-    const result = await sendChargeAction({ id: charge.id });
+    const result = await callAction(sendChargeAction({ id: charge.id }));
     if (!result.ok) {
       toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
       return;
@@ -152,7 +155,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   const [busyInstallment, setBusyInstallment] = useState<string | null>(null);
   const pay = async (charge: Charge, installment: Installment) => {
     setBusyInstallment(installment.id);
-    const result = await payInstallmentAction({ id: charge.id, installmentId: installment.id, method: null, paidOn: null });
+    const result = await callAction(payInstallmentAction({ id: charge.id, installmentId: installment.id, method: null, paidOn: null }));
     setBusyInstallment(null);
     if (!result.ok) {
       toast({ title: "Não deu para confirmar", description: result.error, tone: "danger" });
@@ -165,7 +168,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   const reopen = async (charge: Charge, installment: Installment) => {
     setBusyInstallment(installment.id);
-    const result = await reopenInstallmentAction({ id: charge.id, installmentId: installment.id });
+    const result = await callAction(reopenInstallmentAction({ id: charge.id, installmentId: installment.id }));
     setBusyInstallment(null);
     if (!result.ok) {
       toast({ title: "Não deu para reabrir", description: result.error, tone: "danger" });
@@ -181,7 +184,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   const cancel = async () => {
     if (!cancelling) return;
     setRemoving(true);
-    const result = await cancelChargeAction({ id: cancelling.id });
+    const result = await callAction(cancelChargeAction({ id: cancelling.id }));
     setRemoving(false);
     if (!result.ok) {
       toast({ title: "Não deu para cancelar", description: result.error, tone: "danger" });
@@ -405,7 +408,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
       <ChargeDialog charge={viewing} onClose={() => show(null, false)} onSend={viewing ? () => void send(viewing) : undefined} onCopyLink={viewing ? () => void copyLink(viewing) : undefined} onCancel={viewing ? () => setCancelling(viewing) : undefined} onPay={viewing ? (installment) => void pay(viewing, installment) : undefined} onReopen={viewing ? (installment) => void reopen(viewing, installment) : undefined} busyInstallment={busyInstallment} />
 
-      <NewChargeDialog open={creating} lookups={lookups} onClose={() => show(viewing, false)} onCreated={created} />
+      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} onClose={() => show(viewing, false)} onCreated={created} />
 
       <Dialog open={cancelling !== null} onClose={() => !removing && setCancelling(null)} label="Cancelar cobrança" size="sm" focusOnOpen={false}>
         {cancelling && <ConfirmCancel charge={cancelling} busy={removing} onCancel={() => setCancelling(null)} onConfirm={() => void cancel()} />}

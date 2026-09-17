@@ -18,6 +18,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
 import { saveCatalogItemAction } from "../actions";
@@ -212,7 +213,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
       active: values.active,
     };
 
-    const result = await saveCatalogItemAction(input);
+    const result = await callAction(saveCatalogItemAction(input));
 
     if (!result.ok) {
       setSaving(false);

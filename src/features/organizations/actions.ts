@@ -8,6 +8,7 @@ import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { markNotificationsRead } from "./notifications";
 import {
+  archiveTeamSchema,
   createInviteSchema,
   notificationIdsSchema,
   imageAttachSchema,
@@ -23,6 +24,8 @@ import {
 import {
   acceptInvite,
   attachImage,
+  getTeam,
+  setTeamArchived,
   cancelInvite,
   changeInviteRole,
   changeMemberRole,
@@ -173,6 +176,35 @@ export async function attachImageAction(input: unknown): Promise<ServiceResult<s
 
   const supabase = await createClient();
   return attachImage(supabase, parsed.data);
+}
+
+/**
+ * Arquiva ou reabre uma equipe. Quem decide se pode é o banco, que exige ser dono; aqui só passa adiante.
+ * Arquivando a de agora, o perfil solta a equipe em vigor, e o painel escolhe a próxima na entrada seguinte.
+ */
+export async function archiveTeamAction(input: unknown): Promise<ServiceResult<undefined>> {
+  const user = await requireUser(DASHBOARD_PATH);
+  if (!(await withinActionLimit("team-archive", user.id))) return { ok: false, error: TOO_MANY };
+
+  const parsed = archiveTeamSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  const result = await setTeamArchived(supabase, parsed.data);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+/** Lê uma equipe para a gaveta de editar abrir preenchida. Quem pode ler é a RLS, que já limita a quem participa. */
+export async function loadTeamAction(input: unknown): Promise<ServiceResult<Team>> {
+  await requireUser(DASHBOARD_PATH);
+
+  const parsed = organizationIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  const team = await getTeam(supabase, parsed.data.organizationId);
+  return team ? { ok: true, data: team } : { ok: false, error: "Equipe não encontrada." };
 }
 
 export async function acceptInviteAction(token: unknown): Promise<ServiceResult<string>> {

@@ -160,7 +160,7 @@ export function ClientsTable({ clients, selected, onSelectedChange, onOpen, onEd
       fill
       selection={{ selected, onChange: onSelectedChange, rowLabel: (client) => `Selecionar ${client.name}` }}
       onRowClick={onOpen}
-      actions={(client) => <ClientMenu client={client} onEdit={() => onEdit(client)} />}
+      actions={(client) => <ClientMenu client={client} onView={() => onOpen(client)} onEdit={() => onEdit(client)} />}
       range={range}
       footer={footer}
     />

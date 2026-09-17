@@ -463,3 +463,44 @@ export async function getTaskOpenCounts(client: TasksClient, organizationId: str
 
   return { byProject, loose };
 }
+
+/**
+ * Uma cópia da tarefa, na mesma etapa e logo abaixo dela. É o caminho de quem tem a mesma tarefa para dois
+ * clientes, ou para as cinco peças da mesma campanha: o que muda é o título, e o resto é igual.
+ *
+ * As subtarefas vêm juntas, zeradas: a lista de passos é parte do que se está copiando, mas o que já foi
+ * feito na original não foi feito nesta. Comentários e anexos **não** vêm: aquilo é a conversa daquela
+ * tarefa, e não o molde dela.
+ */
+export async function duplicateTask(
+  client: TasksClient,
+  organizationId: string,
+  id: string,
+): Promise<ServiceResult<{ id: string }>> {
+  const { data: source } = await client
+    .from("tasks")
+    .select("project_id, title, description, due_date, start_date, estimate_minutes, stage, priority, owner_id, tags, alert, position, subtasks(title, position)")
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!source) return { ok: false, error: "Essa tarefa não está mais no quadro." };
+
+  const { subtasks, position, title, ...fields } = source;
+
+  const { data, error } = await client
+    .from("tasks")
+    .insert({ ...fields, organization_id: organizationId, title: `${title} (cópia)`, position: position + 1 })
+    .select("id")
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  if ((subtasks ?? []).length > 0) {
+    await client.from("subtasks").insert(
+      (subtasks ?? []).map((step) => ({ organization_id: organizationId, task_id: data.id, title: step.title, position: step.position, done: false })),
+    );
+  }
+
+  return { ok: true, data: { id: data.id } };
+}

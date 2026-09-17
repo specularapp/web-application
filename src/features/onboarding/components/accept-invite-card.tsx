@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { TextLink } from "@/components/ui/link";
 import { acceptInviteAction } from "@/features/organizations/actions";
 import styles from "./onboarding.module.css";
+import { callAction } from "@/lib/action";
 
 type AcceptInviteCardProps = {
   token: string;
@@ -25,7 +26,7 @@ export function AcceptInviteCard({ token, email }: AcceptInviteCardProps) {
     if (accepting) return;
     setAccepting(true);
 
-    const result = await acceptInviteAction(token);
+    const result = await callAction(acceptInviteAction(token));
     if (!result.ok) {
       toast({ title: "Não foi possível aceitar", description: result.error, tone: "danger" });
       setAccepting(false);

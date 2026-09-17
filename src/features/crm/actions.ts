@@ -3,7 +3,7 @@
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
 import { opportunityFormSchema, opportunityIdSchema, opportunityMoveSchema } from "./schemas";
-import { deleteOpportunity, getOpportunity, moveOpportunity, saveOpportunity } from "./service";
+import { deleteOpportunity, duplicateOpportunity, getOpportunity, moveOpportunity, saveOpportunity } from "./service";
 import type { Opportunity } from "./summary";
 
 export type OpportunitySaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
@@ -64,6 +64,21 @@ export async function deleteOpportunityAction(input: unknown): Promise<Opportuni
 
   const removed = await deleteOpportunity(guard.context.supabase, guard.context.organizationId, parsed.data);
   if (!removed.ok) return { ok: false, error: removed.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.crm], ["/crm"]);
+  return { ok: true };
+}
+
+/** Uma cópia da oportunidade, em aberto na primeira etapa do funil. */
+export async function duplicateOpportunityAction(input: unknown): Promise<OpportunityResult> {
+  const guard = await guardAction("opportunity-duplicate");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = opportunityIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Escolha uma oportunidade." };
+
+  const copy = await duplicateOpportunity(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!copy.ok) return { ok: false, error: copy.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.crm], ["/crm"]);
   return { ok: true };

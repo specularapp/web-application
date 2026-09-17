@@ -23,18 +23,21 @@ import { chargeMethods, shortDate } from "../labels";
 import { chargeLimits, chargeMethodValues } from "../schemas";
 import type { ChargeLookups } from "../service";
 import type { Charge, ChargeMethod } from "../summary";
+import { callAction } from "@/lib/action";
 import styles from "./new-charge-dialog.module.css";
 
 export type NewChargeDialogProps = {
   open: boolean;
   lookups: ChargeLookups;
+  /** De quem é a cobrança, quando ela nasce da ficha de um cliente: o campo já vem escolhido. */
+  clientId?: string;
   onClose: () => void;
   onCreated: (charge: Charge) => void;
 };
 
 type Values = { quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string };
 
-const blank = (): Values => ({ quoteId: null, clientId: null, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "" });
+const blank = (clientId: string | null = null): Values => ({ quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "" });
 
 const installmentOptions = Array.from({ length: 12 }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
 
@@ -46,19 +49,19 @@ const NO_QUOTE = "__none__";
 // valor e as parcelas, ou do zero. Cliente com busca e rosto, título, descrição, valor, quantas parcelas e o
 // primeiro vencimento (as outras caem mês a mês), a forma de pagar com as instruções que o cliente vê, e as
 // observações. Embaixo, as parcelas como vão ficar. Salva no servidor e abre a ficha.
-export function NewChargeDialog({ open, lookups, onClose, onCreated }: NewChargeDialogProps) {
+export function NewChargeDialog({ open, lookups, clientId, onClose, onCreated }: NewChargeDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   return (
     <Dialog open={open} onClose={onClose} label="Nova cobrança" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
-      <ChargeForm lookups={lookups} onClose={onClose} onCreated={onCreated} />
+      <ChargeForm lookups={lookups} clientId={clientId} onClose={onClose} onCreated={onCreated} />
     </Dialog>
   );
 }
 
-function ChargeForm({ lookups, onClose, onCreated }: Omit<NewChargeDialogProps, "open">) {
+function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDialogProps, "open">) {
   const { toast } = useToast();
   const titleId = useId();
-  const [values, setValues] = useState<Values>(blank);
+  const [values, setValues] = useState<Values>(() => blank(clientId ?? null));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
 
@@ -94,18 +97,20 @@ function ChargeForm({ lookups, onClose, onCreated }: Omit<NewChargeDialogProps, 
   const save = async () => {
     setSaving(true);
     setError(null);
-    const result = await createChargeAction({
-      clientId: values.clientId,
-      title: values.title,
-      description: values.description,
-      amount,
-      installments: values.installments,
-      firstDueDate: values.firstDueDate,
-      method: values.method,
-      paymentInfo: values.paymentInfo,
-      notes: values.notes,
-      quoteId: values.quoteId,
-    });
+    const result = await callAction(
+      createChargeAction({
+        clientId: values.clientId,
+        title: values.title,
+        description: values.description,
+        amount,
+        installments: values.installments,
+        firstDueDate: values.firstDueDate,
+        method: values.method,
+        paymentInfo: values.paymentInfo,
+        notes: values.notes,
+        quoteId: values.quoteId,
+      }),
+    );
     setSaving(false);
     if (!result.ok) {
       setError({ message: result.error, field: result.field });

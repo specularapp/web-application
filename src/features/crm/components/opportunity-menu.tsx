@@ -4,15 +4,17 @@ import {
   ArrowSquareOutIcon,
   CopySimpleIcon,
   HashIcon,
-  PencilSimpleIcon,
   ProhibitIcon,
   ReceiptIcon,
   TrashIcon,
   TrophyIcon,
 } from "@phosphor-icons/react";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/providers/toast-provider";
+import { duplicateOpportunityAction } from "../actions";
 import { statusOf } from "../labels";
 import { crmStageMeta, type CrmStage } from "../stages";
 import type { Opportunity } from "../summary";
@@ -30,14 +32,27 @@ export type OpportunityMenuProps = {
 };
 
 // As opções de uma oportunidade, no padrão do menu da tarefa, do cliente e do orçamento: abrir a ficha,
-// editar, copiar o identificador, mover de etapa, gerar orçamento, e os dois desfechos antes do excluir.
+// copiar o identificador, mover de etapa, ver ou gerar o orçamento, duplicar, e os dois desfechos antes do
+// excluir. Não há "Editar": a ficha da oportunidade **é** o editor, então abrir e editar seriam a mesma
+// linha escrita duas vezes.
 //
 // Ganhar e perder são **ações de menu**, e não só etapas de coluna: fechar uma venda é a coisa mais decisiva
 // que se faz com ela, e pedir que a pessoa arraste o cartão até a última coluna para isso seria esconder o
 // que o funil existe para fazer. Cada uma só aparece enquanto ainda não é o caso.
 export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete }: OpportunityMenuProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const status = statusOf(opportunity);
+
+  const duplicate = async () => {
+    const result = await duplicateOpportunityAction(opportunity.id);
+    if (!result.ok) {
+      toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
+      return;
+    }
+    toast({ title: "Oportunidade duplicada", description: "A cópia entrou em aberto, na primeira etapa.", tone: "success" });
+    router.refresh();
+  };
 
   const copyReference = async () => {
     try {
@@ -84,8 +99,7 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
     {
       id: "actions",
       items: [
-        { id: "open", label: "Abrir oportunidade", icon: ArrowSquareOutIcon, onSelect: onOpen },
-        { id: "edit", label: "Editar", icon: PencilSimpleIcon },
+        ...(onOpen ? [{ id: "open", label: "Abrir oportunidade", icon: ArrowSquareOutIcon, onSelect: onOpen }] : []),
         { id: "copy", label: "Copiar identificador", icon: HashIcon, onSelect: () => void copyReference() },
       ],
     },
@@ -93,12 +107,22 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
     {
       id: "more",
       items: [
-        { id: "quote", label: opportunity.quote ? "Ver orçamento" : "Gerar orçamento", icon: ReceiptIcon },
-        { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon },
+        {
+          id: "quote",
+          label: opportunity.quote ? "Ver orçamento" : "Gerar orçamento",
+          icon: ReceiptIcon,
+          submenu: true,
+          href: (opportunity.quote
+            ? `/orcamentos/${opportunity.quote.id}`
+            : `/orcamentos/novo?cliente=${opportunity.client.id}`) as Route,
+        },
+        { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() },
       ],
     },
     ...(closing.length > 0 ? [{ id: "closing", items: closing }] : []),
-    { id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] },
+    ...(onDelete
+      ? [{ id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] }]
+      : []),
   ];
 
   return (

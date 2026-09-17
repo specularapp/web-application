@@ -20,6 +20,7 @@ import { chargeMethods, transactionKinds } from "../labels";
 import { transactionLimits } from "../schemas";
 import type { ChargeMethod } from "../summary";
 import styles from "./transaction-form-dialog.module.css";
+import { callAction } from "@/lib/action";
 
 export type TransactionFormDialogProps = {
   open: boolean;
@@ -59,14 +60,16 @@ function TransactionForm({ onClose, onCreated }: Omit<TransactionFormDialogProps
   const save = async () => {
     setSaving(true);
     setError(null);
-    const result = await createTransactionAction({
-      kind: values.kind,
-      title: values.title,
-      description: values.description,
-      amount: Number(values.amount || 0),
-      date: values.date,
-      method: values.method === "none" ? null : values.method,
-    });
+    const result = await callAction(
+      createTransactionAction({
+        kind: values.kind,
+        title: values.title,
+        description: values.description,
+        amount: Number(values.amount || 0),
+        date: values.date,
+        method: values.method === "none" ? null : values.method,
+      }),
+    );
     setSaving(false);
     if (!result.ok) {
       setError(result.error);

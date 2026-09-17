@@ -3,7 +3,7 @@
 import styled from "@emotion/styled";
 import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -21,10 +21,12 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
 import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
-import { inviteMemberAction, saveTeamAction, switchTeamAction } from "../actions";
+import { inviteMemberAction, loadTeamAction, saveTeamAction, switchTeamAction } from "../actions";
 import { CREATE_TEAM_PLAN } from "../constants";
 import { organizationLimits, type ImageKind, type InvitableRole, type OrganizationIndustry } from "../schemas";
 import { uploadTeamImage } from "../upload";
+import { callAction } from "@/lib/action";
+import { siteValue } from "@/lib/utils/site";
 
 /** Quem está criando: entra na lista de pessoas já como proprietário, porque é o que o banco fará. */
 export type TeamOwner = { name: string; email: string | null; avatarUrl: string | null };
@@ -33,6 +35,12 @@ export type CreateTeamPanelProps = {
   open: boolean;
   onClose: () => void;
   owner: TeamOwner;
+  /**
+   * O id da equipe que está sendo editada; ausente, a gaveta cria uma nova (2026-09-16, a pedido de editar
+   * equipe pelo menu do seletor). Editando, a gaveta abre preenchida, some a parte de convidar gente, que
+   * mora na página da equipe, e salvar não troca de contexto: quem edita já está onde quer estar.
+   */
+  teamId?: string | null;
 };
 
 type Picked = { file: File | null; preview: string | null };
@@ -184,7 +192,7 @@ const Footer = styled.footer`
 // Criar equipe numa gaveta à direita: identidade, dados e pessoas numa lista só, do jeito que os
 // primeiros passos já pedem, mas sem etapas, porque aqui quem cria já conhece o produto. A equipe
 // nasce pela mesma `saveTeamAction` da configuração inicial, e a pessoa já entra nela.
-export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) {
+export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateTeamPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = useState("");
@@ -196,6 +204,37 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
   const [guestEmail, setGuestEmail] = useState("");
   const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
+  /* Qual equipe já foi lida. Guardando o id, e não um "carregando" ligado na hora, o efeito não escreve
+     estado de forma síncrona, que é o que a regra de hooks da casa barra, e reabrir a gaveta na mesma equipe
+     não pede o dado de novo. */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  const editing = Boolean(teamId);
+  const loading = editing && loadedFor !== teamId;
+
+  /* Editando, a gaveta lê a equipe ao abrir: o seletor só conhece nome e logo, e o resto (o ramo, o site, a
+     capa) está no banco. Enquanto não chega, os campos ficam desligados em vez de vazios e editáveis, senão
+     salvar cedo gravaria em cima do que ainda não apareceu. */
+  useEffect(() => {
+    if (!open || !teamId || loadedFor === teamId) return;
+    let live = true;
+    void loadTeamAction({ organizationId: teamId }).then((result) => {
+      if (!live) return;
+      if (!result.ok) {
+        toast({ title: "Não deu para abrir a equipe", description: result.error, tone: "danger" });
+        return;
+      }
+      setLoadedFor(teamId);
+      setName(result.data.name);
+      setWebsite(result.data.website ?? "");
+      setIndustry(result.data.industry ?? undefined);
+      setLogo({ file: null, preview: result.data.logoUrl });
+      setBanner({ file: null, preview: result.data.bannerUrl });
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, teamId, loadedFor, toast]);
 
   const filled = name.trim().length >= 2 && Boolean(industry);
   const canAddGuest = emailPattern.test(guestEmail.trim()) && guestName.trim().length >= 2;
@@ -228,12 +267,14 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
 
   const sendInvites = async (organizationId: string) => {
     for (const guest of guests) {
-      const result = await inviteMemberAction({
-        organizationId,
-        email: guest.email,
-        name: guest.name,
-        role: guest.role,
-      });
+      const result = await callAction(
+        inviteMemberAction({
+          organizationId,
+          email: guest.email,
+          name: guest.name,
+          role: guest.role,
+        }),
+      );
       if (!result.ok) {
         toast({ title: `Convite para ${guest.email} falhou`, description: result.error, tone: "warning" });
       }
@@ -257,17 +298,32 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
   };
 
   const create = async () => {
-    if (saving || !industry) return;
+    if (saving || loading || !industry) return;
     setSaving(true);
 
-    const result = await saveTeamAction({ name, industry, website });
+    const result = await callAction(saveTeamAction({ ...(teamId ? { organizationId: teamId } : {}), name, industry, website }));
     if (!result.ok) {
-      toast({ title: "Não foi possível criar a equipe", description: result.error, tone: "danger" });
+      toast({
+        title: editing ? "Não foi possível salvar a equipe" : "Não foi possível criar a equipe",
+        description: result.error,
+        tone: "danger",
+      });
       setSaving(false);
       return;
     }
 
     const team = result.data;
+
+    /* Editando, o caminho acaba aqui: as imagens sobem, e não há convite para mandar nem contexto para
+       trocar, porque a pessoa já está na equipe que acabou de arrumar. */
+    if (editing) {
+      await Promise.all([sendImage(team.id, logo, "logo"), sendImage(team.id, banner, "banner")]);
+      setSaving(false);
+      toast({ title: "Equipe salva", description: `${team.name} está atualizada.`, tone: "success" });
+      onClose();
+      router.refresh();
+      return;
+    }
 
     // Imagem e convite não seguram a gaveta: a equipe já existe e cada envio custa uma ida ao servidor,
     // em série, porque o Next despacha uma Server Action por vez. Falha avisa por toast.
@@ -275,7 +331,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
       .then(() => sendInvites(team.id))
       .catch(() => null);
 
-    const entered = await switchTeamAction({ organizationId: team.id });
+    const entered = await callAction(switchTeamAction({ organizationId: team.id }));
     setSaving(false);
 
     if (entered.ok) {
@@ -295,7 +351,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
   useFloatingActionsRegistration(
     open
       ? {
-          primary: { label: saving ? "Criando" : "Criar", loading: saving, disabled: !filled, onClick: () => void create() },
+          primary: { label: saving ? "Salvando" : editing ? "Salvar" : "Criar", loading: saving, disabled: !filled || loading, onClick: () => void create() },
           cancel: { label: "Cancelar", onClick: close },
         }
       : null,
@@ -308,7 +364,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
     <Drawer
       open={open}
       onClose={close}
-      label="Criar equipe"
+      label={editing ? "Editar equipe" : "Criar equipe"}
       size="md"
       placement="end"
       surface="glass"
@@ -316,7 +372,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
     >
       <Header>
         <Text as="h2" variant="headline" weight="semibold">
-          Criar equipe
+          {editing ? "Editar equipe" : "Criar equipe"}
         </Text>
         <Badge tone="neutral" variant="soft" size="sm">
           {planBadges[CREATE_TEAM_PLAN]}
@@ -377,7 +433,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
                 spellCheck={false}
                 disabled={saving}
                 iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
-                onChange={(event) => setWebsite(event.target.value.replace(/^https?:\/\//i, ""))}
+                onChange={(event) => setWebsite(siteValue(event.target.value))}
               />
             </Field>
 
@@ -394,7 +450,11 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           </Pair>
         </Fields>
 
-        <Divider />
+        {/* Convidar gente só existe ao criar: numa equipe que já anda, quem entra e quem sai é assunto da
+            página da equipe, com papel e convite pendente, e não de uma gaveta de ajustar o nome. */}
+        {!editing && (
+          <>
+            <Divider />
 
         <Section aria-label="Pessoas da equipe">
           <Text as="h3" variant="subheadline" weight="semibold">
@@ -489,7 +549,9 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
               </Person>
             ))}
           </People>
-        </Section>
+            </Section>
+          </>
+        )}
       </Scroll>
 
       <Footer>
@@ -497,7 +559,7 @@ export function CreateTeamPanel({ open, onClose, owner }: CreateTeamPanelProps) 
           Cancelar
         </Button>
         <Button size="md" loading={saving} disabled={!filled} onClick={() => void create()}>
-          {saving ? "Criando" : "Criar equipe"}
+          {saving ? "Salvando" : editing ? "Salvar equipe" : "Criar equipe"}
         </Button>
       </Footer>
     </Drawer>

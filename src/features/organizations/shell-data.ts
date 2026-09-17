@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { planBadges } from "@/features/billing/plans";
+import { planBadges, type PlanId } from "@/features/billing/plans";
 import { getOnboardingBilling } from "@/features/billing/queries";
 import { getAiUsage } from "@/features/ai/service";
 import type { AiUsage } from "@/features/ai/summary";
@@ -46,6 +46,8 @@ export type ShellData = {
   funnels: CrmTreeItem[];
   /** Quanto da IA do plano já foi usado no ciclo: o widget do topo mostra em toda página. */
   ai: AiUsage;
+  /** O plano que vale agora, que é o que o portão de plano consulta em toda ação bloqueada. */
+  effectivePlan: PlanId;
 };
 
 async function load(context: OrganizationContext | null): Promise<ShellData> {
@@ -71,6 +73,7 @@ async function load(context: OrganizationContext | null): Promise<ShellData> {
       plan: planBadges[option.plan],
     })),
     currentTeamId: state.team?.id ?? null,
+    effectivePlan: billing.effectivePlan,
   };
 
   /* Sem time em vigor a concha abre vazia em vez de mandar a pessoa embora: quem decide o que fazer nesse

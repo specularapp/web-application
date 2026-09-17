@@ -360,3 +360,45 @@ export async function getCrmOpenCounts(client: CrmClient, organizationId: string
 
   return { byFunnel, loose };
 }
+
+/**
+ * Uma cópia da oportunidade, na primeira etapa do funil dela. É o caminho de quem atende o mesmo cliente
+ * por duas frentes, e de quem perdeu uma venda e vai tentar de novo do começo.
+ *
+ * O que **não** vem junto: o desfecho, as datas de fechamento e o orçamento ligado. Uma cópia nasce em
+ * aberto, e herdar "ganha" faria a conta do funil contar duas vezes o mesmo dinheiro.
+ */
+export async function duplicateOpportunity(
+  client: CrmClient,
+  organizationId: string,
+  id: string,
+): Promise<ServiceResult<{ id: string }>> {
+  const { data: source } = await client
+    .from("opportunities")
+    .select(
+      "funnel_id, title, description, client_id, client_name, client_company, contact_name, contact_email, contact_phone, stage, value, temperature, probability, city, state, expected_at, owner_id, tags, source, partner_code",
+    )
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!source) return { ok: false, error: "Essa oportunidade não está mais no funil." };
+
+  /* A cópia entra na primeira etapa do funil, e não na etapa da original: copiar uma venda ganha para
+     recomeçá-la e deixá-la em "ganha" seria contar o mesmo dinheiro duas vezes. */
+  const { data: funnel } = source.funnel_id
+    ? await client.from("crm_funnels").select("stages").eq("id", source.funnel_id).maybeSingle()
+    : { data: null };
+
+  const stage = (funnel?.stages?.[0] as typeof source.stage | undefined) ?? "lead";
+  const { title, ...fields } = source;
+
+  const { data, error } = await client
+    .from("opportunities")
+    .insert({ ...fields, organization_id: organizationId, title: `${title} (cópia)`, stage, closed_at: null })
+    .select("id")
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: { id: data.id } };
+}

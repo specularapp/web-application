@@ -30,6 +30,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
@@ -39,6 +40,7 @@ import type { ClientListItem } from "../list-options";
 import { clientLimits, MAX_TAGS, type ClientFormInput } from "../schemas";
 import type { Client } from "../summary";
 import styles from "./client-form-dialog.module.css";
+import { siteUrl, siteValue } from "@/lib/utils/site";
 
 /** O que a janela edita: a ficha completa, o item da lista (a ficha vem em seguida) ou `"new"` para criar. Nulo fecha. */
 export type ClientEditor = Client | ClientListItem | "new" | null;
@@ -66,7 +68,7 @@ function valuesOf(client?: Client) {
     role: client?.role ?? "",
     email: client?.email ?? "",
     phone: client?.phone ?? "",
-    website: client?.website?.replace(/^https?:\/\//i, "") ?? "",
+    website: siteValue(client?.website ?? ""),
     city: client?.city ?? "",
     about: client?.about ?? "",
     tags: client?.tags ?? [],
@@ -290,7 +292,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
       role: values.role,
       email: values.email.trim(),
       phone: values.phone,
-      website: values.website.trim() ? `https://${values.website.trim()}` : "",
+      website: siteUrl(values.website),
       city: values.city,
       about: values.about,
       tags: values.tags,
@@ -298,7 +300,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
       favorite: values.favorite,
     };
 
-    const result = await saveClientAction(input);
+    const result = await callAction(saveClientAction(input));
 
     if (!result.ok) {
       setSaving(false);
@@ -416,7 +418,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
                 spellCheck={false}
                 disabled={saving}
                 iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
-                onChange={(event) => set("website", event.target.value.replace(/^https?:\/\//i, ""))}
+                onChange={(event) => set("website", siteValue(event.target.value))}
               />
             </Field>
             <Field label="Cidade" error={errorOf("city")}>

@@ -187,6 +187,12 @@ export function ProfileList({ children }: { children: ReactNode }) {
 export type ProfileRowProps = {
   href: Route;
   icon: Icon;
+  /**
+   * O desenho da linha no lugar do glifo: a marca de um projeto, a logo de uma empresa. Mesma ideia do
+   * `media` do leque de opções (2026-09-16): o glifo diz **o que** a linha é, e a marca diz **qual** ela é,
+   * e numa lista de cinco projetos o glifo igual em todos não ajuda ninguém a achar o certo.
+   */
+  media?: ReactNode;
   title: string;
   /** A segunda linha: uma legenda ou a barra de progresso. */
   caption?: ReactNode;
@@ -196,13 +202,15 @@ export type ProfileRowProps = {
 
 /* Uma linha que leva à tela de algo: ícone num chip, título e legenda, o que for na ponta e o chevron.
    Em grade, para a ponta cair para baixo do título no celular sem mexer o chevron do lugar. */
-export function ProfileRow({ href, icon: Glyph, title, caption, end }: ProfileRowProps) {
+export function ProfileRow({ href, icon: Glyph, media, title, caption, end }: ProfileRowProps) {
   return (
     <li>
       <Link href={href} className={styles.row} {...rowCorner}>
-        <span className={styles.rowIcon} aria-hidden="true" {...chipCorner}>
-          <Glyph weight="duotone" />
-        </span>
+        {media ?? (
+          <span className={styles.rowIcon} aria-hidden="true" {...chipCorner}>
+            <Glyph weight="duotone" />
+          </span>
+        )}
         <span className={styles.rowCopy}>
           <Text as="span" variant="subheadline" weight="medium" truncate>
             {title}

@@ -13,6 +13,8 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
  */
 export const runtime = "nodejs";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: Request) {
   const { supabase, organizationId, user } = await requireOrganization("/contratos");
 
@@ -38,7 +40,12 @@ export async function POST(request: Request) {
   }
   if (pages === 0) return Response.json({ error: "O PDF está vazio." }, { status: 400 });
 
-  const created = await createPdfContract(supabase, organizationId, user.id, { name: file.name, bytes, pages });
+  /* O cliente vem junto quando o contrato nasce da ficha dele, pelas três origens igualmente: anexar um PDF
+     não é motivo para a pessoa ter de escolher de novo quem ela acabou de abrir. */
+  const cliente = form?.get("cliente");
+  const clientId = typeof cliente === "string" && UUID.test(cliente) ? cliente : undefined;
+
+  const created = await createPdfContract(supabase, organizationId, user.id, { name: file.name, bytes, pages, clientId });
   if (!created.ok) return Response.json({ error: created.error }, { status: 400 });
 
   return Response.json({ id: created.data.id, pages });

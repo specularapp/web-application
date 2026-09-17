@@ -17,15 +17,17 @@ export type ChargesScreenProps = {
   viewing?: Charge | null;
   /** A gaveta de criar já aberta, quando a URL é `/cobrancas/nova`. */
   creating?: boolean;
+  /** O que a URL manda preencher na janela de criar: hoje o cliente, vindo do leque da ficha dele. */
+  prefill?: { clientId?: string };
 };
 
 // A tela de cobranças: o topo padrão da aplicação com o `h1`, e abaixo a prancha com a busca, a grade ou a
 // tabela, a paginação e as janelas. Server Component, na mesma moldura das outras listas.
-export function ChargesScreen({ page, query, view, lookups, ai, viewing, creating }: ChargesScreenProps) {
+export function ChargesScreen({ page, query, view, lookups, ai, viewing, creating, prefill }: ChargesScreenProps) {
   return (
     <div className={styles.screen}>
       <Topbar ai={ai} />
-      <ChargesBoard page={page} query={query} view={view} lookups={lookups} viewing={viewing} creating={creating} />
+      <ChargesBoard page={page} query={query} view={view} lookups={lookups} viewing={viewing} creating={creating} prefill={prefill} />
     </div>
   );
 }

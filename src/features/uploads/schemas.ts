@@ -14,6 +14,7 @@ export const uploadTargets = {
   "client-logo": { bucket: "client-avatars", folder: "logo" },
   "catalog-image": { bucket: "catalog-images", folder: "item" },
   "project-cover": { bucket: "project-covers", folder: "capa" },
+  "project-logo": { bucket: "project-covers", folder: "logo" },
 } as const;
 
 export type UploadTarget = keyof typeof uploadTargets;
@@ -41,6 +42,7 @@ export const uploadMaxBytes: Record<UploadTarget, number> = {
   "client-logo": 2 * 1024 * 1024,
   "catalog-image": 5 * 1024 * 1024,
   "project-cover": 5 * 1024 * 1024,
+  "project-logo": 2 * 1024 * 1024,
 };
 
 /* O avatar de cliente só aceita três tipos, como o balde dele; os outros aceitam avif também. */

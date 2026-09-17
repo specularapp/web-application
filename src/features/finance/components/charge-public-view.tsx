@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { reportPaymentAction } from "../actions";
@@ -35,7 +36,7 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
 
   const report = async (installmentId: string) => {
     setReporting(installmentId);
-    const result = await reportPaymentAction({ token: charge.token, installmentId });
+    const result = await callAction(reportPaymentAction({ token: charge.token, installmentId }));
     setReporting(null);
     if (!result.ok) {
       toast({ title: "Não deu para avisar", description: result.error, tone: "danger" });

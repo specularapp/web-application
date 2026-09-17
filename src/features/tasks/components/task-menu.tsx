@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowSquareOutIcon, CheckCircleIcon, CopySimpleIcon, HashIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CheckCircleIcon, CopySimpleIcon, HashIcon, TrashIcon } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/providers/toast-provider";
+import { duplicateTaskAction } from "../actions";
 import { statusOf } from "../labels";
 import { taskStageMeta, type TaskStage } from "../stages";
 import type { Task } from "../summary";
@@ -20,13 +22,29 @@ export type TaskMenuProps = {
   onDelete?: () => void;
 };
 
-// As opções de uma tarefa, no padrão do menu do cliente, do catálogo e do orçamento: abrir a ficha, editar,
-// copiar o identificador, duplicar, concluir e, por último e em vermelho, excluir. Abrir e copiar funcionam;
-// o resto fecha o menu e nada mais, enquanto o domínio não está no banco, como as opções do cliente
-// nasceram. Concluir só aparece no que ainda não fechou, porque marcar de novo o que já está concluído não é
-// ação nenhuma.
+// As opções de uma tarefa: abrir a ficha, copiar o identificador, mover de etapa, duplicar, concluir e, por
+// último e em vermelho, excluir.
+//
+// Não há "Editar" aqui: a ficha da tarefa **é** o editor, com os campos à mão, então abrir e editar seriam a
+// mesma linha escrita duas vezes. Concluir só aparece no que ainda não fechou, e só quando o quadro tem uma
+// etapa de fechamento para onde mandar, porque marcar de novo o que já está concluído não é ação nenhuma.
 export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuProps) {
+  const router = useRouter();
   const { toast } = useToast();
+
+  /* A etapa de fechamento **deste** quadro: um projeto pode nomear as suas, e concluir é mandar para a que
+     o catálogo marca como fim. Sem ela, a opção não aparece em vez de apontar para uma coluna que não existe. */
+  const closing = stages?.find((id) => taskStageMeta[id].kind === "done");
+
+  const duplicate = async () => {
+    const result = await duplicateTaskAction(task.id);
+    if (!result.ok) {
+      toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
+      return;
+    }
+    toast({ title: "Tarefa duplicada", description: `Uma cópia de ${task.reference} entrou logo abaixo.`, tone: "success" });
+    router.refresh();
+  };
 
   const copyReference = async () => {
     try {
@@ -69,8 +87,7 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
     {
       id: "actions",
       items: [
-        { id: "open", label: "Abrir tarefa", icon: ArrowSquareOutIcon, onSelect: onOpen },
-        { id: "edit", label: "Editar", icon: PencilSimpleIcon },
+        ...(onOpen ? [{ id: "open", label: "Abrir tarefa", icon: ArrowSquareOutIcon, onSelect: onOpen }] : []),
         { id: "copy", label: "Copiar identificador", icon: HashIcon, onSelect: () => void copyReference() },
       ],
     },
@@ -78,11 +95,15 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
     {
       id: "more",
       items: [
-        { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon },
-        ...(statusOf(task) === "done" ? [] : [{ id: "done", label: "Marcar como concluída", icon: CheckCircleIcon }]),
+        { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() },
+        ...(statusOf(task) === "done" || !closing || !onMove
+          ? []
+          : [{ id: "done", label: "Marcar como concluída", icon: CheckCircleIcon, onSelect: () => onMove(closing) }]),
       ],
     },
-    { id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] },
+    ...(onDelete
+      ? [{ id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] }]
+      : []),
   ];
 
   return <DropdownMenu label={`Opções de ${task.reference}`} triggerLabel={`Mais opções de ${task.title}`} sections={sections} size="sm" />;

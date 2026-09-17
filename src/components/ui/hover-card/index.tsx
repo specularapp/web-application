@@ -54,7 +54,9 @@ export function HoverCard({ content, children, width = WIDTH, height = HEIGHT, o
   const timer = useRef<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const { present, state, onAnimationEnd } = usePresence(open);
-  const position = useAnchoredPosition(open, triggerRef, { width, height, edge: EDGE, gap: GAP });
+  /* Sem travar a rolagem: esta caixa abre com o ponteiro parado em cima, e prender a página por causa de
+     um hover seria prender a página o tempo todo. */
+  const position = useAnchoredPosition(open, triggerRef, { width, height, edge: EDGE, gap: GAP, lock: false });
 
   const clear = () => {
     if (timer.current !== null) window.clearTimeout(timer.current);

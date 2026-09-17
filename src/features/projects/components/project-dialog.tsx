@@ -2,6 +2,7 @@
 
 import {
   AddressBookIcon,
+  FolderSimpleIcon,
   CalendarBlankIcon,
   CurrencyCircleDollarIcon,
   EyeIcon,
@@ -219,13 +220,18 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
           <Link href="/projetos" className={styles.crumb}>
             Projetos
           </Link>
-          <span className={styles.slash} aria-hidden="true">
-            /
-          </span>
-          <Link href={`/clientes/${project.client.id}` as Route} className={styles.crumb}>
-            <AddressBookIcon aria-hidden="true" />
-            {project.client.company ?? project.client.name}
-          </Link>
+          {/* O degrau do cliente só existe quando há cliente: projeto independente vem da lista e para nela. */}
+          {project.client && (
+            <>
+              <span className={styles.slash} aria-hidden="true">
+                /
+              </span>
+              <Link href={`/clientes/${project.client.id}` as Route} className={styles.crumb}>
+                <AddressBookIcon aria-hidden="true" />
+                {project.client.company ?? project.client.name}
+              </Link>
+            </>
+          )}
           <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {project.reference}
           </Badge>
@@ -255,7 +261,13 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
               daqui só em glifo, com o nome na dica e na voz: o site entregue, editar e o quadro de tarefas,
               que é onde o trabalho acontece. */}
           <div className={styles.identity}>
-            <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="lg" shape="squircle" />
+            {project.client ? (
+              <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="lg" shape="squircle" />
+            ) : (
+              <span className={styles.own} aria-hidden="true" {...squircle("lg")}>
+                <FolderSimpleIcon />
+              </span>
+            )}
             <div className={styles.who}>
               <div className={styles.naming}>
                 <Text as="h2" variant="title2" weight="semibold" truncate>
@@ -271,7 +283,8 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
                 )}
               </div>
               <Text variant="footnote" tone="secondary" truncate>
-                {project.client.company ?? project.client.name}, desde {shortDate(project.startedAt)}
+                {project.client ? `${project.client.company ?? project.client.name}, ` : "Projeto independente, "}
+                desde {shortDate(project.startedAt)}
               </Text>
             </div>
             <div className={styles.shortcuts}>
@@ -321,7 +334,13 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
               <ProfileSection title="Detalhes">
                 <ProfileFacts>
                   <ProfileFact icon={AddressBookIcon} label="Cliente">
-                    <TextLink href={`/clientes/${project.client.id}` as Route}>{project.client.company ?? project.client.name}</TextLink>
+                    {project.client ? (
+                      <TextLink href={`/clientes/${project.client.id}` as Route}>{project.client.company ?? project.client.name}</TextLink>
+                    ) : (
+                      <Text as="span" variant="subheadline" tone="tertiary">
+                        Projeto independente
+                      </Text>
+                    )}
                   </ProfileFact>
                   <ProfileFact icon={UserIcon} label="Responsável">
                     <span className={styles.person}>

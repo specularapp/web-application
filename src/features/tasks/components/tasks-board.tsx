@@ -56,6 +56,7 @@ import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
 import { TaskDialog } from "./task-dialog";
 import styles from "./tasks-board.module.css";
+import { callAction } from "@/lib/action";
 
 export type TasksBoardProps = {
   board: TasksBoardData;
@@ -153,7 +154,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   const removeTask = async () => {
     if (!deleting) return;
     setRemoving(true);
-    const result = await deleteTaskAction(deleting.id);
+    const result = await callAction(deleteTaskAction(deleting.id));
     setRemoving(false);
 
     if (!result.ok) {

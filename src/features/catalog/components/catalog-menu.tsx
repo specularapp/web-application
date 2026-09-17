@@ -9,8 +9,13 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
+import dynamic from "next/dynamic";
+import { useState } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import type { CatalogItem } from "../summary";
+
+/* A janela chega só quando alguém a abre: o leque aparece em cada cartão da grade. */
+const HistoryDialog = dynamic(() => import("@/features/records/components/history-dialog").then((module) => module.HistoryDialog));
 
 export type CatalogMenuProps = {
   /** Só o que o menu usa: o cartão carrega o item inteiro, mas o menu não precisa dele. */
@@ -30,11 +35,12 @@ export type CatalogMenuProps = {
 const QUOTE_PLAN = "pro";
 
 // As opções de um item do catálogo, no mesmo padrão do menu do cliente: ver e editar, gerar orçamento
-// com o item já dentro (com o selo do plano que libera), o acompanhamento, o interruptor de ativo e, por
-// último e em vermelho, excluir. Visualizar abre a ficha, Editar abre a gaveta do formulário no lugar
-// (2026-09-08) e Excluir pede a confirmação da casa (2026-09-16). Histórico ainda não tem tela: fecha o
-// menu e nada mais.
+// com o item já dentro (com o selo do plano que libera), o histórico em janela, o interruptor de ativo e,
+// por último e em vermelho, excluir. Visualizar abre a ficha, Editar abre a gaveta do formulário no lugar
+// (2026-09-08) e Excluir pede a confirmação da casa (2026-09-16).
 export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDelete }: CatalogMenuProps) {
+  const [history, setHistory] = useState<"never" | "open" | "closed">("never");
+
   const sections: DropdownSection[] = [
     {
       id: "actions",
@@ -54,7 +60,7 @@ export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDe
     {
       id: "tracking",
       label: "Acompanhamento",
-      items: [{ id: "history", label: "Histórico de edições", icon: ClockCounterClockwiseIcon }],
+      items: [{ id: "history", label: "Histórico de edições", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") }],
     },
     {
       id: "flags",
@@ -66,5 +72,19 @@ export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDe
     },
   ];
 
-  return <DropdownMenu label={`Opções de ${item.name}`} triggerLabel={`Mais opções de ${item.name}`} sections={sections} />;
+  return (
+    <>
+      <DropdownMenu label={`Opções de ${item.name}`} triggerLabel={`Mais opções de ${item.name}`} sections={sections} />
+
+      {history !== "never" && (
+        <HistoryDialog
+          open={history === "open"}
+          onClose={() => setHistory("closed")}
+          recordType="catalog"
+          recordId={item.id}
+          name={item.name}
+        />
+      )}
+    </>
+  );
 }

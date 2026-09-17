@@ -9,6 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { createAutomationAction } from "../actions";
 import { nodeCatalog } from "../catalog";
@@ -47,7 +48,7 @@ function Chooser({ installed, onClose, onCreated }: Omit<NewAutomationDialogProp
 
   const create = async (templateId: string | null) => {
     setBusy(templateId ?? "blank");
-    const result = await createAutomationAction({ templateId });
+    const result = await callAction(createAutomationAction({ templateId }));
     setBusy(null);
     if (!result.ok) {
       toast({ title: "Não deu para criar", description: result.error, tone: "danger" });

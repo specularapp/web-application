@@ -10,6 +10,7 @@ import { confirmSubscriptionAction } from "../actions";
 import { chargeCents, formatMoney, planById, type BillingCycle, type PlanId } from "../plans";
 import styles from "./checkout.module.css";
 import { PaymentForm } from "./payment-form";
+import { callAction } from "@/lib/action";
 
 export type CheckoutIntentInfo = {
   mode: "setup" | "payment";
@@ -59,11 +60,13 @@ export function CheckoutPanel({
   const confirm = async () => {
     setConfirming(true);
 
-    const result = await confirmSubscriptionAction({
-      organizationId,
-      ...(intent.subscriptionId ? { subscriptionId: intent.subscriptionId } : {}),
-      ...(intent.setupIntentId ? { setupIntentId: intent.setupIntentId } : {}),
-    });
+    const result = await callAction(
+      confirmSubscriptionAction({
+        organizationId,
+        ...(intent.subscriptionId ? { subscriptionId: intent.subscriptionId } : {}),
+        ...(intent.setupIntentId ? { setupIntentId: intent.setupIntentId } : {}),
+      }),
+    );
 
     if (!result.ok) {
       setConfirming(false);

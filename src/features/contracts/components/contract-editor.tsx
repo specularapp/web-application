@@ -58,6 +58,7 @@ import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
 import { cx } from "@/lib/utils/cx";
 import { formatMoney } from "@/lib/utils/format";
@@ -177,7 +178,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
 
   const save = useCallback(async () => {
     setSaveState("saving");
-    const result = await saveContractAction(payload());
+    const result = await callAction(saveContractAction(payload()));
     if (!result.ok) {
       setSaveState("error");
       toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
@@ -220,7 +221,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
       setSending(false);
       return;
     }
-    const result = await sendContractAction({ id: contract.id });
+    const result = await callAction(sendContractAction({ id: contract.id }));
     setSending(false);
     if (!result.ok) {
       toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
@@ -619,7 +620,7 @@ function BodyWorkspace({ contract, parties, theme, facts, aiAvailable, onTheme, 
       return;
     }
     setRewriting(mode);
-    const result = await rewriteTextAction({ text, mode });
+    const result = await callAction(rewriteTextAction({ text, mode }));
     setRewriting(null);
     if (!result.ok) {
       toast({ title: "Não deu para reescrever", description: result.error, tone: "danger" });

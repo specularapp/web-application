@@ -208,6 +208,12 @@ export async function getIssuer(client: TeamClient, organizationId: string) {
 // A leitura entra pela associação, e não por `organizations`: a policy de select de lá também deixa
 // passar o time que a pessoa criou, então quem saiu do time continuaria vendo o time na troca e
 // escolheria um destino que `set_current_org` recusa.
+/** Uma equipe de que a pessoa participa, pelo id: é o que a gaveta de editar lê para abrir preenchida. */
+export async function getTeam(client: TeamClient, organizationId: string): Promise<Team | null> {
+  const { data } = await client.from("organizations").select(teamColumns).eq("id", organizationId).maybeSingle();
+  return data ? toTeam(data) : null;
+}
+
 export async function listTeams(client: TeamClient, userId: string): Promise<TeamOption[]> {
   const { data: memberships } = await client
     .from("organization_members")
@@ -218,7 +224,8 @@ export async function listTeams(client: TeamClient, userId: string): Promise<Tea
   if (ids.length === 0) return [];
 
   const [{ data: rows }, { data: subscriptions }] = await Promise.all([
-    client.from("organizations").select("id, name, slug, logo_url").in("id", ids).order("name"),
+    /* Arquivada some da lista: é o que arquivar quer dizer. Ela continua no banco e volta ao desarquivar. */
+    client.from("organizations").select("id, name, slug, logo_url").in("id", ids).is("archived_at", null).order("name"),
     client.from("organization_subscriptions").select("organization_id, plan, status").in("organization_id", ids),
   ]);
 
@@ -241,6 +248,30 @@ export async function listTeams(client: TeamClient, userId: string): Promise<Tea
 export async function switchTeam(client: TeamClient, organizationId: string): Promise<ServiceResult<undefined>> {
   const { error } = await client.rpc("set_current_org", { p_organization_id: organizationId });
   if (error) return { ok: false, error: messageOf(error, "Não foi possível trocar de time.") };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Arquivar uma equipe, que é o lugar do excluir (2026-09-16, a pedido): ela sai da lista de quem participa e
+ * ninguém entra nela, mas nada é apagado, e desarquivar traz tudo de volta. Quem decide se pode é o banco,
+ * na função `set_organization_archived`, que exige ser dono: a policy de update da tabela abre para owner e
+ * admin, o que vale para trocar o nome, mas tirar a equipe do ar é decisão de quem responde por ela.
+ *
+ * Quem estava dentro dela sai junto, pela mesma função: o perfil solta a equipe em vigor, e é a aplicação
+ * que escolhe a próxima.
+ */
+export async function setTeamArchived(
+  client: TeamClient,
+  input: { organizationId: string; archived: boolean },
+): Promise<ServiceResult<undefined>> {
+  const { error } = await client.rpc("set_organization_archived", {
+    p_organization_id: input.organizationId,
+    p_archived: input.archived,
+  });
+
+  if (error) {
+    return { ok: false, error: messageOf(error, input.archived ? "Não foi possível arquivar a equipe." : "Não foi possível reabrir a equipe.") };
+  }
   return { ok: true, data: undefined };
 }
 

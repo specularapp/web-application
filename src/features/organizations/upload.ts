@@ -3,6 +3,7 @@
 import { attachImageAction, createImageUploadAction } from "./actions";
 import { LOGO_BUCKET, logoContentTypeSchema, type ImageKind } from "./schemas";
 import type { ServiceResult } from "./service";
+import { callAction } from "@/lib/action";
 
 // O arquivo sobe direto para o Storage com URL assinada pelo servidor: passar a imagem por dentro
 // da Server Action esbarraria no limite de corpo da requisição e ainda ocuparia o processo.
@@ -20,7 +21,7 @@ export async function uploadTeamImage(
   const contentType = logoContentTypeSchema.safeParse(file.type);
   if (!contentType.success) return { ok: false, error: "Envie a imagem em PNG, JPG ou WEBP" };
 
-  const prepared = await createImageUploadAction({ organizationId, contentType: contentType.data, kind });
+  const prepared = await callAction(createImageUploadAction({ organizationId, contentType: contentType.data, kind }));
   if (!prepared.ok) return prepared;
 
   const { createClient } = await import("@/lib/supabase/client");

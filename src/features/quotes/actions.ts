@@ -5,14 +5,15 @@ import { firstIssue, guardAction, revalidateDomain } from "@/features/organizati
 import { cacheTags } from "@/lib/cache/tags";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
-import { quoteFormSchema, quoteIdsSchema, quoteResponseSchema, quoteIdSchema } from "./schemas";
-import { deleteQuotes, respondToQuote, rotateQuoteToken, saveQuote } from "./service";
+import { quoteFormSchema, quoteIdsSchema, quoteResponseSchema, quoteIdSchema, quoteStatusSchema } from "./schemas";
+import { deleteQuotes, duplicateQuote, markQuoteStatus, respondToQuote, rotateQuoteToken, saveQuote } from "./service";
 import type { QuoteStatus } from "./summary";
 
 export type QuoteSaveResult = { ok: true; id: string; status: QuoteStatus } | { ok: false; error: string; field?: string };
 export type QuoteResponseResult = { ok: true; status: QuoteStatus } | { ok: false; error: string };
 export type QuoteDeleteResult = { ok: true; deleted: number } | { ok: false; error: string };
 export type QuoteTokenResult = { ok: true; token: string } | { ok: false; error: string };
+export type QuoteStatusResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Salva o orçamento, criando ou editando: é o mesmo formulário e a mesma regra. O campo com problema volta
@@ -81,4 +82,37 @@ export async function respondToQuoteAction(input: unknown): Promise<QuoteRespons
 
   await revalidateDomain(responded.data.organizationId, [cacheTags.quotes], ["/orcamentos"]);
   return { ok: true, status: responded.data.status };
+}
+
+/**
+ * Marca a situação à mão, pelo leque: enviado para quem mandou por fora, aprovado para quem fechou no
+ * telefone. O documento continua o mesmo; o que muda é o que a casa sabe sobre ele.
+ */
+export async function markQuoteStatusAction(input: unknown): Promise<QuoteStatusResult> {
+  const guard = await guardAction("quote-status");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = quoteStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Situação inválida." };
+
+  const marked = await markQuoteStatus(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.status);
+  if (!marked.ok) return { ok: false, error: marked.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true };
+}
+
+/** Uma cópia em rascunho, com número e link novos. Devolve o id, para o editor abrir nela. */
+export async function duplicateQuoteAction(input: unknown): Promise<QuoteSaveResult> {
+  const guard = await guardAction("quote-duplicate");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = quoteIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Escolha um orçamento." };
+
+  const copy = await duplicateQuote(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!copy.ok) return { ok: false, error: copy.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true, id: copy.data.id, status: "draft" };
 }

@@ -53,7 +53,7 @@ function Featured({ client }: { client: Client }) {
               Novo
             </Badge>
           </span>
-          <ClientMenu client={client} historyCount={12} />
+          <ClientMenu client={client} />
         </div>
 
         <dl className={styles.facts}>
@@ -102,7 +102,7 @@ function Row({ client }: { client: Client }) {
           </Text>
         )}
       </span>
-      <ClientMenu client={client} historyCount={12} />
+      <ClientMenu client={client} />
     </DetailsTrigger>
   );
 }
