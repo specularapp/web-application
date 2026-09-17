@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
 import type { ClientsListPage, ClientsQuery } from "./list-options";
 import { getClient, getClientsSummary, listClients, listClientOptions } from "./service";
 import type { Client, ClientsSummary } from "./summary";
@@ -27,8 +27,13 @@ export async function getClientById(id: string, next = "/clientes"): Promise<Cli
   return getClient(supabase, organizationId, id);
 }
 
-export async function getClientsBlock(next = "/dashboard"): Promise<ClientsSummary> {
-  const { supabase, organizationId } = await requireOrganization(next);
+const EMPTY_BLOCK: ClientsSummary = { total: 0, clients: [] };
+
+/* Como os demais blocos do painel: sem time o painel ainda abre, com a configuração inicial por cima. */
+export async function getClientsBlock(): Promise<ClientsSummary> {
+  const context = await getOrganizationContext();
+  if (!context) return EMPTY_BLOCK;
+  const { supabase, organizationId } = context;
 
   return cached(
     cacheKey(organizationId, "clients:block"),

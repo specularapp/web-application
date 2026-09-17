@@ -17,6 +17,33 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
 | 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, fatos e containers refeitos nas janelas, fila de camadas que separa um modal do outro, arrastar a alça da bandeja para fechar e varredura de peso que levou o painel de 791 KB para 347 KB |
 | 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
+| 2026-09-17 (qui) | em andamento | Primeira entrada de conta nova destravada: o painel parou de exigir time e passou a abrir vazio com a configuração inicial por cima, os blocos aguentam a conta sem equipe, e `@floating-ui/dom` entrou declarado para o build voltar a passar em instalação limpa |
+
+## 2026-09-17
+
+Tempo: em andamento.
+
+Feito:
+
+- **Quem acabava de se cadastrar nunca entrava** (relato: o painel ficava carregando e travava tudo). O
+  cadastro cria o perfil, mas não cria time: o gatilho de `auth.users` só insere em `profiles`, e a
+  organização só nasce quando a pessoa preenche a configuração inicial. Só que o painel abria com
+  `requireOrganization()`, que sem time manda para `/dashboard`, ou seja, para ele mesmo. A rota
+  redirecionava para si infinitamente, o esqueleto de `loading.tsx` ficava na tela para sempre, e a janela
+  que criaria o time, que mora dentro dessa mesma página, nunca chegava a desenhar. A conta com time nunca
+  passava por isso, que é porque o laço sobreviveu à virada para o banco.
+- **O painel passou a abrir sem time**, que é o que o próprio código já dizia ser a intenção: ele usa
+  `getOrganizationContext()`, que devolve nulo em vez de sair da página, e os sete blocos seguem o caminho
+  que `getGamificationBlocks` já abria, cada um com o resumo vazio do domínio. A concha já tolerava a
+  ausência desde antes; agora a tela também.
+- **`requireOrganization` estoura em vez de laçar**: chamada com o painel como destino, ela agora lança, e o
+  limite de erro mostra o engano na primeira vez. Redirecionar uma rota para ela mesma é um laço silencioso,
+  e silencioso é como este chegou em produção. As três ações de imagem, que caíam no mesmo destino padrão,
+  passaram a devolver "escolha ou crie um time" como as demais ações da casa, em vez de redirecionar no meio
+  de uma subida.
+- **O build voltou a passar em instalação limpa**: `@floating-ui/dom` é dependência do `BubbleMenu` do
+  tiptap, mas o menu é dependência opcional do `@tiptap/react`, e o npm instala o pacote sem instalar o que
+  ele pede. Declarado ao lado dos outros pacotes do editor, com a razão anotada em `libs.md`.
 
 ## 2026-09-16
 

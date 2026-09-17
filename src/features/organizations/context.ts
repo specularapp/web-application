@@ -50,14 +50,25 @@ export const getOrganizationContext = cache(async function getOrganizationContex
   return { supabase, user, organizationId };
 });
 
+export const DASHBOARD_PATH = "/dashboard";
+
 /**
  * O contexto ou a saída da página. Sem sessão vai para o login com o destino guardado; com sessão e sem
  * time vai para o painel, que é onde a configuração inicial aparece por cima.
+ *
+ * O painel é o destino de quem não tem time, então ele é o único lugar que não pode exigir um: mandá-lo
+ * para si mesmo era o laço que travava a primeira entrada de quem acabava de se cadastrar, e o laço só
+ * aparecia na conta nova, que é a que ninguém testa. Quem desenha o painel usa `getOrganizationContext` e
+ * mostra o vazio; chamar daqui com o painel como destino é engano de código, e estourar é como ele
+ * aparece na primeira vez em vez de virar carregamento eterno.
  */
-export async function requireOrganization(next = "/dashboard"): Promise<OrganizationContext> {
+export async function requireOrganization(next = DASHBOARD_PATH): Promise<OrganizationContext> {
   const user = await requireUser(next);
   const { supabase, organizationId } = await resolve(user);
-  if (!organizationId) redirect("/dashboard");
+  if (!organizationId) {
+    if (next === DASHBOARD_PATH) throw new Error(`${NO_TEAM} (requireOrganization com destino ${DASHBOARD_PATH})`);
+    redirect(DASHBOARD_PATH);
+  }
 
   return { supabase, user, organizationId };
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
 import { getQuote, getQuotesSummary } from "./service";
 import type { Quote, QuotesSummary } from "./summary";
 
@@ -13,7 +13,9 @@ export async function getQuoteById(id: string, next = "/orcamentos"): Promise<Qu
   return getQuote(supabase, organizationId, id);
 }
 
-export async function getQuotesBlock(next = "/dashboard"): Promise<QuotesSummary> {
-  const { supabase, organizationId, user } = await requireOrganization(next);
-  return getQuotesSummary(supabase, organizationId, user.id);
+/* Como os demais blocos do painel: sem time o painel ainda abre, com a configuração inicial por cima. */
+export async function getQuotesBlock(): Promise<QuotesSummary> {
+  const context = await getOrganizationContext();
+  if (!context) return { latest: null };
+  return getQuotesSummary(context.supabase, context.organizationId, context.user.id);
 }

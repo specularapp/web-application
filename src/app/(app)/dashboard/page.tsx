@@ -8,8 +8,9 @@ import { parsePeriod, PERIOD_PARAM } from "@/features/dashboard/period";
 import { getFinanceBlock } from "@/features/finance/queries";
 import { getGamificationBlocks } from "@/features/gamification/queries";
 import { getOnboardingGate } from "@/features/onboarding/guard";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext } from "@/features/organizations/context";
 import { getTeamSummary } from "@/features/organizations/service";
+import type { TeamSummary } from "@/features/organizations/summary";
 import { getProjectsBlock } from "@/features/projects/queries";
 import { getQuotesBlock } from "@/features/quotes/detail";
 import { getTasksBlock } from "@/features/tasks/detail";
@@ -29,12 +30,19 @@ export const metadata = createMetadata({
   path: "/dashboard",
 });
 
+const EMPTY_TEAM: TeamSummary = { members: [] };
+
+/**
+ * O painel é a única tela que abre sem time: é por cima dele que a configuração inicial aparece, e é nela
+ * que o time nasce. Por isso o contexto aqui é opcional, e não exigido: exigir mandava quem acabou de se
+ * cadastrar de volta para o próprio painel, sem fim, e a janela que criaria o time nunca chegava a desenhar.
+ */
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   const [{ state, needsSetup, billing }, params, cookieStore, context] = await Promise.all([
     getOnboardingGate(),
     searchParams,
     cookies(),
-    requireOrganization(),
+    getOrganizationContext(),
   ]);
 
   const layout = parseDashboardLayout(cookieStore.get(LAYOUT_COOKIE)?.value);
@@ -48,7 +56,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     getFinanceBlock(),
     getClientsBlock(),
     getTasksBlock(),
-    getTeamSummary(context.supabase, context.organizationId),
+    context ? getTeamSummary(context.supabase, context.organizationId) : EMPTY_TEAM,
     getQuotesBlock(),
     getGamificationBlocks(),
   ]);
