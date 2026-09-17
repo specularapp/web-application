@@ -1,6 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import { FolderIcon, MinusCircleIcon, PackageIcon, WrenchIcon } from "@phosphor-icons/react/ssr";
-import { svgToken } from "@/lib/generated-svg";
+import { artworkUrl } from "@/lib/generated-svg";
 import { hashString } from "@/lib/utils/hash";
 import { slugify } from "@/lib/utils/slug";
 import { gridPageSize as pageSizeForGrid, remapPage } from "@/lib/utils/paging";
@@ -151,12 +151,12 @@ export type CatalogListPage = {
 };
 
 /**
- * O endereço da arte gerada de um item sem foto: o matiz vai no caminho, porque a linha do desenho é
- * tingida nele, e o token sai do id, porque o desenho é do item e não muda quando o nome muda. A rota que
- * desenha é `/api/artwork/[hue]/[token]`, sobre `artwork.ts`.
+ * O endereço da arte gerada de um item sem foto, no estilo Icons: o matiz vai no caminho, porque o ícone é
+ * tingido nele, e o token sai do id, porque o desenho é do item e não muda quando o nome muda. A rota que
+ * desenha é `/api/artwork/[style]/[hue]/[token]`, sobre `lib/artwork.ts`.
  */
 export function catalogArtworkUrl(item: Pick<CatalogItem, "id" | "hue">) {
-  return `/api/artwork/${item.hue}/${svgToken(item.id)}.svg`;
+  return artworkUrl("icons", item.hue, item.id);
 }
 
 /* Os doze matizes da paleta do sistema, na ordem dela. Moram aqui, e não em `schemas.ts`, porque quem

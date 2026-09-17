@@ -6,8 +6,10 @@ import { requireUser } from "@/features/auth/session";
 import { siteConfig } from "@/lib/metadata";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { markNotificationsRead } from "./notifications";
 import {
   createInviteSchema,
+  notificationIdsSchema,
   imageAttachSchema,
   imageUploadSchema,
   inviteRemovalSchema,
@@ -204,4 +206,20 @@ export async function finishOnboardingAction(input: unknown): Promise<ServiceRes
   const supabase = await createClient();
   const result = await completeOnboarding(supabase, parsed.data.organizationId);
   return result;
+}
+
+/**
+ * Marcar notificações como lidas. É a única escrita da pessoa nessa tabela: quem as cria é o servidor, pela
+ * função com a chave secreta, porque notificação criada pela sessão seria notificação que a tela inventa.
+ */
+export async function markNotificationsReadAction(input: unknown): Promise<ServiceResult<undefined>> {
+  const user = await requireUser(DASHBOARD_PATH);
+  if (!(await withinActionLimit("notifications", user.id))) return { ok: false, error: TOO_MANY };
+
+  const parsed = notificationIdsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  await markNotificationsRead(supabase, user.id, parsed.data);
+  return { ok: true, data: undefined };
 }

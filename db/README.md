@@ -55,6 +55,7 @@ No ledger gerado o nome vira `<versao>_<dominio>_<acao>.sql`. O Supabase só reg
 | `npm run db:sync` | Só regenera a pasta plana do CLI |
 | `npm run db:config-push` | Envia o `config.toml` para o projeto |
 | `npm run db:link` | Primeira vez, após `npx supabase login` |
+| `npm run db:probe` | Prova o schema contra o banco hospedado: cria uma organização de teste, escreve uma linha de cada domínio, confere identificador gerado, `check` que precisa recusar, gatilhos de situação e de organização cruzada, e apaga tudo no fim |
 
 ## Regras de segurança do banco
 
@@ -67,3 +68,25 @@ No ledger gerado o nome vira `<versao>_<dominio>_<acao>.sql`. O Supabase só reg
 - Tabela cujo conteúdo o cliente não pode escrever nasce **sem policy de escrita**, e a gravação passa por função `security definer` com a checagem de papel dentro. É o caso de cobrança: `organization_subscriptions` e `plan_entitlements` só mudam por função, e `sync_subscription` é revogada até de `authenticated`. Contrato completo na seção Cobrança de `src/docs/structure.md`.
 - Função nova precisa de `grant execute` explícito para cada papel que vai chamar (`authenticated`, e `service_role` quando o servidor chamar pela chave secreta). O revoke de `public` das migrações de segurança tirou o execute implícito de todos, então esquecer o grant quebra em runtime e não na migração.
 - Nunca alterar migração aplicada. Nunca criar objeto pelo painel sem depois rodar `db:pull`. Depois de migrar, rodar `db:types` e commitar.
+
+## O identificador que a pessoa lê
+
+`ORC-2026-0042` não sai de `max + 1` nem de sequência do Postgres: o primeiro repetiria número assim que
+alguém apagasse um registro, e o segundo não sabe separar organização de organização. Quem gera é
+`reference_counters` (organização, domínio, ano) mais `next_reference`, e cada tabela ganha o gatilho
+genérico `set_reference('<dominio>', '<PREFIXO>')`. A coluna tem padrão vazio de propósito: é o gatilho que
+preenche, e o padrão é o que diz isso ao tipo gerado.
+
+## Vínculo entre domínios
+
+Toda chave estrangeira entre tabelas de domínio tem um gatilho `assert_same_organization(tabela, coluna)`.
+Sem ele, alguém com acesso a dois times ligaria um projeto de um ao cliente do outro, e a RLS não perceberia,
+porque cada linha, sozinha, está certa.
+
+## Tokens de link público
+
+Orçamento, cada parte de um contrato e cobrança guardam **só o `sha256`** do token. O token em si é derivado
+no servidor (`lib/security/share-token.ts`) de um segredo em `SHARE_LINK_SECRET` mais o id e a versão da
+linha, então ele nunca chega ao Postgres em claro e mesmo assim o link pode ser mostrado de novo a qualquer
+momento. Revogar é somar um na versão. A leitura pública é função `security definer` concedida só a
+`service_role`; `anon` não tem policy de select em tabela nenhuma.

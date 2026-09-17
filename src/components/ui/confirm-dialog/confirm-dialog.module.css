@@ -1,0 +1,63 @@
+/* Tudo centrado e empilhado: o que sai, a pergunta, a frase e os dois botões. É o desenho que a exclusão de
+   clientes estreou e que passou a valer para toda ação sem volta da casa. */
+.dialog {
+  display: grid;
+  gap: var(--space-5);
+  justify-items: center;
+  width: 100%;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+/* A fila de rostos, entrando um sobre o outro, e a contagem do que não coube ao lado. */
+.faces {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.group {
+  --avatar-overlap: var(--space-3);
+}
+
+/* O "+N" numa bolinha do tamanho dos rostos, no preenchimento da casa. */
+.more {
+  display: grid;
+  place-items: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+/* O glifo sozinho, para o que não tem rosto: uma automação, um item do catálogo, um contrato. */
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-danger);
+  background-color: color-mix(in oklab, var(--color-danger) 12%, transparent);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.glyph svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 24rem;
+}
+
+/* Os dois botões dividem a largura em partes iguais, o de confirmar à direita. */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+}

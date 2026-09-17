@@ -19,6 +19,16 @@ export function aiRemaining(usage: AiUsage) {
   return Math.max(0, usage.limit - usage.used);
 }
 
+/** A cor do quanto já foi: azul enquanto sobra, laranja passando de 70% e vermelho de 90%, para a pessoa ver
+ *  o aperto antes de bater no teto. Mora aqui porque a régua aparece na janela do uso e no pé do histórico
+ *  da página cheia, e duas cópias da mesma faixa sairiam de sincronia. */
+export function aiTone(usage: AiUsage): "accent" | "warning" | "danger" {
+  const share = aiShare(usage);
+  if (share >= 0.9) return "danger";
+  if (share >= 0.7) return "warning";
+  return "accent";
+}
+
 /** Um áudio ditado no compositor: onde ele está e quanto dura. Mesma forma do áudio da conversa da tarefa,
  *  que é de onde vem o gravador. */
 export type AiVoice = { url: string; seconds: number };

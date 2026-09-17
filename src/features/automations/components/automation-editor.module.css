@@ -1,0 +1,896 @@
+/* O editor toma a área de conteúdo: a barra em cima e, embaixo, o trabalho em colunas que rolam por dentro
+   no desktop. No celular o quadro tem altura própria e o resto segue em fluxo. */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100%;
+}
+
+@media (min-width: 48rem) {
+  .editor {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+/* A barra: voltar, a rota com o nome editável e a situação, o estado do salvamento e as ações na ponta. */
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.crumbs {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+/* O nome é um campo sem caixa na própria linha da rota: parece texto, e edita no lugar. */
+.nameInput {
+  flex: 1;
+  min-width: 4rem;
+  max-width: 24rem;
+  padding: var(--space-half) var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.nameInput::placeholder {
+  color: var(--color-placeholder);
+}
+
+@media (hover: hover) {
+  .nameInput:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.nameInput:focus-visible {
+  background-color: var(--color-fill-quaternary);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -1px;
+}
+
+.statusBadge {
+  flex-shrink: 0;
+}
+
+.saveState {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 47.9375rem) {
+  .crumbs .crumb,
+  .crumbs .slash,
+  .statusBadge,
+  .saveState {
+    display: none;
+  }
+}
+
+.barActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.switchLabel {
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+}
+
+.wide {
+  display: contents;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide,
+  .switchLabel {
+    display: none;
+  }
+}
+
+/* O trabalho: só o quadro abaixo de 64rem; a partir daí a paleta à esquerda, o quadro no centro e o painel à
+   direita, cada coluna rolando por conta. */
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 64rem) {
+  .work {
+    grid-template-columns: 17rem minmax(0, 1fr) 20rem;
+  }
+
+  .side {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border-inline-end: 0.0375rem solid var(--color-border);
+}
+
+.side:last-child {
+  border-inline-end: 0;
+  border-inline-start: 0.0375rem solid var(--color-border);
+}
+
+/* O quadro: o React Flow por dentro, com os tokens da casa nas variáveis dele, o vazio por cima quando não há
+   nós, e o dock flutuante no pé. Precisa de altura própria, porque o React Flow mede o pai. */
+.canvas {
+  --xy-background-color: var(--color-bg);
+  --xy-background-pattern-color: var(--color-fill);
+  --xy-edge-stroke: var(--color-label-tertiary);
+  --xy-edge-stroke-selected: var(--color-accent);
+  --xy-edge-stroke-width: 2;
+  --xy-connectionline-stroke: var(--color-accent);
+  --xy-connectionline-stroke-width: 2;
+  --xy-handle-background-color: var(--color-bg-tertiary);
+  --xy-handle-border-color: var(--color-label-tertiary);
+  --xy-selection-background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
+  --xy-selection-border: 1px dashed var(--color-accent);
+  --xy-attribution-background-color: transparent;
+
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 63.9375rem) {
+  .canvas {
+    height: calc(100dvh - var(--topbar-height, 3.5rem) - 6.5rem);
+    min-height: 26rem;
+  }
+}
+
+.canvas :global(.react-flow) {
+  font-family: var(--font-body);
+}
+
+.canvas :global(.react-flow__attribution) {
+  font-size: 0.5625rem;
+  color: var(--color-label-tertiary);
+}
+
+.canvas :global(.react-flow__attribution a) {
+  color: inherit;
+}
+
+/* O SVG das ligações não tem medida própria: o React Flow o deixa no tamanho padrão de um SVG solto (300 por
+   150) e desenha para fora dele com `overflow: visible`. O reset da casa põe `max-width: 100%` em todo SVG, e
+   como o pai dele não tem largura, o SVG ficava com zero de largura, e SVG com largura zero não desenha nada
+   (medido em 2026-09-15: o `path` existia, com traço e cor, e não pintava). Aqui o teto sai. */
+.canvas :global(.react-flow__edges svg) {
+  max-width: none;
+}
+
+.canvas :global(.react-flow__edge-path) {
+  transition:
+    stroke var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
+}
+
+/* As ligações durante a encenação: a que a execução está percorrendo corre em tracejado no acento, a que já
+   passou fica verde (ou vermelha, quando o passo falhou), e as que não entraram no caminho apagam. */
+.edge :global(.react-flow__edge-path) {
+  stroke-width: 2.5;
+}
+
+.edgeIdle :global(.react-flow__edge-path) {
+  opacity: 0.35;
+}
+
+.edgeActive :global(.react-flow__edge-path) {
+  stroke: var(--color-accent);
+}
+
+.edgeDone :global(.react-flow__edge-path) {
+  stroke: var(--sys-green);
+}
+
+.edgeFailed :global(.react-flow__edge-path) {
+  stroke: var(--sys-red);
+}
+
+@media (hover: hover) {
+  .canvas :global(.react-flow__edge:hover .react-flow__edge-path) {
+    stroke: var(--color-label-secondary);
+  }
+}
+
+/* O nó como card, no desenho da referência de editor de fluxo: o cabeçalho com o glifo no matiz da
+   categoria e o nome editável, o corpo com os campos do passo e o rodapé com as saídas rotuladas. O fio
+   acende no matiz quando escolhido; o gatilho leva a faixa do matiz à esquerda. Largura fixa para as
+   ligações nascerem sempre no mesmo lugar. */
+.node {
+  --node-hue: var(--color-accent);
+
+  position: relative;
+  display: grid;
+  width: 18rem;
+  color: var(--color-label);
+  cursor: grab;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.node:active {
+  cursor: grabbing;
+}
+
+.node[data-selected] {
+  border-color: var(--node-hue);
+  box-shadow:
+    0 0 0 0.1875rem color-mix(in oklab, var(--node-hue) 22%, transparent),
+    var(--shadow-md);
+}
+
+.node[data-category="trigger"] {
+  border-inline-start-width: 0.1875rem;
+  border-inline-start-color: var(--node-hue);
+}
+
+/* A encenação do teste no card: rodando pulsa no acento; depois o fio fica na cor do resultado. */
+.node[data-run="running"] {
+  border-color: var(--color-accent);
+  animation: nodePulse 1s var(--ease-standard) infinite;
+}
+
+.node[data-run="done"] {
+  border-color: var(--sys-green);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--sys-green) 20%, transparent);
+}
+
+.node[data-run="failed"] {
+  border-color: var(--sys-red);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--sys-red) 22%, transparent);
+}
+
+.node[data-run="waiting"] {
+  border-color: var(--sys-orange);
+  box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--sys-orange) 20%, transparent);
+}
+
+.node[data-run="skipped"] {
+  border-style: dashed;
+  border-color: var(--color-label-tertiary);
+}
+
+@keyframes nodePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0.125rem color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 0.5rem color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node[data-run="running"] {
+    animation: none;
+    box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+}
+
+/* O glifo do resultado no cabeçalho, na cor do que aconteceu. */
+.nodeRun {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.nodeRun svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.node[data-run="done"] .nodeRun {
+  color: var(--sys-green);
+}
+
+.node[data-run="failed"] .nodeRun {
+  color: var(--sys-red);
+}
+
+.node[data-run="waiting"] .nodeRun {
+  color: var(--sys-orange);
+}
+
+.node[data-run="skipped"] .nodeRun {
+  color: var(--color-label-tertiary);
+}
+
+/* O cabeçalho: o glifo e o nome, com o fio embaixo separando do corpo. */
+.nodeHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 3.25rem;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.nodeGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--node-hue);
+  background-color: light-dark(color-mix(in oklab, var(--node-hue) 14%, transparent), color-mix(in oklab, var(--node-hue) 22%, transparent));
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.nodeGlyph svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.nodeNaming {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+/* O nome é um campo sem caixa dentro do cabeçalho: parece texto e edita no lugar. Vazio, mostra o nome do
+   catálogo como sugestão, então o card nunca fica sem nome. */
+.nodeTitle {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-half) var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  cursor: text;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.nodeTitle::placeholder {
+  color: var(--color-label);
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .nodeTitle:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.nodeTitle:focus-visible {
+  background-color: var(--color-fill-quaternary);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -1px;
+}
+
+.nodeKind {
+  padding-inline: 0;
+  font-size: var(--text-caption2);
+  color: var(--color-label-secondary);
+}
+
+/* O corpo: os campos do passo, compactos, ou a linha do que o passo faz quando não há o que preencher. O
+   cursor volta ao normal, porque aqui se edita e não se arrasta. */
+.nodeBody {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  cursor: default;
+}
+
+.nodeFields {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nodeNote {
+  font-size: var(--text-caption1);
+  line-height: var(--leading-normal);
+  color: var(--color-label-secondary);
+}
+
+/* O rodapé: uma linha por saída, com o rótulo à direita e a alça na borda do card. */
+.nodeFoot {
+  display: grid;
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.nodeOut {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+}
+
+.nodeOut + .nodeOut {
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.nodeOutLabel {
+  font-size: var(--text-caption1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+}
+
+.nodeOut[data-branch="yes"] .nodeOutLabel {
+  color: var(--sys-green);
+}
+
+.nodeOut[data-branch="no"] .nodeOutLabel {
+  color: var(--sys-red);
+}
+
+/* As alças: bolinhas de 12px com o fio, na borda do card; a de saída fica na altura da própria linha do
+   rodapé, e a de entrada na do cabeçalho. Crescem ao passar o mouse para o alvo ficar fácil. */
+.canvas :global(.react-flow__handle).handle {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-width: 0.0625rem;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.canvas :global(.react-flow__handle).handleIn {
+  top: 1.625rem;
+  left: -0.4375rem;
+}
+
+.canvas :global(.react-flow__handle).handleOut {
+  top: 50%;
+  right: -0.4375rem;
+  background-color: var(--node-hue);
+  border-color: var(--node-hue);
+}
+
+@media (hover: hover) {
+  .canvas :global(.react-flow__handle).handle:hover {
+    transform: translateY(-50%) scale(1.4);
+  }
+}
+
+/* O "+" da saída, antes da alça, no fio da casa; acende no hover e fica sempre visível, porque no toque não
+   há hover. */
+.add {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: var(--color-bg-tertiary);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.add svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+@media (hover: hover) {
+  .add:hover {
+    color: var(--color-on-accent);
+    background-color: var(--node-hue);
+    border-color: var(--node-hue);
+  }
+}
+
+.add:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* O vazio do quadro, por cima dos pontos: o convite a escolher o gatilho. */
+.emptyCanvas {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  width: min(22rem, calc(100% - var(--space-8)));
+  padding: var(--space-5);
+  text-align: center;
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-md);
+  translate: -50% -50%;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.emptyGlyph {
+  width: 2rem;
+  height: 2rem;
+  color: var(--sys-green);
+}
+
+.emptyCanvas > :last-child {
+  margin-block-start: var(--space-2);
+}
+
+/* O dock no pé do quadro, na receita do container flutuante das páginas públicas: vidro da bandeja (passa por
+   cima dos nós), fio fino, sombra e o canto `lg`. */
+.dock {
+  position: absolute;
+  inset-block-end: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: 4;
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  max-width: calc(100% - var(--space-8));
+  padding: var(--space-half);
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  translate: -50% 0;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+/* No celular o dock sobe para cima da barra flutuante da casa, que mora no pé da tela. */
+@media (max-width: 47.9375rem) {
+  .dock {
+    inset-block-end: var(--floating-bar-inset, 5rem);
+  }
+}
+
+.dockRule {
+  flex-shrink: 0;
+  width: 0.0375rem;
+  height: 1.25rem;
+  margin-inline: var(--space-half);
+  background-color: var(--color-border);
+}
+
+/* A paleta: grupos com título miúdo e contagem, e um item por nó, com o glifo no matiz da categoria. */
+.palette {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.paletteGroup {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.paletteHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.paletteTitle {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.paletteList {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.paletteItem {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-inline-start: 0.1875rem solid var(--item-hue);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    translate var(--duration-fast) var(--ease-standard);
+}
+
+/* A pegada de arrastar, na ponta, só onde há mouse. */
+.paletteGrip {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.paletteItem[draggable="true"] {
+  cursor: grab;
+}
+
+@media (hover: hover) {
+  .paletteItem:not(:disabled):hover {
+    background-color: light-dark(color-mix(in oklab, var(--item-hue) 6%, var(--color-bg-grouped-secondary)), color-mix(in oklab, var(--item-hue) 10%, var(--color-bg-grouped-secondary)));
+    border-color: color-mix(in oklab, var(--item-hue) 55%, var(--color-border));
+    border-inline-start-color: var(--item-hue);
+    translate: var(--space-half) 0;
+  }
+
+  .paletteItem:not(:disabled):hover .paletteGrip {
+    opacity: 1;
+  }
+}
+
+.paletteItem:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.paletteItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.paletteGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--item-hue);
+  background-color: light-dark(color-mix(in oklab, var(--item-hue) 14%, transparent), color-mix(in oklab, var(--item-hue) 22%, transparent));
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.paletteGlyph svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.paletteCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.paletteDescription {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* O painel do passo: a cabeça com o glifo, a categoria e o nome; os campos; e remover no pé. */
+.config {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.configHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.configGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--item-hue);
+  background-color: light-dark(color-mix(in oklab, var(--item-hue) 14%, transparent), color-mix(in oklab, var(--item-hue) 22%, transparent));
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.configGlyph svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.configCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.configCopy > :first-child {
+  justify-self: start;
+  margin-block-end: var(--space-half);
+}
+
+.configFields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* O rótulo com o leque de variáveis na ponta. */
+.fieldLabel {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* As configurações do passo, recolhidas: o título com a linha do que tem dentro, e os campos ao abrir. */
+.configSettings {
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.configSummary {
+  display: grid;
+  gap: var(--space-half);
+  padding-block: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.configSummary::-webkit-details-marker {
+  display: none;
+}
+
+.configSummary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.configSettings[open] .configSummary {
+  padding-block-end: var(--space-2);
+}
+
+.configSettings .configFields {
+  padding-block-end: var(--space-3);
+}
+
+.configFoot {
+  display: flex;
+  justify-content: flex-start;
+  padding-block-start: var(--space-2);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+/* A ficha da automação, quando nada está escolhido. */
+.details {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-block: 0.0375rem solid var(--color-border);
+}
+
+.fact {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* Um painel virado gaveta: título com o X e o conteúdo rolando, com a folga da barra flutuante no celular. */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.drawerHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.drawerBody {
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .drawerBody {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}

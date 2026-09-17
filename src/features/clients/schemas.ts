@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { MAX_TAGS } from "@/lib/tags";
+import { clientTagValues } from "./tags";
 
 /**
  * O teto de cada campo de texto, num lugar só: é daqui que sai tanto a validação do servidor quanto o
@@ -14,11 +16,11 @@ export const clientLimits = {
   website: 120,
   city: 80,
   about: 1000,
-  tag: 30,
 } as const;
 
-/** Quantas etiquetas uma ficha aceita. Sai daqui para o zod e para o campo, num número só. */
-export const MAX_TAGS = 12;
+/* O teto de etiquetas é o mesmo em todo domínio e mora em `lib/tags.ts`. Segue saindo daqui para quem já o
+   importava desta feature. */
+export { MAX_TAGS };
 
 /** O que a ficha de cliente aceita, na criação e na edição: é o mesmo formulário. */
 export const clientFormSchema = z.object({
@@ -33,7 +35,9 @@ export const clientFormSchema = z.object({
   website: z.string().trim().max(clientLimits.website, "Endereço longo demais"),
   city: z.string().trim().max(clientLimits.city, "Cidade longa demais"),
   about: z.string().trim().max(clientLimits.about, "Anotação longa demais"),
-  tags: z.array(z.string().trim().min(1).max(clientLimits.tag, "Etiqueta longa demais")).max(MAX_TAGS, `No máximo ${MAX_TAGS} etiquetas`),
+  /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
+     essas, e o servidor recusa o resto, que é o que mantém nome e cor iguais em toda a base. */
+  tags: z.array(z.enum(clientTagValues, { message: "Escolha uma etiqueta da lista" })).max(MAX_TAGS, `No máximo ${MAX_TAGS} etiquetas`),
   active: z.boolean(),
   favorite: z.boolean(),
 });

@@ -53,7 +53,7 @@ const bodySchema = docNodeSchema.refine((node) => node.type === "doc", "O docume
 /** Onde cada parte assina num PDF, em frações da página: dentro de 0 a 1 e com tamanho mínimo legível. */
 export const signatureFieldSchema = z.object({
   id: z.string().trim().min(1).max(40),
-  partyId: z.string().trim().min(1).max(40),
+  partyId: z.uuid(),
   page: z.number().int().min(1).max(500),
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -73,14 +73,14 @@ export const createContractSchema = z.object({
  * Só rascunho aceita isto; documento enviado não muda por baixo de quem vai assinar.
  */
 export const saveContractSchema = z.object({
-  id: z.string().trim().min(1),
+  id: z.uuid(),
   title: z.string().trim().max(contractLimits.title, "Título longo demais"),
   kind: z.enum(contractKindValues),
   description: z.string().trim().max(contractLimits.description, "Descrição longa demais"),
   theme: z.enum(contractThemeValues),
-  clientId: z.string().trim().max(60).nullable(),
-  projectId: z.string().trim().max(60).nullable(),
-  quoteId: z.string().trim().max(60).nullable(),
+  clientId: z.uuid().nullable(),
+  projectId: z.uuid().nullable(),
+  quoteId: z.uuid().nullable(),
   expiresInDays: z.number().int().min(expiryLimits.min).max(expiryLimits.max),
   /** O e-mail de cada parte, pelo papel: é para onde o convite vai. */
   emails: z.object({
@@ -94,14 +94,14 @@ export const saveContractSchema = z.object({
 export type SaveContractInput = z.infer<typeof saveContractSchema>;
 
 /** Só o id, para enviar, reenviar, cancelar e carregar. */
-export const contractIdSchema = z.object({ id: z.string().trim().min(1) });
+export const contractIdSchema = z.object({ id: z.uuid() });
 
 /**
  * A assinatura de uma parte, pela página pública: o token dela, o nome como assina e o traço em PNG embutido.
  * O traço é obrigatório, porque assinatura sem traço é só um clique.
  */
 export const signContractSchema = z.object({
-  token: z.string().trim().min(8).max(120),
+  token: z.string().regex(/^[0-9a-f]{64}$/),
   name: z.string().trim().min(2, "Escreva seu nome como assina").max(contractLimits.signerName, "Nome longo demais"),
   signature: z
     .string()

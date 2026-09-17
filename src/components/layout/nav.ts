@@ -2,12 +2,13 @@ import type { Icon } from "@phosphor-icons/react";
 import {
   AddressBookIcon,
   BriefcaseIcon,
-  BuildingsIcon,
   CurrencyCircleDollarIcon,
   FlowArrowIcon,
+  FunnelIcon,
   GearSixIcon,
   ListChecksIcon,
   ReceiptIcon,
+  SignatureIcon,
   SparkleIcon,
   SquaresFourIcon,
   TagIcon,
@@ -28,11 +29,11 @@ export type NavFolder = {
   items: NavLink[];
   /**
    * A pasta abre também a árvore de um domínio abaixo das páginas fixas, e não só elas (2026-09-10, quando
-   * Tarefas virou grupo): pasta e projeto vêm do banco e têm endereço próprio, então não caberiam em
+   * Tarefas virou grupo): pasta, projeto e funil vêm do banco e têm endereço próprio, então não caberiam em
    * `items`, que é a lista fixa de rotas do menu. O menu pede o desenho a quem sabe montá-la, e a árvore
-   * chega por prop, como as notificações e o aviso. Hoje só as tarefas usam.
+   * chega por prop, como as notificações e o aviso. Tarefas e funil de vendas usam a mesma peça.
    */
-  tree?: "tarefas";
+  tree?: "tarefas" | "funis";
 };
 
 export type NavEntry = NavLink | NavFolder;
@@ -119,7 +120,16 @@ export const navGroups: NavGroup[] = [
       /* Clientes e Produtos e serviços são páginas soltas, e não filhas de pasta (pedido de 2026-09-08): são
          as duas bases que a pessoa abre o dia inteiro, e um degrau a mais para chegar nelas só atrasava. */
       { label: "Clientes", href: "/clientes", icon: AddressBookIcon },
-      { label: "Funil de vendas", href: "/crm", icon: BuildingsIcon },
+      /* O funil virou pasta com árvore (2026-09-15, a pedido), na mesma arquitetura das tarefas: escolher
+         Funil de vendas abre as pastas e os funis dentro do menu, para a pessoa dizer para onde vai antes de
+         ver quadro nenhum, e "Todas as oportunidades" é o quadro de tudo. */
+      {
+        label: "Funil de vendas",
+        icon: FunnelIcon,
+        hue: "var(--sys-teal)",
+        tree: "funis",
+        items: [{ label: "Todas as oportunidades", href: "/crm", icon: FunnelIcon }],
+      },
       { label: "Produtos e serviços", href: "/catalogo", icon: TagIcon },
       /* Orçar e acompanhar são a mesma tela (2026-09-09): a lista em tabela, com o editor abrindo por cima. A
          pasta com "Acompanhar" e "Gerar orçamento" saiu. */
@@ -133,14 +143,20 @@ export const navGroups: NavGroup[] = [
           { label: "Cobranças", href: "/cobrancas", icon: CurrencyCircleDollarIcon },
         ],
       },
+      /* A pasta se chama pelas duas coisas que tem dentro (2026-09-15, a pedido): chamada só de "Projetos",
+         com contratos por dentro, ela mentia sobre metade do que guardava, e quem procurava contrato não abria
+         a pasta certa. **E cada página leva o glifo do que ela é**: os três itens usavam a pasta de projeto,
+         então contrato e projeto liam como a mesma coisa na lista. O contrato leva a assinatura, que é o que
+         ele é nesta aplicação, da criação ao aceite do cliente.
+         "Novo contrato" saiu da lista: menu é lugar, e não ação, e criar já mora no topo da própria página,
+         como saiu "Gerar orçamento" quando orçar e acompanhar viraram a mesma tela. A rota continua de pé. */
       {
-        label: "Projetos",
+        label: "Projetos e contratos",
         icon: BriefcaseIcon,
         hue: "var(--sys-indigo)",
         items: [
           { label: "Todos os projetos", href: "/projetos", icon: BriefcaseIcon },
-          { label: "Contratos", href: "/contratos", icon: BriefcaseIcon },
-          { label: "Novo contrato", href: "/contratos/novo", icon: BriefcaseIcon },
+          { label: "Contratos", href: "/contratos", icon: SignatureIcon },
         ],
       },
       { label: "Automação", href: "/automacoes", icon: FlowArrowIcon },
@@ -207,7 +223,8 @@ export const navHighlights: NavHighlight[] = [
   { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
   { label: "Projetos", href: "/projetos", icon: BriefcaseIcon, hue: "var(--sys-indigo)" },
   { label: "Clientes", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
+  { label: "Oportunidades", href: "/crm", icon: FunnelIcon, hue: "var(--sys-cyan)" },
   { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)" },
-  { label: "Contratos", href: "/contratos", icon: BriefcaseIcon, hue: "var(--sys-purple)" },
+  { label: "Contratos", href: "/contratos", icon: SignatureIcon, hue: "var(--sys-purple)" },
   { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon, hue: "var(--sys-pink)" },
 ];

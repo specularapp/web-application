@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ContractsScreen } from "@/features/contracts/components/contracts-screen";
-import { CONTRACTS_GRID_COOKIE, listContracts, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
-import { readContracts } from "@/features/contracts/store";
+import { CONTRACTS_GRID_COOKIE, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
+import { getContractsPage } from "@/features/contracts/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -30,5 +30,7 @@ export default async function NewContractPage({ searchParams }: PageProps<"/cont
     gridSize,
   );
 
-  return <ContractsScreen page={listContracts(await readContracts(), query)} query={query} ai={previewAiUsage} creating />;
+  const [page, ai] = await Promise.all([getContractsPage(query), getAiUsageData()]);
+
+  return <ContractsScreen page={page} query={query} ai={ai} creating />;
 }

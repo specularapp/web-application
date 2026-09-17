@@ -1,16 +1,15 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { CatalogScreen } from "@/features/catalog/components/catalog-screen";
 import {
   CATALOG_GRID_COOKIE,
   CATALOG_VIEW_COOKIE,
   defaultPageSize,
-  listCatalog,
   parseCatalogGridSize,
   parseCatalogQuery,
   parseCatalogView,
 } from "@/features/catalog/list";
-import { previewCatalog } from "@/features/catalog/list-preview";
+import { getCatalogPage } from "@/features/catalog/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -39,5 +38,7 @@ export default async function NewCatalogItemPage({ searchParams }: PageProps<"/c
     defaultPageSize(view, gridSize),
   );
 
-  return <CatalogScreen page={listCatalog(previewCatalog, query)} query={query} ai={previewAiUsage} view={view} editing="new" />;
+  const [page, ai] = await Promise.all([getCatalogPage(query), getAiUsageData()]);
+
+  return <CatalogScreen page={page} query={query} ai={ai} view={view} editing="new" />;
 }

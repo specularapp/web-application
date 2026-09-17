@@ -1,0 +1,83 @@
+/* A prancha é uma coluna: barra e grade, como nas outras listas da casa. A coluna é `minmax(0, 1fr)` porque
+   trilha automática tem o min-content como piso, e a grade alargaria a página. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+
+  .scrollArea {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* A grade enche a largura com quantos cartões couberem, no piso de 17rem das grades da casa. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.grid > li {
+  display: grid;
+  min-width: 0;
+}
+
+/* O botão de criar leva texto no desktop e vira só ícone no celular, por CSS e não por media query em JS. */
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}
+
+/* A confirmação de excluir: título, aviso e os botões no pé (no celular eles moram na barra flutuante). */
+.confirm {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-block-start: var(--space-3);
+}
+
+@media (max-width: 47.9375rem) {
+  .confirm {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+
+  .confirmActions {
+    display: none;
+  }
+}

@@ -20,7 +20,8 @@
     "db:types": "node scripts/db.mjs types",
     "db:link": "node scripts/db.mjs link",
     "db:config-push": "node scripts/db.mjs config-push",
-    "billing:probe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-billing.mjs"
+    "billing:probe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-billing.mjs",
+    "db:probe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-schema.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -48,6 +49,7 @@
     "@tiptap/pm": "^3.30.5",
     "@tiptap/react": "^3.30.5",
     "@tiptap/starter-kit": "^3.30.5",
+    "@xyflow/react": "^12.11.6",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",

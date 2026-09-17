@@ -122,11 +122,15 @@
   object-fit: cover;
 }
 
-/* A arte toma pouco mais de metade da altura da capa: centrada e com ar em volta, ela lê como marca do
-   projeto, e não como imagem esticada. */
+/* A capa gerada preenche a capa inteira, como a foto faria (2026-09-16, com o Waves no lugar do desenho
+   centrado): são faixas de cor, e faixa num quadrado no meio de uma capa 16:9 lia como selo colado, não
+   como capa. O véu do matiz atrás continua, para o caso de o desenho ter transparência. */
 .art {
-  width: auto;
-  height: 62%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* O nome com o botão do endereço e, colada embaixo, a descrição: um bloco só, com o vão pequeno entre as

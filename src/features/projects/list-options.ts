@@ -1,6 +1,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import { CalendarBlankIcon, TagIcon } from "@phosphor-icons/react/ssr";
-import { catalogArtworkUrl, catalogHueFor } from "@/features/catalog/list-options";
+import { catalogHueFor } from "@/features/catalog/list-options";
+import { artworkUrl } from "@/lib/generated-svg";
 import { gridPageSize as pageSizeForGrid, remapPage } from "@/lib/utils/paging";
 import { projectStatuses } from "./labels";
 import type { Project, ProjectHue, ProjectStatus } from "./summary";
@@ -134,8 +135,12 @@ export type ProjectsListPage = {
 export const projectHueFor = (name: string): ProjectHue => catalogHueFor(name);
 
 /**
- * O endereço da arte gerada da capa sem imagem: a mesma rota `/api/artwork/[hue]/[token]` da arte do
- * catálogo, com o matiz do projeto no caminho e o token saindo do id, para o desenho não mudar quando o nome
- * muda.
+ * O endereço da arte gerada da capa sem imagem, **no estilo Waves** (2026-09-16, a pedido): a mesma rota
+ * `/api/artwork/[style]/[hue]/[token]` da arte do catálogo, com o estilo e o matiz do projeto no caminho e
+ * o token saindo do id, para o desenho não mudar quando o nome muda.
+ *
+ * Estilo próprio, e não o do catálogo: um item é uma coisa e ganha um ícone; um projeto tem capa, e capa
+ * pede preenchimento, não símbolo. As faixas do Waves tomam a capa inteira e dão a ela a cor do projeto sem
+ * fingir que sabem do que o projeto trata.
  */
-export const projectArtworkUrl = (project: Pick<Project, "id" | "hue">) => catalogArtworkUrl(project);
+export const projectArtworkUrl = (project: Pick<Project, "id" | "hue">) => artworkUrl("waves", project.hue, project.id);

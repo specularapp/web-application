@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { MAX_TAGS } from "@/lib/tags";
 import { catalogHues } from "./list-options";
+import { catalogTagValues } from "./tags";
 import type { CatalogKind, CatalogUnit } from "./summary";
 
 export const catalogKinds = ["product", "service"] as const satisfies readonly CatalogKind[];
@@ -9,8 +11,11 @@ export const catalogUnits = ["project", "hour", "month", "unit"] as const satisf
    cliente também, e este arquivo carrega o zod. Segue saindo daqui para quem já a importava. */
 export { catalogHues };
 
-/** Quantas entradas cada lista da ficha aceita: entregáveis, pré-requisitos e etiquetas. */
+/** Quantas entradas cada lista de texto da ficha aceita: entregáveis e pré-requisitos. */
 export const MAX_LIST_ITEMS = 12;
+
+/* Etiqueta segue o teto comum da casa, em `lib/tags.ts`. */
+export { MAX_TAGS };
 
 const int = z.number().int();
 const days = int.min(1, "Informe o prazo em dias").max(730, "Prazo longo demais");
@@ -30,7 +35,6 @@ export const catalogLimits = {
   description: 400,
   category: 40,
   listItem: 80,
-  tag: 30,
   notes: 1000,
 } as const;
 
@@ -60,7 +64,9 @@ export const catalogFormSchema = z
       .nullable(),
     deliverables: z.array(z.string().trim().min(1).max(catalogLimits.listItem, "Entregável longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} entregáveis`),
     requirements: z.array(z.string().trim().min(1).max(catalogLimits.listItem, "Pré-requisito longo demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} pré-requisitos`),
-    tags: z.array(z.string().trim().min(1).max(catalogLimits.tag, "Etiqueta longa demais")).max(MAX_LIST_ITEMS, `No máximo ${MAX_LIST_ITEMS} etiquetas`),
+    /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
+       essas, e o servidor recusa o resto, que é o que mantém nome e cor iguais em toda a base. */
+    tags: z.array(z.enum(catalogTagValues, { message: "Escolha uma etiqueta da lista" })).max(MAX_TAGS, `No máximo ${MAX_TAGS} etiquetas`),
     notes: z.string().trim().max(catalogLimits.notes, "Anotação longa demais"),
     active: z.boolean(),
   })
@@ -77,3 +83,6 @@ export const catalogFormSchema = z
   });
 
 export type CatalogFormInput = z.infer<typeof catalogFormSchema>;
+
+/** Os itens marcados para excluir de uma vez: ao menos um, e não mais que uma página. */
+export const catalogIdsSchema = z.array(z.string().trim().min(1)).min(1).max(100);

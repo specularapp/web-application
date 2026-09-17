@@ -1,9 +1,11 @@
-import { CaretRightIcon } from "@phosphor-icons/react/ssr";
+import { ArrowRightIcon, CaretRightIcon, ListChecksIcon } from "@phosphor-icons/react/ssr";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useId } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { TaskOpener } from "@/features/tasks/components/task-opener";
@@ -81,11 +83,19 @@ export function TasksBlock({ summary }: TasksBlockProps) {
   const headingId = useId();
   const today = format(new Date(), "d MMM. yyyy", { locale: ptBR });
 
+  /* Sem tarefa nenhuma, o bloco convida a abrir o quadro, que é de onde elas nascem. */
   if (summary.tasks.length === 0) {
     return (
-      <Text variant="footnote" tone="secondary">
-        Nenhuma tarefa por aqui
-      </Text>
+      <EmptyState
+        size="sm"
+        icon={ListChecksIcon}
+        title="Nenhuma tarefa ainda"
+        description="Abra o quadro e crie a primeira para o trabalho da semana aparecer aqui."
+      >
+        <Button href="/tarefas" size="sm" radius="md" iconStart={<ArrowRightIcon />}>
+          Abrir o quadro
+        </Button>
+      </EmptyState>
     );
   }
 

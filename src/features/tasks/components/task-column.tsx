@@ -26,6 +26,8 @@ export type TaskColumnProps = {
   onOpen: (task: Task) => void;
   /** Cria uma tarefa nesta etapa. */
   onAdd: () => void;
+  /** Pede a exclusão de uma tarefa; quem confirma é o quadro. */
+  onDelete?: (task: Task) => void;
   /**
    * Onde o cartão que está sendo arrastado vai cair, quando é aqui (2026-09-10): a coluna acende e abre o
    * lugar dele no fim da pilha. Vem de fora porque quem sabe disso é o quadro, que conhece as duas pontas do
@@ -58,12 +60,14 @@ function DraggableCard({
   onOpen,
   stages,
   onMove,
+  onDelete,
 }: {
   task: Task;
   stage: TaskStage;
   onOpen: () => void;
   stages?: TaskStage[];
   onMove?: (task: Task, stage: TaskStage) => void;
+  onDelete?: (task: Task) => void;
 }) {
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: task.id,
@@ -78,6 +82,7 @@ function DraggableCard({
       drag={{ ref: setNodeRef, listeners, attributes, dragging: isDragging }}
       stages={stages}
       onMove={onMove && ((to) => onMove(task, to))}
+      onDelete={onDelete && (() => onDelete(task))}
     />
   );
 }
@@ -95,6 +100,7 @@ export function TaskColumn({
   draggable = true,
   stages,
   onMove,
+  onDelete,
 }: TaskColumnProps) {
   const Glyph = stage.icon;
   const count = tasks.length;
@@ -221,6 +227,7 @@ export function TaskColumn({
                     onOpen={() => onOpen(task)}
                     stages={stages}
                     onMove={onMove && ((to) => onMove(task, to))}
+                    onDelete={onDelete && (() => onDelete(task))}
                   />
                 ),
               )}

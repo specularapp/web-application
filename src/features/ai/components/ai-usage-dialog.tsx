@@ -3,14 +3,14 @@
 import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { BrandIcon } from "@/components/ui/brand-icon";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
-import { aiRemaining, aiShare, type AiUsage } from "../summary";
+import { aiRemaining, aiShare, aiTone, type AiUsage } from "../summary";
+import { AiMark } from "./ai-mark";
 import styles from "./ai-usage-dialog.module.css";
 
 export type AiUsageDialogProps = {
@@ -22,14 +22,6 @@ export type AiUsageDialogProps = {
 const numberFormat = new Intl.NumberFormat("pt-BR");
 const shortDate = (iso: string) => format(parseISO(iso), "d 'de' MMM.", { locale: ptBR });
 
-/* A cor acompanha o quanto já foi: azul enquanto sobra, laranja passando de 70% e vermelho de 90%, para a
-   pessoa ver o aperto antes de bater no teto. */
-function toneOf(share: number): BadgeTone & ("accent" | "warning" | "danger") {
-  if (share >= 0.9) return "danger";
-  if (share >= 0.7) return "warning";
-  return "accent";
-}
-
 // O resumo do uso da IA, aberto pelo widget do topo: a janela da casa, pequena e de vidro, centrada no
 // desktop e bandeja no celular. Em cima quem responde e quando o ciclo vira; no meio o número grande do
 // que já foi, a barra em dez degraus (a mesma régua do widget, só maior) e os fatos que sobram; embaixo o
@@ -38,14 +30,16 @@ export function AiUsageDialog({ usage, open, onClose }: AiUsageDialogProps) {
   const share = aiShare(usage);
   const percent = Math.round(share * 100);
   const remaining = aiRemaining(usage);
-  const tone = toneOf(share);
+  const tone = aiTone(usage);
 
   return (
     <Dialog open={open} onClose={onClose} label="Uso da IA neste ciclo" size="sm" surface="glass" focusOnOpen={false}>
       <div className={styles.dialog}>
         <header className={styles.head}>
+          {/* A marca da casa, e não a de quem responde (2026-09-15): o SpeculAI assina a conversa inteira,
+              e a logo do provedor aqui dizia que o resumo era de outra pessoa. */}
           <span className={styles.mark} aria-hidden="true">
-            <BrandIcon name="openai" />
+            <AiMark size={18} />
           </span>
           <div className={styles.heading}>
             <Text as="h2" variant="headline" weight="semibold">

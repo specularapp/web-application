@@ -1,4 +1,7 @@
+import { BriefcaseIcon, PlusIcon } from "@phosphor-icons/react/ssr";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { Text } from "@/components/ui/text";
 import { ProjectsSheet } from "@/features/projects/components/projects-sheet";
@@ -16,6 +19,23 @@ const SHOWN_CLIENTS = 3;
 // toque, então no celular o número de cada mês não tinha como aparecer. Agora tocar em qualquer ponto do
 // bloco abre a ficha com os números por extenso, no desktop também.
 export function ProjectsBlock({ summary }: ProjectsBlockProps) {
+  /* Sem projeto nenhum não há métrica para abrir: o gráfico sairia reto no chão e os rostos dos clientes,
+     vazios, e o bloco inteiro continuaria sendo um gatilho para uma ficha sem número nenhum dentro. */
+  if (summary.total === 0) {
+    return (
+      <EmptyState
+        size="sm"
+        icon={BriefcaseIcon}
+        title="Nenhum projeto ainda"
+        description="Cadastre o primeiro para ver as métricas."
+      >
+        <Button href="/projetos/novo" size="sm" radius="md" iconStart={<PlusIcon />}>
+          Novo projeto
+        </Button>
+      </EmptyState>
+    );
+  }
+
   return (
     <DetailsTrigger
       as="div"

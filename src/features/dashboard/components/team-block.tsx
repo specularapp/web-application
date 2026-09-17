@@ -1,12 +1,14 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { BriefcaseIcon, CaretRightIcon, CurrencyCircleDollarIcon, type Icon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CaretRightIcon, CurrencyCircleDollarIcon, UserPlusIcon, UsersThreeIcon, type Icon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DetailsTrigger } from "@/components/ui/details-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, focusRing } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
@@ -265,11 +267,19 @@ export function TeamBlock({ summary }: TeamBlockProps) {
     strip.scrollTo({ left: pick.offsetLeft - inset, behavior: "smooth" });
   };
 
+  /* Sozinho na conta, o bloco convida a chamar gente, que é o que ele serve para mostrar. */
   if (!focused) {
     return (
-      <Text variant="footnote" tone="secondary">
-        Ninguém na equipe ainda
-      </Text>
+      <EmptyState
+        size="sm"
+        icon={UsersThreeIcon}
+        title="Ninguém na equipe ainda"
+        description="Convide quem trabalha com você."
+      >
+        <Button href="/configuracoes/equipe" size="sm" radius="md" iconStart={<UserPlusIcon />}>
+          Convidar
+        </Button>
+      </EmptyState>
     );
   }
 

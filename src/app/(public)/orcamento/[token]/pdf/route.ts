@@ -1,12 +1,11 @@
-import { findQuoteByToken } from "@/features/quotes/list";
-import { previewQuotes } from "@/features/quotes/list-preview";
 import { renderQuotePdf } from "@/features/quotes/pdf";
+import { loadPublicQuote } from "@/features/quotes/public";
 import { quoteDocumentName } from "@/features/quotes/share";
 
 /**
  * O orçamento em PDF, no mesmo endereço público do documento e com a mesma credencial: o token do link.
  * `Content-Disposition: attachment` é o que faz o clique baixar o arquivo em vez de abrir mais uma aba, sem
- * a janela de impressão do navegador no caminho (pedido de 2026-09-09).
+ * a janela de impressão do navegador no caminho.
  *
  * Serve tanto a página pública quanto o aplicativo: quem tem o token tem o documento, então não há uma
  * segunda porta em `api/v1` para o mesmo arquivo. O desenho vem de `features/quotes/pdf.tsx`, que é a mesma
@@ -29,15 +28,15 @@ function contentDisposition(name: string) {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const quote = findQuoteByToken(previewQuotes, token);
-  if (!quote) return new Response("Orçamento não encontrado", { status: 404 });
+  const found = await loadPublicQuote(token);
+  if (!found) return new Response("Orçamento não encontrado", { status: 404 });
 
-  const file = await renderQuotePdf(quote);
+  const file = await renderQuotePdf(found.quote);
 
   return new Response(new Uint8Array(file), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": contentDisposition(`${quoteDocumentName(quote)}.pdf`),
+      "Content-Disposition": contentDisposition(`${quoteDocumentName(found.quote)}.pdf`),
       "Content-Length": String(file.length),
       /* O documento é do cliente, não do buscador nem do cache da borda, como a página que o mostra. */
       "Cache-Control": "private, no-store",

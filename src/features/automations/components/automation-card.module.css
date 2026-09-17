@@ -1,0 +1,103 @@
+/* O fio da caixa é o do `Card`: a camada de fora com a cor do fio e um recuo da espessura dele, e a de
+   dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. Mesma receita dos cartões de
+   cliente, do catálogo, de orçamento, de projeto e de contrato. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+.inner {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  height: 100%;
+  padding: var(--space-4);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    padding: var(--space-5);
+  }
+}
+
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+}
+
+.inner:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Pausada ou rascunho, o cartão apaga o que é do fluxo e deixa a situação, o interruptor e o leque inteiros. */
+.card:not([data-status="active"]) .copy,
+.card:not([data-status="active"]) .strip {
+  opacity: 0.7;
+}
+
+/* A situação de um lado e, na outra ponta, o interruptor e o leque, colados. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.controls {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title,
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.strip {
+  min-width: 0;
+}
+
+/* O pé: a contagem de execuções e a última, na mesma linha, alinhado embaixo. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-start: auto;
+}

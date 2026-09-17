@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, ListBulletsIcon, PlusIcon, SquaresFourIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ListBulletsIcon, PlusIcon, ReceiptIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
@@ -209,6 +210,12 @@ export function QuotesBoard({ page, query, editing, prefill, clients, catalog, i
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeQuotesFilters(live);
+  const filtering = Boolean(live.search) || active.length > 0;
+  /* Limpar leva a busca junto dos filtros: no vazio a pessoa quer a lista de volta inteira, e não metade. */
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "", page: 1 });
+  };
 
   useFloatingPagerRegistration(mobile && pages > 1 ? { page: live.page, pageCount: pages, onPageChange: changePage, label: "Páginas de orçamentos" } : null);
 
@@ -288,14 +295,24 @@ export function QuotesBoard({ page, query, editing, prefill, clients, catalog, i
       {asTable ? (
         <QuotesTable quotes={page.items} onOpen={openEditor} range={{ page: live.page, pageSize: live.pageSize, total: page.total }} footer={pagination} />
       ) : page.items.length === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nenhum orçamento por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {query.search ? "Nada bateu com o que você procurou. Tente outro número, título ou cliente." : "Ajuste a situação ou o período para ver mais."}
-          </Text>
-        </div>
+        <EmptyState
+          icon={ReceiptIcon}
+          title={filtering ? "Nenhum orçamento encontrado" : "Nenhum orçamento ainda"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro número, título ou cliente, ou limpe a busca."
+              : "Gere o primeiro orçamento e mande ao cliente por link, sem anexo e sem PDF perdido no e-mail."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
+            Novo orçamento
+          </Button>
+        </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>

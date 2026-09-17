@@ -1,8 +1,9 @@
 /**
  * O que toda rota de desenho gerado compartilha: o token que endereça uma semente, o formato que a rota
- * aceita, o cache por token e os cabeçalhos do arquivo. O rosto do avatar (`components/ui/avatar/shape.ts`)
- * e a arte do catálogo (`features/catalog/artwork.ts`) desenham coisas diferentes com a mesma moldura.
- * Puro e sem DOM, então serve ao servidor, que desenha, e ao cliente, que só monta o endereço.
+ * aceita, o cache por token, os cabeçalhos do arquivo e o endereço da arte. O rosto do avatar
+ * (`components/ui/avatar/shape.ts`) e a arte de catálogo e projeto (`lib/artwork.ts`) desenham coisas
+ * diferentes com a mesma moldura. Puro e sem DOM, então serve ao servidor, que desenha, e ao cliente, que
+ * só monta o endereço.
  */
 
 /**
@@ -25,6 +26,29 @@ export function svgToken(seed: string) {
     b = (b * 131 + code + 7) >>> 0;
   }
   return `${a.toString(36)}${b.toString(36).padStart(7, "0")}`;
+}
+
+/**
+ * Os estilos de arte em uso, um por tipo de coisa que não tem foto: **Icons** no item do catálogo, porque
+ * produto e serviço são coisas e o ícone diz o que a linha é antes de a pessoa ler o nome; **Waves** na capa
+ * de um projeto, porque capa pede preenchimento e não símbolo. Os dois a pedido, em 2026-09-16.
+ *
+ * O nome é o do DiceBear e vai no endereço da rota: quem for depurar um desenho na aba de rede acha a
+ * página do estilo pelo mesmo nome. A lista mora aqui, e não em `lib/artwork.ts`, porque quem monta o
+ * endereço roda no cliente e `artwork.ts` é `server-only`.
+ */
+export const artworkStyles = ["icons", "waves"] as const;
+
+export type ArtworkStyle = (typeof artworkStyles)[number];
+
+/** O estilo vem do caminho da URL, então só entra o que está na lista. */
+export function isArtworkStyle(value: string): value is ArtworkStyle {
+  return (artworkStyles as readonly string[]).includes(value);
+}
+
+/** O endereço da arte: o estilo e o matiz no caminho, o token no nome do arquivo. */
+export function artworkUrl(style: ArtworkStyle, hue: string, seed: string) {
+  return `/api/artwork/${style}/${hue}/${svgToken(seed)}.svg`;
 }
 
 /** Formato que as rotas aceitam: só o que `svgToken` produz, para nada além de token virar desenho. */

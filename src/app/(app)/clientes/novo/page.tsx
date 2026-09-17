@@ -1,28 +1,27 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ClientsScreen } from "@/features/clients/components/clients-screen";
 import {
   CLIENTS_GRID_COOKIE,
   CLIENTS_VIEW_COOKIE,
   defaultPageSize,
-  listClients,
   parseClientsGridSize,
   parseClientsQuery,
   parseClientsView,
 } from "@/features/clients/list";
-import { previewClientsList } from "@/features/clients/list-preview";
+import { getClientsPage } from "@/features/clients/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Novo cliente",
-  description: "Cadastro de um novo cliente na base",
+  description: "Cadastre um cliente na base",
   path: "/clientes/novo",
   noIndex: true,
 });
 
-// A mesma tela da base, com a janela de criar já aberta: a ficha tem endereço próprio, e abrir pela lista
-// só troca a URL, sem sair da tela.
+// A criação é a listagem com a gaveta aberta: endereço próprio para o formulário ser compartilhável e
+// recarregável, e a lista atrás continua a mesma.
 export default async function NewClientPage({ searchParams }: PageProps<"/clientes/novo">) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const view = parseClientsView(cookieStore.get(CLIENTS_VIEW_COOKIE)?.value);
@@ -41,5 +40,7 @@ export default async function NewClientPage({ searchParams }: PageProps<"/client
     defaultPageSize(view, gridSize),
   );
 
-  return <ClientsScreen page={listClients(previewClientsList, query)} query={query} ai={previewAiUsage} editing="new" view={view} />;
+  const [page, ai] = await Promise.all([getClientsPage(query), getAiUsageData()]);
+
+  return <ClientsScreen page={page} query={query} ai={ai} editing="new" view={view} />;
 }

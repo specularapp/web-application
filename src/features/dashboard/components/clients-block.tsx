@@ -1,7 +1,10 @@
+import { AddressBookIcon, PlusIcon } from "@phosphor-icons/react/ssr";
 import { useId } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DetailsTrigger } from "@/components/ui/details-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/text";
 import { ClientMenu } from "@/features/clients/components/client-menu";
 import { ClientProfile } from "@/features/clients/components/client-profile";
@@ -110,11 +113,20 @@ export function ClientsBlock({ summary }: ClientsBlockProps) {
   const recentId = useId();
   const [latest, ...rest] = summary.clients;
 
+  /* O vazio do bloco no desenho da casa, no tamanho de dentro de cartão: o convite leva à base de
+     clientes, que é onde o cadastro abre. */
   if (!latest) {
     return (
-      <Text variant="footnote" tone="secondary">
-        Nenhum cliente cadastrado ainda
-      </Text>
+      <EmptyState
+        size="sm"
+        icon={AddressBookIcon}
+        title="Nenhum cliente ainda"
+        description="Cadastre o primeiro e o que ele já pediu, assinou e pagou aparece aqui."
+      >
+        <Button href="/clientes" size="sm" radius="md" iconStart={<PlusIcon />}>
+          Cadastrar cliente
+        </Button>
+      </EmptyState>
     );
   }
 

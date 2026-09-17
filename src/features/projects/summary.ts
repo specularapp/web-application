@@ -28,7 +28,7 @@ export type ProjectStatus = "active" | "paused" | "done" | "cancelled";
 export type ProjectPerson = { name: string; avatarUrl: string | null };
 
 /** Quem da equipe pode responder por um projeto, como o seletor do formulário lista: o nome, a função e o rosto. */
-export type ProjectOwnerOption = ProjectPerson & { role: string };
+export type ProjectOwnerOption = ProjectPerson & { id: string; role: string };
 
 /** Para quem é o trabalho: o rosto e o nome de quem contratou, com a empresa quando há. */
 export type ProjectClient = {
@@ -117,7 +117,8 @@ export type Project = {
   /** Aparece no portfólio público da equipe. */
   isPublic: boolean;
   client: ProjectClient;
-  /** Quem da equipe responde pelo projeto. */
+  /** Quem da equipe responde pelo projeto: o id é o que o formulário guarda, e o resto é o que o cartão desenha. */
+  ownerId: string | null;
   owner: ProjectPerson;
   status: ProjectStatus;
   tags: string[];

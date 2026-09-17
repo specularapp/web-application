@@ -1,3 +1,5 @@
+import { createTagCatalog, type TagOption } from "@/lib/tags";
+
 /**
  * A gama de etiquetas que um projeto pode receber (2026-09-13, a pedido: "etiquetas abre um leque de opção,
  * acesse em tarefas"), no mesmo contrato de `features/tasks/tags.ts`: etiqueta é escolha de uma lista pronta,
@@ -7,18 +9,11 @@
  * A gama é a do trabalho de estúdio, agrupada pelo que o projeto entrega: desenho, código, conteúdo, entrega
  * e relação. O matiz é escolhido à mão, por família, como nas tarefas: ver a família pela cor vale mais que
  * ter vinte cores diferentes. Quando isto virar tabela, a lista vem do banco por equipe e o `id` continua
- * sendo o que o projeto guarda.
+ * sendo o que o projeto guarda. A forma e os auxiliares são os de `lib/tags.ts`.
  */
-export type ProjectTag = {
-  /** O que o projeto guarda, e o que a pessoa lê: o nome é o próprio identificador. */
-  id: string;
-  /** Token de cor: a etiqueta se tinge sozinha pelo `hue` do `Badge`. */
-  hue: string;
-  /** A família, que é o título do grupo no leque de escolha. */
-  group: string;
-};
+export type ProjectTag = TagOption;
 
-export const projectTags: ProjectTag[] = [
+const catalog = createTagCatalog([
   { id: "Web design", hue: "var(--sys-purple)", group: "Desenho" },
   { id: "Product design", hue: "var(--sys-indigo)", group: "Desenho" },
   { id: "Design system", hue: "var(--sys-purple)", group: "Desenho" },
@@ -47,15 +42,16 @@ export const projectTags: ProjectTag[] = [
   { id: "Consultoria", hue: "var(--sys-yellow)", group: "Relação" },
   { id: "Treinamento", hue: "var(--sys-brown)", group: "Relação" },
   { id: "Suporte", hue: "var(--sys-orange)", group: "Relação" },
-];
+]);
+
+export const projectTagCatalog = catalog;
+export const projectTags = catalog.options;
 
 /** Os nomes da gama, para o zod da ficha aceitar só o que o leque oferece. */
-export const projectTagValues = projectTags.map((tag) => tag.id) as [string, ...string[]];
-
-const byId = new Map(projectTags.map((tag) => [tag.id, tag]));
+export const projectTagValues = catalog.values;
 
 /** O matiz de uma etiqueta; o que não está na gama fica no cinza, em vez de derrubar a tela. */
-export const projectTagHue = (id: string) => byId.get(id)?.hue ?? "var(--sys-gray)";
+export const projectTagHue = catalog.hueOf;
 
 /** As famílias na ordem em que aparecem, para o leque listar por grupo. */
-export const projectTagGroups = [...new Set(projectTags.map((tag) => tag.group))];
+export const projectTagGroups = catalog.groups;

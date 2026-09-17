@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TAGS } from "@/lib/tags";
 import { projectTagValues } from "./tags";
 import type { ProjectStatus, ProjectTool } from "./summary";
 
@@ -62,23 +63,24 @@ export const projectLimits = {
   description: 100,
 } as const;
 
-/** Quantas etiquetas um projeto aceita. Sai daqui para o zod e para o campo, num número só. */
-export const MAX_TAGS = 12;
+/* Etiqueta segue o teto comum da casa, em `lib/tags.ts`. */
+export { MAX_TAGS };
 
 /**
- * O teto da capa em caracteres: a imagem sobe embutida (`data:image/...`), já redimensionada no navegador
- * para 1440 por 810, e precisa caber no envio da action, que é de 1 MB. Quando o armazenamento de arquivos
- * nascer, o campo passa a levar o endereço do arquivo e o teto some.
+ * O teto da capa em caracteres, o mesmo que o banco cobra na coluna. A capa **é um endereço**, e não mais a
+ * imagem embutida (2026-09-16, quando o armazenamento nasceu): ela sobe para o balde `project-covers` e o
+ * que chega aqui é o endereço público. Embutida, ela ia num envio de quase um mega e era recusada pela
+ * checagem de 500 caracteres da coluna, então capa de verdade nunca chegava a salvar.
  */
-export const COVER_MAX_CHARS = 800_000;
+export const COVER_MAX_CHARS = 500;
 
 const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data");
 
-/* Vazio é sem capa; embutida é a que acabou de ser escolhida; com protocolo é a que já estava guardada. */
+/* Vazio é sem capa; com protocolo é o endereço do arquivo no armazenamento. */
 const coverUrl = z
   .string()
-  .max(COVER_MAX_CHARS, "Imagem grande demais")
-  .refine((value) => value === "" || /^data:image\/(png|jpeg|webp);base64,/.test(value) || /^https?:\/\//.test(value), "Imagem inválida");
+  .max(COVER_MAX_CHARS, "Endereço longo demais")
+  .refine((value) => value === "" || /^https?:\/\//.test(value), "Imagem inválida");
 
 /**
  * O que a ficha de projeto aceita, na criação e na edição: é o mesmo formulário. Dinheiro em centavos, como
@@ -93,12 +95,12 @@ export const projectFormSchema = z
     /** Sem protocolo vale também: a action recoloca o `https://` antes de guardar. */
     url: z.string().trim().max(projectLimits.url, "Endereço longo demais"),
     description: z.string().trim().max(projectLimits.description, "Descrição longa demais"),
-    clientId: z.string().trim().min(1, "Escolha o cliente"),
-    ownerName: z.string().trim().min(1, "Escolha quem responde pelo projeto"),
+    clientId: z.uuid("Escolha o cliente"),
+    ownerId: z.uuid("Escolha quem responde pelo projeto"),
     status: z.enum(projectStatusValues),
     isPublic: z.boolean(),
-    /* Etiqueta é escolha da gama de `tags.ts`, e não texto livre: o leque só oferece essas, e o servidor
-       recusa o resto, que é o que mantém nome e cor iguais em toda a base. */
+    /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
+       essas, e o servidor recusa o resto, que é o que mantém nome e cor iguais em toda a base. */
     tags: z.array(z.enum(projectTagValues, { message: "Escolha uma etiqueta da lista" })).max(MAX_TAGS, `No máximo ${MAX_TAGS} etiquetas`),
     tools: z.array(z.enum(projectToolValues)).max(projectToolValues.length),
     budgetMin: z.number().int().min(0, "O valor não pode ser negativo").nullable(),
@@ -118,3 +120,6 @@ export const projectFormSchema = z
   });
 
 export type ProjectFormInput = z.infer<typeof projectFormSchema>;
+
+/** O identificador de um projeto vindo da tela: uuid, porque é o que a tabela gera. */
+export const projectIdSchema = z.uuid();

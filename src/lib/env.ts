@@ -53,6 +53,11 @@ export const env = {
     z.object({ SUPABASE_SECRET_KEY: z.string().min(1) }),
     () => ({ SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY }),
   ),
+  share: define(
+    "Links públicos",
+    z.object({ SHARE_LINK_SECRET: z.string().min(32) }),
+    () => ({ SHARE_LINK_SECRET: process.env.SHARE_LINK_SECRET }),
+  ),
   redis: define(
     "Redis",
     z.object({ REDIS_URL: z.url() }),

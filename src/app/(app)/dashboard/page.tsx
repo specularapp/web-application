@@ -1,18 +1,19 @@
+import dynamic from "next/dynamic";
+import { cookies } from "next/headers";
+import { getClientsBlock } from "@/features/clients/queries";
 import { DashboardScreen } from "@/features/dashboard/components/dashboard-screen";
 import { greetingFor } from "@/features/dashboard/greetings";
 import { LAYOUT_COOKIE, parseDashboardLayout } from "@/features/dashboard/layout";
 import { parsePeriod, PERIOD_PARAM } from "@/features/dashboard/period";
-import dynamic from "next/dynamic";
+import { getFinanceBlock } from "@/features/finance/queries";
+import { getGamificationBlocks } from "@/features/gamification/queries";
 import { getOnboardingGate } from "@/features/onboarding/guard";
-import { previewClientsSummary } from "@/features/clients/preview";
-import { previewFinanceSummary } from "@/features/finance/preview";
-import { previewPointsSummary, previewWeeklyChallenge } from "@/features/gamification/preview";
-import { previewTeamSummary } from "@/features/organizations/preview";
-import { previewProjectsSummary } from "@/features/projects/preview";
-import { previewQuotesSummary } from "@/features/quotes/preview";
-import { previewTasksSummary } from "@/features/tasks/preview";
+import { requireOrganization } from "@/features/organizations/context";
+import { getTeamSummary } from "@/features/organizations/service";
+import { getProjectsBlock } from "@/features/projects/queries";
+import { getQuotesBlock } from "@/features/quotes/detail";
+import { getTasksBlock } from "@/features/tasks/detail";
 import { createMetadata } from "@/lib/metadata";
-import { cookies } from "next/headers";
 import { first } from "@/lib/utils/search-params";
 
 /* A configuração inicial entra por importação dinâmica (varredura de peso de 2026-09-08): ela só
@@ -29,10 +30,28 @@ export const metadata = createMetadata({
 });
 
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
-  const [{ state, needsSetup, billing }, params, cookieStore] = await Promise.all([getOnboardingGate(), searchParams, cookies()]);
+  const [{ state, needsSetup, billing }, params, cookieStore, context] = await Promise.all([
+    getOnboardingGate(),
+    searchParams,
+    cookies(),
+    requireOrganization(),
+  ]);
+
   const layout = parseDashboardLayout(cookieStore.get(LAYOUT_COOKIE)?.value);
   const period = parsePeriod(first(params[PERIOD_PARAM]));
   const { viewer } = state;
+
+  /* Os oito blocos saem juntos: cada um é do domínio dele, e esperar um pelo outro faria o painel abrir no
+     tempo da soma em vez de no tempo do mais lento. */
+  const [projects, finance, clients, tasks, team, quotes, gamification] = await Promise.all([
+    getProjectsBlock(),
+    getFinanceBlock(),
+    getClientsBlock(),
+    getTasksBlock(),
+    getTeamSummary(context.supabase, context.organizationId),
+    getQuotesBlock(),
+    getGamificationBlocks(),
+  ]);
 
   return (
     <>
@@ -40,14 +59,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         user={{ name: viewer.name ?? viewer.email ?? "Você", email: viewer.email, avatarUrl: viewer.avatarUrl }}
         greeting={greetingFor(viewer.userId)}
         period={period}
-        projects={previewProjectsSummary}
-        finance={previewFinanceSummary}
-        clients={previewClientsSummary}
-        tasks={previewTasksSummary}
-        team={previewTeamSummary}
-        challenge={previewWeeklyChallenge}
-        quotes={previewQuotesSummary}
-        achievements={previewPointsSummary}
+        projects={projects}
+        finance={finance}
+        clients={clients}
+        tasks={tasks}
+        team={team}
+        challenge={gamification.challenge}
+        quotes={quotes}
+        achievements={gamification.points}
         layout={layout}
       />
 

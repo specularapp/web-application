@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AddressBookIcon,
   ArrowCounterClockwiseIcon,
   EnvelopeSimpleIcon,
   ListBulletsIcon,
@@ -17,6 +18,7 @@ import { startTransition, useCallback, useEffect, useRef, useState } from "react
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
@@ -25,6 +27,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
+import { ConfirmDialog, confirmNames } from "@/components/ui/confirm-dialog";
 import { deleteClientsAction } from "../actions";
 import {
   CLIENTS_PER_PAGE,
@@ -53,7 +56,7 @@ import { ClientCard } from "./client-card";
 import { ClientDrawer } from "./client-drawer";
 import { ClientFormDialog, type ClientEditor } from "./client-form-dialog";
 import { ClientsTable } from "./clients-table";
-import { DeleteClientsDialog } from "./delete-clients-dialog";
+
 import styles from "./clients-board.module.css";
 
 export type ClientsBoardProps = {
@@ -235,6 +238,13 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeClientsFilters(live);
+  /* Sem busca e sem filtro, uma lista vazia quer dizer base vazia: é a diferença entre convidar a cadastrar o
+     primeiro e dizer que a procura não achou nada. */
+  const filtering = Boolean(live.search) || active.length > 0;
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "", page: 1 });
+  };
   const selectedClients = page.items.filter((client) => selected.includes(client.id));
   const count = selectedClients.length;
 
@@ -401,16 +411,24 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
           footer={pagination}
         />
       ) : page.items.length === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nenhum cliente por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {query.search
-              ? "Nada bateu com o que você procurou. Tente outro nome, empresa, e-mail ou telefone."
-              : "Ajuste o período ou os filtros para ver mais."}
-          </Text>
-        </div>
+        <EmptyState
+          icon={AddressBookIcon}
+          title={filtering ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro nome, empresa, e-mail ou telefone, ou limpe a busca."
+              : "Cadastre o primeiro cliente e o histórico de orçamentos, contratos e cobranças dele passa a viver aqui."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
+            Novo cliente
+          </Button>
+        </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
@@ -440,7 +458,15 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       )}
 
       <ClientDrawer client={open} onClose={() => setOpen(null)} onEdit={() => open && editClient(open)} />
-      <DeleteClientsDialog clients={selectedClients} open={confirming} pending={deleting} onClose={() => setConfirming(false)} onConfirm={removeSelected} />
+      <ConfirmDialog
+        open={confirming}
+        pending={deleting}
+        title={selectedClients.length > 1 ? `Excluir ${selectedClients.length} clientes?` : "Excluir este cliente?"}
+        description={`${confirmNames(selectedClients.map((client) => client.name))} ${selectedClients.length > 1 ? "saem" : "sai"} da base com os orçamentos e projetos ligados. Isso não pode ser desfeito.`}
+        faces={selectedClients.map((client) => ({ id: client.id, name: client.name, avatarUrl: client.avatarUrl, seed: client.email }))}
+        onClose={() => setConfirming(false)}
+        onConfirm={removeSelected}
+      />
       <ClientFormDialog
         editor={editor}
         onClose={() => openEditor(null)}

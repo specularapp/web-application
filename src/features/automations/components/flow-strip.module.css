@@ -1,0 +1,46 @@
+/* A trilha: azulejos em linha, com a seta miúda entre eles, sem quebrar (o que não cabe vira "+N" antes). */
+.strip {
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.step {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+}
+
+.arrow {
+  width: 0.625rem;
+  height: 0.625rem;
+  color: var(--color-label-tertiary);
+}
+
+/* O azulejo do passo: véu do matiz da categoria no fundo e o glifo na cor cheia, a receita da capa do
+   projeto e do modal de contrato. */
+.tile {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--tile-hue);
+  background-color: light-dark(color-mix(in oklab, var(--tile-hue) 14%, transparent), color-mix(in oklab, var(--tile-hue) 22%, transparent));
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.tile svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.more {
+  padding-inline: var(--space-1);
+}

@@ -1,6 +1,13 @@
 "use client";
 
-import { ChartDonutIcon, ChatsCircleIcon, ClockCounterClockwiseIcon, NotePencilIcon, XIcon } from "@phosphor-icons/react";
+import {
+  ArrowsOutSimpleIcon,
+  ChartDonutIcon,
+  ChatsCircleIcon,
+  ClockCounterClockwiseIcon,
+  NotePencilIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { navLocation } from "@/components/layout/nav";
@@ -123,6 +130,12 @@ function AiBody({ sheet, onClose }: { sheet: boolean; onClose: () => void }) {
               <NotePencilIcon />
             </IconButton>
           )}
+          {/* O caminho para a página cheia, que é esta mesma conversa com espaço para a trilha de conversas
+              e para escolher o que a IA lê. Fecha a coluna ao sair, porque as duas abertas ao mesmo tempo
+              seriam o mesmo assistente duas vezes na tela. */}
+          <IconButton label="Abrir o SpeculAI em tela cheia" variant="ghost" size="sm" href="/ia" onClick={onClose}>
+            <ArrowsOutSimpleIcon />
+          </IconButton>
           {/* O resumo do ciclo virou atalho daqui de dentro (a pedido): o widget do topo agora abre a
               coluna, e a IA inteira passa a morar num lugar só. */}
           {data && (

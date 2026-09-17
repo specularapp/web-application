@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { QuotesScreen } from "@/features/quotes/components/quotes-screen";
-import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, listQuotes, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
+import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
 import { loadQuotesScreenData } from "@/features/quotes/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
@@ -17,7 +17,7 @@ export const metadata = createMetadata({
 // lista só troca a URL, sem sair da tela. `?item=` e `?cliente=` chegam do catálogo e da base de clientes e
 // entram já preenchidos.
 export default async function NewQuotePage({ searchParams }: PageProps<"/orcamentos/novo">) {
-  const [params, cookieStore, data] = await Promise.all([searchParams, cookies(), loadQuotesScreenData("/orcamentos/novo")]);
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const view = parseQuotesView(cookieStore.get(QUOTES_VIEW_COOKIE)?.value);
   const gridSize = parseQuotesGridSize(cookieStore.get(QUOTES_GRID_COOKIE)?.value);
   const query = parseQuotesQuery(
@@ -32,11 +32,13 @@ export default async function NewQuotePage({ searchParams }: PageProps<"/orcamen
   );
   const prefill = { itemId: first(params.item) || undefined, clientId: first(params.cliente) || undefined };
 
+  const [data, ai] = await Promise.all([loadQuotesScreenData(query, "/orcamentos/novo"), getAiUsageData()]);
+
   return (
     <QuotesScreen
-      page={listQuotes(data.quotes, query)}
+      page={data.page}
       query={query}
-      ai={previewAiUsage}
+      ai={ai}
       editing="new"
       prefill={prefill}
       clients={data.clients}

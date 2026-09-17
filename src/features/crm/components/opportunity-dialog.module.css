@@ -1,0 +1,399 @@
+/* A janela por dentro, na moldura da ficha da tarefa e da janela do projeto: o topo sangrando as duas colunas
+   e, embaixo, a ficha e a coluna lateral. A altura vem da `Dialog` `xl`, que é fixa, então quem tem
+   `minmax(0, 1fr)` aqui é a faixa do corpo, e é dela que as colunas tiram o piso de zero para rolar. */
+.dialog {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* No celular a janela é bandeja, com `height: auto` e teto de 85dvh, e `height: 100%` de um pai `auto` não
+   resolve: o teto é declarado aqui, descontando a área segura e a alça de arrastar que o painel gasta por
+   dentro. Os textos descem um degrau pelos tokens redeclarados, em valor, senão encolhem duas vezes. */
+@media (max-width: 47.9375rem) {
+  .dialog {
+    --text-title-2: 1.25rem;
+    --text-title-3: 1.0625rem;
+    --text-callout: 0.9375rem;
+    --text-subheadline: 0.875rem;
+
+    height: auto;
+    max-height: calc(85dvh - env(safe-area-inset-bottom) - var(--space-3) - 0.25rem);
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+/* De onde a venda vem: o funil e o identificador, apagados. O nome do funil cede por reticências e o
+   identificador não, porque é ele que a pessoa procura. */
+.route {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.route svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+.dot {
+  flex-shrink: 0;
+  color: var(--color-label-tertiary);
+}
+
+.headTools {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+}
+
+/* O corpo: a ficha e a coluna lateral lado a lado a partir de 64rem, com um fio entre elas e cada uma rolando
+   por conta. Entre 48 e 64rem a coluna desce para baixo da ficha e o corpo inteiro rola como um só, porque
+   duas áreas que rolam empilhadas não se percorrem. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* No celular uma metade por vez, na receita da ficha da tarefa: a escondida sai por `display: none` e quem
+   sobra toma a faixa inteira, trocadas pelo seletor acima da bandeja. */
+@media (max-width: 47.9375rem) {
+  .body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .body[data-tab="details"] .side,
+  .body[data-tab="stage"] .main {
+    display: none;
+  }
+}
+
+@media (width >= 64rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    overflow: hidden;
+  }
+
+  .main,
+  .side {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .side {
+    border-inline-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+/* `min-width: 0` nas duas metades: filha de grid nasce com o mínimo no tamanho do conteúdo, e um título
+   comprido alargaria a janela inteira. */
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+/* No celular a ficha é a metade à vista sozinha, então é ela que leva a folga da barra flutuante embaixo. */
+@media (max-width: 47.9375rem) {
+  .main {
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
+  }
+}
+
+/* Quem está do outro lado abre a ficha: o rosto e, ao lado, o nome da venda, as etiquetas e para quem é. */
+.identity {
+  display: flex;
+  gap: var(--space-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.naming {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.title {
+  min-width: 0;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  min-width: 0;
+}
+
+/* Os três números da venda em azulejos iguais: valor, chance e previsto. Em duas colunas no celular, onde
+   três lado a lado deixariam cada um com o número cortado. */
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .numbers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.number {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* O próximo passo em destaque, no véu do acento: é a única coisa da ficha que tira a venda do lugar, e numa
+   lista de fatos ele viraria mais uma linha. */
+.step {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3);
+  background-color: light-dark(
+    color-mix(in oklab, var(--color-accent) 8%, transparent),
+    color-mix(in oklab, var(--color-accent) 14%, transparent)
+  );
+  border-radius: var(--radius-lg);
+}
+
+.stepGlyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-accent);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-full);
+}
+
+.stepGlyph svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.stepText {
+  display: grid;
+  gap: var(--space-half);
+  flex: 1;
+  min-width: 0;
+}
+
+.description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* O link deste cartão e o botão que o copia, na mesma linha: o endereço cede espaço e o botão não. */
+.link {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O identificador de clique em fonte de código: em proporcional não dá para conferir contra a plataforma. */
+.mono {
+  overflow-wrap: anywhere;
+}
+
+.linkText {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  color: var(--color-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* Endereço de fora: âncora crua, porque não é rota da casa e o `Link` tipado não a aceita. */
+.external {
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  color: var(--color-link);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+  .external:hover {
+    text-decoration: underline;
+  }
+}
+
+/* A coluna lateral: o caminho no funil e a equipe. */
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+@media (48rem <= width < 64rem) {
+  .side {
+    border-block-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .side {
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
+  }
+}
+
+/**
+ * O caminho no funil: as etapas deste funil em pé, na ordem, com o que já passou marcado e a atual em
+ * destaque. Cada degrau é um botão que leva a venda para lá, porque avançar é a ação mais comum da ficha e
+ * pedir que a pessoa volte ao quadro para arrastar o cartão seria o caminho longo.
+ *
+ * O fio que liga um degrau ao outro é desenhado no próprio item, e não numa linha à parte: assim ele
+ * acompanha a altura de cada degrau sem ninguém medir nada.
+ */
+.path {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pathItem {
+  position: relative;
+  min-width: 0;
+}
+
+.pathItem:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--space-6) + var(--space-half)) calc(var(--space-half) * -1);
+  inset-inline-start: calc(var(--space-2) + 0.6875rem);
+  width: 0.0375rem;
+  background-color: var(--color-border);
+}
+
+.pathStep {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2);
+  font-family: var(--font-body);
+  color: var(--color-label-secondary);
+  text-align: start;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .pathStep:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .pathStep:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* O degrau atual veste o matiz da etapa, que é o mesmo da coluna de onde o cartão saiu. */
+.pathStep[data-current] {
+  color: var(--color-label);
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue) 10%, transparent),
+    color-mix(in oklab, var(--stage-hue) 16%, transparent)
+  );
+}
+
+.pathGlyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+.pathGlyph svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* O que já passou fica no verde de quem cumpriu, e a etapa em que está, no matiz dela. */
+.pathStep[data-done] .pathGlyph {
+  color: var(--color-on-accent);
+  background-color: var(--color-success);
+}
+
+.pathStep[data-current] .pathGlyph {
+  color: color-mix(in oklab, var(--stage-hue) 70%, var(--color-label));
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue) 22%, transparent),
+    color-mix(in oklab, var(--stage-hue) 30%, transparent)
+  );
+}
+
+/* Uma pessoa da equipe: o rosto, o nome e o papel dela nesta venda. */
+.person {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding-block: var(--space-1);
+}
+
+.personText {
+  display: grid;
+  min-width: 0;
+}

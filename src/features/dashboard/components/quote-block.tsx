@@ -5,6 +5,7 @@ import {
   CreditCardIcon,
   CurrencyCircleDollarIcon,
   PencilSimpleIcon,
+  PlusIcon,
   ReceiptIcon,
 } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
@@ -14,6 +15,7 @@ import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { quoteStatuses } from "@/features/quotes/labels";
@@ -76,14 +78,16 @@ export function QuoteBlock({ summary }: QuoteBlockProps) {
 
   if (!quote) {
     return (
-      <div className={styles.empty}>
-        <Text variant="footnote" tone="secondary">
-          Você ainda não criou nenhum orçamento
-        </Text>
-        <Button href="/orcamentos/novo" variant="outline" size="sm" radius="md">
-          Criar orçamento
+      <EmptyState
+        size="sm"
+        icon={ReceiptIcon}
+        title="Nenhum orçamento ainda"
+        description="Gere o primeiro e mande ao cliente por link, sem anexo e sem PDF perdido no e-mail."
+      >
+        <Button href="/orcamentos/novo" size="sm" radius="md" iconStart={<PlusIcon />}>
+          Novo orçamento
         </Button>
-      </div>
+      </EmptyState>
     );
   }
 

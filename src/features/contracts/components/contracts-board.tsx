@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, PlusIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, PlusIcon, SignatureIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { useFloatingPagerRegistration } from "@/components/layout/floating-actio
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
@@ -233,6 +234,12 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeContractsFilters(live);
+  const filtering = Boolean(live.search) || active.length > 0;
+  /* Limpar leva a busca junto dos filtros: no vazio a pessoa quer a lista de volta inteira, e não metade. */
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "", page: 1 });
+  };
 
   // No celular a paginação mora na barra flutuante do menu, no mesmo lugar de salvar e sair de uma janela,
   // em vez de uma segunda barra no pé da lista. Passando de uma página; com uma só, a barra volta a ser
@@ -331,14 +338,24 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
       />
 
       {page.items.length === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nenhum contrato por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {query.search ? "Nada bateu com o que você procurou. Tente outro título, número, cliente ou projeto." : "Ajuste a situação, a origem ou o tipo para ver mais."}
-          </Text>
-        </div>
+        <EmptyState
+          icon={SignatureIcon}
+          title={filtering ? "Nenhum contrato encontrado" : "Nenhum contrato ainda"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro título, número, cliente ou projeto, ou limpe a busca."
+              : "Crie o primeiro contrato a partir de um orçamento aprovado, de um modelo da casa ou do zero."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, true)}>
+            Novo contrato
+          </Button>
+        </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>

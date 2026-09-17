@@ -19,6 +19,8 @@ export type CatalogCardProps = {
   onActiveChange: (active: boolean) => void;
   onOpen: () => void;
   onEdit: () => void;
+  /** Pede a exclusão; quem confirma é a prancha. */
+  onDelete: () => void;
 };
 
 const durationLabel = ({ min, max }: { min: number; max: number }) => (min === max ? `${min} dias` : `${min} a ${max} dias`);
@@ -36,7 +38,7 @@ const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']
 // abre a ficha, como o de cliente; abrir o leque não abre nada, porque tem ação própria. O fio da caixa é o
 // do `Card`, em duas camadas recortadas pelo sistema de cantos, para o canto sair em superelipse também onde
 // não há `corner-shape`: a camada de dentro precisa do mesmo recorte, senão os dois raios não casam na quina.
-export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit }: CatalogCardProps) {
+export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit, onDelete }: CatalogCardProps) {
   const price = formatMoney(item.price);
   const stock = readStock(item);
 
@@ -90,7 +92,7 @@ export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit }: Ca
             <Badge tone={item.hue} size="sm" title={`${price} ${unitLabels[item.unit]}`}>
               {price}
             </Badge>
-            <CatalogMenu item={item} active={active} onActiveChange={onActiveChange} onView={onOpen} onEdit={onEdit} />
+            <CatalogMenu item={item} active={active} onActiveChange={onActiveChange} onView={onOpen} onEdit={onEdit} onDelete={onDelete} />
           </span>
         </div>
 

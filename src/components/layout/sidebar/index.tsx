@@ -5,6 +5,7 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   FolderPlusIcon,
+  FunnelIcon,
   KanbanIcon,
   ListIcon,
   MagnifyingGlassIcon,
@@ -40,11 +41,13 @@ import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { CommandPalette } from "../command-palette";
 import { useFloatingActions } from "../floating-actions";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
+import { markNotificationsReadAction } from "@/features/organizations/actions";
 import { Notifications, type AppNotification } from "../notifications";
+import { pathToFunnel, type CrmTreeItem } from "@/features/crm/tree";
 import { pathToItem, type TaskTreeItem } from "@/features/tasks/tree";
 import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
-import { TasksTree } from "./tasks-tree";
+import { NavTree, fromCrmTree, fromTaskTree } from "./nav-tree";
 import styles from "./sidebar.module.css";
 
 export type SidebarTeam = {
@@ -71,12 +74,16 @@ export type SidebarProps = {
   alert?: SidebarAlert;
   /** A arquitetura das tarefas, com as contagens resolvidas: é o que a pasta Tarefas abre no lugar da lista. */
   tasks: TaskTreeItem[];
+  /** A arquitetura do funil de vendas, na mesma forma: é o que a pasta Funil de vendas abre. */
+  funnels: CrmTreeItem[];
   /**
    * O projeto em vigor na árvore. Normalmente sai do endereço (`/tarefas/<slug>`) e não precisa ser passado;
    * é a prévia de front que informa, porque ela mora em outro endereço e o menu não teria como saber. Mesma
    * razão do `demo` da tela do painel.
    */
   taskRoute?: string;
+  /** O funil em vigor, pela mesma razão do `taskRoute`. */
+  funnelRoute?: string;
 };
 
 /* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
@@ -102,12 +109,15 @@ function folderIsCurrent(pathname: string, folder: NavFolder) {
 }
 
 /* Criar dentro da pasta que abre árvore: declarado e ainda sem regra, como as opções do cliente nasceram.
-   Pasta e projeto só passam a nascer de verdade quando a tabela existir. */
-const createSections: DropdownSection[] = [
+   Pasta, projeto e funil só passam a nascer de verdade quando a tabela existir. O nome do primeiro item
+   segue a árvore da pasta, senão a pasta do funil ofereceria "Novo projeto". */
+const createSections = (tree: "tarefas" | "funis"): DropdownSection[] => [
   {
     id: "create",
     items: [
-      { id: "project", label: "Novo projeto", icon: KanbanIcon },
+      tree === "funis"
+        ? { id: "funnel", label: "Novo funil", icon: FunnelIcon }
+        : { id: "project", label: "Novo projeto", icon: KanbanIcon },
       { id: "folder", label: "Nova pasta", icon: FolderPlusIcon },
     ],
   },
@@ -146,7 +156,9 @@ export function SidebarPanel({
   notifications,
   alert,
   tasks,
+  funnels,
   taskRoute,
+  funnelRoute,
   variant,
   onSearch,
   onNotificationsChange,
@@ -161,6 +173,9 @@ export function SidebarPanel({
   // pastas até ele é o galho que a árvore abre ao aparecer.
   const currentProject = taskRoute ?? (pathname.startsWith("/tarefas/") ? pathname.split("/")[2] : undefined);
   const openBranch = currentProject ? pathToItem(tasks, currentProject) : [];
+  // O funil aberto sai do endereço (`/crm/<slug>`), na mesma conta do projeto.
+  const currentFunnel = funnelRoute ?? (pathname.startsWith("/crm/") ? pathname.split("/")[2] : undefined);
+  const funnelBranch = currentFunnel ? pathToFunnel(funnels, currentFunnel) : [];
 
   // Abrir pasta leva a rolagem ao topo: na tela cheia a pasta costuma ser escolhida lá embaixo, e a
   // lista curta que entra no lugar ficava fora da vista, com a tela parada no rodapé.
@@ -311,7 +326,15 @@ export function SidebarPanel({
                   <CaretLeftIcon aria-hidden="true" />
                   <span className={styles.label}>{folder.label}</span>
                 </button>
-                {folder.tree && <DropdownMenu label="Criar em Tarefas" triggerLabel="Criar pasta ou projeto" sections={createSections} icon={<PlusIcon />} size="sm" />}
+                {folder.tree && (
+                  <DropdownMenu
+                    label={`Criar em ${folder.label}`}
+                    triggerLabel={folder.tree === "funis" ? "Criar pasta ou funil" : "Criar pasta ou projeto"}
+                    sections={createSections(folder.tree)}
+                    icon={<PlusIcon />}
+                    size="sm"
+                  />
+                )}
               </div>
               {folder.items.map((item) => (
                 <Row
@@ -324,7 +347,27 @@ export function SidebarPanel({
               {folder.tree === "tarefas" && (
                 <>
                   <span className={styles.divider} />
-                  <TasksTree items={tasks} current={currentProject} openFolders={openBranch} onNavigate={onNavigate} />
+                  <NavTree
+                    items={fromTaskTree(tasks)}
+                    basePath="/tarefas"
+                    current={currentProject}
+                    openFolders={openBranch}
+                    label="Pastas e projetos"
+                    onNavigate={onNavigate}
+                  />
+                </>
+              )}
+              {folder.tree === "funis" && (
+                <>
+                  <span className={styles.divider} />
+                  <NavTree
+                    items={fromCrmTree(funnels)}
+                    basePath="/crm"
+                    current={currentFunnel}
+                    openFolders={funnelBranch}
+                    label="Pastas e funis"
+                    onNavigate={onNavigate}
+                  />
                 </>
               )}
             </div>
@@ -484,6 +527,14 @@ export function Sidebar(props: SidebarProps) {
   const [searching, setSearching] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
   const [notifications, setNotifications] = useState(props.notifications);
+
+  /* A lista muda na tela na hora e o servidor registra a leitura em seguida: esperar a ida faria o ponto do
+     sino piscar de volta. Só as que passaram de não lida para lida vão, e nunca o contrário. */
+  const changeNotifications = (next: AppNotification[]) => {
+    const read = next.filter((item) => item.read && !notifications.find((current) => current.id === item.id)?.read);
+    setNotifications(next);
+    if (read.length > 0) void markNotificationsReadAction(read.map((item) => item.id)).catch(() => undefined);
+  };
   const screen = usePresence(open);
 
   const openSearch = () => {
@@ -533,7 +584,7 @@ export function Sidebar(props: SidebarProps) {
   const panel = {
     ...props,
     notifications,
-    onNotificationsChange: setNotifications,
+    onNotificationsChange: changeNotifications,
   };
 
   if (!mobile) {
@@ -577,7 +628,7 @@ export function Sidebar(props: SidebarProps) {
               <span className={styles.barBell} hidden={unread === 0}>
                 <Notifications
                   items={notifications}
-                  onChange={setNotifications}
+                  onChange={changeNotifications}
                   size="md"
                   radius="md"
                 />

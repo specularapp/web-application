@@ -1,6 +1,6 @@
 import { renderContractPdf } from "@/features/contracts/pdf";
+import { loadPublicContract, readPublicContractFile } from "@/features/contracts/public";
 import { contractDocumentName } from "@/features/contracts/share";
-import { findContractByPartyToken, readContractFile } from "@/features/contracts/store";
 import { pdfResponse } from "@/lib/pdf/response";
 
 /**
@@ -12,9 +12,11 @@ export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const found = await findContractByPartyToken(token);
+  const found = await loadPublicContract(token);
   if (!found) return new Response("Contrato não encontrado", { status: 404 });
-  const file = await readContractFile(found.contract.id);
+
+  const file = found.contract.file ? await readPublicContractFile(found.organizationId, found.contract.id) : null;
   const bytes = await renderContractPdf(found.contract, file);
+
   return pdfResponse(bytes, `${contractDocumentName(found.contract)}.pdf`);
 }

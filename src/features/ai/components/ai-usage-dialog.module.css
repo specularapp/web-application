@@ -18,18 +18,12 @@
   border-block-end: var(--dialog-line) solid var(--color-border);
 }
 
-/* A marca de quem responde num azulejo com o fio da casa, na tinta do texto. */
+/* A marca solta, sem azulejo em volta, como no cabeçalho da coluna e na margem de cada resposta: ela é a
+   mesma marca em toda parte, e o azulejo daqui a fazia parecer outra coisa. */
 .mark {
-  display: grid;
+  display: inline-flex;
   flex-shrink: 0;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  font-size: 1.125rem;
-  color: var(--color-label);
-  border: var(--dialog-line) solid var(--color-border);
-  border-radius: var(--radius-md);
-  corner-shape: squircle;
+  align-items: center;
 }
 
 .heading {

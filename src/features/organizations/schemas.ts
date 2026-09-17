@@ -129,3 +129,6 @@ export function slugFromName(name: string) {
   const suffix = Math.random().toString(36).slice(2, 6);
   return base ? `${base}-${suffix}` : `time-${suffix}`;
 }
+
+/** As notificações marcadas como lidas de uma vez: ao menos uma, e não mais que a lista que a tela carrega. */
+export const notificationIdsSchema = z.array(z.uuid()).min(1).max(30);

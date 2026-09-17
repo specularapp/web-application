@@ -13,14 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { TagInput } from "@/components/ui/tag-input";
+import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { onlyDigits } from "@/lib/masks";
+import { removeImage, uploadImage } from "@/features/uploads/upload";
 import { saveCatalogItemAction } from "../actions";
+import { catalogTagCatalog } from "../tags";
 import { catalogHueFor, kindLabels, unitLabels } from "../list-options";
-import { catalogKinds, catalogLimits, catalogUnits, MAX_LIST_ITEMS, type CatalogFormInput } from "../schemas";
+import { catalogKinds, catalogLimits, catalogUnits, MAX_LIST_ITEMS, MAX_TAGS, type CatalogFormInput } from "../schemas";
 import type { CatalogItem, CatalogKind, CatalogUnit } from "../summary";
 import { CatalogArtwork } from "./catalog-artwork";
 import styles from "./catalog-form-dialog.module.css";
@@ -143,7 +146,12 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
   });
 
   // O endereço local da imagem escolhida é desfeito quando outro o substitui ou a janela fecha.
+  //
+  // O **arquivo** fica guardado ao lado do endereço (2026-09-16, correção): até aqui só o `blob:` existia, e
+  // ele vive apenas nesta aba, então salvar gravava o item e a imagem sumia no recarregamento seguinte. Quem
+  // sobe é `uploadImage`, depois do salvamento, porque o caminho no Storage é a pasta do registro.
   const [imageUrl, setImageUrl] = useState<string | null>(item?.imageUrl ?? null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   useEffect(() => () => revokeLocal(imageUrl), [imageUrl]);
 
   const pickImage = (file: File | null) => {
@@ -152,6 +160,20 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
       return;
     }
     setImageUrl(file ? URL.createObjectURL(file) : null);
+    setImageFile(file);
+  };
+
+  /* Sobe a imagem escolhida, ou tira a que havia. Devolve a mensagem de erro, ou nada quando deu certo. */
+  const saveImage = async (id: string) => {
+    if (imageFile) {
+      const sent = await uploadImage("catalog-image", id, imageFile);
+      return sent.ok ? undefined : sent.error;
+    }
+    if (item?.imageUrl && !imageUrl) {
+      const cleared = await removeImage("catalog-image", id);
+      return cleared.ok ? undefined : cleared.error;
+    }
+    return undefined;
   };
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
@@ -191,10 +213,21 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
     };
 
     const result = await saveCatalogItemAction(input);
-    setSaving(false);
 
     if (!result.ok) {
+      setSaving(false);
       setError({ field: result.field, message: result.error });
+      return;
+    }
+
+    /* A imagem vai depois do salvamento, e não junto: o arquivo mora numa pasta com o id do registro, e na
+       criação esse id só existe agora. Falha de imagem não desfaz o item, que já está gravado. */
+    const image = await saveImage(result.id);
+    setSaving(false);
+
+    if (image) {
+      toast({ title: "Item salvo, imagem não", description: image, tone: "warning" });
+      onSaved();
       return;
     }
 
@@ -368,7 +401,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
             <TagInput value={values.requirements} placeholder="Identidade visual e textos" max={MAX_LIST_ITEMS} maxLength={catalogLimits.listItem} disabled={saving} onChange={(requirements) => set("requirements", requirements)} />
           </Field>
           <Field label="Etiquetas" error={errorOf("tags")}>
-            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_LIST_ITEMS} maxLength={catalogLimits.tag} disabled={saving} onChange={(tags) => set("tags", tags)} />
+            <TagPicker catalog={catalogTagCatalog} label="Etiquetas do item" value={values.tags} max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
           <Field label="Anotações da equipe" error={errorOf("notes")}>
             <Textarea name="notes" value={values.notes} rows={3} maxLength={catalogLimits.notes} placeholder="O que a equipe precisa lembrar ao orçar este item" disabled={saving} onChange={(event) => set("notes", event.target.value)} />

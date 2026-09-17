@@ -1,3 +1,5 @@
+import { createTagCatalog, type TagOption } from "@/lib/tags";
+
 /**
  * A gama de etiquetas que uma tarefa pode receber (2026-09-10, a pedido): etiqueta deixou de ser texto livre
  * e passou a ser escolha de uma lista pronta, cada uma com o próprio matiz. É o que faz a mesma coisa ter
@@ -8,17 +10,11 @@
  * Dentro de cada família as cores se alternam, então duas etiquetas vizinhas numa tarefa raramente repetem.
  *
  * Quando isto virar tabela, a lista vem do banco por equipe e o `id` continua sendo o que a tarefa guarda.
+ * A forma e os auxiliares são os de `lib/tags.ts`, os mesmos das outras quatro gamas da casa.
  */
-export type TaskTag = {
-  /** O que a tarefa guarda, e o que a pessoa lê: o nome é o próprio identificador. */
-  id: string;
-  /** Token de cor, como no `NavGroup`: a etiqueta se tinge sozinha pelo `hue` do `Badge`. */
-  hue: string;
-  /** A família, que é o título do grupo no menu de escolha. */
-  group: string;
-};
+export type TaskTag = TagOption;
 
-export const taskTags: TaskTag[] = [
+const catalog = createTagCatalog([
   { id: "Design", hue: "var(--sys-purple)", group: "Desenho" },
   { id: "Marca", hue: "var(--sys-pink)", group: "Desenho" },
   { id: "Tokens", hue: "var(--sys-indigo)", group: "Desenho" },
@@ -54,12 +50,16 @@ export const taskTags: TaskTag[] = [
 
   { id: "Segurança", hue: "var(--sys-red)", group: "Risco" },
   { id: "Bloqueio", hue: "var(--sys-red)", group: "Risco" },
-];
+]);
 
-const byId = new Map(taskTags.map((tag) => [tag.id, tag]));
+export const taskTagCatalog = catalog;
+export const taskTags = catalog.options;
+
+/** Os nomes da gama, para o zod da ficha aceitar só o que o leque oferece. */
+export const taskTagValues = catalog.values;
 
 /** O matiz de uma etiqueta; o que não está na gama fica no cinza, em vez de derrubar a tela. */
-export const tagHue = (id: string) => byId.get(id)?.hue ?? "var(--sys-gray)";
+export const tagHue = catalog.hueOf;
 
 /** As famílias na ordem em que aparecem, para o menu de escolha listar por grupo. */
-export const tagGroups = [...new Set(taskTags.map((tag) => tag.group))];
+export const tagGroups = catalog.groups;

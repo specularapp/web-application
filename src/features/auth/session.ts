@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +26,7 @@ export async function getCurrentUser() {
  * expirar, em uma hora. É o mesmo compromisso que o proxy já faz para proteger rota, e a RLS continua
  * decidindo tudo no banco com esse mesmo token.
  */
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async function getSessionUser(): Promise<SessionUser | null> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
@@ -39,7 +40,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     email: typeof claims.email === "string" ? claims.email : null,
     fullName,
   };
-}
+});
 
 export async function requireUser(next = "/dashboard"): Promise<SessionUser> {
   const user = await getSessionUser();

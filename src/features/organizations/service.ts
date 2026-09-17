@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { grantingStatuses, type BillingPlan } from "@/features/billing/schemas";
 import type { Database, TablesUpdate } from "@/types/database";
+import type { TeamMember as SummaryMember, TeamMemberProject, TeamSummary } from "./summary";
 import {
   LOGO_BUCKET,
   slugFromName,
@@ -166,6 +167,41 @@ export async function getTeamState(client: TeamClient, userId: string): Promise<
       role: invite.role,
     })),
     viewer: people.find((person) => person.userId === userId) ?? viewer,
+  };
+}
+
+/**
+ * A equipe da organização como os seletores dos outros domínios a listam: quem responde por um projeto,
+ * quem cuida de uma tarefa, quem fica com uma oportunidade. Uma função só, porque três leituras diferentes
+ * da mesma lista sairiam de sincronia no primeiro papel novo.
+ */
+export async function listTeamMembers(client: TeamClient, organizationId: string): Promise<TeamMember[]> {
+  const { data } = await client.rpc("team_members", { p_organization_id: organizationId });
+
+  return (data ?? []).map((member) => ({
+    userId: member.user_id,
+    name: member.name,
+    email: member.email,
+    avatarUrl: member.avatar_url,
+    role: member.role,
+  }));
+}
+
+/** Quem emite documento pela equipe: o cabeçalho do orçamento, do contrato e do link de cobrança. */
+export async function getIssuer(client: TeamClient, organizationId: string) {
+  const { data } = await client
+    .from("organizations")
+    .select("name, logo_url, website, email, phone, city")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  return {
+    name: data?.name ?? "Equipe",
+    logoUrl: data?.logo_url ?? null,
+    website: data?.website ?? undefined,
+    email: data?.email ?? undefined,
+    phone: data?.phone ?? undefined,
+    city: data?.city ?? undefined,
   };
 }
 
@@ -424,4 +460,108 @@ function storagePathOf(publicUrl: string | null | undefined) {
   const marker = `/${LOGO_BUCKET}/`;
   const index = publicUrl.indexOf(marker);
   return index === -1 ? null : publicUrl.slice(index + marker.length);
+}
+
+/**
+ * O bloco de equipe do painel: quem está no time e quem foi convidado, com os números que cada pessoa
+ * produziu no sistema. Os números saem de projetos, tarefas e cobranças em três consultas para o time
+ * inteiro, e não uma por pessoa: com dez pessoas seriam trinta idas ao banco para desenhar um bloco.
+ */
+export async function getTeamSummary(client: TeamClient, organizationId: string): Promise<TeamSummary> {
+  const [people, invites, projects, tasks, charges] = await Promise.all([
+    listTeamMembers(client, organizationId),
+    client.from("organization_invites").select("id, name, email, role, created_at").eq("organization_id", organizationId).is("accepted_at", null),
+    client.from("projects").select("id, reference, name, status, progress, owner_id").eq("organization_id", organizationId),
+    client.from("tasks").select("owner_id, stage").eq("organization_id", organizationId).neq("stage", "done"),
+    client.from("charges").select("owner_id, charge_installments(amount, paid_at)").eq("organization_id", organizationId),
+  ]);
+
+  const { data: membership } = await client
+    .from("organization_members")
+    .select("user_id, created_at")
+    .eq("organization_id", organizationId);
+
+  const joined = new Map((membership ?? []).map((row) => [row.user_id, row.created_at.slice(0, 10)]));
+
+  const emptyMetrics = () => ({ deliveredProjects: 0, revenue: 0, activeProjects: 0, openTasks: 0 });
+  const metrics = new Map(people.map((member) => [member.userId, emptyMetrics()]));
+  const owned = new Map<string, TeamMemberProject[]>(people.map((member) => [member.userId, []]));
+
+  const projectStatus: Record<string, TeamMemberProject["status"]> = {
+    active: "ongoing",
+    done: "done",
+    paused: "paused",
+    cancelled: "paused",
+  };
+
+  for (const project of projects.data ?? []) {
+    if (!project.owner_id) continue;
+    const entry = metrics.get(project.owner_id);
+    if (!entry) continue;
+    if (project.status === "done") entry.deliveredProjects += 1;
+    if (project.status === "active") entry.activeProjects += 1;
+    owned.get(project.owner_id)?.push({
+      id: project.id,
+      reference: project.reference,
+      name: project.name,
+      status: projectStatus[project.status] ?? "ongoing",
+      progress: project.progress,
+    });
+  }
+
+  for (const task of tasks.data ?? []) {
+    if (!task.owner_id) continue;
+    const entry = metrics.get(task.owner_id);
+    if (entry) entry.openTasks += 1;
+  }
+
+  for (const charge of charges.data ?? []) {
+    if (!charge.owner_id) continue;
+    const entry = metrics.get(charge.owner_id);
+    if (!entry) continue;
+    entry.revenue += (charge.charge_installments ?? []).reduce(
+      (sum, installment) => sum + (installment.paid_at ? installment.amount : 0),
+      0,
+    );
+  }
+
+  const roleLabel: Record<MemberRole, string> = { owner: "Proprietário", admin: "Administrador", member: "Membro" };
+
+  const members: SummaryMember[] = people.map((member) => ({
+    id: member.userId,
+    name: member.name || member.email || "Equipe",
+    role: roleLabel[member.role],
+    avatarUrl: member.avatarUrl,
+    status: "active",
+    access: member.role,
+    email: member.email ?? "",
+    phone: null,
+    joinedAt: joined.get(member.userId) ?? new Date().toISOString().slice(0, 10),
+    points: 0,
+    skills: [],
+    metrics: metrics.get(member.userId) ?? emptyMetrics(),
+    projects: owned.get(member.userId) ?? [],
+    activity: [],
+  }));
+
+  /* Quem foi convidado e ainda não entrou aparece no bloco com o ponto de pendente: é o que faz o convite
+     esquecido ser visto em vez de ficar só na tela de configuração. */
+  const pending: SummaryMember[] = (invites.data ?? []).map((invite) => ({
+    id: invite.id,
+    name: invite.name || invite.email,
+    role: roleLabel[invite.role],
+    avatarUrl: null,
+    status: "pending",
+    access: invite.role,
+    email: invite.email,
+    phone: null,
+    joinedAt: invite.created_at.slice(0, 10),
+    points: 0,
+    skills: [],
+    metrics: emptyMetrics(),
+    projects: [],
+    activity: [],
+  }));
+
+  return { members: [...members, ...pending] };
 }

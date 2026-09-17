@@ -25,14 +25,16 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { TagInput } from "@/components/ui/tag-input";
+import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
+import { removeImage, uploadImage } from "@/features/uploads/upload";
 import { loadClientAction, saveClientAction } from "../actions";
+import { clientTagCatalog } from "../tags";
 import type { ClientListItem } from "../list-options";
 import { clientLimits, MAX_TAGS, type ClientFormInput } from "../schemas";
 import type { Client } from "../summary";
@@ -233,22 +235,47 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
 
   // O endereço local da imagem escolhida é desfeito quando outro o substitui ou a janela fecha: o efeito
   // só limpa, sem escrever estado.
+  //
+  // O **arquivo** fica guardado ao lado do endereço (2026-09-16, correção): até aqui só o `blob:` existia, e
+  // ele vive apenas nesta aba, então salvar gravava o cliente e a imagem sumia no recarregamento seguinte.
+  // Quem sobe é `uploadImage`, depois do salvamento, porque o caminho no Storage é a pasta do registro e o
+  // registro só ganha id ali.
   const [photoUrl, setPhotoUrl] = useState<string | null>(client?.avatarUrl ?? null);
   const [logoUrl, setLogoUrl] = useState<string | null>(client?.companyLogoUrl ?? null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   useEffect(() => () => revokeLocal(photoUrl), [photoUrl]);
   useEffect(() => () => revokeLocal(logoUrl), [logoUrl]);
 
-  const pickImage = (setUrl: (url: string | null) => void) => (file: File | null, message?: string) => {
-    if (message) {
-      toast({ title: "Imagem grande demais", description: message, tone: "warning" });
-      return;
-    }
-    setUrl(file ? URL.createObjectURL(file) : null);
-  };
+  const pickImage =
+    (setUrl: (url: string | null) => void, setFile: (file: File | null) => void) =>
+    (file: File | null, message?: string) => {
+      if (message) {
+        toast({ title: "Imagem grande demais", description: message, tone: "warning" });
+        return;
+      }
+      setUrl(file ? URL.createObjectURL(file) : null);
+      setFile(file);
+    };
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
     if (error?.field === key) setError(null);
+  };
+
+  /* Sobe o que foi escolhido e tira o que foi removido. Devolve a primeira mensagem de erro, ou nada quando
+     tudo deu certo. */
+  const saveImages = async (id: string) => {
+    const jobs: Promise<{ ok: boolean; error?: string }>[] = [];
+
+    if (photoFile) jobs.push(uploadImage("client-avatar", id, photoFile));
+    else if (client?.avatarUrl && !photoUrl) jobs.push(removeImage("client-avatar", id));
+
+    if (logoFile) jobs.push(uploadImage("client-logo", id, logoFile));
+    else if (client?.companyLogoUrl && !logoUrl) jobs.push(removeImage("client-logo", id));
+
+    const done = await Promise.all(jobs);
+    return done.find((entry) => !entry.ok)?.error;
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -272,10 +299,22 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
     };
 
     const result = await saveClientAction(input);
-    setSaving(false);
 
     if (!result.ok) {
+      setSaving(false);
       setError({ field: result.field, message: result.error });
+      return;
+    }
+
+    /* As imagens vão depois do salvamento, e não junto: o arquivo mora numa pasta com o id do registro, e na
+       criação esse id só existe agora. Falha de imagem não desfaz o cliente, que já está gravado; ela vira
+       um aviso, porque o resto do trabalho não se perde por causa de uma foto. */
+    const images = await saveImages(result.id);
+    setSaving(false);
+
+    if (images) {
+      toast({ title: "Cliente salvo, imagem não", description: images, tone: "warning" });
+      onSaved();
       return;
     }
 
@@ -327,7 +366,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
               label="Foto"
               preview={photoUrl}
               fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" shape="squircle" className={styles.avatar} />}
-              onSelect={pickImage(setPhotoUrl)}
+              onSelect={pickImage(setPhotoUrl, setPhotoFile)}
             />
             <ImageField
               label="Logo"
@@ -337,7 +376,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
                   {companyInitial || <BuildingsIcon />}
                 </span>
               }
-              onSelect={pickImage(setLogoUrl)}
+              onSelect={pickImage(setLogoUrl, setLogoFile)}
             />
           </div>
           <Field label="Nome" required error={errorOf("name")}>
@@ -392,8 +431,8 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
           <Field label="Anotações" error={errorOf("about")}>
             <Textarea name="about" value={values.about} rows={3} maxLength={clientLimits.about} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
           </Field>
-          <Field label="Etiquetas" error={errorOf("tags")}>
-            <TagInput value={values.tags} placeholder="Digite e aperte Enter" max={MAX_TAGS} maxLength={clientLimits.tag} disabled={saving} onChange={(tags) => set("tags", tags)} />
+          <Field label="Etiquetas" hint={`Como este cliente se classifica, escolhido na lista. Até ${MAX_TAGS}`} error={errorOf("tags")}>
+            <TagPicker catalog={clientTagCatalog} label="Etiquetas do cliente" value={values.tags} max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
         </Section>
 

@@ -26,6 +26,8 @@ export type CatalogTableProps = {
   onActiveChange: (item: CatalogItem) => (active: boolean) => void;
   onOpen: (item: CatalogItem) => void;
   onEdit: (item: CatalogItem) => void;
+  /** Pede a exclusão; quem confirma é a prancha. */
+  onDelete: (item: CatalogItem) => void;
   /** A paginação, no pé da tabela. */
   footer?: ReactNode;
   range: { page: number; pageSize: number; total: number };
@@ -50,7 +52,7 @@ const unitShort: Record<CatalogItem["unit"], string> = {
 // orçamentos e desde (a pedido), pelo que está na página: a ordem da base inteira, no servidor, entra
 // quando a tabela vier do banco. A marcação ainda não tem ação em lote; ela mostra a contagem no pé e é o
 // gancho para excluir e desativar vários de uma vez.
-export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, footer, range }: CatalogTableProps) {
+export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, onDelete, footer, range }: CatalogTableProps) {
   const [selected, setSelected] = useState<string[]>([]);
 
   const columns: DataTableColumn<CatalogItem>[] = [
@@ -168,7 +170,16 @@ export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, 
       fill
       selection={{ selected, onChange: setSelected, rowLabel: (item) => `Selecionar ${item.name}` }}
       onRowClick={onOpen}
-      actions={(item) => <CatalogMenu item={item} active={isActive(item)} onActiveChange={onActiveChange(item)} onView={() => onOpen(item)} onEdit={() => onEdit(item)} />}
+      actions={(item) => (
+        <CatalogMenu
+          item={item}
+          active={isActive(item)}
+          onActiveChange={onActiveChange(item)}
+          onView={() => onOpen(item)}
+          onEdit={() => onEdit(item)}
+          onDelete={() => onDelete(item)}
+        />
+      )}
       range={range}
       footer={foot}
     />

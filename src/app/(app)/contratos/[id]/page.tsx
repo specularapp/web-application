@@ -1,16 +1,16 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ContractsScreen } from "@/features/contracts/components/contracts-screen";
-import { CONTRACTS_GRID_COOKIE, listContracts, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
-import { findContract, readContracts } from "@/features/contracts/store";
+import { CONTRACTS_GRID_COOKIE, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
+import { getContractById, getContractsPage } from "@/features/contracts/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
 /** O nome do contrato no título da aba: é a ficha dele que a página abre, e não "Contratos" outra vez. */
 export async function generateMetadata({ params }: PageProps<"/contratos/[id]">) {
   const { id } = await params;
-  const contract = await findContract(id);
+  const contract = await getContractById(id);
 
   return createMetadata({
     title: contract ? contract.title : "Contrato",
@@ -24,8 +24,6 @@ export async function generateMetadata({ params }: PageProps<"/contratos/[id]">)
 // compartilhada e aberta direto, e pela lista abrir só troca a URL, sem sair da tela.
 export default async function ContractPage({ params, searchParams }: PageProps<"/contratos/[id]">) {
   const [{ id }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
-  const contract = await findContract(id);
-  if (!contract) notFound();
 
   const gridSize = parseContractsGridSize(cookieStore.get(CONTRACTS_GRID_COOKIE)?.value);
   const query = parseContractsQuery(
@@ -40,5 +38,8 @@ export default async function ContractPage({ params, searchParams }: PageProps<"
     gridSize,
   );
 
-  return <ContractsScreen page={listContracts(await readContracts(), query)} query={query} ai={previewAiUsage} viewing={contract} />;
+  const [contract, page, ai] = await Promise.all([getContractById(id), getContractsPage(query), getAiUsageData()]);
+  if (!contract) notFound();
+
+  return <ContractsScreen page={page} query={query} ai={ai} viewing={contract} />;
 }

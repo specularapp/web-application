@@ -1,15 +1,15 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ProjectsScreen } from "@/features/projects/components/projects-screen";
-import { PROJECTS_GRID_COOKIE, listProjects, parseProjectsGridSize, parseProjectsQuery } from "@/features/projects/list";
-import { findProject, readProjectClients, readProjectOwners, readProjects } from "@/features/projects/store";
+import { PROJECTS_GRID_COOKIE, parseProjectsGridSize, parseProjectsQuery } from "@/features/projects/list";
+import { getProjectById, getProjectsScreenData } from "@/features/projects/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
 export async function generateMetadata({ params }: PageProps<"/projetos/[id]/editar">) {
   const { id } = await params;
-  const project = findProject(id);
+  const project = await getProjectById(id);
 
   return createMetadata({
     title: project ? `Editar ${project.name}` : "Editar projeto",
@@ -23,8 +23,6 @@ export async function generateMetadata({ params }: PageProps<"/projetos/[id]/edi
 // cai ao editar a partir da ficha, então fechar a gaveta devolve à ficha, e não à lista nua.
 export default async function EditProjectPage({ params, searchParams }: PageProps<"/projetos/[id]/editar">) {
   const [{ id }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
-  const project = findProject(id);
-  if (!project) notFound();
 
   const gridSize = parseProjectsGridSize(cookieStore.get(PROJECTS_GRID_COOKIE)?.value);
   const query = parseProjectsQuery(
@@ -39,7 +37,10 @@ export default async function EditProjectPage({ params, searchParams }: PageProp
     gridSize,
   );
 
+  const [project, data, ai] = await Promise.all([getProjectById(id), getProjectsScreenData(query), getAiUsageData()]);
+  if (!project) notFound();
+
   return (
-    <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} viewing={project} editing={project} clients={readProjectClients()} owners={readProjectOwners()} />
+    <ProjectsScreen page={data.page} query={query} ai={ai} viewing={project} editing={project} clients={data.clients} owners={data.owners} />
   );
 }

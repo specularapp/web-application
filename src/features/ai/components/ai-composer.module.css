@@ -12,12 +12,17 @@
 }
 
 /* Na bandeja do celular o compositor reserva embaixo o espaço da barra flutuante, como o da conversa da
-   tarefa: sem isso o cartão desce até depois da base da bandeja e a barra pousa por cima do campo. */
+   tarefa: sem isso o cartão desce até depois da base da bandeja e a barra pousa por cima do campo. Fora da
+   bandeja, na página cheia do assistente, não há barra flutuante para reservar espaço nenhum. */
 @media (max-width: 47.9375rem) {
   .composer {
     --composer-inset: var(--space-3);
 
-    padding: var(--space-2) var(--composer-inset) var(--floating-bar-inset);
+    padding: var(--space-2) var(--composer-inset) var(--space-3);
+  }
+
+  .composer[data-sheet] {
+    padding-block-end: var(--floating-bar-inset);
   }
 }
 
@@ -158,28 +163,31 @@
 
 /* O pé do cartão: o que anexa e ajusta de um lado, ditar e enviar na outra ponta. Os botões encolhem para
    32px, porque a coluna é estreita. */
+/* A linha quebra quando não cabe, em vez de espremer: na página cheia há uma pílula a mais, a das fontes, e
+   num celular de 320px a fila inteira não entra numa linha só. Quebrando, o enviar continua na ponta da
+   linha em que ele estiver, porque quem o empurra é a margem automática e não a distribuição do container. */
 .bar {
   --control-height-sm: 2rem;
   --icon-button-radius-sm: 1rem;
   --touch-target: 2rem;
 
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
-  justify-content: space-between;
   min-width: 0;
 }
 
-/* O saldo do ciclo entre os ajustes e as ações, encostado no enviar: é informação, e por isso não encolhe
-   nem some no celular, onde as ações vão para a barra flutuante. */
+/* O saldo do ciclo encostado no enviar: é informação, e por isso não encolhe nem some no celular, onde as
+   ações vão para a barra flutuante. */
 .balance {
   flex-shrink: 0;
-  margin-inline-start: auto;
   padding-inline-end: var(--space-1);
 }
 
 .tools,
-.send {
+.send,
+.end {
   display: inline-flex;
   gap: var(--space-half);
   align-items: center;
@@ -187,7 +195,16 @@
 }
 
 .tools {
+  flex-wrap: wrap;
   gap: var(--space-1);
+}
+
+/* A ponta da barra empurrada pela margem automática, e inteira: quebrando a linha, o saldo e as ações descem
+   juntos e continuam encostados no fim. */
+.end {
+  flex-shrink: 0;
+  gap: var(--space-2);
+  margin-inline-start: auto;
 }
 
 /* A pílula do modo de resposta, que abre o menu: ela diz como a pergunta vai ser respondida, e por isso não
@@ -229,11 +246,13 @@
   outline-offset: 2px;
 }
 
-/* No celular o clipe, a voz e o enviar viram glifos da barra flutuante, e repetir os dois lugares seria a
-   mesma coisa duas vezes na tela. O que fica no cartão é ajuste, e não ação: o modo da resposta. */
+/* Na bandeja do celular o clipe, a voz e o enviar viram glifos da barra flutuante, e repetir os dois lugares
+   seria a mesma coisa duas vezes na tela. O que fica no cartão é ajuste, e não ação: o modo da resposta.
+   Só na bandeja: a página cheia do assistente não tem barra flutuante, e sem estes botões ali não haveria
+   como enviar nada. */
 @media (max-width: 47.9375rem) {
-  .attach,
-  .send {
+  .composer[data-sheet] .attach,
+  .composer[data-sheet] .send {
     display: none;
   }
 }

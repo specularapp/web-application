@@ -2,7 +2,7 @@ import "server-only";
 import sharp, { type Sharp } from "sharp";
 import { avatarHue } from "@/components/ui/avatar";
 import { avatarSvg } from "@/components/ui/avatar/shape";
-import { artworkSvg } from "@/features/catalog/artwork";
+import { artworkSvg } from "@/lib/artwork";
 import { catalogHueFor } from "@/features/catalog/list-options";
 import { iconButtonCornerRadius, squirclePath } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
@@ -11,7 +11,7 @@ import type { Quote, QuoteLine } from "./summary";
 
 /**
  * As imagens do documento em PDF, desenhadas em processo e entregues em PNG. É o que permite o PDF levar os
- * mesmos rostos e as mesmas artes da tela, em vez de um substituto: o Adventurer do avatar e o Loops do
+ * mesmos rostos e as mesmas artes da tela, em vez de um substituto: o Lorelei do avatar e o Icons do
  * catálogo já nascem aqui dentro (`@dicebear`, sem rede), e o `sharp`, que o projeto já tem, os rasteriza.
  *
  * O react-pdf só desenha PNG e JPEG, então tudo passa por aqui: o desenho gerado, e também a foto de fora,
@@ -132,11 +132,12 @@ async function avatarTile(name: string, url: string | null, side: number, radius
 /* A mesma semente da tela, para o desenho ser o mesmo: o matiz nasce do nome do item e o traço, do id. */
 const artworkOf = (line: QuoteLine) => {
   const hue = catalogHueFor(line.name);
-  return artworkSvg(hue, svgToken(line.catalogItemId ?? line.id));
+  return artworkSvg("icons", hue, svgToken(line.catalogItemId ?? line.id));
 };
 
-/** O lado da arte dentro do azulejo do item: os 32 do azulejo menos os 5 de folga de cada lado, no tamanho `sm`. */
-const ARTWORK_SIDE = 22;
+/** O lado da arte dentro do azulejo do item: o azulejo inteiro, como na tela, porque o estilo Icons já
+ *  desenha o ícone com folga dentro do próprio quadro. Eram 22 enquanto o Loops pedia recuo. */
+const ARTWORK_SIDE = 32;
 
 export type QuotePdfImages = {
   issuer: PdfImage;

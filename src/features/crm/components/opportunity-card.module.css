@@ -1,0 +1,227 @@
+/* O fio da caixa é o do `Card` e o do cartão de tarefa: a camada de fora com a cor do fio e um recuo da
+   espessura dele, e a de dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. É o que faz o
+   canto sair em superelipse também onde não há `corner-shape`, o que `border` não permite. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+/* No celular o canto cai um degrau, como no `Card`: o de 24px lia como pílula num cartão estreito. */
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+/* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a curva de
+   dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. */
+.inner {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-3);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .inner:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* A temperatura e o aviso de parada de um lado, o leque na outra ponta. */
+.head {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.menu {
+  margin-inline-start: auto;
+}
+
+/* O nome da venda em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. */
+.title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Para quem é a venda, no bloco de cliente da casa: o rosto e, ao lado, duas linhas empilhadas que cedem
+   por reticências. Sem separador de ponto e sem linha corrida, que é o que apertava a leitura num cartão de
+   19rem. */
+.client {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+/* A descrição em duas linhas: o suficiente para saber do que se trata sem abrir. */
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* As etiquetas numa linha só, sem quebrar: as duas primeiras cedem por reticências e o resto vira "+N". Duas
+   classes para vencer o `flex-shrink: 0` que o `Badge` declara. */
+.tags {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.tags .tag {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* O dinheiro e a chance: o valor à esquerda, forte, e a barra com a porcentagem tomando o resto da linha.
+   O valor é o número que se procura no cartão, então ele não encolhe nunca. */
+.deal {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* Sem algarismo tabular (a pedido, 2026-09-15): ele existe para coluna de tabela, em que os dígitos caem um
+   embaixo do outro; solto num cartão, só deixa o número com espaçamento estranho. */
+.value {
+  flex-shrink: 0;
+}
+
+.chance {
+  display: inline-flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.probability {
+  flex: 1;
+  min-width: 0;
+}
+
+.percent {
+  flex-shrink: 0;
+}
+
+/* O pé, com mais ar em cima: ele é a outra metade do cartão. Quem cede espaço são os rostos; a previsão e as
+   contagens não encolhem. */
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-start: var(--space-1);
+}
+
+.people {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.faces {
+  flex-shrink: 0;
+}
+
+.more {
+  flex-shrink: 0;
+}
+
+.meta {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Uma contagem do pé: o glifo apagado e o número na tinta secundária. */
+.count {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  color: var(--color-label-secondary);
+}
+
+.count svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+/* O arraste do quadro: o cartão inteiro é a alça, então ele mostra a mão aberta ao apontar e a mão fechada
+   enquanto se arrasta. `touch-action: manipulation` deixa a rolagem do trilho passar. */
+.inner[data-grab] {
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.inner[data-grab]:active {
+  cursor: grabbing;
+}
+
+/* No lugar de onde o cartão saiu fica o vazio dele, para a pilha não pular de altura enquanto ele está no ar. */
+.card[data-dragging] {
+  padding: 0;
+  background-color: transparent;
+  border: 1px dashed var(--color-border);
+  opacity: 0.6;
+}
+
+.card[data-dragging] .inner {
+  visibility: hidden;
+}
+
+/* O cartão na mão: erguido pela sombra, inclinado um grau e meio e um tiquinho maior. */
+.card[data-overlay] {
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(1.5deg) scale(1.02);
+}
+
+.card[data-overlay] .inner {
+  background-color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-overlay] {
+    transform: none;
+  }
+}

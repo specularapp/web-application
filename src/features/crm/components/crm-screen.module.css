@@ -1,0 +1,32 @@
+/* O topo sangra de ponta a ponta, com o próprio recuo e o fio embaixo, e a prancha toma o que sobra. A
+   coluna é `minmax(0, 1fr)` porque o trilho de colunas alargaria a página numa trilha automática.
+
+   A altura é fixa **em qualquer largura**, e é aqui que esta tela se separa das outras três com `Topbar`:
+   nelas a lista cresce em fluxo no celular, e por isso elas perderam a altura em 2026-09-09 (com ela, o
+   retângulo em que o topo podia grudar terminava no fim da tela e o topo descolava ao passar dessa altura).
+   O quadro não cresce: ele rola por dentro nos dois eixos, as etapas na horizontal e cada pilha na vertical,
+   então a página não rola verticalmente e o topo não tem de onde descolar. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+/**
+ * No celular a tela toma de volta o recuo que a concha abre no pé para a barra flutuante (2026-09-11, a
+ * pedido de mais espaço de visualização para baixo). A reserva da concha existe para as telas que rolam em
+ * fluxo, cujo último item precisa fechar acima da barra; aqui ela era contada **duas vezes**, porque o quadro
+ * tem altura fixa e o trilho já abre a folga da barra por dentro, no fim de cada pilha.
+ *
+ * Na prática eram setenta e seis pixels de tela que ninguém usava: a prancha terminava em 768 numa tela de
+ * 844, com a barra flutuando sobre o vazio. Com a margem negativa a prancha desce até o fim do visor e as
+ * colunas ganham essa altura toda, que é onde os cartões aparecem.
+ */
+@media (max-width: 47.9375rem) {
+  .screen {
+    /* A altura vem da coluna da concha, que já desconta a reserva dela: por isso a conta é feita aqui, sobre
+       o visor, em vez de uma margem negativa, que o `height: 100%` do pai ignoraria. */
+    height: 100dvh;
+  }
+}

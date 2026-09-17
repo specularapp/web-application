@@ -20,6 +20,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | openai | IA |
 | server-only | impede módulo de servidor no cliente |
 | eslint, eslint-config-next, eslint-plugin-jsx-a11y, supabase (dev) | qualidade e banco |
+| @xyflow/react | o editor de fluxo das automações (2026-09-15): nós, ligações, arrastar, pan e zoom, alças de conexão e o fundo pontilhado, headless o bastante para os nós serem componentes nossos com os tokens da casa. É o mesmo motor (a família React Flow, irmã do Vue Flow que o n8n usa) das referências do usuário. Só na rota do editor, então o peso não chega às outras telas. Descartadas: canvas próprio em SVG (pan, zoom, toque e ligação à mão são meses de acerto) e rete.js (traz o próprio estilo) |
 
 ## Instaladas, a usar quando a feature entrar
 
@@ -41,7 +42,7 @@ Regra: só entra o que está aqui. Lib nova ganha uma linha nesta tabela (necess
 | Escrever num PDF existente (carimbar as assinaturas e a página de registro no contrato anexado) | pdf-lib | edita o arquivo que a pessoa subiu sem redesenhá-lo, embute PNG e fontes padrão, roda no Node da rota. Entrou em 2026-09-14 | @react-pdf/renderer (só cria PDF do zero, não altera um existente), pdfkit (idem) |
 | Toasts | componente próprio (`components/ui/toast/` + `components/providers/toast-provider/`) | identidade completa, comportamento simples e sob controle | sonner, react-toastify |
 | Upload | react-dropzone + Supabase Storage com URL assinada | UI headless, servidor gera a URL | uppy |
-| Avatar sem foto e arte do catálogo | @dicebear/core (v10) e @dicebear/styles | desenho determinístico pela semente, gerado em código, sem DOM e sem folha injetada, então sai igual no servidor e no cliente. Dois estilos em uso: Adventurer no `Avatar`, só quando não há `src` (pedido de 2026-09-05; Lorelei ficou em uso de 2026-09-04 a 2026-09-05, trocado a pedido pelo traço mais expressivo), e Loops na arte dos itens do catálogo sem foto (pedido de 2026-09-08), com a linha tingida no matiz do item e fundo transparente. Migrado do v9 (`@dicebear/adventurer`) para o v10 em 2026-09-08 porque o Loops só existe no v10, onde os estilos viraram JSON em `@dicebear/styles` lidos por `new Style()`; no v10 os `id` internos já saem com sufixo derivado da semente, então a reescrita do `id` que o v9 pedia saiu, e só o `<metadata>` continua sendo removido. Os desenhos saem pelas rotas `/api/avatar/[token]` e `/api/artwork/[hue]/[token]`, com cache de um ano e CSP fechada, sobre a moldura comum de `lib/generated-svg.ts` (token, validação, cache e cabeçalhos); entram por `components/ui/avatar/shape.ts` e `features/catalog/artwork.ts`, nunca direto em componente | avvvatars-react (em uso de 2026-08-29 a 2026-09-04: trazia o goober, que injetava `<style>` e exigia `window.__nonce__`), boring-avatars (menos variedade), API HTTP do DiceBear (imagem de terceiro em toda carga, fora da CSP e da sensação de offline) |
+| Avatar sem foto e arte do catálogo | @dicebear/core (v10) e @dicebear/styles | desenho determinístico pela semente, gerado em código, sem DOM e sem folha injetada, então sai igual no servidor e no cliente. Três estilos em uso, os três escolhidos pelo usuário em 2026-09-16 sobre as páginas de estilo do DiceBear: **Lorelei** no `Avatar`, para cliente e pessoa em geral, só quando não há `src` (esteve em uso de 2026-09-04 a 2026-09-05, saiu para o Adventurer e voltou agora); **Icons** na arte dos itens do catálogo sem foto, para produto e serviço em geral, com o ícone tingido no matiz do item; e **Waves** na capa de um projeto sem imagem, preenchendo a capa inteira no matiz do projeto (o Loops, de voltas abstratas, serviu os dois de 2026-09-08 a 2026-09-16). Todos com fundo transparente, porque quem pinta o fundo é o azulejo de quem chama, no matiz e sensível ao tema. A troca do Loops pelo Icons levou junto o recuo da arte dentro do azulejo, na tela e no PDF: o Icons já desenha o ícone com folga no próprio quadro, em dois terços do lado, e o recuo antigo virava recuo em dobro. Migrado do v9 (`@dicebear/adventurer`) para o v10 em 2026-09-08 porque o Loops só existe no v10, onde os estilos viraram JSON em `@dicebear/styles` lidos por `new Style()`; no v10 os `id` internos já saem com sufixo derivado da semente, então a reescrita do `id` que o v9 pedia saiu, e só o `<metadata>` continua sendo removido. Os desenhos saem pelas rotas `/api/avatar/[token]` e `/api/artwork/[style]/[hue]/[token]` (o estilo entrou no caminho em 2026-09-16, para dois desenhos diferentes dividirem a mesma moldura sem duas rotas iguais), com cache de um ano e CSP fechada, sobre a moldura comum de `lib/generated-svg.ts` (token, validação, cache e cabeçalhos); entram por `components/ui/avatar/shape.ts` e `lib/artwork.ts`, nunca direto em componente; a arte saiu de `features/catalog/` para `lib/` em 2026-09-16, quando o projeto ganhou estilo próprio e ela deixou de ser do catálogo | avvvatars-react (em uso de 2026-08-29 a 2026-09-04: trazia o goober, que injetava `<style>` e exigia `window.__nonce__`), boring-avatars (menos variedade), API HTTP do DiceBear (imagem de terceiro em toda carga, fora da CSP e da sensação de offline) |
 | Animação | motion, só onde CSS não resolve (kanban) | layout animations | |
 | E-mail | @react-email/components | templates em React para o Resend | |
 | Máscaras (CPF, CNPJ, telefone, moeda) | react-number-format | input controlado com máscara. **Em uso**: entra pelo `Input` com a prop `mask`, padrões em `src/lib/masks.ts`. Nunca importar direto em feature | |
@@ -113,3 +114,17 @@ Implementado em 2026-08-29. Componente visual em `components/ui/toast/`, fila e 
 - Movimento: entrada com `--ease-spring` em `--duration-slow`, saída em `--duration-base`, só `transform` e `opacity`; nada em `prefers-reduced-motion`.
 - Duração padrão 5s; `danger` não fecha sozinho.
 - Server Actions devolvem `{ toast }` no resultado e o cliente dispara; nunca disparar toast a partir de dados do servidor sem passar pelo zod do resultado.
+
+## Cache e velocidade
+
+Nada novo foi instalado para isto. O cache de leitura repetida é o `ioredis` que já servia o teto de
+requisições, com a camada da casa em `lib/cache/`: chave por organização e por filtro, tag por domínio e
+invalidação na escrita. A memorização por requisição é o `cache` do React, que vem no próprio React. Os
+esqueletos de rota são o `Skeleton` da casa em `loading.tsx`.
+
+O que foi avaliado e **não** entrou:
+
+| Necessidade | Descartada | Por quê |
+| --- | --- | --- |
+| Cache de dados por rota | `use cache` / `cacheComponents` do Next 16 | guarda por rota e argumento, sem saber quem pediu; aqui tudo é por pessoa e por organização. A variante que entende sessão (`use cache: private`) não guarda nada no servidor, então não ajuda entre instâncias |
+| Fila para as automações agendadas | — | continua pendente: entra com o `inngest`, que já está mapeado acima |

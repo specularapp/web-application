@@ -1,6 +1,6 @@
 import { Topbar } from "@/components/layout/topbar";
 import type { AiUsage } from "@/features/ai/summary";
-import type { ContractLookups } from "../store";
+import type { ContractLookups } from "../service";
 import type { Contract } from "../summary";
 import { ContractEditor } from "./contract-editor";
 import styles from "./contracts-screen.module.css";

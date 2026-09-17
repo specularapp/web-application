@@ -975,3 +975,21 @@ export function subscriptionIdOfInvoice(invoice: Stripe.Invoice) {
 export function planLabel(id: PlanId) {
   return planById(id)?.name ?? id;
 }
+
+/**
+ * O teto de um recurso no plano em vigor, pela função do banco: nulo com o recurso liberado é ilimitado, e
+ * zero é negado. Recurso que não existe em `plan_features` derruba a chamada, de propósito, para chave
+ * escrita errada aparecer no primeiro teste em vez de liberar ou negar em silêncio.
+ */
+export async function planLimit(client: BillingClient, organizationId: string, feature: string): Promise<number | null> {
+  const { data, error } = await client.rpc("plan_limit", { p_organization_id: organizationId, p_feature_key: feature });
+  if (error) throw new Error(error.message);
+  return data ?? null;
+}
+
+/** Se o plano em vigor libera o recurso. Mesma regra e mesma fonte do teto. */
+export async function planAllows(client: BillingClient, organizationId: string, feature: string): Promise<boolean> {
+  const { data, error } = await client.rpc("plan_allows", { p_organization_id: organizationId, p_feature_key: feature });
+  if (error) throw new Error(error.message);
+  return data ?? false;
+}

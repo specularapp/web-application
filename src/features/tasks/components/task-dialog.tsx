@@ -47,6 +47,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { SheetSwitcher } from "@/components/ui/sheet-switcher";
+import { tagSections } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { RecordHoverCard } from "@/features/records/components/record-hover-card";
@@ -61,7 +62,7 @@ import { acceptAny, acceptDocuments, acceptImages, attachmentOf } from "../files
 import { DAY_MINUTES, dueOf, estimateLabel, peopleLabel, priorityHues, priorityLabels, priorityTones } from "../labels";
 import { linkKindValues, taskLinkKinds } from "../links";
 import { defaultStages, taskStageMeta, type TaskStage } from "../stages";
-import { tagGroups, tagHue, taskTags } from "../tags";
+import { tagHue, taskTagCatalog } from "../tags";
 import type { Task, TaskAttachment, TaskAudio, TaskEvent, TaskLink, TaskMention, TaskPerson, TaskPriority } from "../summary";
 import { AttachmentCard } from "./attachment-card";
 import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "./chat-audio";
@@ -122,7 +123,6 @@ const viewer: TaskPerson = { name: "Você", avatarUrl: null };
 
 /* A bandeira e a bolinha no matiz certo, para o menu dizer qual é qual pela cor e não só pelo nome. */
 const priorityMark = (priority: TaskPriority) => <FlagIcon weight="bold" style={{ color: priorityHues[priority] } as CSSProperties} />;
-const tagMark = (id: string) => <span className={frame.dot} style={{ "--dot-hue": tagHue(id) } as CSSProperties} />;
 
 /**
  * Texto que se edita no lugar (2026-09-10, a pedido): o valor é desenhado como sempre foi e, ao clique, o
@@ -715,22 +715,10 @@ function TaskDetail({
     },
   ];
 
-  /* As etiquetas por família, cada uma com a bolinha da própria cor: é escolha de uma gama pronta, e não
-     texto livre, então a mesma coisa tem sempre o mesmo nome e a mesma cor em toda tarefa. */
-  const tagSections: DropdownSection[] = tagGroups.map((group) => ({
-    id: `tags-${group}`,
-    label: group,
-    items: taskTags
-      .filter((tag) => tag.group === group)
-      .map((tag) => ({
-        kind: "toggle" as const,
-        id: `tag-${tag.id}`,
-        label: tag.id,
-        media: tagMark(tag.id),
-        checked: draft.tags.includes(tag.id),
-        onChange: (on: boolean) => patch({ tags: on ? [...draft.tags, tag.id] : draft.tags.filter((entry) => entry !== tag.id) }),
-      })),
-  }));
+  /* As etiquetas saem do mesmo montador do seletor da casa: aqui elas aparecem de outro jeito, com a própria
+     fila servindo de gatilho, no desenho de ficha de propriedades, mas as opções, as famílias e a regra do
+     teto são as mesmas de toda a aplicação. */
+  const tagOptions = tagSections(taskTagCatalog, draft.tags, (tags) => patch({ tags }));
 
   /* O que dá para anexar ao comentário: os três esperam o armazenamento de arquivo. */
   const attachSections: DropdownSection[] = [
@@ -1103,7 +1091,7 @@ function TaskDetail({
               <DropdownMenu
                 label="Etiquetas da tarefa"
                 triggerLabel="Escolher etiquetas"
-                sections={tagSections}
+                sections={tagOptions}
                 triggerContent={
                   draft.tags.length === 0 ? (
                     <Empty />

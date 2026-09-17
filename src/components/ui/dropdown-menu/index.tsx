@@ -96,7 +96,9 @@ export type DropdownMenuProps = {
   surface?: "glass" | "solid";
 };
 
-export type DropdownTrigger = Pick<ButtonProps, "variant" | "radius" | "background" | "foreground" | "border">;
+/* `disabled` entrou em 2026-09-16 com o seletor de etiquetas: o leque de um formulário fica mudo enquanto
+   ele salva, como todo campo ao lado dele. */
+export type DropdownTrigger = Pick<ButtonProps, "variant" | "radius" | "background" | "foreground" | "border" | "disabled">;
 
 /** Passando disto, o menu ganha busca: é onde a lista deixa de ser lida de relance e passa a ser procurada. */
 const SEARCH_FROM = 5;

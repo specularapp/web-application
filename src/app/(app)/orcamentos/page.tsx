@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { QuotesScreen } from "@/features/quotes/components/quotes-screen";
-import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, listQuotes, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
+import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
 import { loadQuotesScreenData } from "@/features/quotes/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
@@ -12,11 +12,10 @@ export const metadata = createMetadata({
   path: "/orcamentos",
 });
 
-// A lista de orçamentos, que também é onde se cria e edita: orçar e acompanhar são a mesma tela
-// (2026-09-09). O filtro vem da URL e quem filtra, ordena e corta a página é `listQuotes`, que recebe a lista
-// de fora; a lista, a equipe emissora e o próximo número vêm de `loadQuotesScreenData`.
+// A lista de orçamentos, que também é onde se cria e edita: orçar e acompanhar são a mesma tela. O filtro
+// vem da URL e quem filtra e corta a página é a consulta; a equipe emissora e o próximo número vêm junto.
 export default async function QuotesPage({ searchParams }: PageProps<"/orcamentos">) {
-  const [params, cookieStore, data] = await Promise.all([searchParams, cookies(), loadQuotesScreenData()]);
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
   const view = parseQuotesView(cookieStore.get(QUOTES_VIEW_COOKIE)?.value);
   const gridSize = parseQuotesGridSize(cookieStore.get(QUOTES_GRID_COOKIE)?.value);
   // Quantos por página, quando a URL não diz, depende da visão: 30 na tabela e, na grade, o que a prancha
@@ -32,11 +31,13 @@ export default async function QuotesPage({ searchParams }: PageProps<"/orcamento
     defaultPageSize(view, gridSize),
   );
 
+  const [data, ai] = await Promise.all([loadQuotesScreenData(query), getAiUsageData()]);
+
   return (
     <QuotesScreen
-      page={listQuotes(data.quotes, query)}
+      page={data.page}
       query={query}
-      ai={previewAiUsage}
+      ai={ai}
       clients={data.clients}
       catalog={data.catalog}
       issuer={data.issuer}

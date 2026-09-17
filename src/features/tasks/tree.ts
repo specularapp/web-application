@@ -1,5 +1,4 @@
 import { defaultStages, stageValues, type TaskStage } from "./stages";
-import { stageStatus } from "./labels";
 import type { Task } from "./summary";
 
 /**
@@ -68,13 +67,20 @@ export function tasksOfProject(tasks: Task[], project: TaskProject) {
   return tasks.filter((task) => task.project?.reference === project.reference);
 }
 
-const isOpen = (task: Task) => stageStatus(task.stage) !== "done";
+/**
+ * Quantas tarefas em aberto cada projeto tem, e quantas estão soltas. Vem contado do banco, e não das
+ * tarefas carregadas: o menu é redesenhado em toda navegação, e contar carregando as linhas custaria a base
+ * inteira por página vista para produzir um inteiro por projeto.
+ */
+export type TaskOpenCounts = { byProject: Record<string, number>; loose: number };
+
+export const noTaskCounts: TaskOpenCounts = { byProject: {}, loose: 0 };
 
 /** A árvore com as contagens resolvidas, pronta para o menu. Roda no servidor, junto da concha. */
-export function buildTaskTree(nodes: TaskTreeNode[], tasks: Task[]): TaskTreeItem[] {
+export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): TaskTreeItem[] {
   return nodes.map((node): TaskTreeItem => {
     if (isTaskFolder(node)) {
-      const children = buildTaskTree(node.children, tasks);
+      const children = buildTaskTree(node.children, counts);
       return {
         kind: "folder",
         id: node.id,
@@ -89,7 +95,7 @@ export function buildTaskTree(nodes: TaskTreeNode[], tasks: Task[]): TaskTreeIte
       id: node.id,
       slug: node.slug,
       name: node.name,
-      open: tasksOfProject(tasks, node).filter(isOpen).length,
+      open: node.reference === null ? counts.loose : (counts.byProject[node.id] ?? 0),
       glyph: node.glyph,
       hue: node.hue,
     };

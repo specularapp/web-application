@@ -1,15 +1,12 @@
-import { CheckCircleIcon } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useId } from "react";
-import { Logo } from "@/components/layout/logo";
-import { Badge } from "@/components/ui/badge";
 import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { Text } from "@/components/ui/text";
+import { CashCard } from "@/features/finance/components/cash-card";
 import { TransactionParty } from "@/features/finance/components/transaction-party";
 import { TransactionReceipt } from "@/features/finance/components/transaction-receipt";
 import type { FinanceSummary, Transaction, TransactionKind } from "@/features/finance/summary";
-import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import list from "./block-list.module.css";
 import styles from "./finance-block.module.css";
@@ -58,41 +55,33 @@ function Row({ transaction }: { transaction: Transaction }) {
   );
 }
 
-// O caixa vestido de cartão, em grade 2x2: a marca e a situação em cima, o saldo e o atualizar
-// embaixo. Abaixo dele, as últimas movimentações: o que entrou, o que saiu e o que está por vir,
-// cada uma com quem está do outro lado. É a visão do financeiro, e não um cartão de verdade.
+// O caixa vestido de cartão (`CashCard`, da feature de financeiro, que a página do financeiro também
+// usa) com o atualizar no canto e, abaixo dele, as últimas movimentações: o que entrou, o que saiu e o que
+// está por vir, cada uma com quem está do outro lado. É a visão do financeiro, e não um cartão de verdade.
 export function FinanceBlock({ summary }: FinanceBlockProps) {
   const recentId = useId();
 
   return (
     <div className={styles.block}>
-      <div className={styles.card} {...squircle("lg")}>
-        <Logo variant="icon" height={24} className={styles.brand} />
-        <Badge tone="success" size="sm" icon={<CheckCircleIcon />} className={styles.status}>
-          Ativo
-        </Badge>
-        <div className={styles.balance}>
-          <Text as="p" variant="footnote" tone="secondary">
-            Em caixa
-          </Text>
-          <Text as="p" variant="title1" weight="semibold" truncate>
-            {formatMoney(summary.balance)}
-          </Text>
-        </div>
-        <span className={styles.refresh}>
-          <RefreshButton label="Atualizar saldo" />
-        </span>
-      </div>
+      <CashCard balance={summary.balance} action={<RefreshButton label="Atualizar saldo" />} />
 
       <section className={list.recent} aria-labelledby={recentId}>
         <Text as="h3" id={recentId} variant="caption1" weight="medium" tone="secondary">
           Movimentações recentes
         </Text>
-        <ul className={list.list}>
-          {summary.transactions.slice(0, SHOWN_TRANSACTIONS).map((transaction) => (
-            <Row key={transaction.id} transaction={transaction} />
-          ))}
-        </ul>
+        {/* O caixa continua valendo com saldo zero, então quem fica vazio aqui é só a lista: uma linha no
+            lugar dela, e não o vazio inteiro, que jogaria fora o cartão do caixa acima. */}
+        {summary.transactions.length === 0 ? (
+          <Text variant="footnote" tone="tertiary" className={styles.none}>
+            Nada entrou nem saiu ainda.
+          </Text>
+        ) : (
+          <ul className={list.list}>
+            {summary.transactions.slice(0, SHOWN_TRANSACTIONS).map((transaction) => (
+              <Row key={transaction.id} transaction={transaction} />
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

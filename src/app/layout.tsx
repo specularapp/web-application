@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SquircleProvider } from "@/components/providers/squircle-provider";
+import { CelebrationProvider } from "@/components/providers/celebration-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { isAuthPath } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
@@ -78,7 +79,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <EmotionRegistry nonce={nonce}>
-          <ToastProvider>{children}</ToastProvider>
+          {/* O recibo de toda ação e a comemoração do que merece parar a tela, lado a lado na raiz: as duas
+              são chamadas de dentro de formulário e de janela, que não têm como montar camada por cima. */}
+          <ToastProvider>
+            <CelebrationProvider>{children}</CelebrationProvider>
+          </ToastProvider>
           {isHomologation() && <ThemeToggle initial={preference ?? "dark"} />}
         </EmotionRegistry>
         <SquircleProvider />

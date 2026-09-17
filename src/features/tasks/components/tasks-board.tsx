@@ -16,7 +16,7 @@ import {
   type ScreenReaderInstructions,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
-import { ArrowCounterClockwiseIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ListChecksIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,9 +24,9 @@ import { useFloatingPagerRegistration } from "@/components/layout/floating-actio
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { Text } from "@/components/ui/text";
 import { saveStageOverrides, type StageOverrides } from "../board-cookie";
 import {
   DEADLINE_PARAM,
@@ -49,6 +49,9 @@ import {
 import { stageValues, taskStageMeta, type TaskStage } from "../stages";
 import type { AppRecord } from "@/features/records/records";
 import type { Task, TaskPerson } from "../summary";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/providers/toast-provider";
+import { deleteTaskAction } from "../actions";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
 import { TaskDialog } from "./task-dialog";
@@ -126,6 +129,8 @@ const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAU
 // de clientes.
 export function TasksBoard({ board, query, collapsed: saved, basePath, team, records }: TasksBoardProps) {
   const router = useRouter();
+  const { toast } = useToast();
+
   const [search, setSearch] = useState(query.search);
   // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás, senão o check só
   // aparecia quando o servidor devolvia o quadro. Quando a resposta chega, o que veio da URL passa a valer,
@@ -139,6 +144,29 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   const [overrides, setOverrides] = useState<StageOverrides>(saved);
   const [sorts, setSorts] = useState<Record<TaskStage, TasksColumnSort>>(initialSorts);
   const [open, setOpen] = useState<Task | null>(null);
+
+  /* A exclusão, no desenho das outras telas: o leque do cartão pede, a janela da casa pergunta, e só então a
+     action grava. */
+  const [deleting, setDeleting] = useState<Task | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const removeTask = async () => {
+    if (!deleting) return;
+    setRemoving(true);
+    const result = await deleteTaskAction(deleting.id);
+    setRemoving(false);
+
+    if (!result.ok) {
+      toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
+      return;
+    }
+
+    setDeleting(null);
+    setOpen((current) => (current?.id === deleting.id ? null : current));
+    toast({ title: "Tarefa excluída", description: `${deleting.title} saiu do quadro.`, tone: "success" });
+    router.refresh();
+  };
+
   /**
    * No celular o cartão **não se arrasta** (2026-09-11, a pedido): a coluna ocupa quase a tela inteira e o
    * trilho rola na horizontal, então o mesmo gesto servia para arrastar o cartão e para passar de etapa, e
@@ -164,7 +192,6 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   const [stagePage, setStagePage] = useState(1);
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
-
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_START } }),
@@ -322,6 +349,12 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     columns.flatMap((column) => column.tasks).find((task) => task.id === id)?.title ?? "a tarefa";
 
   const active = activeTasksFilters(live);
+  /* Sem busca e sem filtro, um quadro vazio quer dizer quadro sem tarefa nenhuma. */
+  const filtering = Boolean(live.search) || active.length > 0;
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "" });
+  };
 
   /**
    * O quadro pendura a **navegação das etapas** na barra flutuante do celular (2026-09-11, a pedido), pelo
@@ -411,18 +444,23 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
       {/* Sem nada que bata com o filtro, a frase toma o lugar do trilho: cinco colunas vazias lado a lado
           leriam como quadro quebrado, e não como busca sem resultado. */}
       {board.matched === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nenhuma tarefa por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {board.total === 0
-              ? "Crie a primeira tarefa para o quadro começar a andar."
-              : live.search
-                ? "Nada bateu com o que você procurou. Tente outro título, etiqueta ou nome de quem está envolvido."
-                : "Ajuste o prazo ou os filtros para ver mais."}
-          </Text>
-        </div>
+        /* Sem o botão de criar: criar tarefa ainda não existe, e o da barra de cima também não leva a
+           lugar nenhum. Ele entra aqui no dia em que a criação entrar. */
+        <EmptyState
+          icon={ListChecksIcon}
+          title={filtering ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa ainda"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro título, etiqueta ou nome de quem está envolvido, ou limpe a busca."
+              : "Crie a primeira tarefa para o quadro começar a andar."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+        </EmptyState>
       ) : (
         // O arraste do quadro: pegar o cartão, passear pelas etapas e soltar. `closestCorners` acha a coluna
         // pela quina mais perto, que é o que funciona com alvos altos e estreitos lado a lado, e o cartão que
@@ -455,6 +493,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
                 draggable={!mobile}
                 stages={board.columns.map((entry) => entry.stage)}
                 onMove={(task, to) => moveTask(task, to, column.stage)}
+                onDelete={setDeleting}
               />
             ))}
           </div>
@@ -486,6 +525,14 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
           moveTask(open, stage, open.stage);
           setOpen({ ...open, stage });
         }}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        pending={removing}
+        title={`Excluir ${deleting?.reference ?? "tarefa"}?`}
+        description="A tarefa sai do quadro com as subtarefas, os anexos e a conversa dela. Os registros a que ela estava ligada ficam."
+        onClose={() => setDeleting(null)}
+        onConfirm={() => void removeTask()}
       />
     </div>
   );

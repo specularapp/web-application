@@ -3,7 +3,7 @@
 import { CalendarBlankIcon, CheckIcon, FolderSimpleIcon, GlobeSimpleIcon, PlusIcon, StackIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import Image from "next/image";
-import { useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { FloatingLayer, useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -18,18 +18,20 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip } from "@/components/ui/tooltip";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
+import { removeImage, uploadImage } from "@/features/uploads/upload";
 import { saveProjectAction } from "../actions";
 import { projectStatuses, projectTools } from "../labels";
 import { projectArtworkUrl, projectHueFor } from "../list-options";
-import { COVER_MAX_CHARS, MAX_TAGS, projectLimits, projectStatusValues, projectToolValues, type ProjectFormInput } from "../schemas";
+import { MAX_TAGS, projectLimits, projectStatusValues, projectToolValues, type ProjectFormInput } from "../schemas";
 import type { Project, ProjectClient, ProjectOwnerOption, ProjectStatus, ProjectTool } from "../summary";
-import { projectTagGroups, projectTagHue, projectTags } from "../tags";
+import { projectTagCatalog } from "../tags";
 import { ToolTile } from "./tool-tile";
 import styles from "./project-form-dialog.module.css";
 
@@ -74,7 +76,7 @@ function valuesOf(project?: Project) {
     url: project?.url ?? "",
     description: project?.description ?? "",
     clientId: project?.client.id ?? "",
-    ownerName: project?.owner.name ?? "",
+    ownerId: project?.ownerId ?? "",
     status: project?.status ?? ("active" as ProjectStatus),
     isPublic: project?.isPublic ?? false,
     tags: project?.tags ?? [],
@@ -117,7 +119,7 @@ async function loadSource(file: File): Promise<ImageBitmap | HTMLImageElement> {
  * e o que faz a imagem que a tela mostra ser a que fica guardada. Quando o armazenamento de arquivos nascer,
  * o mesmo redimensionar alimenta o envio para lá.
  */
-async function readCover(file: File): Promise<string> {
+async function readCover(file: File): Promise<File> {
   const source = await loadSource(file);
   const width = "naturalWidth" in source ? source.naturalWidth : source.width;
   const height = "naturalHeight" in source ? source.naturalHeight : source.height;
@@ -129,8 +131,16 @@ async function readCover(file: File): Promise<string> {
   if (!context) throw new Error("Sem canvas");
   context.drawImage(source, 0, 0, canvas.width, canvas.height);
   if ("close" in source) source.close();
-  const webp = canvas.toDataURL("image/webp", 0.82);
-  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", 0.85);
+  /* Um arquivo, e não mais um `data:` embutido (2026-09-16, correção): a capa embutida ia dentro da action
+     e era gravada na coluna, que o banco limita a 500 caracteres, então uma capa de verdade nunca chegava a
+     salvar. Agora ela sobe para o Storage e o que vai para a coluna é o endereço. O redimensionamento para
+     1440 por 810 continua, e agora ele serve para o arquivo subir leve. */
+  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.82));
+  const ready = blob?.type === "image/webp" ? blob : await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/jpeg", 0.85));
+  if (!ready) throw new Error("Sem imagem");
+
+  const extension = ready.type === "image/webp" ? "webp" : "jpg";
+  return new File([ready], `capa.${extension}`, { type: ready.type });
 }
 
 /* Um bloco do formulário: o glifo e o título numa linha, e os campos embaixo. Quem separa um bloco do
@@ -187,6 +197,13 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [reading, setReading] = useState(false);
+  /* A capa escolhida antes de subir: o arquivo, que vai para o Storage depois do salvamento, e a prévia
+     local, que só existe nesta janela e é desfeita ao trocar ou ao fechar. */
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  useEffect(() => () => {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+  }, [coverPreview]);
   const editing = Boolean(project);
   const titleId = useId();
   const publicId = useId();
@@ -214,14 +231,36 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
     }
     setReading(true);
     try {
-      const url = await readCover(file);
-      if (url.length > COVER_MAX_CHARS) throw new Error("Imagem grande demais");
-      set("coverUrl", url);
+      const prepared = await readCover(file);
+      setCoverFile(prepared);
+      setCoverPreview(URL.createObjectURL(prepared));
+      /* O valor do formulário guarda o endereço **salvo**, e não a prévia: é ele que vai para a action, e um
+         `blob:` ali seria gravado como endereço morto. A prévia vive à parte, só nesta janela. */
+      set("coverUrl", project?.coverUrl ?? "");
     } catch {
       toast({ title: "Não deu para ler a imagem", description: "Tente outra em PNG, JPG ou WebP.", tone: "warning" });
     } finally {
       setReading(false);
     }
+  };
+
+  const dropCover = () => {
+    setCoverFile(null);
+    setCoverPreview(null);
+    set("coverUrl", "");
+  };
+
+  /* Sobe a capa escolhida, ou tira a que havia. Devolve a mensagem de erro, ou nada quando deu certo. */
+  const saveCover = async (id: string) => {
+    if (coverFile) {
+      const sent = await uploadImage("project-cover", id, coverFile);
+      return sent.ok ? undefined : sent.error;
+    }
+    if (project?.coverUrl && !values.coverUrl) {
+      const cleared = await removeImage("project-cover", id);
+      return cleared.ok ? undefined : cleared.error;
+    }
+    return undefined;
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -235,7 +274,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
       url: values.url,
       description: values.description,
       clientId: values.clientId,
-      ownerName: values.ownerName,
+      ownerId: values.ownerId,
       status: values.status,
       isPublic: values.isPublic,
       tags: values.tags,
@@ -249,10 +288,21 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
     };
 
     const result = await saveProjectAction(input);
-    setSaving(false);
 
     if (!result.ok) {
+      setSaving(false);
       setError({ field: result.field, message: result.error });
+      return;
+    }
+
+    /* A capa vai depois do salvamento, e não junto: o arquivo mora numa pasta com o id do projeto, e na
+       criação esse id só existe agora. Falha de capa não desfaz o projeto, que já está gravado. */
+    const cover = await saveCover(result.id);
+    setSaving(false);
+
+    if (cover) {
+      toast({ title: "Projeto salvo, capa não", description: cover, tone: "warning" });
+      onSaved(result.id);
       return;
     }
 
@@ -266,6 +316,8 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
 
   const errorOf = (field: keyof Values) => (error?.field === field ? error.message : undefined);
   const known = error?.field !== undefined && error.field in values;
+  /* O que a janela mostra: a prévia da escolha de agora, ou a capa que já estava guardada. */
+  const shownCover = coverPreview ?? (values.coverUrl || null);
 
   // A cor da arte sai do nome, e não de uma escolha: a prévia deriva pelo mesmo caminho do servidor, então o
   // que aparece enquanto se digita é o que fica gravado. Projeto que já tem matiz mantém o dele.
@@ -281,7 +333,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   }));
 
   const ownerOptions = owners.map((owner) => ({
-    value: owner.name,
+    value: owner.id,
     label: owner.name,
     caption: owner.role,
     media: <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} size="xs" />,
@@ -304,8 +356,8 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
               imagem vale a arte gerada. A imagem é redimensionada aqui antes de subir. */}
           <div className={styles.artwork}>
             <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
-              {values.coverUrl ? (
-                <Image src={values.coverUrl} alt="" fill sizes="9rem" unoptimized className={styles.photo} />
+              {shownCover ? (
+                <Image src={shownCover} alt="" fill sizes="9rem" unoptimized className={styles.photo} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={projectArtworkUrl(preview)} alt="" width={64} height={64} decoding="async" className={styles.art} />
@@ -319,14 +371,14 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
                 PNG, JPG ou WebP. Sem imagem, entra a arte no matiz do projeto.
               </Text>
               <div className={styles.artworkActions}>
-                <Tooltip content={values.coverUrl ? "Trocar imagem" : "Enviar imagem"}>
-                  <IconButton label={values.coverUrl ? "Trocar imagem" : "Enviar imagem"} variant="outline" size="sm" radius="md" loading={reading} disabled={busy} onClick={() => fileInput.current?.click()}>
+                <Tooltip content={shownCover ? "Trocar imagem" : "Enviar imagem"}>
+                  <IconButton label={shownCover ? "Trocar imagem" : "Enviar imagem"} variant="outline" size="sm" radius="md" loading={reading} disabled={busy} onClick={() => fileInput.current?.click()}>
                     <UploadSimpleIcon />
                   </IconButton>
                 </Tooltip>
-                {values.coverUrl && (
+                {shownCover && (
                   <Tooltip content="Remover imagem">
-                    <IconButton label="Remover imagem" variant="ghost" size="sm" radius="md" disabled={busy} onClick={() => set("coverUrl", "")}>
+                    <IconButton label="Remover imagem" variant="ghost" size="sm" radius="md" disabled={busy} onClick={dropCover}>
                       <XIcon />
                     </IconButton>
                   </Tooltip>
@@ -360,8 +412,8 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
             <Field label="Cliente" required error={errorOf("clientId")}>
               <Select<string> label="Cliente do projeto" options={clientOptions} value={values.clientId || undefined} placeholder="Escolha o cliente" searchable searchPlaceholder="Buscar cliente" emptyLabel="Nenhum cliente com esse nome" disabled={saving} onChange={(clientId) => set("clientId", clientId)} />
             </Field>
-            <Field label="Responsável" required error={errorOf("ownerName")}>
-              <Select<string> label="Quem responde pelo projeto" options={ownerOptions} value={values.ownerName || undefined} placeholder="Escolha quem responde" searchable searchPlaceholder="Buscar na equipe" disabled={saving} onChange={(ownerName) => set("ownerName", ownerName)} />
+            <Field label="Responsável" required error={errorOf("ownerId")}>
+              <Select<string> label="Quem responde pelo projeto" options={ownerOptions} value={values.ownerId || undefined} placeholder="Escolha quem responde" searchable searchPlaceholder="Buscar na equipe" disabled={saving} onChange={(ownerId) => set("ownerId", ownerId)} />
             </Field>
           </div>
           <Field label="Situação" required error={errorOf("status")}>
@@ -413,7 +465,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
             <ToolPicker value={values.tools} disabled={saving} onChange={(tools) => set("tools", tools)} />
           </Field>
           <Field label="Etiquetas" hint={`O que foi feito, escolhido na lista. Até ${MAX_TAGS}`} error={errorOf("tags")}>
-            <TagPicker value={values.tags} disabled={saving} onChange={(tags) => set("tags", tags)} />
+            <TagPicker catalog={projectTagCatalog} label="Etiquetas do projeto" value={values.tags} max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
         </Section>
 
@@ -475,58 +527,6 @@ function ToolPicker({ id, value, disabled, onChange }: { id?: string; value: Pro
             })),
           },
         ]}
-      />
-      {value.length === 0 && (
-        <Text as="span" variant="footnote" tone="secondary">
-          Nenhuma ainda
-        </Text>
-      )}
-    </div>
-  );
-}
-
-/* As etiquetas, no mesmo desenho e no mesmo contrato das tarefas (a pedido, 2026-09-13): escolha de uma gama
-   pronta, no leque por família, cada uma com a bolinha da própria cor, e não texto livre. Chegando ao teto, o
-   que não foi escolhido para de aceitar, e o leque diz isso. */
-function TagPicker({ id, value, disabled, onChange }: { id?: string; value: string[]; disabled?: boolean; onChange: (tags: string[]) => void }) {
-  const full = value.length >= MAX_TAGS;
-  const toggle = (tag: string, checked: boolean) => onChange(checked ? [...value, tag] : value.filter((entry) => entry !== tag));
-
-  return (
-    <div id={id} className={styles.picker}>
-      {value.map((tag) => (
-        <span key={tag} className={styles.chip} {...squircle("md")}>
-          <span className={styles.dot} style={{ "--dot-hue": projectTagHue(tag) } as CSSProperties} aria-hidden="true" />
-          <Text as="span" variant="footnote" weight="medium" truncate>
-            {tag}
-          </Text>
-          <button type="button" className={styles.chipRemove} aria-label={`Remover ${tag}`} disabled={disabled} onClick={() => toggle(tag, false)}>
-            <XIcon weight="bold" />
-          </button>
-        </span>
-      ))}
-      <DropdownMenu
-        label="Etiquetas do projeto"
-        triggerLabel={value.length === 0 ? "Escolher etiquetas" : "Adicionar etiquetas"}
-        icon={<PlusIcon />}
-        trigger={{ variant: "outline", radius: "md" }}
-        sections={projectTagGroups.map((group) => ({
-          id: `tags-${group}`,
-          label: group,
-          items: projectTags
-            .filter((tag) => tag.group === group)
-            .map((tag) => ({
-              kind: "toggle" as const,
-              id: tag.id,
-              label: tag.id,
-              media: <span className={styles.dot} style={{ "--dot-hue": tag.hue } as CSSProperties} />,
-              checked: value.includes(tag.id),
-              onChange: (checked: boolean) => {
-                if (checked && full) return;
-                toggle(tag.id, checked);
-              },
-            })),
-        }))}
       />
       {value.length === 0 && (
         <Text as="span" variant="footnote" tone="secondary">

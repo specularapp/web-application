@@ -1,34 +1,36 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { CatalogScreen } from "@/features/catalog/components/catalog-screen";
 import {
   CATALOG_GRID_COOKIE,
   CATALOG_VIEW_COOKIE,
   defaultPageSize,
-  listCatalog,
   parseCatalogGridSize,
   parseCatalogQuery,
   parseCatalogView,
 } from "@/features/catalog/list";
-import { previewCatalog } from "@/features/catalog/list-preview";
+import { getCatalogItemById, getCatalogPage } from "@/features/catalog/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
-export const metadata = createMetadata({
-  title: "Editar item",
-  description: "Edição da ficha de um produto ou serviço do catálogo",
-  noIndex: true,
-});
+/** O nome do item no título da aba: é a ficha dele que a página abre. */
+export async function generateMetadata({ params }: PageProps<"/catalogo/[id]">) {
+  const { id } = await params;
+  const item = await getCatalogItemById(id);
+
+  return createMetadata({
+    title: item ? item.name : "Item do catálogo",
+    description: "Ficha do produto ou serviço, com preço, entrega e histórico de venda",
+    path: `/catalogo/${id}`,
+    noIndex: true,
+  });
+}
 
 // A mesma tela do catálogo, com a gaveta de editar já aberta no item do endereço: assim a ficha pode ser
 // compartilhada e aberta direto, e pela lista abrir só troca a URL, sem sair da tela.
 export default async function CatalogItemPage({ params, searchParams }: PageProps<"/catalogo/[id]">) {
   const [{ id }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
-  // O item vem da prévia enquanto o domínio não existe no banco: quando a tabela nascer, muda só esta
-  // linha, no mesmo contrato da listagem.
-  const item = previewCatalog.find((entry) => entry.id === id);
-  if (!item) notFound();
 
   const view = parseCatalogView(cookieStore.get(CATALOG_VIEW_COOKIE)?.value);
   const gridSize = parseCatalogGridSize(cookieStore.get(CATALOG_GRID_COOKIE)?.value);
@@ -44,5 +46,8 @@ export default async function CatalogItemPage({ params, searchParams }: PageProp
     defaultPageSize(view, gridSize),
   );
 
-  return <CatalogScreen page={listCatalog(previewCatalog, query)} query={query} ai={previewAiUsage} view={view} editing={item} />;
+  const [item, page, ai] = await Promise.all([getCatalogItemById(id), getCatalogPage(query), getAiUsageData()]);
+  if (!item) notFound();
+
+  return <CatalogScreen page={page} query={query} ai={ai} view={view} editing={item} />;
 }

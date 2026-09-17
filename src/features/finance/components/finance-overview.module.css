@@ -1,0 +1,339 @@
+/* A prancha: uma coluna que rola por dentro no desktop, com o recuo das outras telas. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .board {
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* O topo: o período à esquerda e a ação na ponta. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.periodTrigger {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-3) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  white-space: nowrap;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.periodTrigger svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.periodCaret {
+  color: var(--color-label-tertiary);
+}
+
+@media (hover: hover) {
+  .periodTrigger:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}
+
+/* O caixa ao lado dos quatro números: no desktop lado a lado, no celular o cartão em cima. */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .top {
+    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (min-width: 64rem) {
+  .tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Um número: o glifo no matiz, o rótulo, o valor grande e a linha de apoio, na caixa do fio da casa. */
+.tile {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-4);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.tileGlyph {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-block-end: var(--space-2);
+  color: var(--tile-hue);
+  background-color: light-dark(color-mix(in oklab, var(--tile-hue) 14%, transparent), color-mix(in oklab, var(--tile-hue) 22%, transparent));
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.tileGlyph svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tileLabel {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* O gráfico ao lado das duas listas de vencimento. */
+.middle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .middle {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.side {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.chartCard {
+  min-width: 0;
+}
+
+.chart {
+  height: 13rem;
+}
+
+/* A leitura por voz e por número do gráfico: um mês por coluna com o saldo dele. */
+.legend {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3) 0 0;
+  margin: 0;
+  list-style: none;
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.legendItem {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  text-align: center;
+}
+
+.legendItem > * {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 47.9375rem) {
+  .legend {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* As parcelas por vencer: linhas que abrem a cobrança, com o hover das listas do menu. */
+.dueList {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0 calc(var(--space-2) * -1);
+  list-style: none;
+}
+
+.dueRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-2);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .dueRow:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.dueRow:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.dueCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.dueEnd {
+  display: grid;
+  gap: var(--space-half);
+  justify-items: end;
+  white-space: nowrap;
+}
+
+/* O filtro das movimentações, em segmento, no cabeçalho do cartão. */
+.segment {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: var(--space-half);
+  padding: var(--space-half);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.segmentItem {
+  padding: var(--space-half) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-caption1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.segmentItem[aria-selected="true"] {
+  color: var(--color-label);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmentItem:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* As movimentações, na receita das linhas do painel. */
+.list {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0 calc(var(--space-2) * -1);
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.rowCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.rowEnd {
+  display: grid;
+  gap: var(--space-half);
+  justify-items: end;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.empty {
+  padding-block: var(--space-4);
+  text-align: center;
+}
+
+.more {
+  display: block;
+  padding-block-start: var(--space-3);
+  text-align: center;
+}

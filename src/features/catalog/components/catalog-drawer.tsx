@@ -40,6 +40,8 @@ export type CatalogDrawerProps = {
   onClose: () => void;
   /** Abre a gaveta de edição no lugar da ficha. */
   onEdit: () => void;
+  /** Pede a exclusão; quem confirma é a prancha. */
+  onDelete: () => void;
 };
 
 const longDate = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy", { locale: ptBR });
@@ -56,7 +58,7 @@ const units = (count: number) => (count === 1 ? "1 unidade" : `${count} unidades
 // vive no leque, a pedido); e as seções empilhadas nos primitivos do perfil. O centro é a grade de preço e condições, em duas colunas com
 // rótulo em cima e valor embaixo, cada fato numa linha só e em poucas palavras: é a tela que faz o orçamento
 // sair certo, então o que importa se lê de uma vez, sem azulejo, sem lista de escopo e sem pular linha.
-export function CatalogDrawer({ item, active, onActiveChange, onClose, onEdit }: CatalogDrawerProps) {
+export function CatalogDrawer({ item, active, onActiveChange, onClose, onEdit, onDelete }: CatalogDrawerProps) {
   const stock = item ? readStock(item) : null;
 
   return (
@@ -82,7 +84,7 @@ export function CatalogDrawer({ item, active, onActiveChange, onClose, onEdit }:
               </Text>
             </div>
             <div className={styles.headActions}>
-              <CatalogMenu item={item} active={active} onActiveChange={onActiveChange} onEdit={onEdit} />
+              <CatalogMenu item={item} active={active} onActiveChange={onActiveChange} onEdit={onEdit} onDelete={onDelete} />
               <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
                 <XIcon />
               </IconButton>

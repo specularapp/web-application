@@ -16,6 +16,81 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-05 (sex) | tarde e noite, até 21:30 (início não anotado), 1 commit | Bloco de financeiro do painel: caixa vestido de cartão com o desenho do usuário e atualizar de verdade, cinco movimentações com rosto ou logo de quem está do outro lado; bloco de conquistas ganhou e perdeu conteúdo no mesmo dia; avatar passou para o DiceBear Adventurer; fechar por toque fora unificado em `useOutsideDismiss` |
 | 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
 | 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, fatos e containers refeitos nas janelas, fila de camadas que separa um modal do outro, arrastar a alça da bandeja para fechar e varredura de peso que levou o painel de 791 KB para 347 KB |
+| 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
+
+## 2026-09-16
+
+Tempo: em andamento.
+
+Feito:
+
+- **Todo dado de exemplo saiu da aplicação e o banco nasceu inteiro** (a pedido: "remova de todo o sistema os
+  dados mocados e crie todas as tabelas e relacionamentos de forma 100% estrutural, escalável e segura, com
+  validações em tudo"). Quinze migrações novas, aplicadas no projeto hospedado, com cerca de trinta tabelas:
+  clientes, catálogo, projetos (com pastas e equipe), tarefas (com subtarefas, vínculos, anexos e conversa),
+  CRM (pastas, funis e oportunidades), orçamentos e linhas, contratos (partes, campos de assinatura e linha
+  do tempo), financeiro (cobranças, parcelas, movimentações e saldo de abertura), automações e execuções, IA
+  (conversas, mensagens e consumo do ciclo), gamificação e notificações.
+- **A regra ficou no banco primeiro**, como manda o ecossistema com o aplicativo: RLS em toda tabela com
+  `organization_id`, escrita por `can_write` (que também exige MFA satisfeita quando a pessoa tem fator), o
+  identificador que a pessoa lê gerado por contador próprio e gatilho genérico (`CLI-2026-0001` em diante),
+  gatilho que recusa vínculo entre organizações diferentes, gatilho que recusa cartão numa etapa que o quadro
+  não declara, situação do contrato derivada de quem assinou, e restrição diferida que exige a soma das
+  parcelas bater com o total da cobrança.
+- **Onze domínios ganharam `service.ts` e `queries.ts`** no contrato que `organizations` já seguia: o serviço
+  recebe o cliente do Supabase de fora e não sabe quem chamou, as queries resolvem sessão e time, e as actions
+  passaram a ter zod, teto de requisições e revalidação sem exceção, por `guardAction`. Filtrar, ordenar e
+  cortar virou condição de SQL: as versões em memória de `list.ts` saíram, e o que ficou lá é só a leitura da
+  URL e do cookie.
+- **Os links públicos deixaram de guardar token**: o banco guarda só o `sha256`, e o token é derivado de
+  `SHARE_LINK_SECRET` mais o id e a versão da linha, então ele pode ser mostrado de novo sem nunca chegar ao
+  Postgres em claro, e revogar é somar um na versão. A leitura pública passou para função `security definer`
+  concedida só a `service_role`, com teto por endereço de origem: `anon` não tem select em tabela nenhuma.
+- **O assistente ficou de pé de verdade**: `askAiAction` monta o contexto da conta pelas fontes escolhidas,
+  com a RLS valendo (o modelo nunca vê o que a pessoa não veria), consome o crédito do ciclo antes de falar
+  com a OpenAI e grava a conversa. A resposta continua saindo palavra por palavra na tela, que é efeito de
+  leitura, e não de fluxo do servidor.
+- **O que era prévia saiu junto**: as doze rotas `/previa/*`, os vinte e seis arquivos de fixture, os quatro
+  stores em memória e o prefixo no proxy. A vitrine `/componentes` ficou só com os primitivos; as cinco
+  entradas que montavam menu, painel e tela de plano com dado de negócio saíram.
+- **O menu passou a ler a conta**: notificações viraram tabela (escrita só pelo servidor, leitura e marcar
+  como lida pela pessoa) e o cartão de aviso passou a ser derivado da entrega, da parcela e da tarefa mais
+  próximas, em vez de uma lista escrita à mão.
+- **`npm run db:probe`**: prova o schema contra o banco hospedado, criando uma organização de teste,
+  escrevendo uma linha de cada domínio, conferindo o que precisa passar e o que precisa ser recusado, e
+  apagando tudo no fim. Trinta asserções, todas passando. `typecheck`, `lint` e `build` passam.
+- Cinco entradas de direito de plano entraram junto (`ai_actions`, `active_projects`, `team_members`,
+  `automations`, `custom_domain`), porque a IA precisava de teto por ciclo e a regra de plano já existia
+  esperando a primeira tela que a exigisse.
+
+- **Rodada de velocidade, no mesmo dia e a pedido** ("otimize ao máximo, com cache e carregamento
+  preguiçoso, para aguentar escala"): a concha deixou de ler a base inteira a cada navegação (as contagens
+  do menu viraram função agrupada no banco, com índice parcial, e as conversas do assistente saíram dali
+  para chegar na primeira abertura da coluna); entrou cache em Redis com invalidação por tag em toda leitura
+  repetida, com a chave carregando organização e filtro e o mapa de dependência entre domínios; a sessão e o
+  time em vigor passaram a ser memorizados por requisição com o `cache` do React, o que tirava três a quatro
+  consultas ao perfil por página; cada rota ganhou `loading.tsx` com esqueleto na forma da tela; a listagem
+  de contratos passou a filtrar e paginar no SQL; o quadro de tarefas parou de trazer conversa, anexo e
+  vínculo por cartão (só a contagem, e a ficha busca o resto); e o leitor de PDF saiu do pacote da listagem
+  de contratos para uma importação preguiçosa.
+
+- **Rodada de padronização, a pedido** ("o sistema é todo padronizado, completo e integrado, tudo é
+  reaproveitado; exemplo prático: etiquetas é seleção e não input"): etiqueta virou escolha de gama fechada
+  em **todos** os domínios, com a forma comum em `lib/tags.ts`, as gamas de clientes, catálogo e funil
+  escritas do zero, as de projetos e tarefas passadas para o mesmo molde, e um seletor único em
+  `components/ui/tag-picker` no lugar das duas cópias locais e dos três campos de texto livre; o zod das
+  cinco fichas passou a aceitar só o que o leque oferece. A confirmação de ação sem volta virou primitivo
+  (`components/ui/confirm-dialog`), no lugar da janela própria dos clientes e da função escrita dentro da
+  prancha das automações. E o "Excluir" que existia no leque de catálogo, projetos, tarefas e funil, sem
+  fazer nada, passou a funcionar de ponta a ponta: o leque pede, a janela pergunta, a action grava, o aviso
+  aparece e a lista se refaz.
+
+Pendências:
+
+- O relógio das automações (agendamento e vencimento de cobrança) continua fora: hoje disparam os eventos da
+  aplicação e o teste manual.
+- O gateway de pagamento das cobranças ao cliente.
+- Formulário de oportunidade e de tarefa: o schema, o serviço e as actions estão de pé, e a tela ainda só lê.
 
 ## 2026-09-15
 
@@ -28,10 +103,27 @@ Feito:
 - **O `Tooltip` deixou de ser recortado** (a pedido): a bolha é portada para o corpo e fixa na tela, medida antes de pintar e virando de lado quando não cabe. Os tooltips do link de assinatura na ficha e do baixar no editor saíram; ficaram só os das ações do cabeçalho da ficha, como na janela do projeto.
 - **A janela de novo contrato redesenhada com as peças da casa** (a pedido: "uma interface mais interessante", "seguindo os padrões do sistema"): as três origens em cartões lado a lado com o azulejo no matiz de cada uma e o caminho no pé; a galeria em duas colunas com **a folha em miniatura do documento de verdade** em cada cartão, o tipo, a contagem de cláusulas, o nome, a frase e as entregas. A janela passou para `lg`.
 - Conferido no navegador: editor no computador e no celular, o leque de opções aberto sobre a folha, a inserção de cláusula (numera a décima terceira e seleciona o assunto), a janela de criar nos dois tamanhos, a galeria, a página pública escrita e o tooltip da ficha. `typecheck`, `lint` e `build` passam.
+- **O menu deixou de esconder os contratos** (a pedido): a pasta "Projetos" virou "Projetos e contratos", o contrato ganhou o glifo de assinatura no lugar da maleta que dividia com o projeto, e "Novo contrato" saiu da lista, porque menu é lugar e não ação, e criar já mora no topo da própria página. A rota segue de pé.
+- **A página de automações, de ponta a ponta** (a pedido: "criar/editar automações, as padrões de e-mail e cobrança recorrente, e novas automações de processo; super funcional, leve, bonito e otimizado", com n8n e Make como referências): o domínio em `features/automations` (o fluxo como dado, o catálogo de catorze nós em gatilhos, lógica e ações, oito modelos da casa com os e-mails escritos, o motor que anda pelo grafo e manda e-mail e webhook de verdade, o store em memória com execuções de exemplo, zod e actions); a lista em cartões com o interruptor de ativar, a trilha do fluxo e as execuções; a janela de criar do zero ou de modelo; **o editor de fluxo sobre o React Flow** (registrado em `libs.md` antes de instalar): paleta com arrastar, quadro pontilhado com os nós da casa, o "+" que abre "O que acontece depois?", dock de zoom, painel do passo com o leque de variáveis, salvamento sozinho, Testar com o registro de cada passo e o histórico em gaveta; e os eventos de contrato enviado e assinado disparando os fluxos ativos. O casco de e-mail saiu do contrato para `lib/resend/template.ts`, compartilhado. Conferido no navegador: o teste do lembrete de contrato rodou os quatro passos e mandou o e-mail para quem testa; adicionar pelo "+" liga o passo e salva sozinho.
+- **Segunda rodada do editor, a pedido** (sobre uma referência de editor de fluxo do usuário): os nós viraram **cards com os campos dentro** e o nome editável no próprio cabeçalho, sem a categoria escrita; a paleta virou mini cards com a faixa do matiz; e **as ligações voltaram a aparecer**: o `path` existia e não pintava, porque o `max-width: 100%` do reset da casa em todo SVG deixava o SVG das ligações do React Flow com largura zero, que em SVG desliga o desenho. As variáveis de tema do React Flow passaram para os nomes sem `-default`, que a folha da lib não redeclara.
+- **O Testar encena a execução no quadro** (a pedido): o resultado do servidor é reproduzido passo a passo, o card pulsando enquanto roda, a ligação correndo no acento e ficando verde ou vermelha, e o glifo do resultado no card. Os passos ganharam configurações comuns (tentar de novo, continuar se falhar, notas), lidas pelo motor; o que é puro do motor (variáveis, condição, prévia do e-mail) saiu para `template.ts`. A janela de detalhes do passo por clique duplo, no desenho do n8n, foi feita e retirada no mesmo dia a pedido.
+- **O funil de vendas começou** (a pedido: "praticamente na mesma pegada de tarefas"): domínio novo em `features/crm/` com a arquitetura de pastas e funis, o catálogo de sete etapas com desfecho de dois lados (ganho e perdido), a listagem com filtro na URL e o quadro com arraste, etapas recolhíveis e a paginação na barra flutuante. Rotas `/crm`, `/crm/<funil>` e a prévia `/previa/crm`; o menu ganhou a pasta com a árvore dos funis.
+- **A árvore do menu virou uma peça só** (`NavTree`): tarefas e funil dividem o mesmo componente, com dois conversores minúsculos, em vez de duas cópias que divergiriam no primeiro acerto de cotovelo.
+- **O cartão e a ficha da oportunidade**: o cartão abre pelo cliente, no bloco da casa, e traz temperatura no lugar da prioridade, aviso de venda parada, valor e chance; a ficha abre pelo dinheiro, com os três números, o próximo passo em destaque e o caminho no funil clicável ao lado.
+- **A oportunidade ganhou a ficha inteira de uma venda**, sobre o CRM que o usuário usa hoje: contato, cidade e estado, código do parceiro, entrada e fechamento com hora, tempo na etapa, primeira resposta e resposta média, e o rastro de campanha completo (campanha, conjunto, anúncio, GCLID, CTWACLID, FBCLID, Source ID, Meta lead ID, URL de origem e os cinco UTMs). Os campos vieram da referência; **o desenho é o da casa**, nos fatos de perfil, e não a grade de células daquela ficha.
+- **A página do SpeculAI, em tela cheia** (a pedido): a mesma conversa da coluna lateral, no mesmo provedor, com a trilha de conversas à vista (busca, faixas de hoje a mais antigas, renomear e excluir), o saldo do ciclo no pé dela e a escolha do que a IA pode ler ao lado do modo de resposta. O provedor passou a guardar a **lista** de conversas em vez de "a de agora mais um arquivo", que é o que faz perguntar numa tela e continuar na página ser a mesma conversa. Sem o topo da aplicação, a pedido; o botão de nova conversa voltou ao primário da casa. Conferido no navegador em 1440, 1024, 768 e 390, claro e escuro.
+- **O vazio de tela virou peça da casa** (`EmptyState`, que era stub, a pedido e sobre uma referência do usuário): glifo do que falta, o que não existe, por que, e **o caminho de saída**. Distingue base vazia (convida a criar o primeiro) de busca sem resultado (diz que nada bateu e oferece limpar). Entrou em nove listas e nos blocos do painel. Dois tamanhos com composições diferentes, e não o mesmo desenho encolhido: o azulejo sobre papel quadriculado em página cheia, e o glifo solto na frente do título em cartão, porque um bloco de uma linha do painel dá 114px de conteúdo e o azulejo mais o botão já passam disso. Medido no navegador.
+- **Os desenhos gerados trocaram de estilo**, a pedido e sobre as páginas do DiceBear: **Lorelei** no rosto de cliente e de pessoa em geral, no lugar do Adventurer; **Icons** na arte de produto e serviço do catálogo; e **Waves** na capa de projeto sem imagem, preenchendo a capa inteira, os dois últimos no lugar do Loops. A arte saiu de `features/catalog/` para `lib/artwork.ts`, porque deixou de ser do catálogo, e o estilo entrou no caminho da rota (`/api/artwork/[style]/[hue]/[token]`). O azulejo do item perdeu o recuo que abria para a arte, na tela e no PDF, porque o Icons já desenha com folga no próprio quadro e o recuo virava recuo em dobro.
+- **Imagem de registro passou a existir de verdade** (relato de que a foto do cliente não fixava no banco): o domínio `features/uploads/` com endereço assinado, subida direta para o Storage e gravação do endereço na linha, servindo cliente (foto e logo), item do catálogo e capa de projeto, por Server Action e por `api/v1/imagens`. Antes a imagem virava um `blob:` que nem era enviado, e a capa de projeto ia embutida em base64 contra uma coluna de 500 caracteres.
+- **A comemoração virou peça da casa** (`Celebration` e `useCelebration`), a pedido de que todo feito tenha o retorno do arrastar de pontos: a janela de vidro com o feito grande, o confete e o caminho de seguir, chamada de qualquer lugar como o toast. O arrasto de pontos passou a usá-la e perdeu a cópia do confete. A régua ficou escrita: toast é recibo de ação comum, comemoração é o que a pessoa vai querer contar para alguém.
+- Corrigido de passagem: o quadro de um projeto escrevia o filtro em `/tarefas/` sem o slug, então filtrar dentro de um projeto jogava a pessoa para o quadro de todas as tarefas.
+- **O financeiro completo, de ponta a ponta** (a pedido: "uma página completa do financeiro, a visão geral e as cobranças, com pendências de pagamento, parcelamentos etc.", sobre a lógica do bloco do painel): o domínio em `features/finance` (a cobrança com parcelas e situação derivada, o store em memória semeado pelos orçamentos aprovados com as parcelas pagas virando entradas e as assinaturas de serviço virando saídas, zod, actions e e-mails no casco da casa); **a visão geral** com o caixa vestido de cartão (que saiu do bloco do painel para a feature, e o painel passou a ler do mesmo store), os quatro números do período, o gráfico de entradas e saídas em Recharts, os próximos vencimentos e o em atraso, as movimentações com filtro e recibo, e a gaveta de lançar movimentação; **as cobranças** em tabela ou grade com filtros e paginação, a ficha com as parcelas (confirmar, reabrir), o link e a linha do tempo, a gaveta de nova cobrança a partir de orçamento aprovado ou do zero com a prévia das parcelas, e o leque com enviar, copiar link, confirmar e cancelar; **a página pública** da cobrança com "Já paguei", que avisa a equipe por e-mail. Confirmar uma parcela dispara "pagamento recebido" nas automações. Conferido no navegador nas duas telas.
 
 Pendências:
 
 - Contratos: o domínio no banco (tabelas, `service.ts`, `api/v1`, arquivo no Storage); dados das partes do cadastro em vez de colchetes; itálico no PDF; renumerar as cláusulas de baixo ao inserir uma no meio.
+- Automações: o domínio no banco (tabelas, `service.ts`, `api/v1`); o relógio (Inngest) para agendamento, vencimento de cobrança e retomar depois de esperar; os eventos de cliente e orçamento quando esses domínios saírem da prévia (o de pagamento já vem das cobranças); desfazer no quadro.
+- Financeiro: o domínio no banco (cobranças, parcelas e movimentações, `service.ts`, `api/v1`); cobrança de verdade por Pix e cartão no lugar das instruções e do "Já paguei"; recibo em PDF; exportar as movimentações; a cobrança nascendo do contrato assinado.
 ## 2026-09-14
 
 Tempo: em andamento.

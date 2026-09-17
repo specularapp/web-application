@@ -1,4 +1,4 @@
-import type { Quote, QuoteDiscount, QuoteLine } from "./summary";
+import type { QuoteDiscount, QuoteLine } from "./summary";
 
 export type QuoteTotals = {
   /** A soma das linhas cobradas, em centavos; cortesia não entra. */
@@ -14,6 +14,18 @@ export type QuoteTotals = {
   cashSaving: number;
   /** O total pagando à vista, já com o desconto de à vista. */
   cash: number;
+};
+
+/**
+ * O que basta para somar um orçamento: as linhas com quantidade, valor e cortesia, o desconto, em quantas
+ * parcelas e o desconto de à vista. Menos que o `Quote` inteiro de propósito, para quem só tem as linhas
+ * (a ficha do cliente, a do projeto, o índice da casa) somar sem montar um orçamento falso ao redor delas.
+ */
+export type QuoteTotalsInput = {
+  lines: readonly Pick<QuoteLine, "quantity" | "unitPrice" | "courtesy">[];
+  discount: QuoteDiscount;
+  installments: number;
+  cashDiscount: number;
 };
 
 /** Se a linha é brinde: sim e "só hoje" não cobram nada. */
@@ -37,7 +49,7 @@ export function discountAmount(subtotal: number, discount: QuoteDiscount) {
  * A parcela é o total dividido, arredondado: a diferença de centavos fica para a cobrança acertar. O
  * desconto de à vista não muda o total; ele é uma oferta, e o documento a mostra ao lado das parcelas.
  */
-export function quoteTotals(quote: Pick<Quote, "lines" | "discount" | "installments" | "cashDiscount">): QuoteTotals {
+export function quoteTotals(quote: QuoteTotalsInput): QuoteTotals {
   const subtotal = quote.lines.reduce((sum, line) => sum + lineTotal(line), 0);
   const courtesy = quote.lines.reduce((sum, line) => sum + (isCourtesy(line) ? lineValue(line) : 0), 0);
   const discount = discountAmount(subtotal, quote.discount);

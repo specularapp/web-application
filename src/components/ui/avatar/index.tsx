@@ -53,7 +53,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
       {src ? (
         <Image src={src} alt="" fill sizes={imageSizes[size]} className={styles.image} />
       ) : (
-        /* O rosto gerado vem da rota, e não embutido: o SVG do Adventurer tem uns 11 KB, ia inteiro na
+        /* O rosto gerado vem da rota, e não embutido: o SVG do rosto tem uns 11 KB, ia inteiro na
            marcação e de novo na carga do RSC, e uma página com quarenta avatares carregava mais de um
            mega só disso. Pela rota ele é um arquivo com cache de um ano, então a mesma pessoa em cinco
            lugares custa uma requisição, e nas próximas visitas custa zero.

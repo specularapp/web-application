@@ -44,17 +44,6 @@
   }
 }
 
-/* Sem resultado, a frase ocupa o lugar da grade, centrada na altura que sobra. */
-.empty {
-  display: grid;
-  gap: var(--space-1);
-  place-content: center;
-  justify-items: center;
-  min-height: 16rem;
-  padding: var(--space-6);
-  text-align: center;
-}
-
 /* A contagem e a barra, alinhadas à direita como o pé da tabela. */
 .foot {
   display: flex;

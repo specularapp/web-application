@@ -8,6 +8,8 @@ export const referencePrefixes = {
   task: "TAR",
   client: "CLI",
   catalog: "CAT",
+  opportunity: "OPO",
+  funnel: "FUN",
 } as const;
 
 export type ReferenceKind = keyof typeof referencePrefixes;

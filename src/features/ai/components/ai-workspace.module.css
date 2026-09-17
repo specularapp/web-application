@@ -1,0 +1,181 @@
+/**
+ * A página do assistente: a trilha de conversas à esquerda e a conversa tomando o resto. Altura fixa, como
+ * o quadro do funil, porque nada aqui cresce em fluxo: quem rola é a lista de um lado e a conversa do
+ * outro, cada uma por dentro, e o compositor fica preso no pé.
+ */
+.workspace {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+@media (max-width: 63.9375rem) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rail {
+  min-width: 0;
+  min-height: 0;
+  border-inline-end: 0.0375rem solid var(--color-border);
+}
+
+/* A mancha de cor por trás do vidro, a mesma receita da coluna lateral: as manchas ficam **atrás** e quem
+   borra é a camada de cima. Aqui elas moram no pé da conversa, que é de onde o assistente fala. */
+.main {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.main::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 60% at 18% 100%, color-mix(in oklab, var(--sys-cyan) 16%, transparent), transparent 70%),
+    radial-gradient(70% 70% at 82% 100%, color-mix(in oklab, var(--color-ai) 20%, transparent), transparent 72%);
+}
+
+.main > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sem a trilha à vista, a linha que abre as conversas, diz em qual se está e começa outra. */
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.barName {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+@media (max-width: 63.9375rem) {
+  .main {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+}
+
+/* A conversa rola por dentro e pousa no pé: ela cresce de baixo para cima, como na coluna. Quem empurra
+   para baixo é a margem automática do conteúdo, e não um alinhamento do container, que deixaria o começo do
+   que transborda fora do alcance da rolagem. */
+.scroller {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding-block: var(--space-6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/**
+ * A coluna de leitura no meio da tela. Quarenta e oito rem é a largura em que a linha de texto fica com uns
+ * setenta e cinco caracteres, que é onde o olho ainda acha a linha seguinte sozinho; esticada de ponta a
+ * ponta numa tela larga, a resposta viraria uma faixa que se lê varrendo a cabeça.
+ */
+.column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 48rem;
+  min-width: 0;
+  padding-inline: var(--space-5);
+  margin-inline: auto;
+}
+
+@media (max-width: 47.9375rem) {
+  .column {
+    padding-inline: var(--space-3);
+  }
+
+  .scroller {
+    padding-block: var(--space-4);
+  }
+}
+
+/* O vazio no meio do que rola, e não encostado no compositor: é a tela de abertura do SpeculAI, e tela de
+   abertura mora no centro. */
+.empty {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  margin-block: auto;
+  text-align: center;
+}
+
+.greetingMark {
+  margin-block-end: var(--space-4);
+}
+
+.greetingLine {
+  max-width: 30rem;
+}
+
+/**
+ * O compositor no pé, na mesma coluna de leitura da conversa: alinhado com o texto acima dele, e não com a
+ * borda da tela, senão a pergunta e a resposta pareceriam de telas diferentes.
+ *
+ * E é aqui que o vidro da casa aparece nesta página, na receita das camadas: as manchas de cor ficam atrás,
+ * na camada de baixo, e este pé as borra. É o mesmo par da coluna lateral e da janela de plano, e o motivo
+ * de ele ficar no pé é que é de lá que o assistente fala.
+ */
+.foot {
+  display: flex;
+  min-width: 0;
+  background-color: var(--glass-layer-bg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+/* O recuo do pé é o da conversa menos o que o compositor já abre por dentro, para o cartão nascer na mesma
+   linha vertical em que o texto acima dele começa. */
+.foot .column {
+  flex: 0 0 auto;
+  padding-inline: var(--space-1);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot .column {
+    padding-inline: 0;
+  }
+}
+
+/* A gaveta das conversas no lugar da trilha, em tela estreita: o mesmo conteúdo, com um título e o fechar
+   em cima, porque a janela da casa não desenha cabeçalho nenhum. */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.drawerHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}

@@ -42,7 +42,7 @@
 }
 
 /* Rosto desenhado: pastel do matiz da semente sobre o branco fixo, o mesmo dos dois temas, porque o
-   traço do Adventurer é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
+   traço do rosto é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
    vizinho. */
 .avatar[data-generated] {
   background-color: color-mix(in oklab, var(--avatar-hue) 32%, var(--color-on-accent));

@@ -1,89 +1,15 @@
 import "server-only";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { hasResend } from "@/lib/env";
-import { siteConfig } from "@/lib/metadata";
-import { getFromEmail, getResend } from "@/lib/resend/client";
+import { deliver, escapeHtml, shell } from "@/lib/resend/template";
 
 /**
- * Os e-mails do contrato, no mesmo desenho do convite de time: HTML em tabela, uma coluna, a logo em cima,
- * o título, a explicação curta, o botão preto e o endereço por extenso embaixo, para quem o botão não
- * funciona. Dois e-mails: o **convite de assinatura**, um para cada parte com o link dela, e a **cópia
+ * Os e-mails do contrato, no casco da casa (`lib/resend/template.ts`, o mesmo do convite de time e das
+ * automações): HTML em tabela, uma coluna, a logo em cima, o título, a explicação curta, o botão preto e o
+ * endereço por extenso embaixo, para quem o botão não funciona. Dois e-mails: o **convite de assinatura**, um para cada parte com o link dela, e a **cópia
  * assinada**, para as duas quando a última assina. Sem Resend configurado nada sai e a função diz isso, para
  * a tela avisar que o registro ficou e o e-mail não foi.
  */
-
-const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => escapes[character] ?? character);
-
-type Shell = { title: string; preview: string; heading: string; lines: string[]; button: { label: string; url: string }; footnote: string };
-
-function shell({ title, preview, heading, lines, button, footnote }: Shell) {
-  const link = escapeHtml(button.url);
-  const paragraphs = lines.map((line) => `<p style="margin: 16px 0 0; font-size: 14px; line-height: 1.7; color: #6e6e73;">${line}</p>`).join("");
-
-  return `<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
-    <title>${escapeHtml(title)}</title>
-  </head>
-  <body style="margin: 0; padding: 0; background-color: #ffffff;">
-    <div style="display: none; max-height: 0; overflow: hidden;">${escapeHtml(preview)}</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff;">
-      <tr>
-        <td align="center" style="padding: 48px 24px 40px;">
-          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width: 560px; width: 100%;">
-            <tr>
-              <td style="padding-bottom: 36px;">
-                <img src="${siteConfig.url}/logotipo/specular-icon-email.png" alt="Specular" width="40" height="40" style="display: block; width: 40px; height: 40px; border: 0;" />
-              </td>
-            </tr>
-            <tr>
-              <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                <h1 style="margin: 0; font-size: 21px; line-height: 1.35; font-weight: 600; letter-spacing: -0.3px; color: #000000;">${heading}</h1>
-                ${paragraphs}
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px 0 0;">
-                  <tr>
-                    <td style="border-radius: 10px; background-color: #000000;">
-                      <a href="${link}" target="_blank" style="display: inline-block; padding: 11px 22px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 10px;">${escapeHtml(button.label)}</a>
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin: 20px 0 0; font-size: 12px; line-height: 1.7; color: #8e8e93;">Se o botão não funcionar, copie e cole este endereço no navegador<br /><a href="${link}" style="color: #6e6e73; word-break: break-all;">${link}</a></p>
-                <p style="margin: 24px 0 0; font-size: 13px; line-height: 1.7; color: #8e8e93;">${footnote}</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding-top: 44px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="border-top: 1px solid #e5e5ea; padding-top: 16px; font-size: 12px; line-height: 1.7; color: #8e8e93;">Specular, gestão completa para freelancers e agências<br />Você recebeu este e-mail porque uma equipe informou seu endereço num contrato, se não faz sentido, ignore esta mensagem</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
-}
-
-async function deliver(to: string, subject: string, html: string) {
-  if (!hasResend()) return false;
-  try {
-    const { error } = await getResend().emails.send({ from: getFromEmail(), to, subject, html });
-    if (error) console.error("e-mail do contrato falhou:", error.name);
-    return !error;
-  } catch (error) {
-    console.error("e-mail do contrato falhou:", error);
-    return false;
-  }
-}
 
 export type InviteEmail = {
   to: string;

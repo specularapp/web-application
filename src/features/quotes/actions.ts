@@ -1,48 +1,84 @@
 "use server";
 
-import { previewQuotes } from "./list-preview";
-import { quoteFormSchema, quoteResponseSchema } from "./schemas";
+import { headers } from "next/headers";
+import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
+import { cacheTags } from "@/lib/cache/tags";
+import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
+import { createAdminClient } from "@/lib/supabase/server";
+import { quoteFormSchema, quoteIdsSchema, quoteResponseSchema, quoteIdSchema } from "./schemas";
+import { deleteQuotes, respondToQuote, rotateQuoteToken, saveQuote } from "./service";
 import type { QuoteStatus } from "./summary";
-
-const INVALID = "Confira os dados informados.";
 
 export type QuoteSaveResult = { ok: true; id: string; status: QuoteStatus } | { ok: false; error: string; field?: string };
 export type QuoteResponseResult = { ok: true; status: QuoteStatus } | { ok: false; error: string };
+export type QuoteDeleteResult = { ok: true; deleted: number } | { ok: false; error: string };
+export type QuoteTokenResult = { ok: true; token: string } | { ok: false; error: string };
 
 /**
- * Salva o orçamento, criando ou editando: é o mesmo formulário e a mesma regra. A entrada é validada aqui
- * com zod mesmo já validada na tela, porque é assim que toda entrada de usuário chega ao servidor. O campo
- * com problema volta pelo caminho dele ("lines.2.unitPrice", "discount.value"), para o editor acender o
- * campo certo. Salvar como enviado marca a data de envio e o token público nasce aqui, nunca na tela.
- *
- * Hoje só valida e devolve: **o domínio não existe no banco**. Quando a tabela nascer, a gravação vai para
- * `service.ts`, com a RLS valendo, exposta por esta action e por um Route Handler em `api/v1`, no contrato
- * que a base de clientes segue.
+ * Salva o orçamento, criando ou editando: é o mesmo formulário e a mesma regra. O campo com problema volta
+ * pelo caminho dele ("lines.2.unitPrice", "discount.value"), para o editor acender o campo certo. Salvar
+ * como enviado marca a data de envio; o token do link público nunca vem da tela, é derivado no servidor.
  */
 export async function saveQuoteAction(input: unknown): Promise<QuoteSaveResult> {
-  const parsed = quoteFormSchema.safeParse(input);
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0];
-    const field = issue?.path.join(".");
-    return { ok: false, error: issue?.message ?? INVALID, field: field || undefined };
-  }
+  const guard = await guardAction("quote-save");
+  if (!guard.ok) return { ok: false, error: guard.error };
 
-  return { ok: true, id: parsed.data.id ?? `novo-${Date.now().toString(36)}`, status: parsed.data.intent === "send" ? "sent" : "draft" };
+  const parsed = quoteFormSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+
+  const { supabase, organizationId, user } = guard.context;
+  const saved = await saveQuote(supabase, organizationId, user.id, parsed.data);
+  if (!saved.ok) return { ok: false, error: saved.error, field: saved.error.includes("cliente") ? "clientId" : undefined };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true, id: saved.data.id, status: saved.data.status };
+}
+
+export async function deleteQuotesAction(input: unknown): Promise<QuoteDeleteResult> {
+  const guard = await guardAction("quote-delete");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = quoteIdsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Escolha ao menos um orçamento." };
+
+  const removed = await deleteQuotes(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!removed.ok) return { ok: false, error: removed.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true, deleted: removed.data.deleted };
+}
+
+/** Gera um link novo e derruba o anterior, para quando o endereço vazou ou foi para a pessoa errada. */
+export async function rotateQuoteTokenAction(input: unknown): Promise<QuoteTokenResult> {
+  const guard = await guardAction("quote-token");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = quoteIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Orçamento inválido." };
+
+  const rotated = await rotateQuoteToken(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!rotated.ok) return { ok: false, error: rotated.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true, token: rotated.data.token };
 }
 
 /**
- * A resposta do cliente pelo link público: aprovar ou recusar. O token é a única credencial, então ele é
- * validado no formato e procurado na base; nada aqui recebe id interno. Quando a tabela nascer, a mudança
- * de situação e a data da resposta gravam por `service.ts`, e o time é avisado.
+ * A resposta do cliente pelo link público: aprovar ou recusar. O token é a única credencial, e nada aqui
+ * recebe id interno. Quem responde não tem sessão, então o teto de requisições é por endereço de origem, e
+ * a escrita passa pela função do banco, que confere o resumo do token e a validade do documento.
  */
 export async function respondToQuoteAction(input: unknown): Promise<QuoteResponseResult> {
   const parsed = quoteResponseSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: INVALID };
+  if (!parsed.success) return { ok: false, error: "Não foi possível registrar a resposta." };
 
-  const quote = previewQuotes.find((entry) => entry.shareToken === parsed.data.token);
-  if (!quote) return { ok: false, error: "Este orçamento não está mais disponível." };
-  if (quote.status === "approved" || quote.status === "declined") return { ok: false, error: "Este orçamento já foi respondido." };
-  if (quote.status === "expired") return { ok: false, error: "Este orçamento venceu. Peça uma nova versão à equipe." };
+  const ip = clientIp(await headers());
+  const { allowed } = await checkRateLimit("publicLink", `quote-response:${ip}`, crypto.randomUUID());
+  if (!allowed) return { ok: false, error: "Muitas tentativas. Aguarde um instante." };
 
-  return { ok: true, status: parsed.data.decision === "approve" ? "approved" : "declined" };
+  const responded = await respondToQuote(createAdminClient(), parsed.data.token, parsed.data.decision === "approve");
+  if (!responded.ok) return { ok: false, error: responded.error };
+
+  await revalidateDomain(responded.data.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+  return { ok: true, status: responded.data.status };
 }

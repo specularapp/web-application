@@ -1,7 +1,15 @@
 "use client";
 
 import {
+  AddressBookIcon,
+  BooksIcon,
   BrainIcon,
+  BriefcaseIcon,
+  CurrencyCircleDollarIcon,
+  FunnelIcon,
+  ListChecksIcon,
+  ReceiptIcon,
+  SignatureIcon,
   FileTextIcon,
   ImageIcon,
   LightningIcon,
@@ -21,8 +29,24 @@ import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "@/f
 import { acceptAny, acceptDocuments, acceptImages, sizeLabel } from "@/features/tasks/files";
 import { squircle, squircleAuto } from "@/lib/corners";
 import { aiModel, aiModels, defaultAiModel, type AiModelId } from "../models";
+import { aiScopeIds, aiScopeLabel, aiScopeLabels, defaultAiScope, type AiScopeId } from "../scope";
 import { aiRemaining, type AiAttachment, type AiUsage, type AiVoice } from "../summary";
 import styles from "./ai-composer.module.css";
+
+/* O glifo de cada fonte mora aqui, e não em `scope.ts`: aquele arquivo é lido pelo zod, que é lido pela
+   action e pela rota de `api/v1`, e um mapa de ícones ali arrastava a biblioteca inteira para o servidor.
+   Os glifos são os mesmos do menu, para a fonte aqui e a página lá serem lidas como a mesma coisa. */
+const scopeGlyphs: Record<AiScopeId, Icon> = {
+  crm: FunnelIcon,
+  orcamentos: ReceiptIcon,
+  contratos: SignatureIcon,
+  clientes: AddressBookIcon,
+  projetos: BriefcaseIcon,
+  tarefas: ListChecksIcon,
+  financeiro: CurrencyCircleDollarIcon,
+};
+
+const scopeSources = aiScopeIds.map((id) => ({ id, label: aiScopeLabels[id], icon: scopeGlyphs[id] }));
 
 export type AiComposerProps = {
   value: string;
@@ -39,6 +63,12 @@ export type AiComposerProps = {
   onClose: () => void;
   /** Onde a pessoa está, na rota do menu ("Área de trabalho/Projetos"), com o glifo da página. */
   context?: { trail: string; icon: Icon };
+  /**
+   * O que o assistente pode ler, quando quem chama deixa escolher: a pílula das fontes entra ao lado da do
+   * modo. É da página cheia, e não da coluna: lá o que vai junto da pergunta é a tela aberta atrás, que já
+   * diz o assunto, e a pílula seria uma escolha a mais numa barra que já está cheia.
+   */
+  scope?: { chosen: readonly AiScopeId[]; onChange: (scope: readonly AiScopeId[]) => void };
   /** O uso do ciclo, para o saldo aparecer no pé do cartão. */
   usage?: AiUsage;
   /** O campo, para a sugestão clicada no vazio cair aqui com o cursor dentro. */
@@ -55,7 +85,7 @@ const modelIcons: Record<AiModelId, Icon> = { fast: LightningIcon, deep: BrainIc
  * No celular o clipe, a voz e o enviar viram glifos da barra flutuante; o que sobra no pé do cartão é o que
  * é ajuste, e não ação: o modo da resposta.
  */
-export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, onClose, context, usage, fieldRef }: AiComposerProps) {
+export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, onClose, context, scope, usage, fieldRef }: AiComposerProps) {
   const [model, setModel] = useState<AiModelId>(defaultAiModel);
   const [files, setFiles] = useState<AiAttachment[]>([]);
   const [voice, setVoice] = useState<AiVoice | null>(null);
@@ -139,11 +169,45 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
     },
   ];
 
+  /* As fontes em interruptores, e não em escolha única: ler o funil e os orçamentos juntos é o caso comum, e
+     um menu que fecha a cada toque faria a pessoa reabrir para cada fonte. A linha do fim liga tudo de uma
+     vez, que é como se desfaz um recorte sem tocar em sete interruptores. */
+  const scopeSections: DropdownSection[] = scope
+    ? [
+        {
+          id: "fontes",
+          label: "O que eu posso ler",
+          items: scopeSources.map((source) => ({
+            kind: "toggle" as const,
+            id: source.id,
+            label: source.label,
+            icon: source.icon,
+            checked: scope.chosen.includes(source.id),
+            onChange: (on: boolean) =>
+              scope.onChange(on ? [...scope.chosen, source.id] : scope.chosen.filter((entry) => entry !== source.id)),
+          })),
+        },
+        {
+          id: "tudo",
+          items: [
+            {
+              id: "toda-a-conta",
+              label: "Toda a conta",
+              icon: BooksIcon,
+              selected: scope.chosen.length >= scopeSources.length,
+              keepOpen: true,
+              onSelect: () => scope.onChange(defaultAiScope),
+            },
+          ],
+        },
+      ]
+    : [];
+
   const chosen = aiModel(model);
   const PageGlyph = sharing?.icon;
 
   return (
-    <form className={styles.composer} onSubmit={submit}>
+    <form className={styles.composer} data-sheet={sheet || undefined} onSubmit={submit}>
       <div className={styles.card} {...squircle("lg")}>
         {/* O que vai junto da pergunta sem ninguém pedir: a tela aberta atrás, numa linha fina no alto do
             cartão, separada do campo pelo mesmo fio da casa. Sem caixa dentro de caixa (2026-09-14): a tira
@@ -247,36 +311,58 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
                 </span>
               }
             />
+
+            {/* De onde a resposta sai. A pílula diz o recorte em uma palavra, porque na maior parte do tempo
+                ele é "toda a conta" e só interessa quando deixa de ser. */}
+            {scope && (
+              <DropdownMenu
+                label="O que eu posso ler"
+                triggerLabel={"Fontes da resposta: " + aiScopeLabel(scope.chosen)}
+                sections={scopeSections}
+                triggerContent={
+                  <span className={styles.pill} {...squircleAuto()}>
+                    <BooksIcon />
+                    <Text as="span" variant="caption2" weight="medium">
+                      {aiScopeLabel(scope.chosen)}
+                    </Text>
+                  </span>
+                }
+              />
+            )}
           </span>
 
-          {/* O saldo do ciclo à vista enquanto se escreve (a pedido, 2026-09-14): sem ele a pessoa só
-              descobre que acabou quando a resposta não vem. O número por extenso fica na dica e na voz. */}
-          {usage && (
-            <Text
-              as="span"
-              variant="caption2"
-              tone="tertiary"
-              numeric
-              className={styles.balance}
-              title={`${aiRemaining(usage)} de ${usage.limit} ações de IA disponíveis neste ciclo`}
-            >
-              {aiRemaining(usage)} restantes
-            </Text>
-          )}
-
-          <span className={styles.send}>
-            <VoiceButton onRecorded={setVoice} />
-            {/* Enquanto a resposta sai, enviar vira parar: é a mesma posição e o mesmo dedo, como em toda
-                conversa com assistente. */}
-            {answering ? (
-              <IconButton label="Parar a resposta" size="sm" radius="md" variant="secondary" onClick={onStop}>
-                <StopIcon weight="fill" />
-              </IconButton>
-            ) : (
-              <IconButton label="Enviar a pergunta" size="sm" radius="md" type="submit" disabled={!ready}>
-                <PaperPlaneTiltIcon />
-              </IconButton>
+          {/* O saldo e as ações andam juntos na ponta, num invólucro só: numa tela estreita a barra quebra,
+              e soltos eles quebravam entre si, deixando o enviar sozinho no começo da linha de baixo. */}
+          <span className={styles.end}>
+            {/* O saldo do ciclo à vista enquanto se escreve (a pedido, 2026-09-14): sem ele a pessoa só
+                descobre que acabou quando a resposta não vem. O número por extenso fica na dica e na voz. */}
+            {usage && (
+              <Text
+                as="span"
+                variant="caption2"
+                tone="tertiary"
+                numeric
+                className={styles.balance}
+                title={`${aiRemaining(usage)} de ${usage.limit} ações de IA disponíveis neste ciclo`}
+              >
+                {aiRemaining(usage)} restantes
+              </Text>
             )}
+
+            <span className={styles.send}>
+              <VoiceButton onRecorded={setVoice} />
+              {/* Enquanto a resposta sai, enviar vira parar: é a mesma posição e o mesmo dedo, como em toda
+                  conversa com assistente. */}
+              {answering ? (
+                <IconButton label="Parar a resposta" size="sm" radius="md" variant="secondary" onClick={onStop}>
+                  <StopIcon weight="fill" />
+                </IconButton>
+              ) : (
+                <IconButton label="Enviar a pergunta" size="sm" radius="md" type="submit" disabled={!ready}>
+                  <PaperPlaneTiltIcon />
+                </IconButton>
+              )}
+            </span>
           </span>
         </div>
       </div>

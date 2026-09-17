@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, ListBulletsIcon, MinusCircleIcon, PlusIcon, SquaresFourIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ListBulletsIcon, MinusCircleIcon, PlusIcon, SquaresFourIcon, TagIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
@@ -36,6 +37,9 @@ import {
 } from "../list-options";
 import type { CatalogItem } from "../summary";
 import { saveCatalogGridSize, saveCatalogView, type CatalogView } from "../view-cookie";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/providers/toast-provider";
+import { deleteCatalogItemsAction } from "../actions";
 import { CatalogCard } from "./catalog-card";
 import { CatalogDrawer } from "./catalog-drawer";
 import { CatalogFormDialog, type CatalogEditor } from "./catalog-form-dialog";
@@ -72,6 +76,7 @@ const viewOptions = [
 // qualquer filtro leva de volta para a primeira página.
 export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoardProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [search, setSearch] = useState(query.search);
   // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás. Quando a resposta
   // chega, o que veio da URL passa a valer, ajustado durante o render, como o React pede para prop nova.
@@ -111,6 +116,28 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   // ou `/catalogo/<id>`) e daí em diante troca só a URL, sem sair da tela, por `pushState`; o voltar do
   // navegador fecha pelo `popstate`.
   const [editor, setEditor] = useState<CatalogEditor>(editing ?? null);
+
+  /* A exclusão, no mesmo desenho da base de clientes: o menu pede, a janela da casa pergunta, e só então a
+     action grava. Item usado em orçamento é recusado pelo banco, e a mensagem que volta é a que aparece. */
+  const [deleting, setDeleting] = useState<CatalogItem | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const removeItem = async () => {
+    if (!deleting) return;
+    setRemoving(true);
+    const result = await deleteCatalogItemsAction([deleting.id]);
+    setRemoving(false);
+
+    if (!result.ok) {
+      toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
+      return;
+    }
+
+    setDeleting(null);
+    setOpen((current) => (current?.id === deleting.id ? null : current));
+    toast({ title: "Item excluído", description: `${deleting.name} saiu do catálogo.`, tone: "success" });
+    router.refresh();
+  };
 
   useEffect(() => {
     const onPopState = () => {
@@ -222,6 +249,12 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeCatalogFilters(live);
+  const filtering = Boolean(live.search) || active.length > 0;
+  /* Limpar leva a busca junto dos filtros: no vazio a pessoa quer a lista de volta inteira, e não metade. */
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "", page: 1 });
+  };
 
   // No celular a paginação mora na barra flutuante do menu, junto do botão que abre a tela cheia, em vez de
   // uma segunda barra no pé da lista: é o mesmo lugar de salvar e sair de uma janela, e a lista rola até o
@@ -341,6 +374,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
           onActiveChange={setActive}
           onOpen={setOpen}
           onEdit={editItem}
+          onDelete={setDeleting}
           range={{
             page: live.page,
             pageSize: live.pageSize,
@@ -353,21 +387,37 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
           }
         />
       ) : page.items.length === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nada no catálogo por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {query.search
-              ? "Nada bateu com o que você procurou. Tente outro nome, categoria ou descrição."
-              : "Ajuste o tipo, a categoria ou a situação para ver mais."}
-          </Text>
-        </div>
+        <EmptyState
+          icon={TagIcon}
+          title={filtering ? "Nada encontrado no catálogo" : "Catálogo vazio"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro nome, categoria ou descrição, ou limpe a busca."
+              : "Cadastre os produtos e serviços que você vende e eles passam a entrar no orçamento em um clique."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={createItem}>
+            Novo item
+          </Button>
+        </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
             {page.items.map((item) => (
-              <CatalogCard key={item.id} item={item} active={isActive(item)} onActiveChange={setActive(item)} onOpen={() => setOpen(item)} onEdit={() => editItem(item)} />
+              <CatalogCard
+                key={item.id}
+                item={item}
+                active={isActive(item)}
+                onActiveChange={setActive(item)}
+                onOpen={() => setOpen(item)}
+                onEdit={() => editItem(item)}
+                onDelete={() => setDeleting(item)}
+              />
             ))}
           </ul>
         </div>
@@ -391,6 +441,15 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
         onActiveChange={open ? setActive(open) : () => undefined}
         onClose={() => setOpen(null)}
         onEdit={() => open && editItem(open)}
+        onDelete={() => open && setDeleting(open)}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        pending={removing}
+        title={`Excluir ${deleting?.name ?? "item"}?`}
+        description="O item sai do catálogo e deixa de ser oferecido em orçamento novo. Os orçamentos já feitos guardam o preço praticado e não mudam."
+        onClose={() => setDeleting(null)}
+        onConfirm={() => void removeItem()}
       />
       <CatalogFormDialog
         editor={editor}

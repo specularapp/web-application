@@ -1,0 +1,140 @@
+/* A gaveta: o título com o X e o conteúdo rolando, com a folga da barra flutuante no celular. */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.empty {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+.runs {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Uma execução: a caixa com o fio da casa; a linha de resumo é o `summary`, e os passos abrem embaixo. */
+.run {
+  min-width: 0;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.summary {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-lg);
+}
+
+.summaryCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  margin: 0;
+  list-style: none;
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.steps > li:first-child {
+  padding-block-start: var(--space-2);
+}
+
+.step {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+/* O glifo do passo no matiz da categoria, como a trilha do cartão. */
+.stepGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--step-hue);
+  background-color: light-dark(color-mix(in oklab, var(--step-hue) 14%, transparent), color-mix(in oklab, var(--step-hue) 22%, transparent));
+  border-radius: var(--radius-full);
+}
+
+.stepGlyph svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.stepCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+}
+
+.detail {
+  overflow-wrap: anywhere;
+}

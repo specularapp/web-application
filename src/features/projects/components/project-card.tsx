@@ -23,6 +23,8 @@ export type ProjectCardProps = {
   onOpen: () => void;
   /** Abre a ficha para editar. */
   onEdit: () => void;
+  /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
+  onDelete?: () => void;
 };
 
 /* Quantas marcas a fila mostra antes de resumir o resto em "+N". */
@@ -46,7 +48,7 @@ const nameList = new Intl.ListFormat("pt-BR", { type: "conjunction" });
 // ninguém informou nenhuma), e a entrega na etiqueta do prazo do outro. O cartão inteiro abre a janela do
 // projeto; o leque e o botão do endereço têm ação própria e não abrem nada. O fio da caixa é o do `Card`, em
 // duas camadas recortadas pelo sistema de cantos.
-export function ProjectCard({ project, onOpen, onEdit }: ProjectCardProps) {
+export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardProps) {
   const status = projectStatuses[project.status];
   const due = dueOf(project);
   const hue = { "--project-hue": `var(--sys-${project.hue})` } as CSSProperties;
@@ -94,13 +96,13 @@ export function ProjectCard({ project, onOpen, onEdit }: ProjectCardProps) {
             <Badge tone={status.tone} size="sm">
               {status.label}
             </Badge>
-            <ProjectMenu project={project} onOpen={onOpen} onEdit={onEdit} />
+            <ProjectMenu project={project} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} />
           </span>
         </header>
 
-        {/* A capa é a imagem que a pessoa anexa, no canto `md` pelo sistema de cantos; sem ela, a arte gerada
-            centrada sobre o véu do matiz do projeto, o mesmo caminho do item sem foto do catálogo. `<img>` cru
-            para o SVG, como no avatar. */}
+        {/* A capa é a imagem que a pessoa anexa, no canto `md` pelo sistema de cantos; sem ela, a arte
+            gerada no estilo Waves, preenchendo a capa sobre o véu do matiz do projeto. `<img>` cru para o
+            SVG, como no avatar. */}
         <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
           {project.coverUrl ? (
             <Image src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" unoptimized className={styles.photo} />

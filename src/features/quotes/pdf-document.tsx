@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   end: { textAlign: "right" },
   line: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
   lineArt: { width: pt(32), height: pt(32), alignItems: "center", justifyContent: "center", borderRadius: pt(cornerRadius.sm) },
-  lineArtImage: { width: pt(22), height: pt(22) },
+  lineArtImage: { width: pt(32), height: pt(32) },
   lineCopy: { width: LINE_COPY },
   lineName: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
   lineTitle: { flexShrink: 1, minWidth: 0, ...text(type.footnote), fontWeight: weight.medium, ...oneLine },

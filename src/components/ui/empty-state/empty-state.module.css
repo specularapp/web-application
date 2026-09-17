@@ -1,0 +1,142 @@
+/* O vazio ocupa o lugar que o conteúdo ocuparia e centra o desenho nele, na vertical e na horizontal: ele é
+   o que a pessoa vê em vez da lista, e não um aviso pendurado no topo da área vazia. */
+.empty {
+  /* O fio da malha sai da tinta do texto, e não de `--color-border`: no escuro a borda é quase o fundo e a
+     malha sumia. */
+  --grid-ink: color-mix(in oklab, var(--color-label) 11%, transparent);
+
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+  place-content: center;
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 16rem;
+  padding: var(--space-8) var(--space-5);
+  overflow: hidden;
+  text-align: center;
+}
+
+/**
+ * O papel quadriculado atrás do desenho, que se dissolve para fora: ele dá chão ao glifo sem pintar caixa
+ * nenhuma em volta, que é o que a referência faz. Duas listras cruzadas no fio da casa, e a máscara radial
+ * apagando tudo a partir do meio, então não há borda nenhuma para o quadriculado terminar.
+ *
+ * Preso ao quadrado do desenho e não ao container inteiro, porque numa lista larga a malha de ponta a ponta
+ * lia como fundo de página em vez de fundo de um bloco.
+ */
+.empty::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 28rem;
+  height: 20rem;
+  pointer-events: none;
+  translate: -50% -50%;
+  background-image:
+    repeating-linear-gradient(to right, var(--grid-ink) 0 0.0375rem, transparent 0.0375rem 2.25rem),
+    repeating-linear-gradient(to bottom, var(--grid-ink) 0 0.0375rem, transparent 0.0375rem 2.25rem);
+  mask-image: radial-gradient(closest-side, rgb(0 0 0 / 0.5), transparent 78%);
+}
+
+.empty > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* O glifo e o título: empilhados em página cheia, lado a lado em cartão. */
+.head {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  min-width: 0;
+}
+
+/* O glifo do que falta no azulejo da casa, em tinta neutra: a cor aqui seria decoração, e o que precisa
+   chamar atenção no vazio é o botão que sai dele. É também o que a referência faz, com o glifo monocromático
+   e a ação em preenchimento cheio logo abaixo. */
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+.tile svg {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.title {
+  min-width: 0;
+}
+
+/* A frase cabe em duas linhas curtas: esticada na largura de uma lista, ela viraria uma faixa de texto que
+   ninguém lê inteira. */
+.line {
+  max-width: 26rem;
+  min-width: 0;
+  text-wrap: balance;
+}
+
+/* O caminho de saída. Quebra a linha no celular, onde dois botões lado a lado não cabem. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  margin-block-start: var(--space-4);
+}
+
+/**
+ * Dentro de cartão o desenho muda de composição, e não de escala (2026-09-16, depois de o painel quebrar):
+ * o azulejo sai, o glifo vem para a frente do título numa linha só e o papel quadriculado não é desenhado.
+ * A conta é direta: um bloco de uma linha da grade do painel tem 200px, e o cabeçalho e o recuo do cartão
+ * comem 86 deles, então sobram 114 de conteúdo. O azulejo de 56px mais o botão de 36 já passam disso antes
+ * de existir texto; sem o azulejo, a soma fecha em 103 e ainda sobra folga. Sem altura mínima, porque quem
+ * manda na altura aqui é o cartão em volta, e a frase cabe numa linha só nesses blocos.
+ */
+.empty[data-size="sm"] {
+  min-height: 0;
+  height: 100%;
+  padding: var(--space-1);
+}
+
+.empty[data-size="sm"]::before {
+  content: none;
+}
+
+.empty[data-size="sm"] .head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.empty[data-size="sm"] .tile {
+  width: auto;
+  height: auto;
+  color: var(--color-label-tertiary);
+  background-color: transparent;
+  border-radius: 0;
+}
+
+.empty[data-size="sm"] .tile svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.empty[data-size="sm"] .line {
+  max-width: 22rem;
+}
+
+.empty[data-size="sm"] .actions {
+  margin-block-start: var(--space-2);
+}

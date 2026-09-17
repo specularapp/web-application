@@ -20,7 +20,7 @@ import { signContractAction } from "../actions";
 import { ContractDocument, partyRoles } from "../document";
 import { contractLimits } from "../schemas";
 import type { Contract, ContractParty } from "../summary";
-import { PdfPages } from "./pdf-pages";
+import { PdfPages } from "./pdf-pages-lazy";
 import { SignatureFieldMark } from "./signature-field-mark";
 import styles from "./contract-public-view.module.css";
 

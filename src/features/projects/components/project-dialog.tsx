@@ -54,6 +54,8 @@ export type ProjectDialogProps = {
   onClose: () => void;
   /** Abre a ficha para editar, por cima da janela. */
   onEdit: (project: Project) => void;
+  /** Pede a exclusão do projeto aberto; quem confirma é a prancha. */
+  onDelete?: (project: Project) => void;
 };
 
 /** Quantas tarefas a ficha lista antes de mandar para o quadro. */
@@ -98,7 +100,7 @@ const firstName = (name: string) => name.split(" ")[0] ?? name;
 // Uma janela só para a grade inteira, guardando quem está aberto: com doze cartões seriam doze janelas
 // montadas, a mesma decisão da ficha do cliente. A ficha completa é buscada ao abrir, e o cabeçalho já
 // mostra o que o cartão sabia, então a janela nunca abre vazia.
-export function ProjectDialog({ project, onClose, onEdit }: ProjectDialogProps) {
+export function ProjectDialog({ project, onClose, onEdit, onDelete }: ProjectDialogProps) {
   /* A metade à vista mora aqui, e não no miolo, porque o seletor que a troca é desenhado pela `Dialog` fora da
      bandeja. Volta para Informações a cada projeto novo, ajustado durante o render, como o React pede. */
   const [tab, setTab] = useState<ProjectTab>("details");
@@ -117,7 +119,17 @@ export function ProjectDialog({ project, onClose, onEdit }: ProjectDialogProps) 
       focusOnOpen={false}
       above={project && <SheetSwitcher label="O que ver do projeto" options={projectTabs} value={tab} onChange={setTab} />}
     >
-      {project && <ProjectDetail key={project.id} project={project} tab={tab} onTabChange={setTab} onClose={onClose} onEdit={() => onEdit(project)} />}
+      {project && (
+        <ProjectDetail
+          key={project.id}
+          project={project}
+          tab={tab}
+          onTabChange={setTab}
+          onClose={onClose}
+          onEdit={() => onEdit(project)}
+          onDelete={onDelete ? () => onDelete(project) : undefined}
+        />
+      )}
     </Dialog>
   );
 }
@@ -128,9 +140,11 @@ type ProjectDetailProps = {
   onTabChange: (tab: ProjectTab) => void;
   onClose: () => void;
   onEdit: () => void;
+  /** Pede a exclusão; quem confirma é a prancha. */
+  onDelete?: () => void;
 };
 
-function ProjectDetail({ project, tab, onTabChange, onClose, onEdit }: ProjectDetailProps) {
+function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }: ProjectDetailProps) {
   const router = useRouter();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [full, setFull] = useState<ProjectDetails | null>(null);
@@ -217,7 +231,7 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit }: ProjectDe
           </Badge>
         </nav>
         <div className={styles.actions}>
-          <ProjectMenu project={project} onEdit={onEdit} />
+          <ProjectMenu project={project} onEdit={onEdit} onDelete={onDelete} />
           <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
             <XIcon />
           </IconButton>

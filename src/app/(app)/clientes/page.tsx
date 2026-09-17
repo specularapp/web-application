@@ -1,16 +1,15 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ClientsScreen } from "@/features/clients/components/clients-screen";
 import {
   CLIENTS_GRID_COOKIE,
   CLIENTS_VIEW_COOKIE,
   defaultPageSize,
-  listClients,
   parseClientsGridSize,
   parseClientsQuery,
   parseClientsView,
 } from "@/features/clients/list";
-import { previewClientsList } from "@/features/clients/list-preview";
+import { getClientsPage } from "@/features/clients/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -40,12 +39,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clientes
     defaultPageSize(view, gridSize),
   );
 
-  // A lista vem de `list-preview` enquanto o domínio não existe no banco: quando a tabela nascer, muda
-  // só esta linha, porque quem filtra, ordena e corta a página é `listClients`, que recebe a lista de
-  // fora e não sabe de onde ela veio.
-  const page = listClients(previewClientsList, query);
+  const [page, ai] = await Promise.all([getClientsPage(query), getAiUsageData()]);
 
-  // O uso da IA vem de `features/ai/preview.ts` enquanto o domínio não existe no banco, no mesmo
-  // contrato dos blocos do painel: o widget recebe por prop e não sabe de onde vem.
-  return <ClientsScreen page={page} query={query} ai={previewAiUsage} view={view} />;
+  return <ClientsScreen page={page} query={query} ai={ai} view={view} />;
 }

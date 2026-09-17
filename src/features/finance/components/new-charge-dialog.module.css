@@ -1,0 +1,85 @@
+/* A gaveta: o título com o X, os campos rolando e os botões no pé (no celular eles moram na barra flutuante). */
+.drawer {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+/* As parcelas como vão ficar: lista curta no preenchimento da casa. */
+.preview {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.previewTitle {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.previewList {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.previewItem {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .body {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+
+  .foot {
+    display: none;
+  }
+}

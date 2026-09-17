@@ -1,4 +1,4 @@
-import { addDays, addHours, differenceInCalendarDays, format, isSameDay, parseISO, roundToNearestMinutes } from "date-fns";
+import { differenceInCalendarDays, format, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 
@@ -57,58 +57,3 @@ export function pickAlert(alerts: SidebarAlert[], now = new Date()) {
   const sorted = [...alerts].sort((a, b) => parseISO(a.startsAt).getTime() - parseISO(b.startsAt).getTime());
   return sorted.find((alert) => parseISO(alert.startsAt).getTime() >= now.getTime()) ?? sorted.at(-1);
 }
-
-function buildPreview(now: Date): SidebarAlert[] {
-  const meetingStart = roundToNearestMinutes(addHours(now, 2), { nearestTo: 30 });
-  const meetingEnd = addHours(meetingStart, 0.5);
-  const delivery = addDays(now, 2);
-  const invoice = addDays(now, 1);
-
-  return [
-    {
-      id: "reuniao-aurora",
-      kind: "meeting",
-      title: "Alinhamento com a Padaria Aurora",
-      detail: describeAlert("meeting", { startsAt: meetingStart, endsAt: meetingEnd, channel: "Zoom" }, now),
-      startsAt: meetingStart.toISOString(),
-      people: [
-        { name: "Marina Duarte", avatarUrl: null },
-        { name: "Aleph Ramos", avatarUrl: null },
-        { name: "Arthur Gomes", avatarUrl: null },
-        { name: "Carla Mendes", avatarUrl: null },
-        { name: "Ana Freitas", avatarUrl: null },
-        { name: "Bruno Sales", avatarUrl: null },
-        { name: "Elisa Martins", avatarUrl: null },
-      ],
-      action: { label: "Entrar agora", href: "https://zoom.us" },
-    },
-    {
-      id: "entrega-site",
-      kind: "delivery",
-      title: "Entrega do site institucional",
-      detail: describeAlert("delivery", { startsAt: delivery }, now),
-      startsAt: delivery.toISOString(),
-      people: [
-        { name: "Camila Ferreira", avatarUrl: null },
-        { name: "Aleph Ramos", avatarUrl: null },
-      ],
-      action: { label: "Ver projeto", href: "/projetos" },
-    },
-    {
-      id: "cobranca-bravo",
-      kind: "invoice",
-      title: "Cobrança do Estúdio Bravo",
-      detail: describeAlert("invoice", { startsAt: invoice }, now),
-      startsAt: invoice.toISOString(),
-      people: [{ name: "Rafael Nunes", avatarUrl: null }],
-      action: { label: "Ver cobrança", href: "/cobrancas" },
-    },
-  ];
-}
-
-/**
- * Avisos de exemplo enquanto reuniões, entregas e cobranças não existem no banco: relativos a agora,
- * para a prévia não envelhecer, e com a linha de apoio já escrita no servidor, para não divergir na
- * hidratação. Quem montar as tabelas troca só a origem.
- */
-export const previewAlerts = buildPreview(new Date());

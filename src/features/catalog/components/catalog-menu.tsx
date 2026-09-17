@@ -22,6 +22,8 @@ export type CatalogMenuProps = {
   onView?: () => void;
   /** Abre a gaveta de edição no lugar, com a ficha já preenchida. */
   onEdit?: () => void;
+  /** Pede a exclusão; quem confirma é a janela da prancha, com a pergunta e o aviso. */
+  onDelete?: () => void;
 };
 
 /** Gerar orçamento a partir do item pede o plano Pro, como os documentos do cliente. */
@@ -29,9 +31,10 @@ const QUOTE_PLAN = "pro";
 
 // As opções de um item do catálogo, no mesmo padrão do menu do cliente: ver e editar, gerar orçamento
 // com o item já dentro (com o selo do plano que libera), o acompanhamento, o interruptor de ativo e, por
-// último e em vermelho, excluir. Visualizar abre a ficha e Editar abre a gaveta do formulário no lugar
-// (2026-09-08); histórico e excluir ainda não têm tela nem regra: fecham o menu e nada mais.
-export function CatalogMenu({ item, active, onActiveChange, onView, onEdit }: CatalogMenuProps) {
+// último e em vermelho, excluir. Visualizar abre a ficha, Editar abre a gaveta do formulário no lugar
+// (2026-09-08) e Excluir pede a confirmação da casa (2026-09-16). Histórico ainda não tem tela: fecha o
+// menu e nada mais.
+export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDelete }: CatalogMenuProps) {
   const sections: DropdownSection[] = [
     {
       id: "actions",
@@ -59,7 +62,7 @@ export function CatalogMenu({ item, active, onActiveChange, onView, onEdit }: Ca
     },
     {
       id: "danger",
-      items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" }],
+      items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger", onSelect: onDelete }],
     },
   ];
 

@@ -1,0 +1,138 @@
+/* O esqueleto de uma tela enquanto os dados chegam. Ele existe para a navegação ser instantânea: o Next
+   troca de rota mostrando isto no mesmo quadro em que a pessoa clica, e o conteúdo entra no lugar quando o
+   servidor termina. Sem ele, o clique fica parado na tela anterior até a consulta voltar.
+
+   As medidas são as das telas de verdade, para a troca não dar solavanco: mesma altura de topo, mesmo recuo
+   e a mesma grade. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4);
+  border-bottom: 1px solid var(--sys-separator);
+}
+
+@media (width >= 48rem) {
+  .top {
+    padding-inline: var(--space-6);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+@media (width >= 48rem) {
+  .body {
+    padding: var(--space-6);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* A grade acompanha a das listagens: uma coluna no celular e até quatro no computador. */
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (width >= 40rem) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width >= 64rem) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (width >= 90rem) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--sys-surface);
+  border: 1px solid var(--sys-separator);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cardLines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* O quadro rola na horizontal dentro de si, como o de verdade, e nunca a página. */
+.board {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 0 0 18rem;
+  min-width: 18rem;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--sys-surface);
+  border: 1px solid var(--sys-separator);
+}
+
+/* Enquanto o esqueleto está na tela, quem usa leitor precisa saber que algo está vindo. */
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

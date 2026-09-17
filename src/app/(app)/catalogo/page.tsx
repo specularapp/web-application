@@ -1,16 +1,15 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { CatalogScreen } from "@/features/catalog/components/catalog-screen";
 import {
   CATALOG_GRID_COOKIE,
   CATALOG_VIEW_COOKIE,
   defaultPageSize,
-  listCatalog,
   parseCatalogGridSize,
   parseCatalogQuery,
   parseCatalogView,
 } from "@/features/catalog/list";
-import { previewCatalog } from "@/features/catalog/list-preview";
+import { getCatalogPage } from "@/features/catalog/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -38,11 +37,7 @@ export default async function CatalogPage({ searchParams }: PageProps<"/catalogo
     defaultPageSize(view, gridSize),
   );
 
-  // A lista vem de `list-preview` enquanto o domínio não existe no banco: quando a tabela nascer, muda só
-  // esta linha, porque quem filtra, ordena e corta a página é `listCatalog`, que recebe a lista de fora.
-  const page = listCatalog(previewCatalog, query);
+  const [page, ai] = await Promise.all([getCatalogPage(query), getAiUsageData()]);
 
-  // O uso da IA vem de `features/ai/preview.ts` enquanto o domínio não existe no banco, no mesmo contrato
-  // da base de clientes: o widget do topo recebe por prop e não sabe de onde vem.
-  return <CatalogScreen page={page} query={query} ai={previewAiUsage} view={view} />;
+  return <CatalogScreen page={page} query={query} ai={ai} view={view} />;
 }

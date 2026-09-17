@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
 import { partyRoles } from "../document";
 import type { Contract, ContractParty, SignatureField } from "../summary";
-import { PdfPages } from "./pdf-pages";
+import { PdfPages } from "./pdf-pages-lazy";
 import { SignatureFieldMark } from "./signature-field-mark";
 import styles from "./pdf-fields-editor.module.css";
 

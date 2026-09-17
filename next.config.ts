@@ -29,7 +29,9 @@ const nextConfig: NextConfig = {
     "/api/contratos/*/pdf": ["./public/fonts/inter/**"],
   },
   experimental: {
-    optimizePackageImports: ["@phosphor-icons/react"],
+    /* Estas quatro exportam por barril: sem a otimização, importar uma função traz o pacote inteiro para o
+       pacote da rota. O Phosphor é o caso extremo, com mais de mil ícones. */
+    optimizePackageImports: ["@phosphor-icons/react", "date-fns", "recharts", "@dnd-kit/core"],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

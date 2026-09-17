@@ -42,7 +42,7 @@ import { ContractDocument, partyRoles } from "../document";
 import { contractKinds, contractSources, contractStatuses, dateOf, shortDate } from "../labels";
 import type { Contract, ContractEvent } from "../summary";
 import { ContractMenu, type ContractMenuActions } from "./contract-menu";
-import { PdfPages } from "./pdf-pages";
+import { PdfPages } from "./pdf-pages-lazy";
 import { SignatureFieldMark } from "./signature-field-mark";
 import styles from "./contract-dialog.module.css";
 

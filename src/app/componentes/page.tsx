@@ -1,5 +1,7 @@
 import {
+  AddressBookIcon,
   ArchiveIcon,
+  ArrowCounterClockwiseIcon,
   ArrowsClockwiseIcon,
   CalendarBlankIcon,
   CheckCircleIcon,
@@ -9,10 +11,12 @@ import {
   CreditCardIcon,
   ExportIcon,
   EyeIcon,
+  PaperclipIcon,
   PaperPlaneTiltIcon,
   PersonArmsSpreadIcon,
   PlusIcon,
   QuestionIcon,
+  ReceiptIcon,
   SparkleIcon,
   SunIcon,
   TrashIcon,
@@ -21,8 +25,6 @@ import {
 } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import { SidebarPanel } from "@/components/layout/sidebar";
-import { previewSidebar } from "@/components/layout/sidebar/preview";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BrandIcon } from "@/components/ui/brand-icon";
@@ -33,19 +35,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CodeInput } from "@/components/ui/code-input";
 import { MfaEnroll } from "@/features/auth/components/mfa-enroll";
 import { MfaVerify } from "@/features/auth/components/mfa-verify";
-import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
-import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
-import { defaultLayout } from "@/features/dashboard/layout";
-import { PlanSettings } from "@/features/billing/components/plan-settings";
-import { previewBillingState, previewInvoices, previewSubscribedState } from "@/features/billing/preview";
-import { previewClientsSummary } from "@/features/clients/preview";
-import { previewFinanceSummary } from "@/features/finance/preview";
-import { previewPointsSummary, previewWeeklyChallenge } from "@/features/gamification/preview";
-import { previewTeamSummary } from "@/features/organizations/preview";
-import { previewProjectsSummary } from "@/features/projects/preview";
-import { previewQuotesSummary } from "@/features/quotes/preview";
-import { previewTasksSummary } from "@/features/tasks/preview";
-import { OnboardingFlow } from "@/features/onboarding/components/onboarding-flow";
 import { industryOptions, memberRoleOptions } from "@/features/onboarding/labels";
 import { Container } from "@/components/ui/container";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -57,6 +46,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/link";
 import { PasswordInput } from "@/components/ui/password-input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Select } from "@/components/ui/select";
@@ -740,6 +730,44 @@ const groups: Group[] = [
     title: "Feedback",
     entries: [
       {
+        name: "EmptyState",
+        note: "O vazio de uma tela: o glifo do que falta, o que não existe, por que não existe e o caminho de saída. O tamanho sm serve janela, gaveta e coluna. Sem as ações ele só dá a notícia, que é o que a casa fazia antes dele.",
+        wide: true,
+        layout: "stack",
+        example: (
+          <div className={styles.samples}>
+            <Sample label="nada cadastrado, o convite a criar o primeiro">
+              <EmptyState
+                icon={AddressBookIcon}
+                title="Nenhum cliente ainda"
+                description="Cadastre o primeiro cliente e o histórico de orçamentos, contratos e cobranças dele passa a viver aqui."
+              >
+                <Button size="sm" radius="md" iconStart={<PlusIcon />}>
+                  Novo cliente
+                </Button>
+              </EmptyState>
+            </Sample>
+            <Sample label="a busca não achou, com o caminho de volta">
+              <EmptyState
+                icon={ReceiptIcon}
+                title="Nenhum orçamento encontrado"
+                description="Nada bateu com o que você procurou. Tente outro número, título ou cliente, ou limpe a busca."
+              >
+                <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />}>
+                  Limpar busca
+                </Button>
+                <Button size="sm" radius="md" iconStart={<PlusIcon />}>
+                  Novo orçamento
+                </Button>
+              </EmptyState>
+            </Sample>
+            <Sample label="size sm, para dentro de janela ou coluna">
+              <EmptyState size="sm" icon={PaperclipIcon} title="Nenhum anexo" description="Arraste um arquivo para cá ou use o clipe." />
+            </Sample>
+          </div>
+        ),
+      },
+      {
         name: "Progress",
         note: "Sempre tracejada, com canto suave no traço. size controla a altura e segments a densidade, que é o que define a largura de cada traço.",
         wide: true,
@@ -859,7 +887,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Avatar",
-        note: "Sem foto entra o rosto do DiceBear no estilo Adventurer, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão, squircle com raio em metade do lado, na escala do botão de ícone, e hexágono por recorte para emblema de nível. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        note: "Sem foto entra o rosto do DiceBear no estilo Lorelei, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão, squircle com raio em metade do lado, na escala do botão de ícone, e hexágono por recorte para emblema de nível. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
         wide: true,
         layout: "stack",
         example: (
@@ -1203,69 +1231,6 @@ const groups: Group[] = [
     title: "Telas",
     entries: [
       {
-        name: "Primeiros passos (prévia)",
-        note: "Fluxo de configuração inicial em modo de demonstração: as etapas trocam de verdade, com animação de entrada, mas nada vai para o banco. O de verdade é um modal sobre o painel, no primeiro acesso, e aqui aparece preso na caixa em vez de cobrir a tela.",
-        wide: true,
-        layout: "stack",
-        example: (
-          <OnboardingFlow
-            demo
-            boxed
-            team={null}
-            members={[]}
-            invites={[]}
-            billing={previewBillingState}
-            currentUser={{
-              userId: "00000000-0000-4000-8000-000000000000",
-              name: "Aleph Ramos",
-              email: "aleph@specular.com.br",
-              avatarUrl: null,
-              role: "owner",
-            }}
-          />
-        ),
-      },
-      {
-        name: "Sidebar",
-        note: "Menu do produto, uma composição só em duas apresentações. Aqui está a forma do desktop, em caixa: topo com marca e as três ações de ícone, seletor de time com o plano dele, rotas em grupos (as que têm chevron abrem no lugar da lista, com voltar no topo) e, no fim, o convite, a meta de faturamento e o perfil. No celular a mesma composição vira tela cheia chamada pela barra flutuante de baixo, que só a prévia em /previa/menu mostra. Nada aqui abre camada flutuante ainda: os botões de seta e de busca estão de pé e mudos, de propósito.",
-        wide: true,
-        layout: "stack",
-        example: (
-          <div className={styles.sidebarPreview}>
-            <SidebarPanel {...previewSidebar} variant="desktop" />
-          </div>
-        ),
-      },
-      {
-        name: "Cabeçalho do painel (prévia)",
-        note: "Abertura do painel: a pessoa à esquerda, com avatar, nome e a frase do dia, e as ações à direita, só em ícone: buscar (abre a mesma busca do menu), período e a engrenagem de personalizar o painel, que ainda não faz nada. Criar orçamento é a ação principal e a única com texto; no celular vira só ícone, e o nome e a frase saem, sobrando a foto. Aqui o período fica só na tela; no painel de verdade ele vai para a URL.",
-        wide: true,
-        layout: "stack",
-        example: (
-          <DashboardHeader
-            demo
-            user={{ name: previewSidebar.user.name, email: previewSidebar.user.email, avatarUrl: null }}
-            greeting="Vamos com tudo hoje!"
-            period="mes"
-            layout={defaultLayout}
-          />
-        ),
-      },
-      {
-        name: "Grade do painel (prévia)",
-        note: "Os oito blocos do painel, todos com conteúdo, cada um com o cabeçalho padrão menos conquistas, que é um cartão de degradê sem cabeçalho: uma coluna no celular, duas a partir de 48rem e três a partir de 72rem. Todo bloco tem duas linhas de altura, menos os pares que dividem uma coluna: conquistas com projetos, e equipe com desafio diário. Aqui as linhas ficam no piso; no painel de verdade elas dividem a altura que sobra da tela. Tela cheia em /previa/painel.",
-        wide: true,
-        layout: "stack",
-        example: <DashboardGrid projects={previewProjectsSummary} finance={previewFinanceSummary} clients={previewClientsSummary} tasks={previewTasksSummary} team={previewTeamSummary} challenge={previewWeeklyChallenge} quotes={previewQuotesSummary} achievements={previewPointsSummary} layout={defaultLayout} />,
-      },
-      {
-        name: "Plano e assinatura (prévia)",
-        note: "A tela de /configuracoes/plano com dados de exemplo: assinatura do Pro em teste gratuito, cartão guardado e duas faturas. As ações são as de verdade e falham de propósito aqui, porque o time do exemplo não existe. Serve para conferir o desenho nos dois temas sem precisar de assinatura.",
-        wide: true,
-        layout: "stack",
-        example: <PlanSettings state={previewSubscribedState} invoices={previewInvoices} />,
-      },
-      {
         name: "Pagamento do plano (prévia)",
         note: "Etapa de pagamento da assinatura: resumo do pedido à esquerda e os campos de cartão à direita, cada um num FieldShell com rótulo e erro nossos. Os campos são os de verdade, e não um espaço reservado: elemento de cartão avulso monta sem segredo, que só é usado na confirmação. Aqui a confirmação está desligada, então digitar não leva a lugar nenhum.",
         wide: true,
@@ -1301,7 +1266,6 @@ const pending = [
     names: [
       "Dialog",
       "DropdownMenu",
-      "EmptyState",
       "Radio",
       "Tabs",
       "Textarea",

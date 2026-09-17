@@ -1,0 +1,132 @@
+/* O fio da caixa é o do `Card`: a camada de fora com a cor do fio e um recuo da espessura dele, e a de
+   dentro com a cor do fundo, as duas recortadas pelo sistema de cantos. Mesma receita dos outros cartões. */
+.card {
+  --card-corner: var(--radius-xl);
+  --card-line: 1px;
+
+  display: grid;
+  min-width: 0;
+  padding: var(--card-line);
+  background-color: var(--color-border);
+  border-radius: var(--card-corner);
+}
+
+@media (max-width: 47.9375rem) {
+  .card {
+    --card-corner: var(--radius-lg);
+  }
+}
+
+.inner {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  height: 100%;
+  padding: var(--space-4);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border-radius: var(--card-corner);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 48rem) {
+  .inner {
+    padding: var(--space-5);
+  }
+}
+
+@media (hover: hover) {
+  .inner:hover {
+    background-color: var(--color-bg-secondary);
+  }
+}
+
+.inner:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.inner:active {
+  background-color: var(--color-fill-quaternary);
+}
+
+/* Cancelada, o cartão apaga o que é da cobrança e deixa a situação e o leque inteiros. */
+.card[data-status="cancelled"] .copy,
+.card[data-status="cancelled"] .client,
+.card[data-status="cancelled"] .amount,
+.card[data-status="cancelled"] .progress {
+  opacity: 0.55;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.client {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.clientCopy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.amount {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.terms {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.terms svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.progress {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.progressLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-start: auto;
+}

@@ -1,6 +1,7 @@
+import { requireOrganization } from "@/features/organizations/context";
 import { renderContractPdf } from "@/features/contracts/pdf";
+import { getContract, readContractFile } from "@/features/contracts/service";
 import { contractDocumentName } from "@/features/contracts/share";
-import { findContract, readContractFile } from "@/features/contracts/store";
 import { pdfResponse } from "@/lib/pdf/response";
 
 /**
@@ -12,8 +13,16 @@ export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [contract, file] = await Promise.all([findContract(id), readContractFile(id)]);
+  const { supabase, organizationId } = await requireOrganization("/contratos");
+
+  const [contract, file] = await Promise.all([
+    getContract(supabase, organizationId, id),
+    readContractFile(supabase, organizationId, id),
+  ]);
+
   if (!contract) return new Response("Contrato não encontrado", { status: 404 });
+
   const bytes = await renderContractPdf(contract, file);
+
   return pdfResponse(bytes, `${contractDocumentName(contract)}.pdf`);
 }

@@ -148,8 +148,19 @@ export function ProfileRule() {
   return <hr className={styles.rule} />;
 }
 
-export function ProfileFacts({ children }: { children: ReactNode }) {
-  return <dl className={styles.facts}>{children}</dl>;
+/**
+ * Os fatos de uma ficha. Em coluna por padrão, um por linha, que é o certo para as seis ou oito linhas de um
+ * perfil; **em grade** quando são muitos (2026-09-15, a pedido, para a ficha da oportunidade, que tem dezoito
+ * campos só na primeira seção): empilhados, eles viravam uma tira de mil pixels de altura e ninguém conseguia
+ * varrer a ficha com o olho. Em grade, o rótulo sobe para cima do valor, que é a mesma forma que eles já têm
+ * no celular, e as colunas se ajustam à largura de quem chama.
+ */
+export function ProfileFacts({ children, columns = false }: { children: ReactNode; columns?: boolean }) {
+  return (
+    <dl className={styles.facts} data-columns={columns || undefined}>
+      {children}
+    </dl>
+  );
 }
 
 /* Um fato: rótulo com ícone à esquerda e valor à direita; no celular, em célula com o rótulo em cima. */

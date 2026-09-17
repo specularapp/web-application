@@ -1,0 +1,174 @@
+/* A janela: o título e o X em cima, e o corpo rolando por dentro. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+  max-height: inherit;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .dialog {
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  padding-block-end: var(--space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Os cartões: o fio da casa, o canto `lg`, o fundo acendendo no hover e no foco de teclado. */
+.blank,
+.template {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .blank:hover,
+  .template:hover {
+    background-color: var(--color-fill-quaternary);
+    border-color: var(--color-label-tertiary);
+  }
+}
+
+.blank:focus-visible,
+.template:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.blank:disabled,
+.template:disabled {
+  cursor: progress;
+}
+
+.blank:disabled:not([aria-busy]),
+.template:disabled:not([aria-busy]) {
+  opacity: 0.6;
+}
+
+/* "Do zero": uma linha larga, com o azulejo no acento da casa e a seta na ponta. */
+.blank {
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+}
+
+.blankGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--color-accent);
+  background-color: light-dark(color-mix(in oklab, var(--color-accent) 14%, transparent), color-mix(in oklab, var(--color-accent) 20%, transparent));
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.blankGlyph svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.blankCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.arrow {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+.groupTitle {
+  margin-block-start: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* A galeria em duas colunas; uma no celular. */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.gallery > li {
+  display: grid;
+  min-width: 0;
+}
+
+.template {
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: stretch;
+  padding: var(--space-4);
+}
+
+.templateHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin-block-end: var(--space-2);
+}
+
+.summary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.trigger {
+  margin-block-start: var(--space-2);
+}

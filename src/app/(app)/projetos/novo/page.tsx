@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ProjectsScreen } from "@/features/projects/components/projects-screen";
-import { PROJECTS_GRID_COOKIE, listProjects, parseProjectsGridSize, parseProjectsQuery } from "@/features/projects/list";
-import { readProjectClients, readProjectOwners, readProjects } from "@/features/projects/store";
+import { PROJECTS_GRID_COOKIE, parseProjectsGridSize, parseProjectsQuery } from "@/features/projects/list";
+import { getProjectsScreenData } from "@/features/projects/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -30,5 +30,7 @@ export default async function NewProjectPage({ searchParams }: PageProps<"/proje
     gridSize,
   );
 
-  return <ProjectsScreen page={listProjects(readProjects(), query)} query={query} ai={previewAiUsage} editing="new" clients={readProjectClients()} owners={readProjectOwners()} />;
+  const [data, ai] = await Promise.all([getProjectsScreenData(query), getAiUsageData()]);
+
+  return <ProjectsScreen page={data.page} query={query} ai={ai} editing="new" clients={data.clients} owners={data.owners} />;
 }

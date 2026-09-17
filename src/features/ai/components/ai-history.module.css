@@ -1,0 +1,173 @@
+/* A trilha de conversas: o que começa uma nova e a busca no alto, a lista rolando no meio e o saldo do
+   ciclo no pé. Mesma divisão da trilha do menu, porque é a mesma coisa que ela faz. */
+.history {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+.scroller {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+  padding: 0 var(--space-2) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.empty {
+  padding: var(--space-2) var(--space-1);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.groupName {
+  padding-inline: var(--space-2);
+  margin-block-end: var(--space-half);
+}
+
+.list {
+  display: grid;
+  gap: 0.0625rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* A linha da conversa: o nome tomando a largura toda e as opções aparecendo na ponta com o ponteiro em
+   cima, como nas listas da casa. No toque não há ponteiro, então elas ficam. */
+.row {
+  --control-height-sm: 1.75rem;
+  --icon-button-radius-sm: 0.875rem;
+  --touch-target: 1.75rem;
+
+  position: relative;
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  min-width: 0;
+  padding-inline-end: var(--space-1);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+/* A conversa aberta fica marcada como a página em vigor no menu: fundo cheio e tinta viva. */
+.row[data-current] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.pick {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  height: 2rem;
+  padding-inline: var(--space-2);
+  font-family: var(--font-body);
+  color: var(--color-label-secondary);
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.row[data-current] .pick {
+  color: var(--color-label);
+}
+
+.pick:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.rowGlyph {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowEnd {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+@media (hover: hover) {
+  .rowEnd {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  .row:hover .rowEnd,
+  .rowEnd:focus-within {
+    opacity: 1;
+  }
+}
+
+.foot {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.usage {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .usage:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.usage:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.usageLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}

@@ -16,6 +16,8 @@ export type TaskMenuProps = {
   stages?: TaskStage[];
   /** Leva a tarefa para outra etapa. Sem isto, a seção de mover não aparece. */
   onMove?: (stage: TaskStage) => void;
+  /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
+  onDelete?: () => void;
 };
 
 // As opções de uma tarefa, no padrão do menu do cliente, do catálogo e do orçamento: abrir a ficha, editar,
@@ -23,7 +25,7 @@ export type TaskMenuProps = {
 // o resto fecha o menu e nada mais, enquanto o domínio não está no banco, como as opções do cliente
 // nasceram. Concluir só aparece no que ainda não fechou, porque marcar de novo o que já está concluído não é
 // ação nenhuma.
-export function TaskMenu({ task, onOpen, stages, onMove }: TaskMenuProps) {
+export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuProps) {
   const { toast } = useToast();
 
   const copyReference = async () => {
@@ -80,7 +82,7 @@ export function TaskMenu({ task, onOpen, stages, onMove }: TaskMenuProps) {
         ...(statusOf(task) === "done" ? [] : [{ id: "done", label: "Marcar como concluída", icon: CheckCircleIcon }]),
       ],
     },
-    { id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const }] },
+    { id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] },
   ];
 
   return <DropdownMenu label={`Opções de ${task.reference}`} triggerLabel={`Mais opções de ${task.title}`} sections={sections} size="sm" />;

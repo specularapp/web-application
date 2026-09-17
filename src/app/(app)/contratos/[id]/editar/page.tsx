@@ -1,13 +1,15 @@
 import { notFound, redirect } from "next/navigation";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ContractEditorScreen } from "@/features/contracts/components/contract-editor-screen";
-import { findContract, readContractLookups } from "@/features/contracts/store";
+import { requireOrganization } from "@/features/organizations/context";
+import { getContract, getContractLookups } from "@/features/contracts/service";
 import { hasAi } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
 
 export async function generateMetadata({ params }: PageProps<"/contratos/[id]/editar">) {
   const { id } = await params;
-  const contract = await findContract(id);
+  const { supabase, organizationId } = await requireOrganization(`/contratos/${id}/editar`);
+  const contract = await getContract(supabase, organizationId, id);
 
   return createMetadata({
     title: contract ? `Editar ${contract.title}` : "Editar contrato",
@@ -21,9 +23,16 @@ export async function generateMetadata({ params }: PageProps<"/contratos/[id]/ed
 // de quem vai assinar; o resto cai na ficha.
 export default async function EditContractPage({ params }: PageProps<"/contratos/[id]/editar">) {
   const { id } = await params;
-  const contract = await findContract(id);
+  const { supabase, organizationId } = await requireOrganization(`/contratos/${id}/editar`);
+
+  const [contract, lookups, ai] = await Promise.all([
+    getContract(supabase, organizationId, id),
+    getContractLookups(supabase, organizationId),
+    getAiUsageData(),
+  ]);
+
   if (!contract) notFound();
   if (contract.status !== "draft") redirect(`/contratos/${id}`);
 
-  return <ContractEditorScreen contract={contract} lookups={await readContractLookups()} ai={previewAiUsage} aiAvailable={hasAi()} />;
+  return <ContractEditorScreen contract={contract} lookups={lookups} ai={ai} aiAvailable={hasAi()} />;
 }

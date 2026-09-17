@@ -22,6 +22,8 @@ export type ProjectMenuProps = {
   onOpen?: () => void;
   /** Abre a ficha para editar, na gaveta lateral. */
   onEdit?: () => void;
+  /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
+  onDelete?: () => void;
 };
 
 /** Gerar cobrança a partir do projeto pede o plano Pro, como os documentos do cliente. */
@@ -32,7 +34,7 @@ const INVOICE_PLAN = "pro";
 // que libera; o acompanhamento, com pausar, retomar ou concluir conforme a situação; e, por último e em
 // vermelho, excluir. Abrir, o quadro e editar funcionam; o resto fecha o menu e nada mais, como as opções do
 // cliente nasceram, até a regra existir.
-export function ProjectMenu({ project, onOpen, onEdit }: ProjectMenuProps) {
+export function ProjectMenu({ project, onOpen, onEdit, onDelete }: ProjectMenuProps) {
   const sections: DropdownSection[] = [
     {
       id: "actions",
@@ -59,7 +61,7 @@ export function ProjectMenu({ project, onOpen, onEdit }: ProjectMenuProps) {
     },
     {
       id: "danger",
-      items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" }],
+      items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger", onSelect: onDelete }],
     },
   ];
 

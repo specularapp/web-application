@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import { previewAiUsage } from "@/features/ai/preview";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ContractsScreen } from "@/features/contracts/components/contracts-screen";
-import { CONTRACTS_GRID_COOKIE, listContracts, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
-import { readContracts } from "@/features/contracts/store";
+import { CONTRACTS_GRID_COOKIE, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
+import { getContractsPage } from "@/features/contracts/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -28,8 +28,7 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
     gridSize,
   );
 
-  // A lista vem do store em memória enquanto o domínio não existe no banco: quando a tabela nascer, muda só
-  // esta linha, porque quem filtra, ordena e corta a página é `listContracts`, que recebe a lista de fora.
-  // O uso da IA vem de `features/ai/preview.ts` pelo mesmo motivo, no contrato das outras telas.
-  return <ContractsScreen page={listContracts(await readContracts(), query)} query={query} ai={previewAiUsage} />;
+  const [page, ai] = await Promise.all([getContractsPage(query), getAiUsageData()]);
+
+  return <ContractsScreen page={page} query={query} ai={ai} />;
 }

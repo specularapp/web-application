@@ -221,8 +221,9 @@ const Dots = styled.span`
    Redonda, e não squircle: círculo não passa pelo sistema de cantos, pela regra da casa, e a fila de
    bolinhas é redonda nas duas telas.
 
-   A arte tem folga dentro da bolinha, como no azulejo do catálogo: as voltas do Loops encostam na borda do
-   próprio desenho, e sem o recuo elas seriam cortadas pela curva. */
+   A arte tem uma folga fina dentro da bolinha: o estilo Icons já desenha o ícone com folga no próprio
+   quadro, mas aqui a borda é curva, e a quina de um ícone quadrado chegaria nela. No azulejo do catálogo,
+   que é quadrado de canto macio, o recuo saiu. */
 const ItemDot = styled.span`
   display: grid;
   flex-shrink: 0;
@@ -237,7 +238,7 @@ const ItemDot = styled.span`
   border-radius: var(--radius-full);
 
   & > img {
-    width: calc(100% - var(--space-1));
-    height: calc(100% - var(--space-1));
+    width: calc(100% - var(--space-half));
+    height: calc(100% - var(--space-half));
   }
 `;

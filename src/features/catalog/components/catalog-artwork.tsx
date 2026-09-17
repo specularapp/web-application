@@ -18,7 +18,7 @@ export type CatalogArtworkProps = {
 const pixelSizes: Record<CatalogArtworkSize, number> = { sm: 32, md: 40, lg: 52 };
 
 // A imagem de um item do catálogo num azulejo tingido no matiz dele: a foto quando há, e a arte gerada
-// pelo DiceBear no estilo Loops quando não há, com a linha no mesmo matiz. É o que a pessoa varre com o
+// pelo DiceBear no estilo Icons quando não há, com o ícone no mesmo matiz. É o que a pessoa varre com o
 // olho na grade antes de ler o nome, e o mesmo desenho aparece na ficha, maior.
 //
 // A arte vem da rota, e não embutida, pelo mesmo motivo do rosto do avatar: é um arquivo com cache de um

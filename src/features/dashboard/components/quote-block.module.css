@@ -149,13 +149,3 @@
     --avatar-size: 1.5rem;
   }
 }
-
-/* Sem orçamento: a frase e o convite de criar, centrados no bloco. */
-.empty {
-  display: grid;
-  gap: var(--space-3);
-  place-content: center;
-  justify-items: center;
-  height: 100%;
-  text-align: center;
-}

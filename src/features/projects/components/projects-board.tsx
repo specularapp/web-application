@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, PlusIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, BriefcaseIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
@@ -38,6 +39,9 @@ import {
   type ProjectsQuery,
 } from "../list-options";
 import type { Project, ProjectClient, ProjectOwnerOption } from "../summary";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/providers/toast-provider";
+import { deleteProjectAction } from "../actions";
 import { ProjectCard } from "./project-card";
 import { ProjectDialog } from "./project-dialog";
 import { ProjectFormDialog, type ProjectEditor } from "./project-form-dialog";
@@ -77,6 +81,7 @@ const pathOf = (viewing: Project | null, editing: ProjectEditor) =>
 // leva de volta para a primeira página.
 export function ProjectsBoard({ page, query, viewing: initialViewing, editing: initialEditing, clients, owners }: ProjectsBoardProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const [search, setSearch] = useState(query.search);
   // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás. Quando a resposta
@@ -97,6 +102,29 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
   // inteira. Quando uma resposta nova do servidor chega, o que veio na URL passa a valer nas duas, ajustado
   // durante o render: é assim que salvar devolve o projeto editado à janela, já com os dados novos.
   const [viewing, setViewing] = useState<Project | null>(initialViewing ?? null);
+
+  /* A exclusão, no desenho da base de clientes e do catálogo: o menu pede, a janela da casa pergunta, e só
+     então a action grava. Projeto com tarefa ou contrato ligado é recusado pelo banco, e a mensagem que
+     volta é a que aparece. */
+  const [deleting, setDeleting] = useState<Project | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const removeProject = async () => {
+    if (!deleting) return;
+    setRemoving(true);
+    const result = await deleteProjectAction(deleting.id);
+    setRemoving(false);
+
+    if (!result.ok) {
+      toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
+      return;
+    }
+
+    setDeleting(null);
+    setViewing((current) => (current?.id === deleting.id ? null : current));
+    toast({ title: "Projeto excluído", description: `${deleting.name} saiu da lista.`, tone: "success" });
+    router.refresh();
+  };
   const [editing, setEditing] = useState<ProjectEditor>(initialEditing ?? null);
   const [seenPage, setSeenPage] = useState(page);
   if (seenPage !== page) {
@@ -210,6 +238,12 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeProjectsFilters(live);
+  /* Sem busca e sem filtro, uma lista vazia quer dizer base vazia. */
+  const filtering = Boolean(live.search) || active.length > 0;
+  const clearAll = () => {
+    setSearch("");
+    go({ ...clearedFilters, search: "", page: 1 });
+  };
 
   // No celular a paginação mora na barra flutuante do menu, no mesmo lugar de salvar e sair de uma janela,
   // em vez de uma segunda barra no pé da lista. Passando de uma página; com uma só, a barra volta a ser
@@ -316,21 +350,35 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
       />
 
       {page.items.length === 0 ? (
-        <div className={styles.empty}>
-          <Text variant="callout" weight="semibold">
-            Nenhum projeto por aqui
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            {query.search
-              ? "Nada bateu com o que você procurou. Tente outro nome, cliente, site ou etiqueta."
-              : "Ajuste a situação, a entrega ou a etiqueta para ver mais."}
-          </Text>
-        </div>
+        <EmptyState
+          icon={BriefcaseIcon}
+          title={filtering ? "Nenhum projeto encontrado" : "Nenhum projeto ainda"}
+          description={
+            filtering
+              ? "Nada bateu com o que você procurou. Tente outro nome, cliente, site ou etiqueta, ou limpe a busca."
+              : "Cadastre o primeiro projeto e ele vira base do seu portfólio e do seu currículo."
+          }
+        >
+          {filtering && (
+            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+              Limpar busca
+            </Button>
+          )}
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, "new")}>
+            Novo projeto
+          </Button>
+        </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
             {page.items.map((project) => (
-              <ProjectCard key={project.id} project={project} onOpen={() => show(project, null)} onEdit={() => show(viewing, project)} />
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onOpen={() => show(project, null)}
+                onEdit={() => show(viewing, project)}
+                onDelete={() => setDeleting(project)}
+              />
             ))}
           </ul>
         </div>
@@ -347,7 +395,20 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
         </div>
       )}
 
-      <ProjectDialog project={viewing} onClose={() => show(null, null)} onEdit={(project) => show(viewing, project)} />
+      <ProjectDialog
+        project={viewing}
+        onClose={() => show(null, null)}
+        onEdit={(project) => show(viewing, project)}
+        onDelete={setDeleting}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        pending={removing}
+        title={`Excluir ${deleting?.name ?? "projeto"}?`}
+        description="O projeto sai da lista e do portfólio, com o quadro de tarefas dele. Os orçamentos e contratos do cliente ficam."
+        onClose={() => setDeleting(null)}
+        onConfirm={() => void removeProject()}
+      />
       <ProjectFormDialog editor={editing} clients={clients} owners={owners} onClose={() => show(viewing, null)} onSaved={saved} />
     </div>
   );

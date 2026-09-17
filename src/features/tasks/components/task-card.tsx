@@ -39,6 +39,8 @@ export type TaskCardProps = {
   stages?: TaskStage[];
   /** Leva a tarefa para outra etapa pelo leque, que é o caminho curto onde não se arrasta. */
   onMove?: (stage: TaskStage) => void;
+  /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
+  onDelete?: () => void;
 };
 
 /** Quantos rostos a fila mostra antes de resumir o resto em "+N", o mesmo da ficha e do aviso do menu. */
@@ -66,7 +68,7 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // A ordem é a de quem varre a coluna com o olho: o que é urgente, o que é, onde mora, o que diz, como está
 // classificado, quanto falta, e por fim quem cuida e quando vence. Etiquetas, trabalho e as contagens do pé
 // só aparecem quando existem, então tarefa simples tem cartão curto e tarefa cheia tem cartão cheio.
-export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove }: TaskCardProps) {
+export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, onDelete }: TaskCardProps) {
   const due = dueOf(task);
   const faces = task.people.slice(0, SHOWN_FACES);
   const restFaces = task.people.length - faces.length;
@@ -129,7 +131,7 @@ export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove }
           {task.alert && <Badge tone="warning" size="sm" icon={<WarningIcon weight="fill" />} label="Tem um aviso para ler antes de mexer" />}
           {!overlay && (
             <span className={styles.menu}>
-              <TaskMenu task={task} onOpen={onOpen} stages={stages} onMove={onMove} />
+              <TaskMenu task={task} onOpen={onOpen} stages={stages} onMove={onMove} onDelete={onDelete} />
             </span>
           )}
         </div>

@@ -3,8 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { sysHues, type SysHue } from "@/lib/palette";
 import { hashString } from "@/lib/utils/hash";
-import { findQuoteByToken } from "@/features/quotes/list";
-import { previewQuotes } from "@/features/quotes/list-preview";
+import { loadPublicQuote } from "@/features/quotes/public";
 import { quoteTotals } from "@/features/quotes/totals";
 import { formatMoney } from "@/lib/utils/format";
 
@@ -38,10 +37,12 @@ const initialsOf = (name: string) =>
 // radiais que já nascem esfumados. Fonte do sistema, como a imagem da raiz.
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const quote = findQuoteByToken(previewQuotes, token);
+  const found = await loadPublicQuote(token);
+  const quote = found?.quote ?? null;
+  const issuer = found?.issuer ?? null;
 
-  const hue = sysHues[hueFor(quote?.issuer.name ?? "Specular")];
-  const second = neighbor(hueFor(quote?.issuer.name ?? "Specular"));
+  const hue = sysHues[hueFor(issuer?.name ?? "Specular")];
+  const second = neighbor(hueFor(issuer?.name ?? "Specular"));
   const total = quote ? formatMoney(quoteTotals(quote).total) : "";
   const validity = quote?.validUntil ? `Válido até ${format(parseISO(quote.validUntil), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}` : "Sem prazo de validade";
 
@@ -62,8 +63,8 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            {quote?.issuer.logoUrl ? (
-              <img src={quote.issuer.logoUrl} width={88} height={88} alt="" style={{ borderRadius: 28, objectFit: "cover" }} />
+            {issuer?.logoUrl ? (
+              <img src={issuer.logoUrl} width={88} height={88} alt="" style={{ borderRadius: 28, objectFit: "cover" }} />
             ) : (
               <div
                 style={{
@@ -79,11 +80,11 @@ export default async function Image({ params }: { params: Promise<{ token: strin
                   fontWeight: 700,
                 }}
               >
-                {initialsOf(quote?.issuer.name ?? "Specular")}
+                {initialsOf(issuer?.name ?? "Specular")}
               </div>
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 34, fontWeight: 700 }}>{quote?.issuer.name ?? "Specular"}</div>
+              <div style={{ fontSize: 34, fontWeight: 700 }}>{issuer?.name ?? "Specular"}</div>
               <div style={{ fontSize: 22, color: "#a1a1aa" }}>{quote ? `Para ${quote.client.company ?? quote.client.name}` : "Orçamento"}</div>
             </div>
           </div>

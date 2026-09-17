@@ -1,10 +1,51 @@
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { getAiUsageData } from "@/features/ai/queries";
+import { ChargesScreen } from "@/features/finance/components/charges-screen";
+import {
+  CHARGES_GRID_COOKIE,
+  CHARGES_VIEW_COOKIE,
+  defaultChargesPageSize,
+  listCharges,
+  parseChargesGridSize,
+  parseChargesQuery,
+  parseChargesView,
+} from "@/features/finance/list";
+import { getChargeById, loadChargesScreenData } from "@/features/finance/queries";
 import { createMetadata } from "@/lib/metadata";
+import { first } from "@/lib/utils/search-params";
 
-export const metadata = createMetadata({
-  title: "Cobrança",
-  description: "Detalhes e status de pagamento da cobrança",
-});
+export async function generateMetadata({ params }: PageProps<"/cobrancas/[id]">) {
+  const { id } = await params;
+  const charge = await getChargeById(id);
 
-export default function InvoicePage() {
-  return null;
+  return createMetadata({
+    title: charge ? `${charge.reference}: ${charge.title}` : "Cobrança",
+    description: "A ficha da cobrança, com as parcelas, o que entrou e a linha do tempo",
+    path: `/cobrancas/${id}`,
+    noIndex: true,
+  });
+}
+
+// A mesma tela da lista com a ficha já aberta: a cobrança tem endereço próprio, e abrir pela lista só troca a
+// URL, sem sair da tela.
+export default async function ChargePage({ params, searchParams }: PageProps<"/cobrancas/[id]">) {
+  const [{ id }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
+  const view = parseChargesView(cookieStore.get(CHARGES_VIEW_COOKIE)?.value);
+  const gridSize = parseChargesGridSize(cookieStore.get(CHARGES_GRID_COOKIE)?.value);
+  const query = parseChargesQuery(
+    {
+      busca: first(search.busca),
+      situacao: first(search.situacao),
+      forma: first(search.forma),
+      pagina: first(search.pagina),
+      porPagina: first(search.porPagina),
+    },
+    defaultChargesPageSize(view, gridSize),
+  );
+
+  const [charge, data, ai] = await Promise.all([getChargeById(id), loadChargesScreenData(), getAiUsageData()]);
+  if (!charge) notFound();
+
+  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} viewing={charge} />;
 }

@@ -66,7 +66,7 @@ import { ContractSignatures } from "../document";
 import docStyles from "../document.module.css";
 import { contractKinds } from "../labels";
 import { contractKindValues, contractLimits, contractThemeValues, expiryLimits, type RewriteMode, type SaveContractInput } from "../schemas";
-import type { ContractLookups } from "../store";
+import type { ContractLookups } from "../service";
 import type { Contract, ContractKind, ContractParty, ContractTheme, DocNode, SignatureField } from "../summary";
 import { clauseLabel } from "../templates";
 import { PdfFieldsEditor, PdfFieldsToolsPanel } from "./pdf-fields-editor";

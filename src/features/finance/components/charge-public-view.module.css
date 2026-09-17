@@ -1,0 +1,169 @@
+/* A página: uma coluna centrada, estreita, com a folha da cobrança no meio. */
+.page {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  justify-items: stretch;
+  width: min(44rem, 100%);
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+  margin-inline: auto;
+}
+
+@media (min-width: 48rem) {
+  .page {
+    padding: var(--space-10) var(--space-6) var(--space-16);
+  }
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.heading {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.client {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* A folha: a caixa com o fio da casa, o resumo em cima, as parcelas e como pagar. */
+.sheet {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.amount {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.figures {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.figures > div {
+  display: grid;
+  gap: var(--space-half);
+}
+
+.figures dd {
+  margin: 0;
+}
+
+.installments {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.installment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.installment[data-status="overdue"] {
+  border-color: color-mix(in oklab, var(--sys-red) 45%, var(--color-border));
+}
+
+.installment[data-status="paid"] {
+  opacity: 0.8;
+}
+
+.installmentCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.installmentEnd {
+  display: grid;
+  gap: var(--space-half);
+  justify-items: end;
+  white-space: nowrap;
+}
+
+.installment > button {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+
+@media (min-width: 48rem) {
+  .installment {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .installment > button {
+    grid-column: auto;
+  }
+}
+
+.payment {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.paymentHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.paymentHead svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-label-secondary);
+}
+
+.paymentHead > :last-child {
+  margin-inline-start: auto;
+}
+
+.paymentInfo {
+  overflow-wrap: anywhere;
+}
+
+.footnote {
+  max-width: 32rem;
+  margin-inline: auto;
+}

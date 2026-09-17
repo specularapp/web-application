@@ -202,6 +202,24 @@
   align-items: center;
 }
 
+/* Em grade, as colunas se ajustam à largura e o rótulo sobe para cima do valor: é a mesma forma que o fato
+   já tem no celular, e a que deixa dezoito campos caberem numa tela sem virar uma tira em pé. */
+.facts[data-columns] {
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4) var(--space-5);
+}
+
+.facts[data-columns] .fact {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-half);
+  align-items: start;
+  min-width: 0;
+}
+
+.facts[data-columns] .factValue {
+  overflow-wrap: anywhere;
+}
+
 .factLabel {
   display: inline-flex;
   gap: var(--space-2);
