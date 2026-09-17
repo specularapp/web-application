@@ -15,9 +15,10 @@ import {
   XIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { Background, BackgroundVariant, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import { Background, BackgroundVariant, Handle, Position, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import type { Route } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { memo, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Badge } from "@/components/ui/badge";
@@ -51,9 +52,11 @@ const kinds: Record<RelationKind, { label: string; icon: Icon; hue: string }> = 
   charge: { label: "Cobrança", icon: HandCoinsIcon, hue: "var(--sys-green)" },
 };
 
-/** A medida de uma coluna do mapa e a altura de uma folha: é o que separa os níveis sem deixar fio cruzando. */
-const COL = 300;
-const ROW = 96;
+/** A medida de uma coluna do mapa e a altura de uma folha: é o que separa os níveis sem deixar fio cruzando.
+ *  Cresceram com os campos do registro dentro do nó (2026-09-17): com a lista de campos o cartão ficou mais
+ *  alto, e na medida antiga um nó encostava no de baixo. */
+const COL = 340;
+const ROW = 150;
 
 type MapNodeData = { relation: RelationNode; root: boolean; leaf: boolean };
 type MapNodeType = Node<MapNodeData, "record">;
@@ -100,6 +103,17 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
   const map: RelationMap | null = load?.ok ? load.map : null;
   const graph = useMemo(() => (map ? toFlow(map) : null), [map]);
   const linked = graph ? graph.nodes.length - 1 : 0;
+
+  /* O React Flow só move o nó se quem manda os nós guardar a posição de volta (2026-09-17, a pedido de poder
+     arrastar): com a lista vinda direto do `useMemo`, cada movimento era desenhado e desfeito no mesmo quadro.
+     O estado nasce da arrumação automática e passa a ser da pessoa a partir do primeiro arraste. */
+  const [nodes, setNodes, onNodesChange] = useNodesState<MapNodeType>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  useEffect(() => {
+    setNodes(graph?.nodes ?? []);
+    setEdges(graph?.edges ?? []);
+  }, [graph, setNodes, setEdges]);
 
   return (
     <div className={styles.dialog}>
@@ -153,17 +167,22 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
         ) : (
           <>
             <ReactFlow<MapNodeType, Edge>
-              nodes={graph.nodes}
-              edges={graph.edges}
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
-              nodesDraggable={false}
+              /* Arrastar o nó é da pessoa (2026-09-17, a pedido): a arrumação automática é um ponto de
+                 partida, e quem lê o mapa quer aproximar o que compara. Ligar um nó a outro continua fora:
+                 a ligação é do dado, e não do desenho. */
+              nodesDraggable
               nodesConnectable={false}
-              elementsSelectable={false}
-              minZoom={0.3}
-              maxZoom={1.4}
+              elementsSelectable
+              minZoom={0.2}
+              maxZoom={1.6}
               zoomOnDoubleClick={false}
               fitView
-              fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
+              fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
             >
               <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} />
             </ReactFlow>
@@ -175,7 +194,7 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
               <IconButton label="Aproximar" variant="ghost" size="sm" radius="md" onClick={() => void zoomIn()}>
                 <MagnifyingGlassPlusIcon />
               </IconButton>
-              <IconButton label="Enquadrar o mapa" variant="ghost" size="sm" radius="md" onClick={() => void fitView({ padding: 0.25, maxZoom: 1, duration: 300 })}>
+              <IconButton label="Enquadrar o mapa" variant="ghost" size="sm" radius="md" onClick={() => void fitView({ padding: 0.2, maxZoom: 1, duration: 300 })}>
                 <CornersOutIcon />
               </IconButton>
             </div>
@@ -255,29 +274,57 @@ const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
 
   const body = (
     <>
-      <span className={styles.nodeGlyph} aria-hidden="true" {...squircle("md")}>
-        <kind.icon weight="duotone" />
-      </span>
-      <span className={styles.nodeCopy}>
-        <span className={styles.nodeTop}>
-          <Text as="span" variant="caption1" tone="secondary" truncate>
-            {relation.reference ?? kind.label}
-          </Text>
-          {relation.status && (
-            <Badge tone={relation.status.tone} variant="soft" size="sm">
-              {relation.status.label}
-            </Badge>
-          )}
-        </span>
-        <Text as="span" variant="footnote" weight="semibold" truncate>
-          {relation.name}
-        </Text>
-        {relation.caption && (
-          <Text as="span" variant="caption1" tone="secondary" truncate>
-            {relation.caption}
-          </Text>
+      <span className={styles.nodeHead}>
+        {/* A imagem do registro quando ele tem uma (a logo da marca, a do projeto, a capa), e o glifo do
+            domínio quando não tem: é o que deixa reconhecer o registro antes de ler o nome. Vem de fora e
+            sem domínio para liberar, então sem otimizador, como a logo da empresa na ficha do cliente. */}
+        {relation.imageUrl ? (
+          <Image src={relation.imageUrl} alt="" width={36} height={36} unoptimized className={styles.nodePhoto} {...squircle("md", { clip: true })} />
+        ) : (
+          <span className={styles.nodeGlyph} aria-hidden="true" {...squircle("md")}>
+            <kind.icon weight="duotone" />
+          </span>
         )}
+        <span className={styles.nodeCopy}>
+          <span className={styles.nodeTop}>
+            <Text as="span" variant="caption1" tone="secondary" truncate>
+              {relation.reference ?? kind.label}
+            </Text>
+            {relation.status && (
+              <Badge tone={relation.status.tone} variant="soft" size="sm">
+                {relation.status.label}
+              </Badge>
+            )}
+          </span>
+          <Text as="span" variant="footnote" weight="semibold" truncate>
+            {relation.name}
+          </Text>
+          <Text as="span" variant="caption2" tone="tertiary" truncate>
+            {kind.label}
+          </Text>
+        </span>
       </span>
+
+      {/* Os campos do registro, nomeados e um por linha: é o que responde "qual destes é o certo" sem abrir
+          cada um, que era o que o mapa pedia para servir de ponto de partida (2026-09-17, a pedido). */}
+      {relation.fields && relation.fields.length > 0 && (
+        <dl className={styles.nodeFields}>
+          {relation.fields.map((field) => (
+            <div key={field.label} className={styles.nodeField}>
+              <dt>
+                <Text as="span" variant="caption2" tone="tertiary" truncate>
+                  {field.label}
+                </Text>
+              </dt>
+              <dd>
+                <Text as="span" variant="caption1" weight="medium" truncate>
+                  {field.value}
+                </Text>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </>
   );
 

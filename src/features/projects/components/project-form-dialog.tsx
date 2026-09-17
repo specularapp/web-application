@@ -32,7 +32,7 @@ import { saveProjectAction } from "../actions";
 import { projectStatuses, projectTools } from "../labels";
 import { projectArtworkUrl, projectHueFor } from "../list-options";
 import { MAX_TAGS, projectLimits, projectStatusValues, projectToolValues, type ProjectFormInput } from "../schemas";
-import type { Project, ProjectClient, ProjectOwnerOption, ProjectStatus, ProjectTool } from "../summary";
+import { clientFace, type Project, type ProjectClient, type ProjectOwnerOption, type ProjectStatus, type ProjectTool } from "../summary";
 import { projectTagCatalog } from "../tags";
 import { ToolTile } from "./tool-tile";
 import styles from "./project-form-dialog.module.css";
@@ -80,6 +80,7 @@ function valuesOf(project?: Project) {
     description: project?.description ?? "",
     clientId: project?.client?.id ?? "",
     ownerId: project?.ownerId ?? "",
+    memberIds: project?.memberIds ?? [],
     status: project?.status ?? ("active" as ProjectStatus),
     isPublic: project?.isPublic ?? false,
     tags: project?.tags ?? [],
@@ -319,6 +320,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
       description: values.description,
       clientId: values.clientId,
       ownerId: values.ownerId,
+      memberIds: values.memberIds,
       status: values.status,
       isPublic: values.isPublic,
       tags: values.tags,
@@ -386,7 +388,7 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
       value: client.id,
       label: client.company ?? client.name,
       caption: client.company ? client.name : undefined,
-      media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
+      media: <Avatar name={client.name} src={clientFace(client)} size="xs" shape="squircle" />,
     })),
   ];
 
@@ -515,6 +517,9 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
               <Select<string> label="Quem responde pelo projeto" options={ownerOptions} value={values.ownerId || undefined} placeholder="Escolha quem responde" searchable searchPlaceholder="Buscar na equipe" disabled={saving} onChange={(ownerId) => set("ownerId", ownerId)} />
             </Field>
           </div>
+          <Field label="Colaboradores" hint="Quem mais da equipe trabalha no projeto. Quem responde já entra sozinho" error={errorOf("memberIds")}>
+            <MemberPicker owners={owners} value={values.memberIds} disabled={saving} onChange={(memberIds) => set("memberIds", memberIds)} />
+          </Field>
           <Field label="Situação" required error={errorOf("status")}>
             <Select<ProjectStatus> label="Situação do projeto" options={statusOptions} value={values.status} disabled={saving} onChange={(status) => set("status", status)} />
           </Field>
@@ -584,6 +589,75 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
         </Button>
       </footer>
     </form>
+  );
+}
+
+/* Os colaboradores escolhidos, na mesma receita do seletor de ferramentas: cada um numa ficha com o rosto, o
+   nome e o × para tirar, e no fim o botão de somar, que abre a equipe em interruptores com busca. A ordem é a
+   de entrada. Quem responde pelo projeto não precisa entrar aqui: ele já é da equipe da ficha por ser o dono
+   da linha, e obrigá-lo a estar nos dois lugares só criaria um jeito de os dois discordarem. */
+function MemberPicker({
+  id,
+  owners,
+  value,
+  disabled,
+  onChange,
+}: {
+  id?: string;
+  owners: ProjectOwnerOption[];
+  value: string[];
+  disabled?: boolean;
+  onChange: (memberIds: string[]) => void;
+}) {
+  const toggle = (memberId: string, checked: boolean) =>
+    onChange(checked ? [...value, memberId] : value.filter((entry) => entry !== memberId));
+
+  const nameOf = (memberId: string) => owners.find((owner) => owner.id === memberId);
+
+  return (
+    <div id={id} className={styles.picker}>
+      {value.map((memberId) => {
+        const person = nameOf(memberId);
+        if (!person) return null;
+
+        return (
+          <span key={memberId} className={styles.chip} {...squircle("md")}>
+            <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
+            <Text as="span" variant="footnote" weight="medium" truncate>
+              {person.name}
+            </Text>
+            <button type="button" className={styles.chipRemove} aria-label={`Remover ${person.name}`} disabled={disabled} onClick={() => toggle(memberId, false)}>
+              <XIcon weight="bold" />
+            </button>
+          </span>
+        );
+      })}
+      <DropdownMenu
+        label="Equipe do projeto"
+        triggerLabel={value.length === 0 ? "Escolher colaboradores" : "Adicionar colaboradores"}
+        icon={<PlusIcon />}
+        trigger={{ variant: "outline", radius: "md" }}
+        sections={[
+          {
+            id: "members",
+            label: "Equipe",
+            items: owners.map((owner) => ({
+              kind: "toggle" as const,
+              id: owner.id,
+              label: owner.name,
+              media: <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} size="xs" />,
+              checked: value.includes(owner.id),
+              onChange: (checked: boolean) => toggle(owner.id, checked),
+            })),
+          },
+        ]}
+      />
+      {value.length === 0 && (
+        <Text as="span" variant="footnote" tone="secondary">
+          Ninguém ainda
+        </Text>
+      )}
+    </div>
   );
 }
 

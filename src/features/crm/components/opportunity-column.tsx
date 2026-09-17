@@ -2,12 +2,13 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { compactMoney, formatMoney } from "@/lib/utils/format";
+import { useEventCallback } from "@/hooks/use-event-callback";
 import { squircle } from "@/lib/corners";
 import { totalValue } from "../labels";
 import { crmSortIcons, crmSortLabels, crmSortValues, type CrmColumnSort } from "../list-options";
@@ -39,7 +40,7 @@ export type OpportunityColumnProps = {
   onDelete?: (opportunity: Opportunity) => void;
 };
 
-function DraggableCard({
+const DraggableCard = memo(function DraggableCard({
   opportunity,
   stage,
   onOpen,
@@ -49,7 +50,7 @@ function DraggableCard({
 }: {
   opportunity: Opportunity;
   stage: CrmStage;
-  onOpen: () => void;
+  onOpen: (opportunity: Opportunity) => void;
   stages?: CrmStage[];
   onMove?: (opportunity: Opportunity, stage: CrmStage) => void;
   onDelete?: (opportunity: Opportunity) => void;
@@ -66,11 +67,11 @@ function DraggableCard({
       onOpen={onOpen}
       drag={{ ref: setNodeRef, listeners, attributes, dragging: isDragging }}
       stages={stages}
-      onMove={onMove && ((to) => onMove(opportunity, to))}
-      onDelete={onDelete && (() => onDelete(opportunity))}
+      onMove={onMove}
+      onDelete={onDelete}
     />
   );
-}
+});
 
 // Uma coluna do funil, no mesmo desenho da coluna do quadro de tarefas: à esquerda a etiqueta da etapa numa
 // pílula só, com o glifo, o nome e a contagem dentro dela; à direita o chevron duplo com o que se faz com
@@ -100,6 +101,13 @@ export function OpportunityColumn({
   /* A coluna inteira é o alvo de soltar, cabeçalho incluído: mirar a pilha de uma etapa vazia seria pedir
      precisão que ninguém tem com o cartão na mão. */
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stage: stage.id } });
+
+  /* As três funções que vão para cada cartão, de identidade fixa (2026-09-17, na rodada de velocidade), na
+     mesma receita da coluna do quadro de tarefas: sem isto o `memo` do cartão não seguraria nada, porque uma
+     função escrita na hora já é prop nova. */
+  const open = useEventCallback((opportunity: Opportunity) => onOpen(opportunity));
+  const move = useEventCallback((opportunity: Opportunity, to: CrmStage) => onMove?.(opportunity, to));
+  const remove = useEventCallback((opportunity: Opportunity) => onDelete?.(opportunity));
 
   const sections: DropdownSection[] = [
     {
@@ -211,18 +219,19 @@ export function OpportunityColumn({
                     key={opportunity.id}
                     opportunity={opportunity}
                     stage={stage.id}
-                    onOpen={() => onOpen(opportunity)}
+                    onOpen={open}
                     stages={stages}
-                    onMove={onMove}
+                    onMove={onMove && move}
+                    onDelete={onDelete && remove}
                   />
                 ) : (
                   <OpportunityCard
                     key={opportunity.id}
                     opportunity={opportunity}
-                    onOpen={() => onOpen(opportunity)}
+                    onOpen={open}
                     stages={stages}
-                    onMove={onMove && ((to) => onMove(opportunity, to))}
-                    onDelete={onDelete && (() => onDelete(opportunity))}
+                    onMove={onMove && move}
+                    onDelete={onDelete && remove}
                   />
                 ),
               )}

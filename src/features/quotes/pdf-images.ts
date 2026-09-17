@@ -4,7 +4,7 @@ import { avatarHue } from "@/components/ui/avatar";
 import { avatarSvg } from "@/components/ui/avatar/shape";
 import { artworkSvg } from "@/lib/artwork";
 import { catalogHueFor } from "@/features/catalog/list-options";
-import { iconButtonCornerRadius, squirclePath } from "@/lib/corners";
+import { cornerRadius, iconButtonCornerRadius, squirclePath } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
 import type { SysHue } from "@/lib/palette";
 import type { Quote, QuoteLine } from "./summary";
@@ -135,6 +135,19 @@ const artworkOf = (line: QuoteLine) => {
   return artworkSvg("icons", hue, svgToken(line.catalogItemId ?? line.id));
 };
 
+/**
+ * O azulejo do item na folha: **a foto do catálogo quando há**, e a arte gerada quando não há (2026-09-17, a
+ * pedido). Mesma regra do `avatarTile`, e a mesma que a tela segue no `CatalogArtwork`, para o PDF e a folha
+ * mostrarem o mesmo item. Foto que não responde cai na arte, como o rosto de fora já caía: uma imagem fora
+ * do ar não pode derrubar o documento inteiro.
+ */
+async function lineTile(line: QuoteLine): Promise<PdfImage> {
+  const photo = line.imageUrl ? await fetchImage(line.imageUrl) : null;
+  if (photo) return squircleTile(photo, ARTWORK_SIDE, cornerRadius.sm, "#ffffff");
+
+  return rasterize(artworkOf(line), ARTWORK_SIDE * DENSITY);
+}
+
 /** O lado da arte dentro do azulejo do item: o azulejo inteiro, como na tela, porque o estilo Icons já
  *  desenha o ícone com folga dentro do próprio quadro. Eram 22 enquanto o Loops pedia recuo. */
 const ARTWORK_SIDE = 32;
@@ -171,7 +184,7 @@ export async function quotePdfImages(quote: Quote): Promise<QuotePdfImages> {
        `squirclePath` fechar num círculo, como o `Avatar` de forma redonda faz na tela. Sem foto vale o mesmo
        rosto desenhado do avatar, como em todo lugar da casa. */
     avatarTile(quote.owner.name, quote.owner.avatarUrl, SIGNATURE_SEAL, SIGNATURE_SEAL / 2),
-    Promise.all(quote.lines.map(async (line) => [line.id, await rasterize(artworkOf(line), ARTWORK_SIDE * DENSITY)] as const)),
+    Promise.all(quote.lines.map(async (line) => [line.id, await lineTile(line)] as const)),
   ]);
 
   return { issuer, client, owner, signature, lines: Object.fromEntries(lines) };

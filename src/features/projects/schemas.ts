@@ -57,6 +57,9 @@ export const projectToolValues = [
  * `maxLength` do campo na tela, então o campo para de aceitar no mesmo ponto em que o zod recusaria. A
  * descrição tem cem caracteres porque é a linha que o cartão mostra sob o nome (a pedido, 2026-09-13).
  */
+/** Quantos colaboradores um projeto aceita. Teto do servidor, não escolha da tela. */
+export const MAX_MEMBERS = 50;
+
 export const projectLimits = {
   name: 60,
   url: 120,
@@ -121,6 +124,9 @@ export const projectFormSchema = z
     /* Vazio é projeto sem cliente; com valor, precisa ser um cliente de verdade. */
     clientId: z.union([z.literal(""), z.uuid("Escolha o cliente")]),
     ownerId: z.uuid("Escolha quem responde pelo projeto"),
+    /* Os colaboradores, pelos ids da equipe. O teto é o mesmo do time que o plano maior comporta: é grade de
+       segurança contra envio forjado, e não regra de produto. */
+    memberIds: z.array(z.uuid("Escolha alguém da equipe")).max(MAX_MEMBERS, `No máximo ${MAX_MEMBERS} colaboradores`),
     status: z.enum(projectStatusValues),
     isPublic: z.boolean(),
     /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece

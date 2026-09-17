@@ -17,13 +17,45 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
 | 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, fatos e containers refeitos nas janelas, fila de camadas que separa um modal do outro, arrastar a alça da bandeja para fechar e varredura de peso que levou o painel de 791 KB para 347 KB |
 | 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
-| 2026-09-17 (qui) | em andamento | Primeira entrada de conta nova destravada: o painel parou de exigir time e passou a abrir vazio com a configuração inicial por cima, os blocos aguentam a conta sem equipe, e `@floating-ui/dom` entrou declarado para o build voltar a passar em instalação limpa |
+| 2026-09-17 (qui) | em andamento | Primeira entrada de conta nova destravada: o painel parou de exigir time e passou a abrir vazio com a configuração inicial por cima, os blocos aguentam a conta sem equipe, e `@floating-ui/dom` entrou declarado para o build voltar a passar em instalação limpa; e a rodada de seis pedidos do dia: colaboradores no projeto, teto de etiquetas no cartão, logo da marca na frente do rosto, foto do item na folha de orçamento, mapa de relação com campos e nós que se movem, e o acerto de velocidade dos quadros longos |
 
 ## 2026-09-17
 
 Tempo: em andamento.
 
 Feito:
+
+- **Colaboradores no projeto** (a pedido): `project_members` existia no banco desde a virada, a ficha já lia
+  a tabela para desenhar o bloco de equipe, e nada preenchia — o vínculo não tinha por onde entrar. A ficha
+  ganhou o campo, na mesma receita do seletor de ferramentas: fichas com rosto e nome, × para tirar e o leque
+  da equipe com busca. O servidor sincroniza apagando quem saiu e inserindo quem entrou, e não limpando tudo
+  para regravar, senão quem continua no projeto perderia a data de entrada. O bloco de equipe da ficha passou
+  a abrir por **quem responde**, que antes não aparecia ali apesar de o cartão mostrar o nome dele, e a função
+  em branco virou a função que a pessoa tem no time.
+- **O cartão de projeto para de esticar com etiqueta** (a pedido: as etiquetas ficavam extensas demais): três
+  à vista e o resto em "+N", que lista as demais ao apontar, a mesma receita que o cartão de tarefa já usava
+  com duas. Sem o teto, projeto com dez etiquetas empurrava o pé do cartão e a grade perdia a linha.
+- **A logo da marca vem antes do rosto da pessoa** (a pedido). O `ProjectMark` já seguia essa ordem, mas o
+  seletor de clientes do formulário buscava `clients` **sem** a coluna `company_logo_url`, então a prévia caía
+  sempre no rosto; e o cabeçalho do cartão e da ficha mostravam o rosto enquanto a linha ao lado escrevia o
+  nome da empresa. Agora há um `clientFace` só, usado nos quatro lugares.
+- **A foto do item aparece na folha de orçamento** (a pedido: não estava ocorrendo). A linha do orçamento não
+  guardava foto e `lineArtwork` devolvia `imageUrl: null` escrito à mão, então toda folha desenhava a arte
+  gerada. A foto passou a ser **lida do item do catálogo** pelo vínculo que a linha já tinha, e não copiada
+  para a linha: trocar a foto do catálogo troca a de todo orçamento, que é o que se espera de foto de produto,
+  e item apagado solta o vínculo e a folha volta para a arte. O PDF ganhou o mesmo caminho, com o azulejo
+  recortado no squircle da casa; foto que não responde cai na arte em vez de derrubar o documento.
+- **O mapa de relação ficou um mapa de verdade** (a pedido): o quadro passou a ocupar o modal inteiro, com o
+  título flutuando em vidro por cima em vez de comer uma faixa de altura, que era de onde vinha o recorte; os
+  nós agora se arrastam, e para isso a posição virou estado, porque o React Flow desfazia no mesmo quadro o
+  movimento de uma lista vinda direto do `useMemo`; e cada nó mostra a imagem do registro (a logo da marca, a
+  do projeto, a capa) com os campos nomeados um por linha — valor, emissão, validade, andamento, recebido —
+  que é o que responde "qual destes é o certo" sem abrir cada um.
+- **Os quadros longos pararam de travar** (relato: as páginas com volume de dados ficam lentas e travadas). O
+  quadro de tarefas e o funil do CRM desenham até 500 cartões de uma vez, e cada cartão recebia um
+  `() => abrir(item)` escrito na hora: função nova é prop nova, então `memo` não seguraria nada e digitar uma
+  letra na busca redesenhava os 500. Os cartões passaram a receber o item pelo próprio retorno, as colunas
+  fixam a identidade das três funções com o `useEventCallback` novo, e os cartões ficaram memorizados.
 
 - **Quem acabava de se cadastrar nunca entrava** (relato: o painel ficava carregando e travava tudo). O
   cadastro cria o perfil, mas não cria time: o gatilho de `auth.users` só insere em `profiles`, e a

@@ -67,7 +67,7 @@ type Row = {
 
 type Person = { name: string; avatarUrl: string | null };
 
-function toProject(row: Row, owner: Person): Project {
+function toProject(row: Row, owner: Person, memberIds: string[] = []): Project {
   return {
     id: row.id,
     slug: row.slug,
@@ -88,6 +88,7 @@ function toProject(row: Row, owner: Person): Project {
       : null,
     ownerId: row.owner_id,
     owner,
+    memberIds,
     status: row.status,
     tags: row.tags,
     tools: row.tools,
@@ -101,6 +102,59 @@ function toProject(row: Row, owner: Person): Project {
 }
 
 const NOBODY: Person = { name: "Sem responsável", avatarUrl: null };
+
+/** A função no time como a pessoa a lê, usada tanto no seletor do formulário quanto na equipe da ficha. */
+const teamRoles: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro" };
+
+/**
+ * Quem colabora em cada projeto, numa consulta para a página inteira: com uma por cartão seriam doze idas ao
+ * banco para desenhar uma grade, que é a mesma razão de `peopleFor` existir.
+ */
+async function membersFor(client: ProjectsClient, projectIds: string[]): Promise<Map<string, string[]>> {
+  const byProject = new Map<string, string[]>();
+  if (projectIds.length === 0) return byProject;
+
+  const { data } = await client.from("project_members").select("project_id, user_id").in("project_id", projectIds);
+  for (const row of data ?? []) {
+    const list = byProject.get(row.project_id);
+    if (list) list.push(row.user_id);
+    else byProject.set(row.project_id, [row.user_id]);
+  }
+
+  return byProject;
+}
+
+/**
+ * Deixa `project_members` com exatamente quem o formulário mandou: apaga o que saiu e insere o que entrou, em
+ * vez de limpar tudo e regravar, porque limpar tudo perderia o `created_at` de quem continua no projeto.
+ */
+async function syncMembers(
+  client: ProjectsClient,
+  organizationId: string,
+  projectId: string,
+  memberIds: string[],
+): Promise<string | undefined> {
+  const wanted = [...new Set(memberIds)];
+  const { data } = await client.from("project_members").select("user_id").eq("project_id", projectId);
+  const current = (data ?? []).map((row) => row.user_id);
+
+  const gone = current.filter((id) => !wanted.includes(id));
+  const fresh = wanted.filter((id) => !current.includes(id));
+
+  if (gone.length > 0) {
+    const { error } = await client.from("project_members").delete().eq("project_id", projectId).in("user_id", gone);
+    if (error) return error.message;
+  }
+
+  if (fresh.length > 0) {
+    const { error } = await client
+      .from("project_members")
+      .insert(fresh.map((userId) => ({ project_id: projectId, user_id: userId, organization_id: organizationId })));
+    if (error) return error.message;
+  }
+
+  return undefined;
+}
 
 /** O rosto e o nome de quem responde: uma consulta para a página inteira, e não uma por cartão. */
 async function peopleFor(client: ProjectsClient, ids: (string | null)[]) {
@@ -154,7 +208,10 @@ export async function listProjects(
   ]);
 
   const rows = (page.data ?? []) as unknown as Row[];
-  const people = await peopleFor(client, rows.map((row) => row.owner_id));
+  const [people, members] = await Promise.all([
+    peopleFor(client, rows.map((row) => row.owner_id)),
+    membersFor(client, rows.map((row) => row.id)),
+  ]);
 
   const counts: Record<ProjectStatus, number> = { active: 0, paused: 0, done: 0, cancelled: 0 };
   const tags = new Set<string>();
@@ -164,7 +221,7 @@ export async function listProjects(
   }
 
   return {
-    items: rows.map((row) => toProject(row, (row.owner_id && people.get(row.owner_id)) || NOBODY)),
+    items: rows.map((row) => toProject(row, (row.owner_id && people.get(row.owner_id)) || NOBODY, members.get(row.id) ?? [])),
     total: page.count ?? rows.length,
     tags: [...tags].sort((a, b) => a.localeCompare(b, "pt-BR")),
     counts,
@@ -182,8 +239,8 @@ export async function getProject(client: ProjectsClient, organizationId: string,
   if (!data) return null;
 
   const row = data as unknown as Row;
-  const people = await peopleFor(client, [row.owner_id]);
-  return toProject(row, (row.owner_id && people.get(row.owner_id)) || NOBODY);
+  const [people, members] = await Promise.all([peopleFor(client, [row.owner_id]), membersFor(client, [row.id])]);
+  return toProject(row, (row.owner_id && people.get(row.owner_id)) || NOBODY, members.get(row.id) ?? []);
 }
 
 /**
@@ -232,13 +289,26 @@ export async function getProjectDetails(
 
   const taskRows = tasks.data ?? [];
 
+  /* A equipe da ficha: **quem responde primeiro**, e os colaboradores depois, na ordem em que entraram. O
+     responsável não precisa estar em `project_members` para aparecer aqui, senão a ficha diria que ninguém
+     cuida do projeto enquanto o cartão mostra o nome dele (2026-09-17). Sem função escrita no vínculo, vale a
+     função que a pessoa tem no time, que é o que o bloco mostrava em branco. */
+  const roleInTeam = (userId: string) => teamRoles[byUser.get(userId)?.role ?? ""] ?? "Colaborador";
+
+  const collaborators = (members.data ?? [])
+    .filter((member) => member.user_id !== project.ownerId)
+    .map((member) => ({
+      id: member.user_id,
+      role: member.role || roleInTeam(member.user_id),
+      ...person(member.user_id),
+    }));
+
   return {
     ...project,
-    people: (members.data ?? []).map((member) => ({
-      id: member.user_id,
-      role: member.role,
-      ...person(member.user_id),
-    })),
+    people: [
+      ...(project.ownerId ? [{ id: project.ownerId, role: "Responsável", ...person(project.ownerId) }] : []),
+      ...collaborators,
+    ],
     tasks: taskRows.map((task) => ({
       id: task.id,
       reference: task.reference,
@@ -285,7 +355,7 @@ export async function getProjectsSummary(
 ): Promise<ProjectsSummary> {
   const { data, count } = await client
     .from("projects")
-    .select("started_at, status, due_at, progress, clients(id, name, avatar_url)", { count: "exact" })
+    .select("started_at, status, due_at, progress, clients(id, name, avatar_url, company_logo_url)", { count: "exact" })
     .eq("organization_id", organizationId)
     .order("started_at", { ascending: false })
     .limit(400);
@@ -295,7 +365,7 @@ export async function getProjectsSummary(
   for (const row of rows) {
     /* Projeto sem cliente não entra na contagem de clientes atendidos, que é o que o bloco mostra. */
     if (row.clients && !clients.has(row.clients.id)) {
-      clients.set(row.clients.id, { name: row.clients.name, avatarUrl: row.clients.avatar_url });
+      clients.set(row.clients.id, { name: row.clients.name, avatarUrl: row.clients.company_logo_url ?? row.clients.avatar_url });
     }
   }
 
@@ -382,6 +452,10 @@ export async function saveProject(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const failed = await syncMembers(client, organizationId, data.id, input.memberIds);
+    if (failed) return { ok: false, error: failed };
+
     return { ok: true, data: { id: data.id } };
   }
 
@@ -397,6 +471,10 @@ export async function saveProject(
     .single();
 
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  const failed = await syncMembers(client, organizationId, data.id, input.memberIds);
+  if (failed) return { ok: false, error: failed };
+
   return { ok: true, data: { id: data.id } };
 }
 
@@ -414,13 +492,21 @@ export async function deleteProject(
 export async function listProjectClients(client: ProjectsClient, organizationId: string): Promise<ProjectClient[]> {
   const { data } = await client
     .from("clients")
-    .select("id, name, company, avatar_url")
+    .select("id, name, company, avatar_url, company_logo_url")
     .eq("organization_id", organizationId)
     .eq("active", true)
     .order("name");
 
+  /* A logo da empresa vem junto: é ela que a marca do projeto veste quando o projeto não tem logo própria, e
+     sem esta coluna a prévia do formulário caía no rosto da pessoa (2026-09-17). */
   return (data ?? [])
-    .map((row) => ({ id: row.id, name: row.name, company: row.company ?? undefined, avatarUrl: row.avatar_url }))
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      company: row.company ?? undefined,
+      avatarUrl: row.avatar_url,
+      logoUrl: row.company_logo_url,
+    }))
     .sort((a, b) => (a.company ?? a.name).localeCompare(b.company ?? b.name, "pt-BR"));
 }
 
@@ -430,12 +516,11 @@ export async function listProjectOwners(
   organizationId: string,
 ): Promise<ProjectOwnerOption[]> {
   const members = await listTeamMembers(client, organizationId);
-  const roles: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro" };
 
   return members.map((member) => ({
     id: member.userId,
     name: member.name || member.email || "Equipe",
-    role: roles[member.role] ?? "Membro",
+    role: teamRoles[member.role] ?? "Membro",
     avatarUrl: member.avatarUrl,
   }));
 }

@@ -485,6 +485,9 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     lines: values.lines.map((line) => ({
       id: line.id,
       catalogItemId: line.catalogItemId,
+      /* A foto sai do item do catálogo, e não do formulário: assim a prévia mostra a mesma imagem que a
+         folha do cliente vai mostrar, e trocar o item já troca a foto na tecla seguinte. */
+      imageUrl: catalogOf(line.catalogItemId)?.imageUrl ?? null,
       name: line.name || "Item",
       description: line.description,
       quantity: Number(line.quantity || 0),
