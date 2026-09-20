@@ -10,6 +10,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /* Abrir o servidor de desenvolvimento para o celular e o tablet da mesma rede: o Next serve em 0.0.0.0 por
+     padrão, mas recusa os recursos internos (HMR, /_next) quando a origem não é localhost. As faixas aqui são
+     as privadas de rede local; nada disso vale em produção, onde a opção é ignorada. */
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
   poweredByHeader: false,
   typedRoutes: true,
   devIndicators: false,
