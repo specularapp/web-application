@@ -225,16 +225,20 @@ export function SidebarPanel({
   const mobile = variant === "mobile";
 
   // O aviso muda de lugar por moldura: no desktop entra acima do perfil, no celular segue por último,
-  // depois das ações da conta. Posição por árvore, para a leitura seguir a tela. Quem está envolvido
-  // vira bolinhas com o resto em "+N", o título e a linha de apoio dizem o que e quando, e o atalho leva
-  // a quem resolve. O X dispensa até a próxima carga.
+  // depois das ações da conta. Posição por árvore, para a leitura seguir a tela. Quem está envolvido vira
+  // bolinhas com o resto em "+N", e no lugar delas, quando não há ninguém, a etiqueta do tipo; o título e a
+  // linha de apoio dizem o que e quando, e o atalho leva a quem resolve. O X dispensa até a próxima carga.
   const faces = alert?.people.slice(0, ALERT_FACES) ?? [];
   const extraFaces = alert ? alert.people.length - faces.length : 0;
   const external = alert?.action.href.startsWith("http");
   const planCard = alert && alertVisible && (
     <section className={styles.promo} {...squircle("lg")} aria-label={`${alertKindLabels[alert.kind]}: ${alert.title}`}>
+      {/* Um dos dois, nunca os dois (2026-09-20, a pedido): quem está envolvido, quando há alguém, e a
+          etiqueta do tipo quando não há. Os rostos dizem de quem é o aviso melhor que a palavra, e a
+          palavra só é necessária quando não há rosto para dizê-la. Lado a lado, os dois competiam pela
+          mesma linha e ainda empurravam o X. */}
       <div className={styles.promoHead}>
-        {faces.length > 0 && (
+        {faces.length > 0 ? (
           <span className={styles.promoPeople}>
             <AvatarGroup>
               {faces.map((person) => (
@@ -247,6 +251,10 @@ export function SidebarPanel({
               </Text>
             )}
           </span>
+        ) : (
+          <Badge tone={alert.kind === "invoice" ? "green" : alert.kind === "delivery" ? "indigo" : "blue"} variant="soft" size="sm">
+            {alertKindLabels[alert.kind]}
+          </Badge>
         )}
         <IconButton label="Dispensar aviso" variant="ghost" size="sm" className={styles.promoClose} onClick={() => setAlertVisible(false)}>
           <XIcon />
@@ -254,24 +262,33 @@ export function SidebarPanel({
       </div>
 
       <div className={styles.promoPlan}>
-        <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" truncate>
+        <Text variant={mobile ? "callout" : "subheadline"} weight="semibold" className={styles.promoTitle}>
           {alert.title}
         </Text>
-        <Text variant={mobile ? "footnote" : "caption1"} tone="secondary" truncate>
-          {alert.detail}
-        </Text>
+        <div className={styles.promoFacts}>
+          <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">{alert.detail}</Text>
+          {alert.context && <Text variant={mobile ? "footnote" : "caption1"} tone="secondary">{alert.context}</Text>}
+          {alert.value && <Text variant={mobile ? "footnote" : "caption1"} weight="semibold">{alert.value}</Text>}
+        </div>
       </div>
 
-      <TextLink
-        href={alert.action.href as Route}
-        tone="inherit"
-        underline="always"
-        className={styles.promoAction}
-        {...(external && { target: "_blank", rel: "noreferrer" })}
-      >
-        {alert.action.label}
-        <CaretRightIcon aria-hidden="true" weight="bold" />
-      </TextLink>
+      <div className={styles.promoFoot}>
+        <TextLink
+          href={alert.action.href as Route}
+          tone="inherit"
+          underline="always"
+          className={styles.promoAction}
+          {...(external && { target: "_blank", rel: "noreferrer" })}
+        >
+          {alert.action.label}
+          <CaretRightIcon aria-hidden="true" weight="bold" />
+        </TextLink>
+        {Boolean(alert.remaining) && (
+          <Text as="span" variant="caption1" tone="secondary" className={styles.promoRemaining}>
+            +{alert.remaining} {alert.remaining === 1 ? "lembrete" : "lembretes"}
+          </Text>
+        )}
+      </div>
     </section>
   );
   return (
