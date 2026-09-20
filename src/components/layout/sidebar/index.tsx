@@ -239,7 +239,7 @@ export function SidebarPanel({
           mesma linha e ainda empurravam o X. */}
       <div className={styles.promoHead}>
         {faces.length > 0 ? (
-          <span className={styles.promoPeople}>
+          <span className={styles.promoPeople} data-single={faces.length === 1 && extraFaces === 0 ? "" : undefined}>
             <AvatarGroup>
               {faces.map((person) => (
                 <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />

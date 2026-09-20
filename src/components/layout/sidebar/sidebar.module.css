@@ -275,7 +275,8 @@
   min-width: 0;
 }
 
-/* As bolinhas numa pílula com o fio da casa, como na referência, e o "+N" dentro dela. */
+/* As bolinhas numa pílula com o fio da casa, como na referência, e o "+N" dentro dela. O recuo é maior à
+   direita porque é desse lado que o "+N" entra, e é ele que dá a forma de pílula. */
 .promoPeople {
   display: inline-flex;
   gap: var(--space-1);
@@ -285,11 +286,32 @@
   border-radius: var(--radius-full);
 }
 
+/* Uma bolinha só e sem "+N": o recuo fica igual dos quatro lados e a pílula vira círculo (2026-09-20, a
+   pedido). Com a folga da direita sobrando, um rosto sozinho desenhava um ovo em volta de si mesmo. */
+.promoPeople[data-single] {
+  padding: var(--space-half);
+}
+
 .promoPlan {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-half);
   min-width: 0;
+}
+
+.promoTitle {
+  overflow-wrap: anywhere;
+}
+
+.promoFacts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.promoFacts > * {
+  overflow-wrap: anywhere;
 }
 
 .promoClose {
@@ -305,6 +327,19 @@
   justify-self: start;
   font-size: var(--text-subheadline);
   font-weight: var(--weight-semibold);
+}
+
+.promoFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.promoRemaining {
+  flex-shrink: 0;
 }
 
 .promoAction svg {
