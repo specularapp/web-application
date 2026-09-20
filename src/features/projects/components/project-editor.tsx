@@ -10,9 +10,10 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { siteUrl } from "@/lib/utils/site";
-import { budgetLabel, dueOf, projectStatuses, shortDate } from "../labels";
+
 import type { Project, ProjectClient, ProjectOwnerOption } from "../summary";
 import { ProjectCard } from "./project-card";
+import { ProjectSheet } from "./project-sheet";
 import { ProjectForm, type ProjectPreviewSnapshot } from "./project-form-dialog";
 import styles from "./project-editor.module.css";
 
@@ -123,30 +124,30 @@ export function ProjectEditor({ project, clients, owners, onLeave, onSaved }: Pr
         {showPreview && (
           <aside className={styles.preview} aria-label="Prévia do projeto">
             <Text as="h3" variant="caption1" weight="semibold" tone="secondary" className={styles.previewTitle}>
-              Como aparece na lista
+              Como o projeto fica
             </Text>
 
             {preview ? (
               <>
-                {/* Inerte: o leque e o botão do endereço são de verdade, e não têm o que fazer numa prévia. */}
+                {/* A ficha de verdade, a mesma peça da janela do projeto, e não um segundo desenho: o que a
+                    pessoa vê aqui é o que ela vai abrir depois de salvar. Inerte, porque os vínculos e os
+                    atalhos são de verdade e não têm o que fazer numa prévia. */}
+                <div className={styles.sheetFrame} inert>
+                  <ProjectSheet project={preview} preview />
+                </div>
+
+                {/* O cartão da grade logo abaixo, no tamanho em que ele aparece na lista: a ficha diz como o
+                    projeto se lê por dentro, e o cartão como ele se reconhece de fora. */}
+                <Text as="h3" variant="caption1" weight="semibold" tone="secondary" className={styles.previewTitle}>
+                  Como aparece na lista
+                </Text>
                 <ul className={styles.cardFrame} inert>
                   <ProjectCard project={preview} onOpen={() => undefined} onEdit={() => undefined} />
                 </ul>
-
-                <dl className={styles.facts}>
-                  <Fact label="Situação" value={projectStatuses[preview.status].label} />
-                  <Fact label="Cliente" value={preview.client ? preview.client.company ?? preview.client.name : "Sem cliente"} />
-                  <Fact label="Responsável" value={preview.owner.name} />
-                  <Fact label="Começo" value={shortDate(preview.startedAt)} />
-                  <Fact label="Entrega" value={preview.dueAt ? dueOf(preview).label : "Sem prazo"} />
-                  <Fact label="Valor" value={preview.budget ? budgetLabel(preview.budget) : "A combinar"} />
-                  <Fact label="Andamento" value={`${preview.progress}%`} />
-                  <Fact label="Portfólio" value={preview.isPublic ? "Público" : "Só a equipe"} />
-                </dl>
               </>
             ) : (
               <Text variant="footnote" tone="secondary">
-                Preencha a ficha e o cartão aparece aqui.
+                Preencha a ficha e o projeto aparece aqui.
               </Text>
             )}
           </aside>
@@ -156,18 +157,6 @@ export function ProjectEditor({ project, clients, owners, onLeave, onSaved }: Pr
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.fact}>
-      <Text as="dt" variant="caption1" tone="secondary">
-        {label}
-      </Text>
-      <Text as="dd" variant="footnote" weight="medium" truncate>
-        {value}
-      </Text>
-    </div>
-  );
-}
 
 /**
  * O projeto como a prévia o desenha, a partir do que a ficha tem agora: os valores crus viram os tipos do

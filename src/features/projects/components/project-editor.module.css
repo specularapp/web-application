@@ -96,7 +96,8 @@
   }
 }
 
-/* A prévia, no fundo agrupado, com o cartão centrado na largura de um cartão da grade. */
+/* A prévia, no fundo agrupado: a ficha do projeto na largura de leitura e, embaixo, o cartão da grade na
+   largura de uma coluna. */
 .preview {
   display: grid;
   gap: var(--space-4);
@@ -134,21 +135,19 @@
   list-style: none;
 }
 
-/* Os fatos da ficha, em duas colunas, rótulo apagado em cima e valor embaixo. */
-.facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-  width: min(100%, 24rem);
-  margin: 0;
+/* A ficha do projeto, a mesma peça da janela. Ela nasce como coluna de uma grade de duas na janela, então
+   aqui ela recebe a largura de leitura de uma coluna só: a ficha se desenha inteira e nada estica de ponta a
+   ponta de uma tela larga. O fundo é o da superfície, para a ficha destacar do agrupado da prévia. */
+.sheetFrame {
+  width: min(100%, 40rem);
+  padding: var(--space-4);
+  background-color: var(--color-bg-elevated);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-.fact {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
-}
-
-.fact dd {
-  margin: 0;
+@media (max-width: 47.9375rem) {
+  .sheetFrame {
+    padding: var(--space-3);
+  }
 }
