@@ -2,7 +2,7 @@
 
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, PaperclipIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
-import type { KeyboardEvent, MouseEvent } from "react";
+import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +27,13 @@ export type TaskCardDrag = {
 
 export type TaskCardProps = {
   task: Task;
-  onOpen: () => void;
+  /**
+   * Abre a ficha. Recebe a tarefa em vez de fechar sobre ela (2026-09-17, na rodada de velocidade): assim
+   * quem lista passa **a mesma função** para todos os cartões, e o `memo` daqui embaixo tem o que segurar.
+   * Com um `() => abrir(tarefa)` escrito por cartão, a identidade mudava a cada tecla da busca e a lista
+   * inteira redesenhava.
+   */
+  onOpen: (task: Task) => void;
   /**
    * O arraste do quadro (2026-09-10, a pedido): o cartão inteiro é a alça, então quem chama passa o que o
    * `useDraggable` devolveu. Sem isto o cartão é o de sempre, o que é o caso do bloco do painel.
@@ -38,9 +44,9 @@ export type TaskCardProps = {
   /** As etapas do quadro em que o cartão está, para o "Mover para" do leque. */
   stages?: TaskStage[];
   /** Leva a tarefa para outra etapa pelo leque, que é o caminho curto onde não se arrasta. */
-  onMove?: (stage: TaskStage) => void;
+  onMove?: (task: Task, stage: TaskStage) => void;
   /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
-  onDelete?: () => void;
+  onDelete?: (task: Task) => void;
 };
 
 /** Quantos rostos a fila mostra antes de resumir o resto em "+N", o mesmo da ficha e do aviso do menu. */
@@ -68,7 +74,7 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // A ordem é a de quem varre a coluna com o olho: o que é urgente, o que é, onde mora, o que diz, como está
 // classificado, quanto falta, e por fim quem cuida e quando vence. Etiquetas, trabalho e as contagens do pé
 // só aparecem quando existem, então tarefa simples tem cartão curto e tarefa cheia tem cartão cheio.
-export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, onDelete }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, onDelete }: TaskCardProps) {
   const due = dueOf(task);
   const faces = task.people.slice(0, SHOWN_FACES);
   const restFaces = task.people.length - faces.length;
@@ -80,7 +86,7 @@ export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, 
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
     if (control && control !== event.currentTarget) return;
-    onOpen();
+    onOpen(task);
   };
 
   /**
@@ -95,7 +101,7 @@ export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, 
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter") {
       event.preventDefault();
-      onOpen();
+      onOpen(task);
       return;
     }
     if (event.key === " ") dragKeyDown?.(event);
@@ -131,7 +137,13 @@ export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, 
           {task.alert && <Badge tone="warning" size="sm" icon={<WarningIcon weight="fill" />} label="Tem um aviso para ler antes de mexer" />}
           {!overlay && (
             <span className={styles.menu}>
-              <TaskMenu task={task} onOpen={onOpen} stages={stages} onMove={onMove} onDelete={onDelete} />
+              <TaskMenu
+                task={task}
+                onOpen={() => onOpen(task)}
+                stages={stages}
+                onMove={onMove && ((stage) => onMove(task, stage))}
+                onDelete={onDelete && (() => onDelete(task))}
+              />
             </span>
           )}
         </div>
@@ -253,4 +265,4 @@ export function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, 
       </div>
     </li>
   );
-}
+});

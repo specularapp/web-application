@@ -12,7 +12,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { squircle, squircleAuto } from "@/lib/corners";
 import { dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../labels";
 import { projectArtworkUrl } from "../list-options";
-import type { Project } from "../summary";
+import { clientFace, type Project } from "../summary";
 import { ProjectMenu } from "./project-menu";
 import { ToolTile } from "./tool-tile";
 import styles from "./project-card.module.css";
@@ -29,6 +29,11 @@ export type ProjectCardProps = {
 
 /* Quantas marcas a fila mostra antes de resumir o resto em "+N". */
 const SHOWN_TOOLS = 5;
+
+/* Quantas etiquetas cabem na largura do cartão antes de virarem contagem, na mesma receita do cartão de
+   tarefa. Sem o teto, projeto com dez etiquetas empurrava o pé para baixo e a grade perdia a linha (a
+   pedido, 2026-09-17). */
+const SHOWN_TAGS = 3;
 
 /* Controles com ação própria dentro do cartão: clique que nasce neles não abre a janela. */
 const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']";
@@ -54,6 +59,8 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
   const hue = { "--project-hue": `var(--sys-${project.hue})` } as CSSProperties;
   const shownTools = project.tools.slice(0, SHOWN_TOOLS);
   const restTools = project.tools.slice(SHOWN_TOOLS);
+  const shownTags = project.tags.slice(0, SHOWN_TAGS);
+  const restTags = project.tags.slice(SHOWN_TAGS);
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
@@ -86,7 +93,7 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
           {/* Sem cliente, o projeto é independente e o lugar do rosto fica com o glifo do que ele é: estudo,
               projeto próprio, protótipo. O bloco não some, senão a linha do cartão dançaria de um para outro. */}
           {project.client ? (
-            <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+            <Avatar name={project.client.name} src={clientFace(project.client)} size="sm" shape="squircle" />
           ) : (
             <span className={styles.own} aria-hidden="true" {...squircle("sm")}>
               <FolderSimpleIcon />
@@ -143,13 +150,23 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
 
         {project.tags.length > 0 && (
           <ul className={styles.tags} aria-label="Etiquetas">
-            {project.tags.map((tag) => (
+            {shownTags.map((tag) => (
               <li key={tag}>
                 <Badge variant="outline" size="sm">
                   {tag}
                 </Badge>
               </li>
             ))}
+            {restTags.length > 0 && (
+              <li>
+                <Tooltip content={nameList.format(restTags)}>
+                  <Badge variant="outline" size="sm">
+                    +{restTags.length}
+                  </Badge>
+                </Tooltip>
+              </li>
+            )}
+            <VisuallyHidden>{`Etiquetas: ${nameList.format(project.tags)}`}</VisuallyHidden>
           </ul>
         )}
 

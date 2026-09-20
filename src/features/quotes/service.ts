@@ -22,12 +22,15 @@ const columns = `
   client_city, client_avatar_url, owner_id, discount_kind, discount_value, installments, payment_methods,
   cash_discount, notes, issued_at, valid_until, sent_at, viewed_at, responded_at, share_token_version,
   created_at, updated_at,
-  quote_lines(id, catalog_item_id, name, description, quantity, unit_price, unit, courtesy, position)
+  quote_lines(id, catalog_item_id, name, description, quantity, unit_price, unit, courtesy, position, catalog_items(image_url))
 `;
 
 type LineRow = {
   id: string;
   catalog_item_id: string | null;
+  /* A foto vem do item do catálogo, pelo vínculo da linha: a linha guarda nome e preço do dia, mas a foto do
+     produto é a que o catálogo tem agora. */
+  catalog_items: { image_url: string | null } | null;
   name: string;
   description: string;
   quantity: number | string;
@@ -72,6 +75,7 @@ const NOBODY: QuotePerson = { name: "Equipe", avatarUrl: null };
 const toLine = (line: LineRow): QuoteLine => ({
   id: line.id,
   catalogItemId: line.catalog_item_id,
+  imageUrl: line.catalog_items?.image_url ?? null,
   name: line.name,
   description: line.description,
   quantity: Number(line.quantity),

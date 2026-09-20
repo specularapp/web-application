@@ -2,11 +2,12 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { useEventCallback } from "@/hooks/use-event-callback";
 import { squircle } from "@/lib/corners";
 import { columnSortIcons, columnSortLabels, columnSortValues, type TasksColumnSort } from "../list-options";
 import type { TaskStage, TaskStageMeta } from "../stages";
@@ -56,7 +57,7 @@ export type TaskColumnProps = {
 // Recolhida, a coluna vira um trilho estreito: a mesma pílula em pé, com o nome na vertical e a contagem,
 // e o menu no pé, por onde ela volta a abrir. É a mesma marcação, só de lado, então não existe um segundo
 // cabeçalho para sair de sincronia com este.
-function DraggableCard({
+const DraggableCard = memo(function DraggableCard({
   task,
   stage,
   onOpen,
@@ -66,7 +67,7 @@ function DraggableCard({
 }: {
   task: Task;
   stage: TaskStage;
-  onOpen: () => void;
+  onOpen: (task: Task) => void;
   stages?: TaskStage[];
   onMove?: (task: Task, stage: TaskStage) => void;
   onDelete?: (task: Task) => void;
@@ -77,17 +78,19 @@ function DraggableCard({
     attributes: { roleDescription: "cartão de tarefa" },
   });
 
+  /* As funções vão inteiras para o cartão, sem envolver numa nova aqui: envolver devolveria a identidade
+     instável que o `memo` do cartão veio resolver. */
   return (
     <TaskCard
       task={task}
       onOpen={onOpen}
       drag={{ ref: setNodeRef, listeners, attributes, dragging: isDragging }}
       stages={stages}
-      onMove={onMove && ((to) => onMove(task, to))}
-      onDelete={onDelete && (() => onDelete(task))}
+      onMove={onMove}
+      onDelete={onDelete}
     />
   );
-}
+});
 
 export function TaskColumn({
   stage,
@@ -111,6 +114,13 @@ export function TaskColumn({
   /* A coluna inteira é o alvo de soltar, cabeçalho incluído: mirar a pilha de uma etapa vazia, que é uma
      frase de cinco linhas de altura, seria pedir precisão que ninguém tem com o cartão na mão. */
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stage: stage.id } });
+
+  /* As três funções que vão para cada cartão, de identidade fixa (2026-09-17, na rodada de velocidade): o
+     quadro as reescreve a cada tecla da busca, e sem isto o `memo` do cartão não seguraria nada, porque uma
+     função nova já é prop nova. É aqui, e não no quadro, porque só a coluna sabe qual é a etapa de origem. */
+  const open = useEventCallback((task: Task) => onOpen(task));
+  const move = useEventCallback((task: Task, to: TaskStage) => onMove?.(task, to));
+  const remove = useEventCallback((task: Task) => onDelete?.(task));
 
   /* O menu do chevron duplo: a ordem de dentro da coluna, que vale na hora e não fecha o menu (a pessoa
      costuma experimentar mais de uma), e o que se faz com a etapa em si. Recolher fica no cookie; tirar do
@@ -218,19 +228,13 @@ export function TaskColumn({
                     key={task.id}
                     task={task}
                     stage={stage.id}
-                    onOpen={() => onOpen(task)}
+                    onOpen={open}
                     stages={stages}
-                    onMove={onMove}
+                    onMove={onMove && move}
+                    onDelete={onDelete && remove}
                   />
                 ) : (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onOpen={() => onOpen(task)}
-                    stages={stages}
-                    onMove={onMove && ((to) => onMove(task, to))}
-                    onDelete={onDelete && (() => onDelete(task))}
-                  />
+                  <TaskCard key={task.id} task={task} onOpen={open} stages={stages} onMove={onMove && move} onDelete={onDelete && remove} />
                 ),
               )}
             </ul>

@@ -1,5 +1,5 @@
 import "server-only";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
 import { getTask, getTasksSummary } from "./service";
 import type { Task, TasksSummary } from "./summary";
 
@@ -12,7 +12,9 @@ export async function getTaskById(id: string, next = "/tarefas"): Promise<Task |
   return getTask(supabase, organizationId, id);
 }
 
-export async function getTasksBlock(next = "/dashboard"): Promise<TasksSummary> {
-  const { supabase, organizationId } = await requireOrganization(next);
-  return getTasksSummary(supabase, organizationId);
+/* Como os demais blocos do painel: sem time o painel ainda abre, com a configuração inicial por cima. */
+export async function getTasksBlock(): Promise<TasksSummary> {
+  const context = await getOrganizationContext();
+  if (!context) return { tasks: [] };
+  return getTasksSummary(context.supabase, context.organizationId);
 }

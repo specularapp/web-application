@@ -9,7 +9,7 @@ import {
   PaperclipIcon,
   ThermometerIcon,
 } from "@phosphor-icons/react";
-import type { KeyboardEvent, MouseEvent } from "react";
+import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -33,16 +33,20 @@ export type OpportunityCardDrag = {
 
 export type OpportunityCardProps = {
   opportunity: Opportunity;
-  onOpen: () => void;
+  /**
+   * Abre a ficha. Recebe a oportunidade em vez de fechar sobre ela (2026-09-17, na rodada de velocidade):
+   * assim quem lista passa a mesma função para todos os cartões e o `memo` daqui embaixo tem o que segurar.
+   */
+  onOpen: (opportunity: Opportunity) => void;
   /** O arraste do quadro: o cartão inteiro é a alça, então quem chama passa o que o `useDraggable` devolveu. */
   drag?: OpportunityCardDrag;
   /** O cartão que flutua sob o ponteiro enquanto se arrasta: é só o desenho, sem alça e sem leque. */
   overlay?: boolean;
   /** As etapas do quadro em que o cartão está, para o "Mover para" do leque. */
   stages?: CrmStage[];
-  onMove?: (stage: CrmStage) => void;
+  onMove?: (opportunity: Opportunity, stage: CrmStage) => void;
   /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
-  onDelete?: () => void;
+  onDelete?: (opportunity: Opportunity) => void;
 };
 
 /** Quantos rostos a fila mostra antes de resumir o resto em "+N". */
@@ -63,7 +67,7 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // que se está vendendo, para quem, o que é, como está classificada, quanto vale e qual a chance, e por fim
 // quem cuida e quando deve fechar. Etiquetas e as contagens do pé só aparecem quando existem, então venda
 // nova tem cartão curto e venda madura tem cartão cheio.
-export function OpportunityCard({ opportunity, onOpen, drag, overlay = false, stages, onMove, onDelete }: OpportunityCardProps) {
+export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOpen, drag, overlay = false, stages, onMove, onDelete }: OpportunityCardProps) {
   const expected = expectedOf(opportunity);
   const faces = opportunity.people.slice(0, SHOWN_FACES);
   const restFaces = opportunity.people.length - faces.length;
@@ -74,7 +78,7 @@ export function OpportunityCard({ opportunity, onOpen, drag, overlay = false, st
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
     if (control && control !== event.currentTarget) return;
-    onOpen();
+    onOpen(opportunity);
   };
 
   /* As duas teclas do cartão, e só quando o foco está nele mesmo: **Enter abre** a ficha e **Espaço pega** o
@@ -85,7 +89,7 @@ export function OpportunityCard({ opportunity, onOpen, drag, overlay = false, st
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter") {
       event.preventDefault();
-      onOpen();
+      onOpen(opportunity);
       return;
     }
     if (event.key === " ") dragKeyDown?.(event);
@@ -121,7 +125,13 @@ export function OpportunityCard({ opportunity, onOpen, drag, overlay = false, st
           {stale && <Badge tone="warning" size="sm" icon={<HourglassIcon weight="fill" />} label={touchLabel(opportunity)} />}
           {!overlay && (
             <span className={styles.menu}>
-              <OpportunityMenu opportunity={opportunity} onOpen={onOpen} stages={stages} onMove={onMove} onDelete={onDelete} />
+              <OpportunityMenu
+                opportunity={opportunity}
+                onOpen={() => onOpen(opportunity)}
+                stages={stages}
+                onMove={onMove && ((stage) => onMove(opportunity, stage))}
+                onDelete={onDelete && (() => onDelete(opportunity))}
+              />
             </span>
           )}
         </div>
@@ -240,4 +250,4 @@ export function OpportunityCard({ opportunity, onOpen, drag, overlay = false, st
       </div>
     </li>
   );
-}
+});

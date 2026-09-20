@@ -43,7 +43,7 @@ import { formatMoney } from "@/lib/utils/format";
 import { loadProjectAction } from "../actions";
 import { budgetLabel, dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../labels";
 import { projectArtworkUrl } from "../list-options";
-import type { Project, ProjectDetails } from "../summary";
+import { clientFace, type Project, type ProjectDetails } from "../summary";
 import { projectTagHue } from "../tags";
 import { ProjectMenu } from "./project-menu";
 import { ToolTile } from "./tool-tile";
@@ -262,7 +262,7 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
               que é onde o trabalho acontece. */}
           <div className={styles.identity}>
             {project.client ? (
-              <Avatar name={project.client.name} src={project.client.avatarUrl ?? undefined} size="lg" shape="squircle" />
+              <Avatar name={project.client.name} src={clientFace(project.client)} size="lg" shape="squircle" />
             ) : (
               <span className={styles.own} aria-hidden="true" {...squircle("lg")}>
                 <FolderSimpleIcon />

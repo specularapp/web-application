@@ -16,6 +16,12 @@ export type QuoteLine = {
   id: string;
   /** O item do catálogo de onde a linha veio; nulo quando foi escrita à mão. */
   catalogItemId: string | null;
+  /**
+   * A foto do item, que é a do catálogo (2026-09-17, a pedido: a folha não mostrava foto nenhuma). Ela é
+   * **lida do item**, e não copiada para a linha: trocar a foto do catálogo troca a de todo orçamento, que é
+   * o que se espera de uma foto de produto. Item apagado solta o vínculo e a folha volta para a arte gerada.
+   */
+  imageUrl: string | null;
   name: string;
   /** O que a linha entrega, em uma frase; opcional. */
   description: string;

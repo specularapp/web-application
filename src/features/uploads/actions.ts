@@ -1,6 +1,6 @@
 "use server";
 
-import { requireOrganization, revalidateDomain, TOO_MANY } from "@/features/organizations/context";
+import { getOrganizationContext, NO_TEAM, revalidateDomain, TOO_MANY } from "@/features/organizations/context";
 import { cacheTags, type DomainTag } from "@/lib/cache/tags";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { attachUploadSchema, clearUploadSchema, createUploadSchema, contentTypesOf, type UploadTarget } from "./schemas";
@@ -35,7 +35,9 @@ async function withinLimit(operation: string, userId: string) {
 }
 
 export async function createUploadAction(input: unknown): Promise<ServiceResult<{ path: string; token: string }>> {
-  const { supabase, user, organizationId } = await requireOrganization();
+  const context = await getOrganizationContext();
+  if (!context) return { ok: false, error: NO_TEAM };
+  const { supabase, user, organizationId } = context;
   if (!(await withinLimit("create", user.id))) return { ok: false, error: TOO_MANY };
 
   const parsed = createUploadSchema.safeParse(input);
@@ -51,7 +53,9 @@ export async function createUploadAction(input: unknown): Promise<ServiceResult<
 }
 
 export async function attachUploadAction(input: unknown): Promise<ServiceResult<string>> {
-  const { supabase, user, organizationId } = await requireOrganization();
+  const context = await getOrganizationContext();
+  if (!context) return { ok: false, error: NO_TEAM };
+  const { supabase, user, organizationId } = context;
   if (!(await withinLimit("attach", user.id))) return { ok: false, error: TOO_MANY };
 
   const parsed = attachUploadSchema.safeParse(input);
@@ -66,7 +70,9 @@ export async function attachUploadAction(input: unknown): Promise<ServiceResult<
 }
 
 export async function clearUploadAction(input: unknown): Promise<ServiceResult<undefined>> {
-  const { supabase, user, organizationId } = await requireOrganization();
+  const context = await getOrganizationContext();
+  if (!context) return { ok: false, error: NO_TEAM };
+  const { supabase, user, organizationId } = context;
   if (!(await withinLimit("clear", user.id))) return { ok: false, error: TOO_MANY };
 
   const parsed = clearUploadSchema.safeParse(input);

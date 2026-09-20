@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
 import { getCharge, getChargeLookups, getFinanceOverview, getFinanceSummary, listCharges, type ChargeLookups } from "./service";
 import type { Charge, FinanceOverview, FinancePeriod, FinanceSummary } from "./summary";
 
@@ -48,8 +48,13 @@ export async function getFinanceOverviewData(period: FinancePeriod, next = "/fin
   );
 }
 
-export async function getFinanceBlock(next = "/dashboard"): Promise<FinanceSummary> {
-  const { supabase, organizationId } = await requireOrganization(next);
+const EMPTY_BLOCK: FinanceSummary = { balance: 0, transactions: [] };
+
+/* Como os demais blocos do painel: sem time o painel ainda abre, com a configuração inicial por cima. */
+export async function getFinanceBlock(): Promise<FinanceSummary> {
+  const context = await getOrganizationContext();
+  if (!context) return EMPTY_BLOCK;
+  const { supabase, organizationId } = context;
 
   return cached(
     cacheKey(organizationId, "finance:block"),

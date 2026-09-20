@@ -44,6 +44,15 @@ export type ProjectClient = {
 };
 
 /**
+ * A cara de quem contratou, em todo lugar que desenha o cliente de um projeto: **a logo da marca primeiro**,
+ * e o rosto da pessoa só quando não existe logo (a pedido, 2026-09-17). O projeto é conhecido pela marca de
+ * quem contratou, e a linha ao lado já escreve o nome da empresa: mostrar o rosto ali dizia uma coisa
+ * enquanto o texto dizia outra. `ProjectMark` segue a mesma ordem, com a logo do próprio projeto na frente.
+ */
+export const clientFace = (client: Pick<ProjectClient, "avatarUrl" | "logoUrl"> | null | undefined) =>
+  client ? (client.logoUrl ?? client.avatarUrl ?? undefined) : undefined;
+
+/**
  * As ferramentas do trabalho, pelo nome do arquivo em `public/brands`: são as marcas que o cartão mostra em
  * cores, na fila agrupada da casa. Lista fechada, porque marca sem arquivo não desenha nada; marca nova é um
  * arquivo na pasta, o nome aqui e o rótulo em `labels.ts`.
@@ -129,6 +138,13 @@ export type Project = {
   /** Quem da equipe responde pelo projeto: o id é o que o formulário guarda, e o resto é o que o cartão desenha. */
   ownerId: string | null;
   owner: ProjectPerson;
+  /**
+   * Quem mais da equipe trabalha no projeto (2026-09-17, a pedido). São os ids de `project_members`, que a
+   * ficha já lia para desenhar o bloco de equipe mas nada preenchia: o vínculo existia no banco desde a
+   * virada e não tinha por onde entrar. Quem responde pelo projeto não precisa estar aqui; ele entra na
+   * equipe da ficha de qualquer jeito.
+   */
+  memberIds: string[];
   status: ProjectStatus;
   tags: string[];
   /** As ferramentas usadas, na ordem de mostrar; podem passar de vinte, e o cartão resume o resto. */

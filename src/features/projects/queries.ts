@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
-import { requireOrganization } from "@/features/organizations/context";
+import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
 import type { TaskTreeNode } from "@/features/tasks/tree";
 import type { ProjectsListPage, ProjectsQuery } from "./list-options";
 import {
@@ -59,8 +59,14 @@ export async function getProjectDetailsById(id: string, next = "/projetos"): Pro
   return getProjectDetails(supabase, organizationId, id);
 }
 
-export async function getProjectsBlock(next = "/dashboard"): Promise<ProjectsSummary> {
-  const { supabase, organizationId } = await requireOrganization(next);
+const EMPTY_BLOCK: ProjectsSummary = { total: 0, clientCount: 0, clients: [], months: [] };
+
+/* O bloco do painel abre sem time, porque o painel abre sem time: é nele que a configuração inicial
+   aparece por cima, e quem acabou de se cadastrar ainda não tem o que contar. */
+export async function getProjectsBlock(): Promise<ProjectsSummary> {
+  const context = await getOrganizationContext();
+  if (!context) return EMPTY_BLOCK;
+  const { supabase, organizationId } = context;
 
   return cached(
     cacheKey(organizationId, "projects:block"),

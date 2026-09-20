@@ -30,6 +30,9 @@ export type RelationClient = SupabaseClient<Database>;
  */
 export type RelationKind = "client" | "quote" | "project" | "contract" | "charge" | "opportunity";
 
+/** Um campo do registro no nó, com o nome do que ele é: é o que deixa ler o mapa sem abrir cada registro. */
+export type RelationField = { label: string; value: string };
+
 export type RelationNode = {
   id: string;
   kind: RelationKind;
@@ -38,6 +41,18 @@ export type RelationNode = {
   name: string;
   /** Linha de apoio: o valor, a situação, o prazo. */
   caption?: string;
+  /**
+   * A imagem do registro, quando ele tem uma: a logo da marca do cliente, a logo ou a capa do projeto
+   * (2026-09-17, a pedido). É o que deixa reconhecer o registro antes de ler, que é o que o mapa serve para
+   * fazer. Sem imagem o nó fica com o glifo do domínio, como antes.
+   */
+  imageUrl?: string | null;
+  /**
+   * Os campos do registro, nomeados e na ordem de leitura: valor, emissão, prazo, andamento. Sai daqui já
+   * formatado porque o mapa mostra seis domínios de uma vez, e formatar na tela arrastaria seis mapas de
+   * rótulo para o navegador.
+   */
+  fields?: RelationField[];
   /** Onde o registro mora, para o nó levar até ele. */
   href?: string;
   /* A situação já resolvida em nome e tom, e não o valor cru do banco: o mapa mostra cinco domínios de uma
@@ -68,6 +83,15 @@ const PER_KIND = 12;
    atravessa a fronteira de uma Server Action. */
 const badge = (meta: { label: string; tone: BadgeTone }) => ({ label: meta.label, tone: meta.tone });
 
+/* A data como a casa escreve nas listas: dia, mês e ano em dois dígitos. Nula some do nó em vez de virar
+   campo vazio, porque campo vazio ocupa linha e não diz nada. */
+const day = (iso: string | null | undefined) =>
+  iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) : null;
+
+/** Os campos que existem, na ordem dada: o que veio nulo não vira linha. */
+const fieldsOf = (...entries: [string, string | null | undefined][]): RelationField[] =>
+  entries.filter((entry): entry is [string, string] => Boolean(entry[1])).map(([label, value]) => ({ label, value }));
+
 /**
  * O mapa de um cliente. Cinco leituras em paralelo, cada uma já filtrada pelo cliente: é barato porque toda
  * tabela tem índice por `client_id`, e o teto por tipo segura o desenho.
@@ -79,7 +103,7 @@ export async function getClientRelations(
 ): Promise<RelationMap | null> {
   const { data: contact } = await client
     .from("clients")
-    .select("id, reference, name, company")
+    .select("id, reference, name, company, avatar_url, company_logo_url, email, phone, city")
     .eq("organization_id", organizationId)
     .eq("id", clientId)
     .maybeSingle();
@@ -89,21 +113,21 @@ export async function getClientRelations(
   const [quotes, projects, contracts, charges, opportunities] = await Promise.all([
     client
       .from("quotes")
-      .select("id, reference, title, status, issued_at, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")
+      .select("id, reference, title, status, issued_at, valid_until, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")
       .eq("organization_id", organizationId)
       .eq("client_id", clientId)
       .order("issued_at", { ascending: false })
       .limit(PER_KIND),
     client
       .from("projects")
-      .select("id, reference, name, status, progress")
+      .select("id, reference, name, status, progress, logo_url, cover_url, started_at, due_at")
       .eq("organization_id", organizationId)
       .eq("client_id", clientId)
       .order("started_at", { ascending: false })
       .limit(PER_KIND),
     client
       .from("contracts")
-      .select("id, reference, title, status, amount, quote_id, project_id")
+      .select("id, reference, title, status, amount, signed_at, created_at, quote_id, project_id")
       .eq("organization_id", organizationId)
       .eq("client_id", clientId)
       .order("created_at", { ascending: false })
@@ -130,6 +154,10 @@ export async function getClientRelations(
     reference: contact.reference,
     name: contact.name,
     caption: contact.company ?? undefined,
+    /* A marca da empresa antes do rosto da pessoa, a mesma ordem que o projeto segue: quem lê o mapa procura
+       a marca que conhece. */
+    imageUrl: contact.company_logo_url ?? contact.avatar_url,
+    fields: fieldsOf(["Empresa", contact.company], ["E-mail", contact.email], ["Telefone", contact.phone], ["Cidade", contact.city]),
     href: `/clientes/${contact.id}`,
   };
 
@@ -165,6 +193,7 @@ export async function getClientRelations(
       reference: opportunity.reference,
       name: opportunity.title,
       caption: formatMoney(opportunity.value),
+      fields: fieldsOf(["Valor", formatMoney(opportunity.value)], ["Etapa", crmStageMeta[opportunity.stage].label]),
       status: { label: crmStageMeta[opportunity.stage].label, tone: crmStatusTones[crmStageMeta[opportunity.stage].kind] },
       href: "/crm",
     });
@@ -180,6 +209,7 @@ export async function getClientRelations(
       reference: quote.reference,
       name: quote.title,
       caption: formatMoney(quoteAmount(quote)),
+      fields: fieldsOf(["Total", formatMoney(quoteAmount(quote))], ["Emissão", day(quote.issued_at)], ["Validade", day(quote.valid_until)]),
       status: badge(quoteStatuses[quote.status]),
       href: `/orcamentos/${quote.id}`,
     });
@@ -196,6 +226,10 @@ export async function getClientRelations(
       reference: project.reference,
       name: project.name,
       caption: `${project.progress}% concluído`,
+      /* A logo do projeto primeiro e a capa depois: a logo é a marca, a capa é a imagem do trabalho, e num
+         azulejo pequeno a marca lê melhor. */
+      imageUrl: project.logo_url ?? project.cover_url,
+      fields: fieldsOf(["Andamento", `${project.progress}%`], ["Início", day(project.started_at)], ["Entrega", day(project.due_at)]),
       status: badge(projectStatuses[project.status]),
       href: `/projetos/${project.id}`,
     });
@@ -210,6 +244,11 @@ export async function getClientRelations(
       reference: contract.reference,
       name: contract.title,
       caption: contract.amount === null ? undefined : formatMoney(contract.amount),
+      fields: fieldsOf(
+        ["Valor", contract.amount === null ? null : formatMoney(contract.amount)],
+        ["Assinado", day(contract.signed_at)],
+        ["Criado", day(contract.created_at)],
+      ),
       status: badge(contractStatuses[contract.status]),
       href: `/contratos/${contract.id}`,
     });
@@ -237,6 +276,12 @@ export async function getClientRelations(
       reference: charge.reference,
       name: charge.title,
       caption: `${formatMoney(paid)} de ${formatMoney(charge.amount)}`,
+      fields: fieldsOf(
+        ["Total", formatMoney(charge.amount)],
+        ["Recebido", formatMoney(paid)],
+        ["Em aberto", formatMoney(Math.max(0, charge.amount - paid))],
+        ["Parcelas", String((charge.charge_installments ?? []).length)],
+      ),
       /* Sem "vencida" aqui: isso depende do vencimento de cada parcela, e o mapa não é a tela de cobrança.
          Quem quer saber se venceu abre a cobrança pelo próprio nó. */
       status: badge(chargeStatuses[charge.cancelled_at ? "cancelled" : paid >= charge.amount ? "paid" : paid > 0 ? "partial" : "open"]),
