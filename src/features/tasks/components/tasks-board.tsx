@@ -55,7 +55,7 @@ import { deleteTaskAction } from "../actions";
 import { setProjectStagesAction } from "@/features/projects/actions";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
-import { NewTaskDialog } from "./new-task-dialog";
+import { NewTaskDialog, type NewTaskProject } from "./new-task-dialog";
 import { TaskDialog } from "./task-dialog";
 import styles from "./tasks-board.module.css";
 import { callAction } from "@/lib/action";
@@ -73,6 +73,8 @@ export type TasksBoardProps = {
   records?: AppRecord[];
   /** O projeto deste quadro; nulo no balde de tarefas soltas, que é o que `/tarefas` mostra. */
   projectId?: string | null;
+  /** Para onde a tarefa pode nascer quando o quadro não é de um projeto. */
+  projects?: NewTaskProject[];
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -132,7 +134,7 @@ const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAU
 // A ficha da tarefa é **uma só para o quadro inteiro**, guardando quem está aberto, e não uma por cartão:
 // com vinte e quatro cartões seriam vinte e quatro janelas montadas, que é a mesma decisão da gaveta da base
 // de clientes.
-export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null }: TasksBoardProps) {
+export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null, projects }: TasksBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -562,6 +564,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         stages={board.columns.map((column) => column.stage)}
         stage={creating ?? board.columns[0]?.stage ?? "todo"}
         projectId={projectId}
+        projects={projects}
         team={team}
         onCreated={() => setCreating(null)}
       />

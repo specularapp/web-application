@@ -15,16 +15,53 @@
   border-block-end: 0.0375rem solid var(--color-border);
 }
 
+/* Os blocos rolam juntos, e o recuo lateral é de cada bloco, não do corpo: assim o fio entre eles corre de
+   ponta a ponta, como na ficha de projeto, em vez de nascer e morrer dentro da margem. */
 .body {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
   min-height: 0;
-  padding: var(--space-5);
+  padding-block: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-/* Dois campos por linha: etapa e prazo, prioridade e responsável. No celular eles empilham. */
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: var(--space-5);
+}
+
+/* O glifo e o título do bloco, na cor do título, herdada. */
+.heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding-block-end: var(--space-1);
+}
+
+.heading > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-label-secondary);
+}
+
+/* O divisor no fio da casa: o `Separator` puro traz `--color-separator`, quase três vezes mais opaco. */
+.divider.divider {
+  height: var(--panel-line);
+  background-color: var(--color-border);
+}
+
+.alert {
+  padding-inline: var(--space-5);
+}
+
+/* Dois campos por linha: etapa e prioridade, começo e prazo. No celular eles empilham. */
 .pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -52,5 +89,10 @@
 
   .body {
     padding-block-end: var(--floating-bar-inset);
+  }
+
+  .section,
+  .alert {
+    padding-inline: var(--space-4);
   }
 }
