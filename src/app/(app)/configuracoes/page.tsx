@@ -11,11 +11,11 @@ export const metadata = createMetadata({
   noIndex: true,
 });
 
-// A conta de quem entra e a equipe em que está (2026-09-17). Server Component: lê e entrega; quem tem estado
-// é a tela.
+// A ficha da pessoa (2026-09-17; refeita em 2026-09-20 só sobre ela, sem a equipe). Server Component: lê e
+// entrega; quem tem estado é a tela.
 export default async function AccountPage() {
   const [data, ai] = await Promise.all([getAccountSettings(), getAiUsageData()]);
   if (!data) notFound();
 
-  return <AccountSettings account={data.account} team={data.team} viewer={data.viewer} ai={ai} />;
+  return <AccountSettings {...data} ai={ai} />;
 }

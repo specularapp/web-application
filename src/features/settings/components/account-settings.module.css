@@ -1,0 +1,18 @@
+/* A moldura do cabeçalho: o perfil da casa (a capa no matiz da pessoa, a foto passando por cima, o nome, o
+   e-mail e os números) é uma coluna feita para a janela, colada no topo dela. Na página ele ganha o fio e o
+   canto de um bloco, na mesma receita das outras molduras da pasta, e o `overflow` recorta a capa no canto. */
+.frame {
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  corner-shape: squircle;
+}
+
+/* Cancelar e salvar na ponta do nome, como na referência: os dois botões pequenos, lado a lado. */
+.menu {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}

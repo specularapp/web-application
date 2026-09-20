@@ -3,7 +3,8 @@ import type { AppNotification } from "@/components/layout/notifications";
 import { listTotpFactors } from "@/features/auth/actions";
 import { getBillingState, type BillingState } from "@/features/billing/service";
 import { requireOrganization } from "@/features/organizations/context";
-import { getTeam, getTeamState, type Team, type TeamMember, type TeamState } from "@/features/organizations/service";
+import { getTeamState, getTeamSummary, type TeamMember, type TeamState } from "@/features/organizations/service";
+import type { TeamMember as MemberSummary } from "@/features/organizations/summary";
 import { hasAi, hasResend, hasStripe } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
 import { getAccount, getCustomDomain, getResume, type Account, type CustomDomain, type Resume } from "./service";
@@ -13,13 +14,29 @@ import { getAccount, getCustomDomain, getResume, type Account, type CustomDomain
  * abrir a página e escritas ali mesmo, e o cache só atrasaria a leitura do que acabou de ser salvo.
  */
 
-export type AccountSettings = { account: Account; team: Team | null; viewer: TeamMember };
+/**
+ * A página da conta (2026-09-20): a conta, o currículo e a pessoa **como o bloco de equipe do painel já a
+ * mede** (`getTeamSummary`: papel, pontos e os quatro números), em vez de uma conta nova só para esta
+ * página. A equipe saiu daqui: ela tem a própria página.
+ */
+export type AccountSettings = {
+  account: Account;
+  resume: Resume | null;
+  viewer: TeamMember;
+  /** A pessoa no resumo da equipe; nula enquanto ela não estiver na lista de membros. */
+  member: MemberSummary | null;
+};
 
 export async function getAccountSettings(): Promise<AccountSettings | null> {
   const { supabase, user, organizationId } = await requireOrganization("/configuracoes");
-  const [account, team, state] = await Promise.all([getAccount(supabase, user.id), getTeam(supabase, organizationId), getTeamState(supabase, user.id)]);
+  const [account, resume, state, summary] = await Promise.all([
+    getAccount(supabase, user.id),
+    getResume(supabase, user.id),
+    getTeamState(supabase, user.id),
+    getTeamSummary(supabase, organizationId),
+  ]);
   if (!account) return null;
-  return { account, team, viewer: state.viewer };
+  return { account, resume, viewer: state.viewer, member: summary.members.find((member) => member.id === user.id) ?? null };
 }
 
 export async function getTeamSettings(): Promise<TeamState> {
