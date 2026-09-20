@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getAiUsageData } from "@/features/ai/queries";
 import { DomainSettings } from "@/features/settings/components/domain-settings";
 import { getDomainSettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -11,8 +12,8 @@ export const metadata = createMetadata({
 });
 
 export default async function DomainPage() {
-  const data = await getDomainSettings();
+  const [data, ai] = await Promise.all([getDomainSettings(), getAiUsageData()]);
   if (!data) notFound();
 
-  return <DomainSettings domain={data.domain} />;
+  return <DomainSettings domain={data.domain} ai={ai} />;
 }

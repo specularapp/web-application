@@ -8,6 +8,7 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import type { IntegrationsSettings as IntegrationsData } from "../queries";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
@@ -27,8 +28,11 @@ type Card = {
  * automatiza por fora (o webhook do n8n e a API que o aplicativo usa). Sem "em breve": ligação que não
  * existe não aparece.
  */
-export function IntegrationsSettings({ stripe, email, ai, webhook, api }: IntegrationsData) {
+export function IntegrationsSettings({ integrations, ai }: { integrations: IntegrationsData; ai: AiUsage }) {
   const { toast } = useToast();
+  /* `ai` é o uso no ciclo, para o topo; o que está ligado chama `assistant` para as duas coisas não se
+     confundirem na mesma função. */
+  const { stripe, email, ai: assistant, webhook, api } = integrations;
 
   const copy = async (text: string) => {
     try {
@@ -63,7 +67,7 @@ export function IntegrationsSettings({ stripe, email, ai, webhook, api }: Integr
       hue: "var(--sys-purple)",
       title: "Inteligência artificial",
       description: "O assistente da concha e a reescrita de texto nos documentos.",
-      status: ai.configured ? { label: "Ligado", tone: "success" } : { label: "Não configurado", tone: "neutral" },
+      status: assistant.configured ? { label: "Ligado", tone: "success" } : { label: "Não configurado", tone: "neutral" },
       action: { label: "Abrir assistente", href: "/ia" },
     },
     {
@@ -78,7 +82,7 @@ export function IntegrationsSettings({ stripe, email, ai, webhook, api }: Integr
   ];
 
   return (
-    <SettingsPage title="Integrações" description="O que está ligado à casa, e por onde quem automatiza por fora entra.">
+    <SettingsPage ai={ai}>
       <SettingsSection title="Serviços">
         <div className={styles.cards}>
           {cards.map((card) => (
@@ -111,7 +115,7 @@ export function IntegrationsSettings({ stripe, email, ai, webhook, api }: Integr
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Webhook de entrada" description="Para o n8n, ou qualquer ferramenta, avisar a casa de algo. O pedido leva o segredo no cabeçalho.">
+      <SettingsSection title="Webhook de entrada">
         <div className={styles.code}>
           <code>POST {webhook.url}</code>
           <Button variant="ghost" size="sm" radius="md" iconStart={<CopySimpleIcon />} onClick={() => void copy(webhook.url)}>
@@ -123,7 +127,7 @@ export function IntegrationsSettings({ stripe, email, ai, webhook, api }: Integr
         </Text>
       </SettingsSection>
 
-      <SettingsSection title="API" description="A mesma porta que o aplicativo de celular usa: cada domínio da casa responde em uma rota, com a sessão da pessoa como credencial.">
+      <SettingsSection title="API">
         <div className={styles.code}>
           <code>{api.baseUrl}/&lt;dominio&gt;</code>
           <Button variant="ghost" size="sm" radius="md" iconStart={<CopySimpleIcon />} onClick={() => void copy(api.baseUrl)}>

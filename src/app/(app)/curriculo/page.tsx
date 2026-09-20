@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getAiUsageData } from "@/features/ai/queries";
 import { ResumeEditor } from "@/features/resume/components/resume-editor";
 import { getResumeSettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -11,8 +12,8 @@ export const metadata = createMetadata({
 });
 
 export default async function ResumePage() {
-  const data = await getResumeSettings();
+  const [data, ai] = await Promise.all([getResumeSettings(), getAiUsageData()]);
   if (!data) notFound();
 
-  return <ResumeEditor resume={data.resume} publicUrl={data.publicUrl} />;
+  return <ResumeEditor resume={data.resume} publicUrl={data.publicUrl} ai={ai} />;
 }

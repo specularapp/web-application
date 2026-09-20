@@ -1,3 +1,4 @@
+import { getAiUsageData } from "@/features/ai/queries";
 import { SecuritySettings } from "@/features/settings/components/security-settings";
 import { getSecuritySettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -10,6 +11,6 @@ export const metadata = createMetadata({
 });
 
 export default async function SecurityPage() {
-  const data = await getSecuritySettings();
-  return <SecuritySettings {...data} />;
+  const [data, ai] = await Promise.all([getSecuritySettings(), getAiUsageData()]);
+  return <SecuritySettings {...data} ai={ai} />;
 }

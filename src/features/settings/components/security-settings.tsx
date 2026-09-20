@@ -15,6 +15,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Text } from "@/components/ui/text";
 import { changePasswordAction, removeAuthenticatorAction } from "../actions";
 import type { Authenticator, SecuritySettings as SecurityData } from "../queries";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
@@ -27,7 +28,7 @@ const MFA_RETURN = "/mfa?next=/configuracoes/seguranca" as Route;
  * o autenticador de duas etapas. Cadastrar um autenticador leva ao fluxo que já existe em `/mfa`, com volta
  * para cá; remover pede confirmação, porque a conta fica menos protegida.
  */
-export function SecuritySettings({ email, hasPassword, providers, authenticators }: SecurityData) {
+export function SecuritySettings({ email, hasPassword, providers, authenticators, ai }: SecurityData & { ai: AiUsage }) {
   const router = useRouter();
   const { toast } = useToast();
   const [password, setPassword] = useState("");
@@ -77,8 +78,8 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
   };
 
   return (
-    <SettingsPage title="Segurança" description="Como você entra e o que protege a sua conta.">
-      <SettingsSection title="Entrada" description="O e-mail da conta e por onde você entra.">
+    <SettingsPage ai={ai}>
+      <SettingsSection title="Entrada">
         <div className={styles.rowLine}>
           <Text variant="callout">{email ?? "Sem e-mail"}</Text>
           {hasPassword && (
@@ -95,7 +96,7 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
       </SettingsSection>
 
       {hasPassword ? (
-        <SettingsSection title="Senha" description="Ao menos 8 caracteres, com letra e número. Com autenticador cadastrado, a troca pede o código dele.">
+        <SettingsSection title="Senha">
           <form className={styles.form} onSubmit={(event) => void changePassword(event)} noValidate>
             <div className={styles.pair}>
               <Field label="Nova senha" required error={error ?? undefined}>
@@ -113,7 +114,7 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
           </form>
         </SettingsSection>
       ) : (
-        <SettingsSection title="Senha" description="Você entra por um provedor, então não há senha para trocar aqui. Para mudar, use as configurações do próprio provedor.">
+        <SettingsSection title="Senha">
           <Text variant="footnote" tone="secondary">
             Entrando por {providers.map((provider) => providerLabels[provider] ?? provider).join(", ") || "provedor externo"}.
           </Text>
@@ -122,7 +123,6 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
 
       <SettingsSection
         title="Verificação em duas etapas"
-        description="Um código do aplicativo autenticador a cada entrada. É o que segura a conta se a senha vazar."
         aside={
           <Button size="sm" radius="md" variant={verified.length > 0 ? "outline" : "primary"} iconStart={<DeviceMobileIcon />} href={MFA_RETURN}>
             {verified.length > 0 ? "Cadastrar outro" : "Cadastrar autenticador"}

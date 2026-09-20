@@ -12,6 +12,7 @@ import { TextLink } from "@/components/ui/link";
 import { setProjectPublicAction } from "@/features/projects/actions";
 import { ProjectMark } from "@/features/projects/components/project-mark";
 import { projectStatuses } from "@/features/projects/labels";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "@/features/settings/components/settings-page";
 import styles from "@/features/settings/components/settings.module.css";
 import type { PortfolioSettings as PortfolioData } from "../service";
@@ -22,7 +23,7 @@ import type { PortfolioSettings as PortfolioData } from "../service";
  * valor nem prazo; ligar aqui é a mesma coisa que o interruptor "Projeto público" da ficha, só que para todos
  * de uma vez, que é como se monta uma vitrine.
  */
-export function PortfolioSettings({ publicUrl, shown: initialShown, projects: initial }: PortfolioData) {
+export function PortfolioSettings({ publicUrl, shown: initialShown, projects: initial, ai }: PortfolioData & { ai: AiUsage }) {
   const { toast } = useToast();
   const [projects, setProjects] = useState(initial);
   const shown = projects.filter((project) => project.isPublic).length;
@@ -48,16 +49,14 @@ export function PortfolioSettings({ publicUrl, shown: initialShown, projects: in
   };
 
   return (
-    <SettingsPage
-      title="Portfólio"
-      description="A vitrine pública dos seus projetos. Ligue os que entram; o resto fica só para a equipe."
+    <SettingsPage ai={ai}
       aside={
         <Badge tone={shown > 0 ? "success" : "neutral"} size="sm">
           {shown} {shown === 1 ? "projeto na vitrine" : "projetos na vitrine"}
         </Badge>
       }
     >
-      <SettingsSection title="Endereço" description="É este link que vai no perfil, na assinatura do e-mail e no rodapé dos documentos.">
+      <SettingsSection title="Endereço">
         <div className={styles.code}>
           <code>{publicUrl}</code>
           <Button variant="ghost" size="sm" radius="md" iconStart={<CopySimpleIcon />} onClick={() => void copy()}>
@@ -72,7 +71,7 @@ export function PortfolioSettings({ publicUrl, shown: initialShown, projects: in
         </Text>
       </SettingsSection>
 
-      <SettingsSection title="Projetos" description="Ligado, o projeto aparece na vitrine com a capa, o nome, a descrição, as etiquetas e as ferramentas. Nada de cliente, valor ou prazo sai.">
+      <SettingsSection title="Projetos">
         {projects.length === 0 ? (
           <EmptyState icon={BriefcaseIcon} size="sm" title="Nenhum projeto ainda" description="A vitrine mostra os projetos que você marcar como públicos.">
             <Button size="sm" radius="md" iconStart={<PlusIcon />} href="/projetos/novo">

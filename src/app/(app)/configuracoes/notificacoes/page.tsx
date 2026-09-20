@@ -1,3 +1,4 @@
+import { getAiUsageData } from "@/features/ai/queries";
 import { NotificationsSettings } from "@/features/settings/components/notifications-settings";
 import { getNotificationsSettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -10,6 +11,6 @@ export const metadata = createMetadata({
 });
 
 export default async function NotificationsPage() {
-  const items = await getNotificationsSettings();
-  return <NotificationsSettings items={items} />;
+  const [items, ai] = await Promise.all([getNotificationsSettings(), getAiUsageData()]);
+  return <NotificationsSettings items={items} ai={ai} />;
 }

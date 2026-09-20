@@ -1,3 +1,4 @@
+import { getAiUsageData } from "@/features/ai/queries";
 import { TeamSettings } from "@/features/settings/components/team-settings";
 import { getTeamSettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -10,6 +11,6 @@ export const metadata = createMetadata({
 });
 
 export default async function TeamPage() {
-  const state = await getTeamSettings();
-  return <TeamSettings {...state} />;
+  const [state, ai] = await Promise.all([getTeamSettings(), getAiUsageData()]);
+  return <TeamSettings {...state} ai={ai} />;
 }

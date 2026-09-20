@@ -15,6 +15,7 @@ import { usePlanGate } from "@/features/billing/components/plan-gate";
 import { planBadges } from "@/features/billing/plans";
 import { setCustomDomainAction, verifyCustomDomainAction } from "../actions";
 import type { CustomDomain } from "../service";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
@@ -23,7 +24,7 @@ import styles from "./settings.module.css";
  * aponta um domínio dela por CNAME e a casa passa a servir a vitrine nele também. Três passos: guardar o
  * domínio, apontar o CNAME no provedor, conferir aqui. A conferência é do servidor, porque é ela que libera.
  */
-export function DomainSettings({ domain: initial }: { domain: CustomDomain }) {
+export function DomainSettings({ domain: initial, ai }: { domain: CustomDomain; ai: AiUsage }) {
   const { toast } = useToast();
   const gate = usePlanGate();
   const [domain, setDomain] = useState(initial);
@@ -90,16 +91,14 @@ export function DomainSettings({ domain: initial }: { domain: CustomDomain }) {
   };
 
   return (
-    <SettingsPage
-      title="Domínio"
-      description="Por onde o cliente chega ao seu portfólio."
+    <SettingsPage ai={ai}
       aside={
         <Badge tone="neutral" variant="soft" size="sm">
           {planBadges.pro}
         </Badge>
       }
     >
-      <SettingsSection title="Endereço da casa" description="Sempre funciona, com ou sem domínio próprio.">
+      <SettingsSection title="Endereço da casa">
         <div className={styles.code}>
           <code>{domain.fallbackUrl}</code>
           <Button variant="ghost" size="sm" radius="md" iconStart={<CopySimpleIcon />} onClick={() => void copy(domain.fallbackUrl)}>
@@ -113,7 +112,6 @@ export function DomainSettings({ domain: initial }: { domain: CustomDomain }) {
 
       <SettingsSection
         title="Domínio próprio"
-        description="Um endereço seu, como portfolio.seuestudio.com.br, apontando para a casa."
         aside={
           domain.domain ? (
             verified ? (

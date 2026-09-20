@@ -1,3 +1,4 @@
+import { getAiUsageData } from "@/features/ai/queries";
 import { IntegrationsSettings } from "@/features/settings/components/integrations-settings";
 import { getIntegrationsSettings } from "@/features/settings/queries";
 import { createMetadata } from "@/lib/metadata";
@@ -10,6 +11,6 @@ export const metadata = createMetadata({
 });
 
 export default async function IntegrationsPage() {
-  const data = await getIntegrationsSettings();
-  return <IntegrationsSettings {...data} />;
+  const [data, ai] = await Promise.all([getIntegrationsSettings(), getAiUsageData()]);
+  return <IntegrationsSettings integrations={data} ai={ai} />;
 }

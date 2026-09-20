@@ -1,36 +1,54 @@
-/* A moldura de toda página de configuração: o título com a linha de apoio e as seções em superfície. */
-.page {
+/* A tela de ajuste na moldura de toda tela da aplicação: o topo sangra de ponta a ponta e a prancha toma
+   o que sobra, na mesma grade da base de clientes, do catálogo e do financeiro. A coluna é
+   `minmax(0, 1fr)` porque conteúdo largo alargaria a página numa trilha automática. */
+.screen {
   display: grid;
-  gap: var(--space-6);
-  padding-block: var(--space-8);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
 }
 
+/* No celular a tela não tem altura fixa: a prancha cresce em fluxo e quem rola é a coluna de conteúdo da
+   concha, como nas outras telas. */
+@media (max-width: 47.9375rem) {
+  .screen {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+/* A prancha: os blocos empilhados com o recuo e o respiro de toda prancha da casa. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .board {
+    padding: var(--space-6);
+  }
+}
+
+/* A linha da ação da página, quando há uma: fecha à direita, como a ação principal da barra das listas. */
 .head {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: flex-start;
-  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
 }
 
-.heading {
-  display: grid;
-  gap: var(--space-1);
-  max-width: 60ch;
-  min-width: 0;
-}
-
-.section {
+/* O que mora dentro de um bloco, empilhado com o respiro dos formulários da casa. */
+.sectionBody {
   display: grid;
   gap: var(--space-4);
-}
-
-.sectionHead {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  align-items: flex-start;
-  justify-content: space-between;
+  min-width: 0;
 }
 
 /* Os fatos, rótulo apagado em cima e valor embaixo; duas colunas a partir do tablet. */
@@ -95,6 +113,13 @@
   display: grid;
   gap: var(--space-2);
   justify-items: center;
+}
+
+/* O formulário e os fatos ao lado da foto tomam o que sobra, e quebram para baixo quando não cabem. */
+.identityForm,
+.identityFacts {
+  flex: 1;
+  min-width: 16rem;
 }
 
 .fileInput {

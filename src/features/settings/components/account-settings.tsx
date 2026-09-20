@@ -18,20 +18,21 @@ import { saveAccountAction } from "../actions";
 import { accountLimits } from "../schemas";
 import type { Account } from "../service";
 import { uploadAvatar } from "../upload";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsFact, SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
 /* A gaveta de editar equipe chega só quando alguém a abre: ela leva o seletor de imagem e o envio ao Storage. */
 const CreateTeamPanel = dynamic(() => import("@/features/organizations/components/create-team-panel").then((module) => module.CreateTeamPanel));
 
-export type AccountSettingsProps = { account: Account; team: Team | null; viewer: TeamMember };
+export type AccountSettingsProps = { account: Account; team: Team | null; viewer: TeamMember; ai: AiUsage };
 
 /**
  * A conta de quem entra e a equipe em que está (2026-09-17). Em cima a pessoa: a foto, que sobe direto para
  * o Storage, o nome e o e-mail, que é de entrada e não se troca aqui. Embaixo a equipe: o que ela é, com o
  * editar abrindo a mesma gaveta do seletor de equipe, e o atalho para a página das pessoas.
  */
-export function AccountSettings({ account, team, viewer }: AccountSettingsProps) {
+export function AccountSettings({ account, team, viewer, ai }: AccountSettingsProps) {
   const { toast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(account.fullName);
@@ -72,8 +73,8 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
   };
 
   return (
-    <SettingsPage title="Sua conta" description="Quem você é para a equipe e para os clientes, e a equipe em que você está.">
-      <SettingsSection title="Você" description="A foto e o nome aparecem no menu, nas tarefas e nos documentos que você manda.">
+    <SettingsPage ai={ai}>
+      <SettingsSection title="Você">
         <div className={styles.identity}>
           <div className={styles.avatar}>
             <Avatar name={name || account.email || "Você"} src={avatarUrl ?? undefined} seed={account.email ?? account.id} size="lg" />
@@ -94,7 +95,7 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
             />
           </div>
 
-          <form className={styles.form} style={{ flex: 1, minWidth: "16rem" }} onSubmit={(event) => void save(event)} noValidate>
+          <form className={`${styles.form} ${styles.identityForm}`} onSubmit={(event) => void save(event)} noValidate>
             <Field label="Nome" required error={error ?? undefined}>
               <Input type="text" value={name} maxLength={accountLimits.fullName} autoComplete="name" disabled={saving} invalid={Boolean(error)} onChange={(event) => setName(event.target.value)} />
             </Field>
@@ -113,7 +114,6 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
       {team && (
         <SettingsSection
           title="Equipe"
-          description="O que a equipe é. Quem entra e quem sai fica na página de equipe."
           aside={
             canManageTeam ? (
               <Button variant="outline" size="sm" radius="md" iconStart={<PencilSimpleIcon />} onClick={() => setEditingTeam(true)}>
@@ -128,7 +128,7 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
         >
           <div className={styles.identity}>
             <Avatar name={team.name} src={team.logoUrl ?? undefined} size="lg" shape="squircle" />
-            <dl className={styles.facts} style={{ flex: 1 }}>
+            <dl className={`${styles.facts} ${styles.identityFacts}`}>
               <SettingsFact label="Nome">{team.name}</SettingsFact>
               <SettingsFact label="Área de atuação">{team.industry ? industryLabels[team.industry] : "Não informada"}</SettingsFact>
               <SettingsFact label="Site">{team.website ? <TextLink href={team.website as Route} target="_blank" rel="noreferrer">{team.website.replace(/^https?:\/\//, "")}</TextLink> : "Sem site"}</SettingsFact>

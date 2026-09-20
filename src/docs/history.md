@@ -18,6 +18,71 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, fatos e containers refeitos nas janelas, fila de camadas que separa um modal do outro, arrastar a alça da bandeja para fechar e varredura de peso que levou o painel de 791 KB para 347 KB |
 | 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
 | 2026-09-17 (qui) | em andamento | Toda opção da aplicação funcionando: mapa de item morto por script, leque do cliente inteiro (histórico e mapa de relação em janela), orçamento (marcar, duplicar, excluir), tarefa (criar com responsável, duplicar, concluir), funil (criar, duplicar, orçamento), projeto (situação, mover para pasta), colunas tiram etapa do quadro; histórico gravado em todos os domínios; modal central de plano é o mesmo dos primeiros passos; cobrança avulsa com foto e recorrência; chevron da árvore do menu com renomear, etapas e excluir; editor de projeto em tela cheia com prévia; auditoria dos primitivos (camadas, toque, bandejas); onze páginas que devolviam nulo agora existem (conta, equipe, segurança, notificações, domínio, integrações, conquistas, portfólio e currículo, com as duas vitrines públicas); encerrar recorrência, mover funil, projeto público; primeira entrada de conta nova destravada (painel abre vazio com a configuração inicial por cima) e os seis pedidos do dia: colaboradores no projeto, teto de etiquetas no cartão, logo da marca na frente do rosto, foto do item na folha de orçamento, mapa de relação com campos e nós que se movem, e o acerto de velocidade dos quadros longos |
+| 2026-09-20 (dom) | dia inteiro, em andamento, em paralelo com o Codex no mesmo repositório | Pull com merge do trabalho de dois lados e o servidor aberto para a rede local; imagem reduzida e em WebP no envio e otimizada na tela (`lib/images`, `StoredImage`); etapas sempre no quadro de tarefas, marca do projeto redonda no menu, nova tarefa em quatro blocos com projeto, descrição, começo, estimativa e etiquetas; a prévia do editor de projeto virou a ficha inteira (`ProjectSheet`, extraída da janela) na largura toda; campo é rótulo e controle, sem observação, em toda a casa; a **despesa**, que é a cobrança virada para o outro lado (`charges.direction`), com o segmento a receber / a pagar; o aviso do menu com rosto ou etiqueta, nunca os dois, e o rosto sozinho em círculo; as páginas de configuração, conquistas, portfólio, currículo e plano refeitas sobre a moldura de toda tela (`Topbar` e `Card`) |
+
+## 2026-09-20
+
+Tempo: dia inteiro, em andamento. Duas sessões no mesmo repositório (esta e o Codex), trabalhando em
+sincronia sobre o mesmo disco; alguns commits daqui levaram trabalho de lá que estava pronto.
+
+Feito:
+
+- **Pull, merge e a rede local**: o trabalho local das onze páginas (17/09) foi commitado antes de trazer os
+  dois commits do `origin`; quatro conflitos resolvidos a favor dos dois lados (colaboradores no projeto
+  mais histórico gravado; `memo` das colunas sem o "Renomear etapa" morto). O `next dev` ganhou
+  `allowedDevOrigins` para as faixas privadas, e o celular da mesma rede abre pelo IP da máquina; a regra
+  do firewall do Windows fica com quem tem a máquina.
+- **Imagem reduzida e em WebP antes de subir** (a pedido: "otimizar ao máximo o espaço em disco"), num
+  módulo só, `lib/images/compress.ts`, extraído do redimensionar que só a capa de projeto tinha: toda
+  subida da casa (rosto e logo de cliente, arte de catálogo, capa e logo de projeto, foto de cobrança, logo
+  e banner do time, foto de quem entra) cai pela metade a cada passo até a caixa do maior lugar em que
+  aparece, sai em WebP e sobe com cache de um ano, porque o endereço de cada subida é único. Uma foto de
+  10 MB vira entre 5 e 35 KB. O teto de quem escolhe subiu para 25 MB em todas as telas. Na tela,
+  `StoredImage` decide sozinho quando o otimizador do Next entra: arquivo nosso passa por ele, com corte na
+  medida do `sizes` e cache de 31 dias; `blob:` de prévia ou endereço externo segue cru. Antes oito telas
+  passavam `unoptimized` fixo com a justificativa "vem de fora e sem domínio para liberar", que deixou de
+  valer quando o armazenamento nasceu.
+- **Tarefas** (a pedido): quadro sem tarefa mostra as colunas vazias com o "+" de cada uma, e a frase de
+  vazio ficou só para busca sem resultado; as etapas do quadro de todas vêm dos projetos (`boardStages`), e
+  não das tarefas existentes. No menu, o azulejo de cada projeto veste a marca dele (`projectFace`, a
+  ordem que o `ProjectMark` já usava), **redonda**, porque num quadrado de vinte pixels a logo lia como
+  recorte seco; círculo não declara canto, pela regra da casa. Nova tarefa virou quatro blocos com glifo e
+  título, no padrão da ficha de projeto, e ganhou descrição, começo, estimativa, etiquetas e o seletor de
+  projeto no quadro de todas, em que antes toda tarefa caía no balde das soltas.
+- **A prévia do editor de projeto é a ficha inteira** (a pedido: "o jeito de hoje está péssimo"): o corpo da
+  janela do projeto saiu para `ProjectSheet`, usado pela janela e pela prévia, na largura toda da coluna e
+  sem recuo dobrado. De quebra, detalhes, ferramentas e etiquetas passaram a aparecer na hora também na
+  janela, em vez de esperar o servidor atrás de um carregando.
+- **Campo é rótulo e controle** (a pedido: "tire todas as observações de input"): saíram as 58 observações
+  espalhadas por 19 telas, as dos campos de passo de automação, que vinham do catálogo, e os subtítulos das
+  janelas de acrescentar da tarefa. A prop `hint` do `Field` foi junto, para não voltar por descuido. O
+  contador de caracteres da descrição da automação vivia numa dessas e se perdeu.
+- **A despesa** (a pedido: "precisa existir a despesa também, que será uma cobrança mas que eu tenho que
+  pagar"): a mesma cobrança virada para o outro lado, por uma coluna `direction` em `charges`, e não uma
+  tabela nova. O que o sinal muda: baixar parcela de despesa gera saída no caixa; o fluxo de "pagamento
+  recebido" não dispara; despesa não tem link nem e-mail, e o banco recusa pelo check
+  `charges_outgoing_not_shared`; a outra ponta é um nome digitado. Na tela, `/cobrancas` ganhou o
+  segmento Tudo / A receber / A pagar antes de qualquer filtro, o "+" abre no lado à vista, e a receber e a
+  pagar nunca viram um número só. Migração aplicada no projeto hospedado.
+- **O aviso do menu**: rosto ou etiqueta, nunca os dois; e um rosto sozinho, sem "+N", fica num círculo em
+  vez do ovo que a folga da pílula desenhava.
+- **Configuração na moldura de toda tela** (a pedido: "100% condizente ao layout que temos"): `SettingsPage`
+  virou `Topbar` mais prancha e `SettingsSection` virou `Card`, num lugar só, então as sete páginas de
+  `/configuracoes`, Conquistas, Portfólio, Currículo e Plano mudaram juntas. Saíram o cabeçalho próprio, a
+  linha de apoio e as descrições de bloco; entraram a rota, o uso da IA no topo e o `loading.tsx` de cada
+  rota. A página de plano, que tinha moldura própria, entrou na mesma.
+
+Pendências:
+
+- Tabela nas cinco telas que ainda não têm (projetos, tarefas, CRM, contratos, automações), com a chave
+  grade/tabela das quatro que já têm.
+- Cor e ícone do funil, e cor das pastas de funil e de tarefas.
+- Editar equipe completo (o Codex está nela) e o tratamento do "https://" digitado, que `lib/utils/site.ts`
+  já resolve e o formulário do time não usa.
+- A tela de login acumula 33 erros de CSP por estilo inline bloqueado, anteriores a hoje.
+- O contador de caracteres da descrição da automação precisa de outro lugar, se voltar.
+- As telas de hoje não foram vistas com o olho: estão atrás do login.
+
 
 ## 2026-09-17
 

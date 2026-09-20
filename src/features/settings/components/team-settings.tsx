@@ -22,6 +22,7 @@ import {
 import type { MemberRole } from "@/features/organizations/schemas";
 import type { TeamState } from "@/features/organizations/service";
 import { callAction } from "@/lib/action";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
@@ -33,7 +34,7 @@ const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
  * (proprietário não é papel travado, o único limite é o time nunca ficar sem nenhum), sem o avançar e sem a
  * prévia. Quem é membro vê a lista e não mexe; quem administra convida, troca papel e remove.
  */
-export function TeamSettings({ team, members, invites, viewer }: TeamState) {
+export function TeamSettings({ team, members, invites, viewer, ai }: TeamState & { ai: AiUsage }) {
   const { toast } = useToast();
   const [people, setPeople] = useState(members);
   const [pending, setPending] = useState(invites);
@@ -47,7 +48,7 @@ export function TeamSettings({ team, members, invites, viewer }: TeamState) {
 
   if (!team) {
     return (
-      <SettingsPage title="Equipe">
+      <SettingsPage ai={ai}>
         <EmptyState icon={UsersThreeIcon} title="Você ainda não está numa equipe" description="Crie a sua pelo seletor de equipe, no topo do menu." />
       </SettingsPage>
     );
@@ -114,9 +115,7 @@ export function TeamSettings({ team, members, invites, viewer }: TeamState) {
   };
 
   return (
-    <SettingsPage
-      title="Equipe"
-      description={`${team.name}: quem está dentro, o papel de cada um e quem ainda vai entrar.`}
+    <SettingsPage ai={ai}
       aside={
         <Badge tone="neutral" variant="soft" size="sm">
           {people.length} {people.length === 1 ? "pessoa" : "pessoas"}
@@ -124,7 +123,7 @@ export function TeamSettings({ team, members, invites, viewer }: TeamState) {
       }
     >
       {canManage && (
-        <SettingsSection title="Convidar" description="Quem recebe o convite entra como membro; o papel se troca depois, na lista.">
+        <SettingsSection title="Convidar">
           <div className={styles.pair}>
             <Field label="E-mail">
               <Input type="email" value={email} placeholder="pessoa@dominio.com" autoComplete="off" inputMode="email" onChange={(event) => setEmail(event.target.value)} />
@@ -141,7 +140,7 @@ export function TeamSettings({ team, members, invites, viewer }: TeamState) {
         </SettingsSection>
       )}
 
-      <SettingsSection title="Pessoas" description={canManage ? "Troque o papel pelo seletor; remover está no mesmo leque." : "Só quem administra troca papéis e remove pessoas."}>
+      <SettingsSection title="Pessoas">
         <div className={styles.list}>
           {people.map((person) => {
             const label = person.name ?? person.email ?? "Sem nome";
@@ -193,7 +192,7 @@ export function TeamSettings({ team, members, invites, viewer }: TeamState) {
       </SettingsSection>
 
       {pending.length > 0 && (
-        <SettingsSection title="Convites pendentes" description="Quem foi chamado e ainda não entrou. O convite vale por sete dias.">
+        <SettingsSection title="Convites pendentes">
           <div className={styles.list}>
             {pending.map((item) => {
               const label = item.name ?? item.email;

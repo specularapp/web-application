@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { markNotificationsReadBatchAction } from "../actions";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "./settings-page";
 import styles from "./settings.module.css";
 
@@ -29,7 +30,7 @@ type Filter = "all" | "unread";
  * com o filtro de não lidas e o marcar tudo. Clicar numa linha marca como lida; a que tem atalho leva para
  * onde a coisa aconteceu.
  */
-export function NotificationsSettings({ items: initial }: { items: AppNotification[] }) {
+export function NotificationsSettings({ items: initial, ai }: { items: AppNotification[]; ai: AiUsage }) {
   const { toast } = useToast();
   const [items, setItems] = useState(initial);
   const [filter, setFilter] = useState<Filter>("all");
@@ -57,9 +58,7 @@ export function NotificationsSettings({ items: initial }: { items: AppNotificati
   };
 
   return (
-    <SettingsPage
-      title="Notificações"
-      description="Tudo o que a casa te avisou. O sino do menu mostra só as recentes."
+    <SettingsPage ai={ai}
       aside={
         unread.length > 0 ? (
           <Button size="sm" radius="md" variant="outline" iconStart={<ChecksIcon />} loading={marking} onClick={() => void markAll()}>

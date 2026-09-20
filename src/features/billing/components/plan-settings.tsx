@@ -7,7 +7,6 @@ import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
 import { Surface } from "@/components/ui/surface";
 import {
   Table,
@@ -19,6 +18,8 @@ import {
   TableScroll,
 } from "@/components/ui/table";
 import { Text } from "@/components/ui/text";
+import type { AiUsage } from "@/features/ai/summary";
+import { SettingsPage, SettingsSection } from "@/features/settings/components/settings-page";
 import {
   cancelSubscriptionAction,
   confirmPaymentMethodAction,
@@ -77,7 +78,7 @@ function shortDate(value: string) {
   return format(new Date(value), "d 'de' MMMM 'de' yyyy", { locale: ptBR, in: tz(TIMEZONE) });
 }
 
-export function PlanSettings({ state, invoices }: PlanSettingsProps) {
+export function PlanSettings({ state, invoices, ai }: PlanSettingsProps & { ai: AiUsage }) {
   const { toast } = useToast();
   const [cycle, setCycle] = useState<BillingCycle>(state.cycle ?? "monthly");
   const [working, setWorking] = useState<string | null>(null);
@@ -229,15 +230,8 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
 
   if (checkout) {
     return (
-      <Container>
-        <div className={styles.page}>
-          <header className={styles.head}>
-            <Text as="h1" variant="title1" weight="semibold">
-              Plano e assinatura
-            </Text>
-          </header>
-
-          <CheckoutPanel
+      <SettingsPage ai={ai}>
+        <CheckoutPanel
             organizationId={state.organizationId}
             intent={checkout}
             title={checkout.trialDays > 0 ? "Guarde um cartão para começar" : "Confirme o pagamento"}
@@ -253,29 +247,18 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
               toast({ title: "Plano atualizado", description: "Tudo certo, aproveite", tone: "success" });
             }}
           />
-        </div>
-      </Container>
+      </SettingsPage>
     );
   }
 
   return (
-    <Container>
-      <div className={styles.page}>
-        <header className={styles.head}>
-          <Text as="h1" variant="title1" weight="semibold">
-            Plano e assinatura
-          </Text>
-          <Text variant="subheadline" tone="secondary">
-            Acompanhe o que está contratado, troque de plano e cuide da forma de pagamento.
-          </Text>
-        </header>
-
-        <Surface as="section" className={styles.section} aria-labelledby="plano-atual">
-          <div className={styles.summary}>
-            <div className={styles.summaryTop}>
-              <Text as="h2" id="plano-atual" variant="title3" weight="semibold">
-                {currentPlan?.name ?? "Gratuito"}
-              </Text>
+    <SettingsPage ai={ai}>
+        {/* O plano contratado no corpo, e a situação no cabeçalho do bloco, ao lado do título: é ela quem
+            conta que o acesso não está liberado, então fica onde o olho chega primeiro. */}
+        <SettingsSection
+          title="Plano atual"
+          aside={
+            <span className={styles.summaryTop}>
               <Badge tone={status.tone} size="sm">
                 {status.label}
               </Badge>
@@ -284,7 +267,13 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
                   Cancelamento agendado
                 </Badge>
               )}
-            </div>
+            </span>
+          }
+        >
+          <div className={styles.summary}>
+            <Text as="h3" variant="headline" weight="semibold">
+              {currentPlan?.name ?? "Gratuito"}
+            </Text>
 
             <dl className={styles.facts}>
               {state.cycle && (
@@ -361,18 +350,10 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
               </div>
             )}
           </div>
-        </Surface>
+        </SettingsSection>
 
         {state.canManage && (
-          <section className={styles.section} aria-labelledby="trocar-plano">
-            <div className={styles.sectionHead}>
-              <Text as="h2" id="trocar-plano" variant="title3" weight="semibold">
-                Trocar de plano
-              </Text>
-
-              <CycleToggle value={cycle} onChange={setCycle} />
-            </div>
-
+          <SettingsSection title="Trocar de plano" aside={<CycleToggle value={cycle} onChange={setCycle} />}>
             <div className={styles.options}>
               {plans.map((plan) => {
                 // Plano atual só quando o ciclo também bate: sem isso quem está no mensal ficava com o
@@ -427,13 +408,10 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
                 );
               })}
             </div>
-          </section>
+          </SettingsSection>
         )}
 
-        <Surface as="section" className={styles.section} aria-labelledby="forma-de-pagamento">
-          <Text as="h2" id="forma-de-pagamento" variant="title3" weight="semibold">
-            Forma de pagamento
-          </Text>
+        <SettingsSection title="Forma de pagamento">
 
           {cardSetup ? (
             <PaymentForm
@@ -475,12 +453,9 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
               )}
             </div>
           )}
-        </Surface>
+        </SettingsSection>
 
-        <section className={styles.section} aria-labelledby="faturas">
-          <Text as="h2" id="faturas" variant="title3" weight="semibold">
-            Faturas
-          </Text>
+        <SettingsSection title="Faturas">
 
           {invoices.length === 0 ? (
             <Text variant="footnote" tone="secondary" className={styles.empty}>
@@ -522,8 +497,7 @@ export function PlanSettings({ state, invoices }: PlanSettingsProps) {
               </Table>
             </TableScroll>
           )}
-        </section>
-      </div>
-    </Container>
+        </SettingsSection>
+    </SettingsPage>
   );
 }

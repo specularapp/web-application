@@ -7,12 +7,13 @@ import type { CSSProperties } from "react";
 import { Text } from "@/components/ui/text";
 import { ChallengeBlock } from "@/features/dashboard/components/challenge-block";
 import { ClaimReward } from "@/features/dashboard/components/claim-reward";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "@/features/settings/components/settings-page";
 import settings from "@/features/settings/components/settings.module.css";
 import type { PointsSummary, WeeklyChallenge } from "../summary";
 import styles from "./achievements-screen.module.css";
 
-export type AchievementsScreenProps = { points: PointsSummary; challenge: WeeklyChallenge };
+export type AchievementsScreenProps = { points: PointsSummary; challenge: WeeklyChallenge; ai: AiUsage };
 
 const number = new Intl.NumberFormat("pt-BR");
 
@@ -27,7 +28,7 @@ type DayState = "met" | "partial" | "missed" | "upcoming";
  * últimas doze semanas, um quadradinho por dia. Tudo sai das duas leituras que o painel já faz; a página só
  * dá a elas o espaço que o painel não tem.
  */
-export function AchievementsScreen({ points, challenge }: AchievementsScreenProps) {
+export function AchievementsScreen({ points, challenge, ai }: AchievementsScreenProps) {
   const today = new Date();
   const byDay = new Map(challenge.history.map((day) => [day.date, day]));
 
@@ -50,7 +51,7 @@ export function AchievementsScreen({ points, challenge }: AchievementsScreenProp
   ];
 
   return (
-    <SettingsPage title="Conquistas" description="Os seus pontos, a sua posição e a constância de quem entra todo dia.">
+    <SettingsPage ai={ai}>
       <div className={settings.cards} data-columns="3">
         {stats.map((stat) => (
           <article key={stat.id} className={settings.card}>
@@ -74,15 +75,15 @@ export function AchievementsScreen({ points, challenge }: AchievementsScreenProp
         ))}
       </div>
 
-      <SettingsSection title="Bônus do dia" description={`Arraste até o fim e ganhe ${points.dailyBonus.points} pontos, uma vez por dia.`}>
+      <SettingsSection title="Bônus do dia">
         <ClaimReward points={points.dailyBonus.points} claimed={points.dailyBonus.claimedToday} />
       </SettingsSection>
 
-      <SettingsSection title="Esta semana" description={`Meta de ${challenge.dailyGoalMinutes} minutos por dia para o dia contar.`}>
+      <SettingsSection title="Esta semana">
         <ChallengeBlock challenge={challenge} />
       </SettingsSection>
 
-      <SettingsSection title="Últimas doze semanas" description="Um quadradinho por dia: cheio quando a meta foi batida, meio quando entrou sem bater, vazio quando não entrou.">
+      <SettingsSection title="Últimas doze semanas">
         <div className={styles.grid} role="img" aria-label={`${met} dias com a meta batida nas últimas doze semanas`}>
           {days.map((iso) => (
             <span key={iso} className={styles.day} data-state={stateOf(iso)} title={format(parseISO(iso), "EEEE, d 'de' MMMM", { locale: ptBR })} />

@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { saveResumeAction } from "@/features/settings/actions";
+import type { AiUsage } from "@/features/ai/summary";
 import { SettingsPage, SettingsSection } from "@/features/settings/components/settings-page";
 import styles from "@/features/settings/components/settings.module.css";
 import { resumeLimits, type ResumeLink } from "@/features/settings/schemas";
@@ -28,7 +29,7 @@ import { slugify } from "@/lib/utils/slug";
  * o endereço preenchido e a chave ligada; a foto e o nome vêm da conta, para não haver dois nomes da mesma
  * pessoa na casa. Os projetos públicos das equipes de que a pessoa faz parte entram sozinhos.
  */
-export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resume: Resume; publicUrl: string | null }) {
+export function ResumeEditor({ resume: initial, publicUrl: initialUrl, ai }: { resume: Resume; publicUrl: string | null; ai: AiUsage }) {
   const { toast } = useToast();
   const [values, setValues] = useState(initial);
   const [skill, setSkill] = useState("");
@@ -97,9 +98,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
   };
 
   return (
-    <SettingsPage
-      title="Currículo"
-      description="Quem você é para quem ainda não te conhece. A foto e o nome vêm da sua conta."
+    <SettingsPage ai={ai}
       aside={
         values.resumePublic && publicUrl ? (
           <Badge tone="success" size="sm">
@@ -116,7 +115,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
         <SettingsSection title="Apresentação">
           <div className={styles.identity}>
             <Avatar name={values.fullName || "Você"} src={values.avatarUrl ?? undefined} size="lg" />
-            <div className={styles.form} style={{ flex: 1, minWidth: "16rem" }}>
+            <div className={`${styles.form} ${styles.identityForm}`}>
               <Field label="Título" error={errorOf("headline")}>
                 <Input type="text" value={values.headline} maxLength={resumeLimits.headline} placeholder="Designer de produto" disabled={saving} onChange={(event) => set("headline", event.target.value)} />
               </Field>
@@ -130,7 +129,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
           </Field>
         </SettingsSection>
 
-        <SettingsSection title="Habilidades" description={`Digite e aperte Enter. Até ${resumeLimits.skills}.`}>
+        <SettingsSection title="Habilidades">
           <div className={styles.chips}>
             {values.skills.map((entry) => (
               <span key={entry} className={styles.chip}>
@@ -161,7 +160,6 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
 
         <SettingsSection
           title="Links"
-          description="Site, LinkedIn, Behance, GitHub: o que você quiser que apareça."
           aside={
             values.links.length < resumeLimits.links ? (
               <Button type="button" variant="outline" size="sm" radius="md" iconStart={<PlusIcon />} disabled={saving} onClick={() => set("links", [...values.links, { label: "", url: "" }])}>
@@ -203,7 +201,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
           )}
         </SettingsSection>
 
-        <SettingsSection title="Endereço público" description="Sem endereço o currículo fica só para você. Com endereço e a chave ligada, qualquer pessoa com o link abre.">
+        <SettingsSection title="Endereço público">
           <Field label="Endereço" error={errorOf("resumeSlug")}>
             <Input
               type="text"
