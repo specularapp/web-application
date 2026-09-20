@@ -26,6 +26,7 @@ import { CREATE_TEAM_PLAN } from "../constants";
 import { organizationLimits, type ImageKind, type InvitableRole, type OrganizationIndustry } from "../schemas";
 import { uploadTeamImage } from "../upload";
 import { callAction } from "@/lib/action";
+import { onlyDigits } from "@/lib/masks";
 import { siteValue } from "@/lib/utils/site";
 
 /** Quem está criando: entra na lista de pessoas já como proprietário, porque é o que o banco fará. */
@@ -197,6 +198,10 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [industry, setIndustry] = useState<OrganizationIndustry | undefined>(undefined);
   const [logo, setLogo] = useState<Picked>(empty);
   const [banner, setBanner] = useState<Picked>(empty);
@@ -227,6 +232,10 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
       setLoadedFor(teamId);
       setName(result.data.name);
       setWebsite(result.data.website ?? "");
+      setEmail(result.data.email ?? "");
+      setPhone(result.data.phone ?? "");
+      setCity(result.data.city ?? "");
+      setState(result.data.state ?? "");
       setIndustry(result.data.industry ?? undefined);
       setLogo({ file: null, preview: result.data.logoUrl });
       setBanner({ file: null, preview: result.data.bannerUrl });
@@ -284,6 +293,10 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
   const reset = () => {
     setName("");
     setWebsite("");
+    setEmail("");
+    setPhone("");
+    setCity("");
+    setState("");
     setIndustry(undefined);
     setLogo(empty);
     setBanner(empty);
@@ -301,7 +314,9 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
     if (saving || loading || !industry) return;
     setSaving(true);
 
-    const result = await callAction(saveTeamAction({ ...(teamId ? { organizationId: teamId } : {}), name, industry, website }));
+    const result = await callAction(
+      saveTeamAction({ ...(teamId ? { organizationId: teamId } : {}), name, industry, website, email, phone, city, state }),
+    );
     if (!result.ok) {
       toast({
         title: editing ? "Não foi possível salvar a equipe" : "Não foi possível criar a equipe",
@@ -445,6 +460,63 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
                 placeholder="Escolha a área"
                 disabled={saving}
                 onChange={setIndustry}
+              />
+            </Field>
+          </Pair>
+
+          <Pair>
+            <Field label="E-mail comercial">
+              <Input
+                type="email"
+                name="email"
+                value={email}
+                maxLength={organizationLimits.email}
+                placeholder="contato@empresa.com.br"
+                autoComplete="email"
+                inputMode="email"
+                disabled={saving}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </Field>
+
+            <Field label="Telefone comercial">
+              <Input
+                type="tel"
+                name="phone"
+                mask="phone"
+                value={phone}
+                placeholder="(11) 99999-9999"
+                autoComplete="tel-national"
+                disabled={saving}
+                onChange={(event) => setPhone(onlyDigits(event.target.value))}
+              />
+            </Field>
+          </Pair>
+
+          <Pair>
+            <Field label="Cidade">
+              <Input
+                type="text"
+                name="city"
+                value={city}
+                maxLength={organizationLimits.city}
+                placeholder="São Paulo"
+                autoComplete="address-level2"
+                disabled={saving}
+                onChange={(event) => setCity(event.target.value)}
+              />
+            </Field>
+
+            <Field label="Estado">
+              <Input
+                type="text"
+                name="state"
+                value={state}
+                maxLength={2}
+                placeholder="SP"
+                autoComplete="address-level1"
+                disabled={saving}
+                onChange={(event) => setState(event.target.value.replace(/[^a-z]/gi, "").slice(0, 2).toUpperCase())}
               />
             </Field>
           </Pair>

@@ -1,7 +1,6 @@
 "use client";
 
 import { ArchiveIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,6 @@ export type ArchiveTeamDialogProps = {
  * Só quem é dono consegue: quem decide é o banco, e o erro dele chega aqui como aviso.
  */
 export function ArchiveTeamDialog({ team, onClose }: ArchiveTeamDialogProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +41,6 @@ export function ArchiveTeamDialog({ team, onClose }: ArchiveTeamDialogProps) {
 
     toast({ title: "Equipe arquivada", description: `${team.name} saiu da sua lista.`, tone: "success" });
     onClose();
-    router.refresh();
   };
 
   return (

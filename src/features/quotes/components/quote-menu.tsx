@@ -17,6 +17,7 @@ import { useState } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
+import { callAction } from "@/lib/action";
 import { deleteQuotesAction, duplicateQuoteAction, markQuoteStatusAction } from "../actions";
 import { quoteShareUrl, quoteWhatsappUrl } from "../share";
 import type { Quote } from "../summary";
@@ -55,19 +56,24 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
   };
 
   const mark = async (status: "sent" | "approved", title: string, description: string) => {
-    const result = await markQuoteStatusAction({ id: quote.id, status });
+    if (working) return;
+    setWorking(true);
+    const result = await callAction(markQuoteStatusAction({ id: quote.id, status }));
+    setWorking(false);
     if (!result.ok) {
       toast({ title: "Não deu para marcar", description: result.error, tone: "danger" });
       return;
     }
     toast({ title, description, tone: "success" });
-    router.refresh();
   };
 
   /* Duplicar abre a cópia no editor: quem duplica quer mudar alguma coisa, senão teria mandado a original
      de novo. Parar na lista obrigaria a procurar qual das duas é a nova. */
   const duplicate = async () => {
-    const result = await duplicateQuoteAction(quote.id);
+    if (working) return;
+    setWorking(true);
+    const result = await callAction(duplicateQuoteAction(quote.id));
+    setWorking(false);
     if (!result.ok) {
       toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
       return;
@@ -77,8 +83,9 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
   };
 
   const remove = async () => {
+    if (working) return;
     setWorking(true);
-    const result = await deleteQuotesAction([quote.id]);
+    const result = await callAction(deleteQuotesAction([quote.id]));
     setWorking(false);
     setConfirming(false);
 
@@ -89,7 +96,6 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
 
     toast({ title: "Orçamento excluído", description: `${quote.number} saiu da base.`, tone: "success" });
     onDeleted?.();
-    router.refresh();
   };
 
   const sections: DropdownSection[] = [
@@ -98,6 +104,12 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
       items: [
         { id: "open", label: "Abrir documento", icon: ArrowSquareOutIcon, href: url as `http${string}` },
         { id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit },
+      ],
+    },
+    {
+      id: "share",
+      label: "Compartilhar",
+      items: [
         { id: "whatsapp", label: "Enviar pelo WhatsApp", icon: WhatsappLogoIcon, href: quoteWhatsappUrl(quote) as `http${string}` },
         { id: "copy", label: "Copiar link", icon: LinkIcon, onSelect: () => void copyLink() },
       ],
@@ -106,7 +118,6 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
       id: "tracking",
       label: "Acompanhamento",
       items: [
-        { id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") },
         ...(quote.status === "draft"
           ? [
               {
@@ -127,10 +138,12 @@ export function QuoteMenu({ quote, onEdit, onDeleted }: QuoteMenuProps) {
               },
             ]
           : []),
+        { id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") },
       ],
     },
     {
       id: "more",
+      label: "Mais ações",
       items: [{ id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() }],
     },
     {

@@ -49,7 +49,7 @@ export function NodeConfigPanel({ node, onChange, onRename, onRemove }: NodeConf
         </span>
       </header>
 
-      <Field label="Nome do passo" hint="Como ele aparece no quadro e nas execuções">
+      <Field label="Nome do passo">
         <Input type="text" size="sm" value={node.data.title ?? ""} maxLength={automationLimits.title} placeholder={spec.label} onChange={(event) => onRename(event.target.value)} />
       </Field>
 

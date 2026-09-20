@@ -12,7 +12,6 @@ import {
 } from "react";
 import { cx } from "@/lib/utils/cx";
 import { Label } from "../label";
-import { Text } from "../text";
 import { Tooltip } from "../tooltip";
 import { VisuallyHidden } from "../visually-hidden";
 import styles from "./field.module.css";
@@ -25,9 +24,14 @@ type ControlProps = {
   "aria-invalid"?: boolean;
 };
 
+/**
+ * O campo é o rótulo e o controle, e nada mais (2026-09-20, a pedido): a observação embaixo saiu de todos os
+ * formulários da casa e a prop deixou de existir, para não voltar por descuido. Cada linha de explicação
+ * custava a altura de um campo inteiro numa janela que já rola, e o que ela dizia ou já estava no rótulo ou
+ * cabia no texto de exemplo do controle. O erro continua, porque ele é resposta ao que a pessoa fez.
+ */
 type FieldProps = {
   label: ReactNode;
-  hint?: ReactNode;
   error?: ReactNode;
   required?: boolean;
   revealError?: boolean;
@@ -47,7 +51,6 @@ function isFilledControl(target: EventTarget) {
 
 export function Field({
   label,
-  hint,
   error,
   required = false,
   revealError,
@@ -58,11 +61,10 @@ export function Field({
   const [touched, setTouched] = useState(false);
   const generatedId = useId();
   const id = idProp ?? generatedId;
-  const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
 
   const showError = Boolean(error) && (revealError ?? touched);
-  const describedBy = [hint ? hintId : null, showError ? errorId : null].filter(Boolean).join(" ") || undefined;
+  const describedBy = showError ? errorId : undefined;
 
   const control = isValidElement<ControlProps>(children)
     ? cloneElement(children, {
@@ -94,11 +96,6 @@ export function Field({
         {label}
       </Label>
       {control}
-      {hint && (
-        <Text id={hintId} variant="footnote" tone="secondary">
-          {hint}
-        </Text>
-      )}
       {showError && (
         <VisuallyHidden id={errorId} role="alert">
           {error}

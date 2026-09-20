@@ -170,7 +170,7 @@ export function SignUpForm({ next, turnstileSiteKey }: SignUpFormProps) {
           />
         </Field>
 
-        <Field label="Senha" hint="No mínimo 8 caracteres">
+        <Field label="Senha">
           <PasswordInput name="password" placeholder="Crie uma senha" autoComplete="new-password" required />
         </Field>
 

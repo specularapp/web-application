@@ -77,7 +77,7 @@ export const createContractSchema = z.object({
  */
 export const saveContractSchema = z.object({
   id: z.uuid(),
-  title: z.string().trim().max(contractLimits.title, "Título longo demais"),
+  title: z.string().trim().min(2, "Dê um título ao contrato").max(contractLimits.title, "Título longo demais"),
   kind: z.enum(contractKindValues),
   description: z.string().trim().max(contractLimits.description, "Descrição longa demais"),
   theme: z.enum(contractThemeValues),

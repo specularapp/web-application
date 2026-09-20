@@ -214,10 +214,10 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
                 {applyPattern("phone", quote.issuer.phone)}
               </li>
             )}
-            {quote.issuer.city && (
+            {(quote.issuer.city || quote.issuer.state) && (
               <li>
                 <MapPinIcon aria-hidden="true" />
-                {quote.issuer.city}
+                {[quote.issuer.city, quote.issuer.state].filter(Boolean).join(" — ")}
               </li>
             )}
           </ul>

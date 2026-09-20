@@ -104,14 +104,14 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
 
   // A janela do contrato e a de criar têm endereço, no contrato das janelas da casa: nascem do que a URL
   // pediu (`/contratos/<id>`, `/contratos/novo`) e daí em diante trocam só a URL, sem sair da tela, por
-  // `pushState`; o voltar do navegador fecha, ou reabre, pelo `popstate`. Quando uma resposta nova do servidor
-  // chega, o que veio na URL passa a valer, ajustado durante o render: é assim que enviar ou cancelar devolve
-  // o contrato à janela já com a situação nova.
+  // `pushState`; o voltar do navegador fecha, ou reabre, pelo `popstate`. Uma atualização de dados não mexe
+  // nessa escolha local: só uma mudança real nas props da rota pode trocar a janela aberta.
   const [viewing, setViewing] = useState<Contract | null>(initialViewing ?? null);
   const [creating, setCreating] = useState(initialCreating);
-  const [seenPage, setSeenPage] = useState(page);
-  if (seenPage !== page) {
-    setSeenPage(page);
+  const initialRoute = `${initialCreating}:${initialViewing?.id ?? ""}`;
+  const [seenRoute, setSeenRoute] = useState(initialRoute);
+  if (seenRoute !== initialRoute) {
+    setSeenRoute(initialRoute);
     setViewing(initialViewing ?? null);
     setCreating(initialCreating);
   }
@@ -152,7 +152,7 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
       description: result.emailed ? "As duas partes receberam o link de assinatura por e-mail." : "O e-mail não saiu neste ambiente. Copie o link de cada parte na ficha do contrato.",
       tone: result.emailed ? "success" : "warning",
     });
-    startTransition(() => router.refresh());
+    if (viewing?.id === contract.id) setViewing(result.contract);
   };
 
   const cancel = async (contract: Contract) => {
@@ -161,8 +161,8 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
       toast({ title: "Não deu para cancelar", description: result.error, tone: "danger" });
       return;
     }
+    if (viewing?.id === contract.id) setViewing(result.contract);
     toast({ title: "Contrato cancelado", description: `${contract.reference} não pode mais ser assinado.`, tone: "neutral" });
-    startTransition(() => router.refresh());
   };
 
   const go = useCallback(

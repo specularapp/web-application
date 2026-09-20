@@ -128,19 +128,22 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team, funne
   /* A etapa que vai sair do funil, esperando a confirmação. */
   const [removingStage, setRemovingStage] = useState<CrmStage | null>(null);
   const [removingStageBusy, setRemovingStageBusy] = useState(false);
+  const [hiddenStages, setHiddenStages] = useState<CrmStage[]>([]);
 
   const removeStage = async () => {
     if (!removingStage || !funnelId) return;
-    setRemovingStageBusy(true);
-    const result = await setFunnelStagesAction({ id: funnelId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== removingStage) });
-    setRemovingStageBusy(false);
+    const target = removingStage;
+    setHiddenStages((current) => [...new Set([...current, target])]);
     setRemovingStage(null);
+    setRemovingStageBusy(true);
+    const result = await setFunnelStagesAction({ id: funnelId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== target) });
+    setRemovingStageBusy(false);
     if (!result.ok) {
+      setHiddenStages((current) => current.filter((stage) => stage !== target));
       toast({ title: "Não deu para tirar a etapa", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Etapa retirada", description: `${crmStageMeta[removingStage].label} saiu do funil. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Etapa retirada", description: `${crmStageMeta[target].label} saiu do funil. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
   };
 
   const [search, setSearch] = useState(query.search);
@@ -160,22 +163,25 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team, funne
      action grava. */
   const [deleting, setDeleting] = useState<Opportunity | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [hidden, setHidden] = useState<string[]>([]);
 
   const removeOpportunity = async () => {
     if (!deleting) return;
+    const target = deleting;
+    setHidden((current) => [...new Set([...current, target.id])]);
+    setDeleting(null);
+    setOpen((current) => (current?.id === target.id ? null : current));
     setRemoving(true);
-    const result = await callAction(deleteOpportunityAction(deleting.id));
+    const result = await callAction(deleteOpportunityAction(target.id));
     setRemoving(false);
 
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
 
-    setDeleting(null);
-    setOpen((current) => (current?.id === deleting.id ? null : current));
-    toast({ title: "Oportunidade excluída", description: `${deleting.title} saiu do funil.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Oportunidade excluída", description: `${target.title} saiu do funil.`, tone: "success" });
   };
 
   /** No celular o cartão não se arrasta: a coluna ocupa quase a tela inteira e o trilho rola na horizontal,
@@ -234,19 +240,21 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team, funne
 
   /** As colunas como elas estão na tela: as do servidor com os destinos do arraste aplicados. */
   const columns = useMemo(() => {
-    if (Object.keys(moved).length === 0) return board.columns;
-    const known = new Set(board.columns.map((column) => column.stage));
-    const piles = new Map<CrmStage, Opportunity[]>(board.columns.map((column) => [column.stage, []]));
-    for (const column of board.columns) {
+    const visibleColumns = board.columns.filter((column) => !hiddenStages.includes(column.stage));
+    if (Object.keys(moved).length === 0 && hidden.length === 0) return visibleColumns;
+    const known = new Set(visibleColumns.map((column) => column.stage));
+    const piles = new Map<CrmStage, Opportunity[]>(visibleColumns.map((column) => [column.stage, []]));
+    for (const column of visibleColumns) {
       for (const opportunity of column.opportunities) {
+        if (hidden.includes(opportunity.id)) continue;
         const to = moved[opportunity.id];
         /* Destino que este quadro não tem (o filtro mudou, o funil é outro) fica de fora. */
         const target = to && known.has(to) ? to : column.stage;
         piles.get(target)?.push(target === opportunity.stage ? opportunity : { ...opportunity, stage: target });
       }
     }
-    return board.columns.map((column) => ({ ...column, opportunities: piles.get(column.stage) ?? [] }));
-  }, [board.columns, moved]);
+    return visibleColumns.map((column) => ({ ...column, opportunities: piles.get(column.stage) ?? [] }));
+  }, [board.columns, moved, hidden, hiddenStages]);
 
   /** Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/7" e as setas andam a
    *  partir dali. Só no celular: acima disso o trilho mostra várias colunas de uma vez. */

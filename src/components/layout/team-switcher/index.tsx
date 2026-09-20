@@ -3,7 +3,6 @@
 import styled from "@emotion/styled";
 import { ArchiveIcon, CaretUpDownIcon, CheckIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/components/providers/toast-provider";
@@ -299,7 +298,6 @@ function matches(name: string, query: string) {
 // celular vira bandeja no rodapé, onde o topo do painel fica longe do polegar. Quem valida o destino
 // é `set_current_org` no banco, então o aplicativo troca pela mesma porta.
 export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitcherProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const sheet = useMediaQuery(MOBILE_QUERY);
   const listId = useId();
@@ -393,7 +391,6 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
 
     setOpen(false);
     toast({ title: "Time trocado", description: `Você está em ${team.name}`, tone: "success" });
-    router.refresh();
   };
 
   const navigate = (event: ReactKeyboardEvent<HTMLInputElement>) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowSquareOutIcon, BriefcaseIcon, CopySimpleIcon, PlusIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,6 @@ import type { PortfolioSettings as PortfolioData } from "../service";
  * de uma vez, que é como se monta uma vitrine.
  */
 export function PortfolioSettings({ publicUrl, shown: initialShown, projects: initial }: PortfolioData) {
-  const router = useRouter();
   const { toast } = useToast();
   const [projects, setProjects] = useState(initial);
   const shown = projects.filter((project) => project.isPublic).length;
@@ -38,7 +36,6 @@ export function PortfolioSettings({ publicUrl, shown: initialShown, projects: in
       toast({ title: "Não deu para mudar", description: result.error, tone: "danger" });
       return;
     }
-    router.refresh();
   };
 
   const copy = async () => {

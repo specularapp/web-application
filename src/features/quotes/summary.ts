@@ -42,6 +42,7 @@ export type QuoteClient = QuotePerson & {
   email?: string;
   phone?: string;
   city?: string;
+  state?: string;
 };
 
 /** Quem emite: a equipe, com a logo e os contatos que assinam o documento. */
@@ -52,6 +53,7 @@ export type QuoteIssuer = {
   email?: string;
   phone?: string;
   city?: string;
+  state?: string;
 };
 
 /** O orçamento inteiro, como a ficha, o editor e o documento público o leem. */

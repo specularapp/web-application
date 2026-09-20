@@ -35,11 +35,14 @@ export function ContractMenu({ contract, onOpen, onEdit, onSend, onDownload, onH
       items: [
         ...(onOpen ? [{ id: "open", label: "Abrir contrato", icon: EyeIcon, onSelect: onOpen }] : []),
         ...(draft && onEdit ? [{ id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit }] : []),
-        ...(draft && onSend ? [{ id: "send", label: "Enviar para assinatura", icon: PaperPlaneTiltIcon, onSelect: onSend }] : []),
-        ...(open && onSend ? [{ id: "resend", label: "Reenviar convite", icon: PaperPlaneTiltIcon, onSelect: onSend }] : []),
         ...(onDownload ? [{ id: "download", label: "Baixar PDF", icon: DownloadSimpleIcon, onSelect: onDownload }] : []),
       ],
     },
+    ...((draft || open) && onSend
+      ? [{ id: "signature", label: "Assinatura", items: [draft
+          ? { id: "send", label: "Enviar para assinatura", icon: PaperPlaneTiltIcon, onSelect: onSend }
+          : { id: "resend", label: "Reenviar convite", icon: PaperPlaneTiltIcon, onSelect: onSend }] }]
+      : []),
     ...(onHistory
       ? [
           {

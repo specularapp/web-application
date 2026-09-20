@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowSquareOutIcon, CheckCircleIcon, CopySimpleIcon, HashIcon, TrashIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
+import { CheckCircleIcon, CopySimpleIcon, EyeIcon, HashIcon, TrashIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/providers/toast-provider";
+import { callAction } from "@/lib/action";
 import { duplicateTaskAction } from "../actions";
 import { statusOf } from "../labels";
 import { taskStageMeta, type TaskStage } from "../stages";
@@ -29,7 +29,6 @@ export type TaskMenuProps = {
 // mesma linha escrita duas vezes. Concluir só aparece no que ainda não fechou, e só quando o quadro tem uma
 // etapa de fechamento para onde mandar, porque marcar de novo o que já está concluído não é ação nenhuma.
 export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuProps) {
-  const router = useRouter();
   const { toast } = useToast();
 
   /* A etapa de fechamento **deste** quadro: um projeto pode nomear as suas, e concluir é mandar para a que
@@ -37,13 +36,12 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
   const closing = stages?.find((id) => taskStageMeta[id].kind === "done");
 
   const duplicate = async () => {
-    const result = await duplicateTaskAction(task.id);
+    const result = await callAction(duplicateTaskAction(task.id));
     if (!result.ok) {
       toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
       return;
     }
     toast({ title: "Tarefa duplicada", description: `Uma cópia de ${task.reference} entrou logo abaixo.`, tone: "success" });
-    router.refresh();
   };
 
   const copyReference = async () => {
@@ -87,13 +85,14 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
     {
       id: "actions",
       items: [
-        ...(onOpen ? [{ id: "open", label: "Abrir tarefa", icon: ArrowSquareOutIcon, onSelect: onOpen }] : []),
+        ...(onOpen ? [{ id: "open", label: "Abrir tarefa", icon: EyeIcon, onSelect: onOpen }] : []),
         { id: "copy", label: "Copiar identificador", icon: HashIcon, onSelect: () => void copyReference() },
       ],
     },
     ...moveSection,
     {
       id: "more",
+      label: "Mais ações",
       items: [
         { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() },
         ...(statusOf(task) === "done" || !closing || !onMove

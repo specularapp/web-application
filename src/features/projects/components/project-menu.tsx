@@ -13,10 +13,10 @@ import {
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import { callAction } from "@/lib/action";
 import { setProjectStatusAction } from "../actions";
 import type { Project, ProjectStatus } from "../summary";
 
@@ -42,18 +42,16 @@ const INVOICE_PLAN = "pro";
 // histórico em janela e pausar, retomar ou concluir conforme a situação, que gravam na hora; e, por último e
 // em vermelho, excluir.
 export function ProjectMenu({ project, onOpen, onEdit, onDelete }: ProjectMenuProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const [history, setHistory] = useState<"never" | "open" | "closed">("never");
 
   const setStatus = async (status: ProjectStatus, title: string) => {
-    const result = await setProjectStatusAction({ id: project.id, status });
+    const result = await callAction(setProjectStatusAction({ id: project.id, status }));
     if (!result.ok) {
       toast({ title: "Não deu para mudar a situação", description: result.error, tone: "danger" });
       return;
     }
     toast({ title, description: `${project.name} já está assim na lista e no menu.`, tone: "success" });
-    router.refresh();
   };
 
   /* A cobrança nasce já com o cliente do projeto, quando ele tem um; projeto independente abre a gaveta em
@@ -67,14 +65,24 @@ export function ProjectMenu({ project, onOpen, onEdit, onDelete }: ProjectMenuPr
         ...(onOpen ? [{ id: "open", label: "Abrir projeto", icon: EyeIcon, onSelect: onOpen }] : []),
         { id: "board", label: "Abrir quadro de tarefas", icon: KanbanIcon, href: `/tarefas/${project.slug}` as Route },
         { id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit },
+      ],
+    },
+    {
+      id: "documents",
+      label: "Criar documento",
+      items: [
         { id: "invoice", label: "Gerar cobrança", icon: CurrencyCircleDollarIcon, href: invoiceHref, submenu: true, plan: INVOICE_PLAN },
       ],
     },
     {
       id: "tracking",
       label: "Acompanhamento",
+      items: [{ id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") }],
+    },
+    {
+      id: "status",
+      label: "Situação",
       items: [
-        { id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") },
         ...(project.status === "active"
           ? [
               { id: "pause", label: "Pausar", icon: PauseCircleIcon, onSelect: () => void setStatus("paused", "Projeto pausado") },

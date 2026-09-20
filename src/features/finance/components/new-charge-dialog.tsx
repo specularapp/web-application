@@ -2,7 +2,7 @@
 
 import { CheckIcon, ImageSquareIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { addDays, addMonths, format, parseISO } from "date-fns";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
@@ -60,14 +60,18 @@ const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label:
 // observações. Embaixo, as parcelas como vão ficar. Salva no servidor e abre a ficha.
 export function NewChargeDialog({ open, lookups, clientId, onClose, onCreated }: NewChargeDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
+  const savingRef = useRef(false);
+  const close = () => {
+    if (!savingRef.current) onClose();
+  };
   return (
-    <Dialog open={open} onClose={onClose} label="Nova cobrança" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
-      <ChargeForm lookups={lookups} clientId={clientId} onClose={onClose} onCreated={onCreated} />
+    <Dialog open={open} onClose={close} label="Nova cobrança" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
+      <ChargeForm lookups={lookups} clientId={clientId} onClose={onClose} onCreated={onCreated} savingRef={savingRef} />
     </Dialog>
   );
 }
 
-function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDialogProps, "open">) {
+function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<NewChargeDialogProps, "open"> & { savingRef: RefObject<boolean> }) {
   const { toast } = useToast();
   const titleId = useId();
   const [values, setValues] = useState<Values>(() => blank(clientId ?? null));
@@ -127,6 +131,8 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
   }));
 
   const save = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     const result = await callAction(
@@ -144,27 +150,38 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
         quoteId: values.quoteId,
       }),
     );
-    setSaving(false);
     if (!result.ok) {
+      savingRef.current = false;
+      setSaving(false);
       setError({ message: result.error, field: result.field });
       return;
     }
     /* A foto vai depois do salvamento, e não junto: falha dela não desfaz a cobrança, que já está gravada. */
     if (imageFile) {
-      const sent = await uploadImage("charge-image", result.charge.id, imageFile);
-      if (!sent.ok) toast({ title: "Cobrança criada, foto não", description: sent.error, tone: "warning" });
+      try {
+        const sent = await uploadImage("charge-image", result.charge.id, imageFile);
+        if (!sent.ok) toast({ title: "Cobrança criada, foto não", description: sent.error, tone: "warning" });
+      } catch {
+        /* A cobrança já existe; uma imagem que falhou não pode deixar o botão preso nem induzir uma segunda
+           criação. A ficha abre normalmente e a pessoa recebe o aviso específico. */
+        toast({ title: "Cobrança criada, foto não", description: "Não foi possível preparar a imagem.", tone: "warning" });
+      }
     }
 
+    savingRef.current = false;
+    setSaving(false);
     toast({ title: "Cobrança criada", description: `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`, tone: "success" });
     onCreated(result.charge);
   };
 
+  const close = () => {
+    if (!savingRef.current) onClose();
+  };
+
   useFloatingActionsRegistration({
     primary: { label: saving ? "Criando" : "Criar cobrança", icon: <CheckIcon weight="bold" />, loading: saving, onClick: () => void save() },
-    cancel: { label: "Fechar", onClick: onClose },
+    cancel: { label: "Fechar", onClick: close },
   });
-
-  const method = chargeMethods[values.method];
 
   return (
     <div className={styles.drawer} aria-labelledby={titleId}>
@@ -177,18 +194,17 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
             De um orçamento aprovado ou do zero, em uma ou mais parcelas.
           </Text>
         </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
+        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
           <XIcon />
         </IconButton>
       </header>
 
       <div className={styles.body}>
-        <Field label="Orçamento aprovado" hint="Traz o cliente, o título, o valor e as parcelas">
+        <Field label="Orçamento aprovado">
           <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
         </Field>
         <Field
           label="Quem paga"
-          hint={values.clientId ? undefined : "Sem cliente: o título e a foto são quem dizem do que se trata"}
           error={error?.field === "clientId" ? error.message : undefined}
         >
           <Select<string>
@@ -211,7 +227,7 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
 
         {/* A foto do que está sendo cobrado. Aparece no link de quem paga, e é o que separa "Assinatura do
             sistema" de "Serviço de manutenção" numa lista de avulsas, que sem cliente ficariam iguais. */}
-        <Field label="Foto" hint="Opcional, aparece para quem paga">
+        <Field label="Foto">
           <div className={styles.photo}>
             <span className={styles.photoFrame}>
               {imageUrl ? (
@@ -263,13 +279,13 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
         </div>
         {/* Repetir: a próxima nasce quando esta fecha, e não por relógio. Assim ninguém acumula doze
             cobranças abertas de uma assinatura que o pagador parou de pagar. */}
-        <Field label="Repetir" hint={values.recurrence === "none" ? undefined : "A próxima nasce quando esta for quitada"}>
+        <Field label="Repetir">
           <Select<ChargeRecurrence> label="Com que frequência se repete" size="sm" options={recurrenceOptions} value={values.recurrence} onChange={(value) => set("recurrence", value)} />
         </Field>
-        <Field label="Como pagar" hint={method.hint}>
+        <Field label="Como pagar">
           <Textarea size="sm" rows={2} value={values.paymentInfo} maxLength={chargeLimits.paymentInfo} placeholder={values.method === "pix" ? "Chave Pix: contato@empresa.com" : "O que o cliente precisa para pagar"} onChange={(event) => set("paymentInfo", event.target.value)} />
         </Field>
-        <Field label="Observações" hint="Só a equipe vê">
+        <Field label="Observações">
           <Textarea size="sm" rows={2} value={values.notes} maxLength={chargeLimits.notes} onChange={(event) => set("notes", event.target.value)} />
         </Field>
 
@@ -301,7 +317,7 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
       </div>
 
       <footer className={styles.foot}>
-        <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
+        <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={close}>
           Cancelar
         </Button>
         <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>

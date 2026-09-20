@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSessionUser, requireUser, type SessionUser } from "@/features/auth/session";
@@ -97,12 +97,15 @@ export async function guardAction(
 
 /**
  * O que toda escrita faz depois de gravar: derruba o cache dos domínios que dependem do que mudou e manda o
- * Next refazer as rotas afetadas. Numa chamada só, porque esquecer uma das duas metades deixa a tela certa e
- * o cache velho, ou o contrário.
+ * Next refazer as rotas afetadas e a árvore que chamou a ação. A atualização da árvore acontece na mesma
+ * resposta da Server Action, sem uma segunda viagem com `router.refresh()` no cliente.
  */
-export async function revalidateDomain(organizationId: string, changed: DomainTag[], paths: string[] = []) {
+export async function revalidateDomain(organizationId: string, changed: DomainTag[], paths: string[] = [], refreshCurrent = true) {
   await dropTags(organizationId, tagsToDrop(...changed));
   for (const path of paths) revalidatePath(path);
+  /* Route Handlers também criam registros (o upload de contrato, por exemplo), mas `refresh` é exclusivo
+     de Server Actions. Eles derrubam o mesmo cache e deixam a navegação seguinte buscar a árvore nova. */
+  if (refreshCurrent) refresh();
 }
 
 /** O primeiro problema que o zod achou, já no formato que o formulário usa para acender o campo. */

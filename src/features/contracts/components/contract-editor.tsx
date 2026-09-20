@@ -176,19 +176,43 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
     [contract.id, isPdf, setup, body, fields],
   );
 
-  const save = useCallback(async () => {
-    setSaveState("saving");
-    const result = await callAction(saveContractAction(payload()));
-    if (!result.ok) {
-      setSaveState("error");
-      toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
-      return false;
-    }
-    setParties(result.contract.parties);
-    setSaveState("saved");
-    setSavedAt(format(new Date(), "HH:mm"));
-    return true;
-  }, [payload, toast]);
+  /* Autosaves entram numa fila única. Sem ela, uma resposta antiga podia chegar depois da nova e devolver o
+     documento a uma versão anterior. A tarefa repete enquanto houver edição feita durante a gravação. */
+  const payloadRef = useRef(payload);
+  const versionRef = useRef(version);
+  const savedVersionRef = useRef(0);
+  const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  useEffect(() => {
+    payloadRef.current = payload;
+    versionRef.current = version;
+  }, [payload, version]);
+
+  const save = useCallback(
+    (force = false) => {
+      const queued = saveQueueRef.current.then(async () => {
+        let required = force || savedVersionRef.current < versionRef.current;
+        while (required) {
+          const targetVersion = versionRef.current;
+          setSaveState("saving");
+          const result = await callAction(saveContractAction(payloadRef.current()));
+          if (!result.ok) {
+            setSaveState("error");
+            toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
+            return false;
+          }
+          savedVersionRef.current = targetVersion;
+          setParties(result.contract.parties);
+          required = savedVersionRef.current < versionRef.current;
+        }
+        setSaveState("saved");
+        setSavedAt(format(new Date(), "HH:mm"));
+        return true;
+      });
+      saveQueueRef.current = queued;
+      return queued;
+    },
+    [toast],
+  );
 
   useEffect(() => {
     if (version === 0) return;
@@ -216,7 +240,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
 
   const send = async () => {
     setSending(true);
-    const saved = await save();
+    const saved = await save(true);
     if (!saved) {
       setSending(false);
       return;
@@ -235,6 +259,12 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
     router.push(`/contratos/${contract.id}` as Route);
   };
 
+  const leave = async (path: Route) => {
+    if (sending) return;
+    const saved = await save();
+    if (saved) router.push(path);
+  };
+
   useFloatingActionsRegistration(
     mobile
       ? {
@@ -243,7 +273,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
             { label: "Ajustes do contrato", icon: <SlidersHorizontalIcon weight="bold" />, onClick: () => setSetupOpen(true) },
             ...(isPdf ? [{ label: "Campos de assinatura", icon: <TextAaIcon weight="bold" />, onClick: () => setToolsOpen(true) }] : []),
           ],
-          cancel: { label: "Voltar ao contrato", onClick: () => router.push(`/contratos/${contract.id}` as Route) },
+          cancel: { label: "Voltar ao contrato", onClick: () => void leave(`/contratos/${contract.id}` as Route) },
         }
       : null,
   );
@@ -280,7 +310,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
         <Field label="Tipo">
           <Select<ContractKind> label="Tipo de trabalho" size="sm" options={kindOptions} value={setup.kind} onChange={(kind) => change("kind", kind)} />
         </Field>
-        <Field label="Descrição" hint={`${setup.description.length} de ${contractLimits.description}`}>
+        <Field label="Descrição">
           <Textarea size="sm" rows={2} value={setup.description} maxLength={contractLimits.description} placeholder="A linha que aparece no cartão" onChange={(event) => change("description", event.target.value)} />
         </Field>
       </section>
@@ -295,7 +325,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
         <Field label="Projeto">
           <Select<string> label="Projeto vinculado" size="sm" options={projectOptions} value={setup.projectId ?? undefined} placeholder="Nenhum" searchable emptyLabel="Nenhum projeto desse cliente" onChange={(projectId) => change("projectId", projectId)} />
         </Field>
-        <Field label="Orçamento" hint="Define o valor do contrato">
+        <Field label="Orçamento">
           <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={setup.quoteId ?? undefined} placeholder="Nenhum" searchable emptyLabel="Nenhum orçamento aprovado desse cliente" onChange={(quoteId) => change("quoteId", quoteId)} />
         </Field>
       </section>
@@ -304,13 +334,13 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
         <Text as="h3" variant="caption1" weight="semibold" tone="secondary" className={styles.setupTitle}>
           Assinatura
         </Text>
-        <Field label="E-mail do cliente" required hint="Recebe o convite para assinar">
+        <Field label="E-mail do cliente" required>
           <Input type="email" size="sm" value={setup.clientEmail} maxLength={contractLimits.email} placeholder="cliente@empresa.com" autoComplete="off" onChange={(event) => change("clientEmail", event.target.value)} />
         </Field>
-        <Field label="E-mail da equipe" required hint="Quem assina do nosso lado">
+        <Field label="E-mail da equipe" required>
           <Input type="email" size="sm" value={setup.issuerEmail} maxLength={contractLimits.email} autoComplete="off" onChange={(event) => change("issuerEmail", event.target.value)} />
         </Field>
-        <Field label="Validade" hint={`De ${expiryLimits.min} a ${expiryLimits.max} dias depois do envio`}>
+        <Field label="Validade">
           <Input type="text" size="sm" mask="integer" inputMode="numeric" value={setup.expiresInDays} maxLength={2} iconEnd={<FieldAffix data-tone="muted">dias</FieldAffix>} onChange={(event) => change("expiresInDays", onlyDigits(event.target.value))} />
         </Field>
       </section>
@@ -336,11 +366,14 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
   return (
     <div className={styles.editor}>
       <header className={styles.bar}>
-        <IconButton label="Voltar ao contrato" variant="ghost" size="sm" href={`/contratos/${contract.id}`}>
+        <IconButton label="Voltar ao contrato" variant="ghost" size="sm" onClick={() => void leave(`/contratos/${contract.id}` as Route)}>
           <ArrowLeftIcon />
         </IconButton>
         <nav className={styles.crumbs} aria-label="Onde o contrato mora">
-          <Link href="/contratos" className={styles.crumb}>
+          <Link href="/contratos" className={styles.crumb} onClick={(event) => {
+            event.preventDefault();
+            void leave("/contratos" as Route);
+          }}>
             Contratos
           </Link>
           <span className={styles.slash} aria-hidden="true">

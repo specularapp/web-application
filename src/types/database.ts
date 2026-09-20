@@ -1711,6 +1711,7 @@ export type Database = {
           name: string
           onboarding_completed_at: string | null
           phone: string | null
+          state: string | null
           slug: string
           updated_at: string
           website: string | null
@@ -1731,6 +1732,7 @@ export type Database = {
           name: string
           onboarding_completed_at?: string | null
           phone?: string | null
+          state?: string | null
           slug: string
           updated_at?: string
           website?: string | null
@@ -1751,6 +1753,7 @@ export type Database = {
           name?: string
           onboarding_completed_at?: string | null
           phone?: string | null
+          state?: string | null
           slug?: string
           updated_at?: string
           website?: string | null

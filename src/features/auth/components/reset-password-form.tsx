@@ -48,7 +48,7 @@ export function ResetPasswordForm({ email }: ResetPasswordFormProps) {
       </Text>
 
       <form action={formAction} className={styles.form}>
-        <Field label="Nova senha" hint={`No mínimo 8 caracteres, para a conta ${email}`}>
+        <Field label="Nova senha">
           <PasswordInput name="password" placeholder="Crie uma senha nova" autoComplete="new-password" required />
         </Field>
 

@@ -55,9 +55,11 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
   const [creating, setCreating] = useState(initialCreating);
-  const [seenPage, setSeenPage] = useState(page);
-  if (seenPage !== page) {
-    setSeenPage(page);
+  // Atualização da lista não manda na janela. Só uma navegação que altere a prop da rota pode abri-la ou
+  // fechá-la, evitando o lampejo de recarregar a página antes de mostrar o diálogo.
+  const [seenCreating, setSeenCreating] = useState(initialCreating);
+  if (seenCreating !== initialCreating) {
+    setSeenCreating(initialCreating);
     setCreating(initialCreating);
   }
 
@@ -79,19 +81,27 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
     router.push(`/automacoes/${id}` as Route);
   };
 
-  const refresh = () => startTransition(() => router.refresh());
-
   const [toggling, setToggling] = useState<string | null>(null);
+  const [optimistic, setOptimistic] = useState<Record<string, Automation>>({});
+  const [hidden, setHidden] = useState<string[]>([]);
+  const items = page.items.map((automation) => optimistic[automation.id] ?? automation).filter((automation) => !hidden.includes(automation.id));
   const toggle = async (automation: Automation) => {
+    const status = automation.status === "active" ? "paused" : "active";
+    setOptimistic((current) => ({ ...current, [automation.id]: { ...automation, status } }));
     setToggling(automation.id);
-    const result = await callAction(setAutomationStatusAction({ id: automation.id, status: automation.status === "active" ? "paused" : "active" }));
+    const result = await callAction(setAutomationStatusAction({ id: automation.id, status }));
     setToggling(null);
     if (!result.ok) {
+      setOptimistic((current) => {
+        const next = { ...current };
+        delete next[automation.id];
+        return next;
+      });
       toast({ title: "Não deu para ativar", description: result.error, tone: "danger" });
       return;
     }
+    setOptimistic((current) => ({ ...current, [automation.id]: result.automation }));
     toast({ title: result.automation.status === "active" ? "Automação ativa" : "Automação pausada", description: result.automation.status === "active" ? `${automation.name} roda sozinha a partir de agora.` : `${automation.name} guarda o fluxo, mas não roda.`, tone: result.automation.status === "active" ? "success" : "neutral" });
-    refresh();
   };
 
   const duplicate = async (automation: Automation) => {
@@ -101,7 +111,6 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
       return;
     }
     toast({ title: "Automação duplicada", description: "A cópia nasceu pausada, para você mexer antes de ativar.", tone: "success" });
-    refresh();
   };
 
   const [log, setLog] = useState<LogState>(null);
@@ -121,23 +130,24 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
       tone: run.status === "failed" ? "warning" : "success",
     });
     setLog({ automation: result.automation, highlight: run.id });
-    refresh();
   };
 
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [removing, setRemoving] = useState(false);
   const remove = async () => {
     if (!deleting) return;
+    const target = deleting;
+    setHidden((current) => [...new Set([...current, target.id])]);
+    setDeleting(null);
     setRemoving(true);
-    const result = await callAction(deleteAutomationAction({ id: deleting.id }));
+    const result = await callAction(deleteAutomationAction({ id: target.id }));
     setRemoving(false);
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Automação excluída", description: `${deleting.name} saiu da conta.`, tone: "neutral" });
-    setDeleting(null);
-    refresh();
+    toast({ title: "Automação excluída", description: `${target.name} saiu da conta.`, tone: "neutral" });
   };
 
   const go = useCallback(
@@ -207,7 +217,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
       />
 
       <div className={styles.scrollArea}>
-        {page.items.length === 0 ? (
+        {items.length === 0 ? (
           <EmptyState
             icon={FlowArrowIcon}
             title={filtering ? "Nenhuma automação encontrada" : "Nenhuma automação ainda"}
@@ -228,7 +238,7 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
           </EmptyState>
         ) : (
           <ul className={styles.grid}>
-            {page.items.map((automation) => (
+            {items.map((automation) => (
               <li key={automation.id}>
                 <AutomationCard
                   automation={automation}

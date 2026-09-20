@@ -106,6 +106,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   const [selected, setSelected] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const items = page.items.filter((client) => !hidden.includes(client.id));
+  const hiddenOnPage = page.items.length - items.length;
+  const total = Math.max(0, page.total - hiddenOnPage);
   // Uma gaveta só para a tela inteira, guardando quem está aberto: assim trinta cartões não montam trinta
   // janelas. Fica montada e vazia depois de fechar, para a saída animar.
   const [open, setOpen] = useState<ClientListItem | null>(null);
@@ -207,7 +211,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   // para o `auto-fill`. A medida entra no cookie para a próxima visita já vir do tamanho certo, e só pede
   // outra página quando o tamanho muda de verdade, depois de a janela parar de mudar.
   const gridRef = useRef<HTMLUListElement>(null);
-  const showing = page.items.length;
+  const showing = items.length;
   const currentSize = live.pageSize;
   const currentPage = live.page;
   useEffect(() => {
@@ -235,9 +239,9 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   }, [asTable, mobile, showing, currentSize, currentPage, go]);
 
 
-  const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
+  const pages = Math.max(1, Math.ceil(total / live.pageSize));
   const from = (live.page - 1) * live.pageSize + 1;
-  const to = Math.min(live.page * live.pageSize, page.total);
+  const to = Math.min(live.page * live.pageSize, total);
   const active = activeClientsFilters(live);
   /* Sem busca e sem filtro, uma lista vazia quer dizer base vazia: é a diferença entre convidar a cadastrar o
      primeiro e dizer que a procura não achou nada. */
@@ -246,18 +250,23 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
     setSearch("");
     go({ ...clearedFilters, search: "", page: 1 });
   };
-  const selectedClients = page.items.filter((client) => selected.includes(client.id));
+  const selectedClients = items.filter((client) => selected.includes(client.id));
   const count = selectedClients.length;
 
   // Excluir de uma vez: a action valida no servidor e devolve a contagem; a tela avisa, limpa a marcação
   // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
   const removeSelected = async () => {
-    setDeleting(true);
-    const result = await callAction(deleteClientsAction(selectedClients.map((client) => client.id)));
-    setDeleting(false);
+    const targets = selectedClients;
+    const ids = targets.map((client) => client.id);
+    setHidden((current) => [...new Set([...current, ...ids])]);
     setConfirming(false);
+    setSelected([]);
+    setDeleting(true);
+    const result = await callAction(deleteClientsAction(ids));
+    setDeleting(false);
 
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => !ids.includes(id)));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
@@ -267,8 +276,6 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       description: "A base já está sem eles.",
       tone: "success",
     });
-    setSelected([]);
-    router.refresh();
   };
 
   /* O menu de filtros, tudo num lugar só e só o que é útil (a pedido, 2026-09-08): período em escolha
@@ -343,7 +350,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   useFloatingPagerRegistration(mobile && pages > 1 ? { page: live.page, pageCount: pages, onPageChange: changePage, label: "Páginas de clientes" } : null);
 
   const pagination =
-    pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de clientes" /> : undefined;
+    pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label="Páginas de clientes" /> : undefined;
 
   return (
     <div className={styles.board}>
@@ -403,15 +410,15 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
 
       {asTable ? (
         <ClientsTable
-          clients={page.items}
+          clients={items}
           selected={selected}
           onSelectedChange={setSelected}
           onOpen={setOpen}
           onEdit={editClient}
-          range={{ page: live.page, pageSize: live.pageSize, total: page.total }}
+          range={{ page: live.page, pageSize: live.pageSize, total }}
           footer={pagination}
         />
-      ) : page.items.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState
           icon={AddressBookIcon}
           title={filtering ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}
@@ -433,7 +440,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
-            {page.items.map((client) => (
+            {items.map((client) => (
               <ClientCard
                 key={client.id}
                 client={client}
@@ -449,10 +456,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
 
       {/* O pé da grade, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
           página, a barra. Na tabela ele mora no pé da própria tabela. */}
-      {!asTable && page.items.length > 0 && (
+      {!asTable && items.length > 0 && (
         <div className={styles.foot}>
           <Text as="span" variant="footnote" tone="secondary">
-            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
+            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(total)}
           </Text>
           {pagination}
         </div>
@@ -473,7 +480,6 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         onClose={() => openEditor(null)}
         onSaved={() => {
           openEditor(null);
-          router.refresh();
         }}
       />
     </div>

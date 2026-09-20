@@ -187,7 +187,6 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
         onClose={() => setAdding(false)}
         onCreated={() => {
           setAdding(false);
-          startTransition(() => router.refresh());
         }}
       />
     </div>

@@ -32,13 +32,23 @@ export function ChargeMenu({ charge, onOpen, onSend, onCopyLink, onPayNext, onSt
       id: "actions",
       items: [
         ...(onOpen ? [{ id: "open", label: "Abrir cobrança", icon: EyeIcon, onSelect: onOpen }] : []),
-        ...(active && onSend ? [{ id: "send", label: charge.sentAt ? "Reenviar por e-mail" : "Enviar por e-mail", icon: PaperPlaneTiltIcon, onSelect: onSend }] : []),
-        ...(onCopyLink ? [{ id: "link", label: "Copiar link do cliente", icon: LinkIcon, onSelect: onCopyLink }] : []),
-        ...(active && next && onPayNext ? [{ id: "pay", label: `Confirmar parcela ${next.number}`, icon: CheckCircleIcon, onSelect: onPayNext }] : []),
       ],
     },
+    ...((active && onSend) || onCopyLink
+      ? [{
+          id: "share",
+          label: "Compartilhar",
+          items: [
+        ...(active && onSend ? [{ id: "send", label: charge.sentAt ? "Reenviar por e-mail" : "Enviar por e-mail", icon: PaperPlaneTiltIcon, onSelect: onSend }] : []),
+        ...(onCopyLink ? [{ id: "link", label: "Copiar link do cliente", icon: LinkIcon, onSelect: onCopyLink }] : []),
+          ],
+        }]
+      : []),
+    ...(active && next && onPayNext
+      ? [{ id: "payment", label: "Recebimento", items: [{ id: "pay", label: `Confirmar parcela ${next.number}`, icon: CheckCircleIcon, onSelect: onPayNext }] }]
+      : []),
     ...(charge.recurrence !== "none" && onStopRecurrence
-      ? [{ id: "series", items: [{ id: "stop", label: "Encerrar recorrência", icon: ArrowsClockwiseIcon, onSelect: onStopRecurrence }] }]
+      ? [{ id: "series", label: "Recorrência", items: [{ id: "stop", label: "Encerrar recorrência", icon: ArrowsClockwiseIcon, onSelect: onStopRecurrence }] }]
       : []),
     ...(active && onCancel ? [{ id: "danger", items: [{ id: "cancel", label: "Cancelar cobrança", icon: XCircleIcon, tone: "danger" as const, onSelect: onCancel }] }] : []),
   ];

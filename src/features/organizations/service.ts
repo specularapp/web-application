@@ -26,6 +26,10 @@ export type Team = {
   slug: string;
   industry: OrganizationIndustry | null;
   website: string | null;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
   completed: boolean;
@@ -68,7 +72,7 @@ const logoExtensions: Record<LogoContentType, string> = {
   "image/webp": "webp",
 };
 
-const teamColumns = "id, name, slug, industry, website, logo_url, banner_url, onboarding_completed_at";
+const teamColumns = "id, name, slug, industry, website, email, phone, city, state, logo_url, banner_url, onboarding_completed_at";
 
 const SLUG_TAKEN = "Já existe um time com esse endereço. Mude o nome do time.";
 const SAVE_FAILED = "Não foi possível salvar os dados do time. Tente de novo em instantes.";
@@ -79,6 +83,10 @@ type TeamRow = {
   slug: string;
   industry: OrganizationIndustry | null;
   website: string | null;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
   logo_url: string | null;
   banner_url: string | null;
   onboarding_completed_at: string | null;
@@ -91,6 +99,10 @@ function toTeam(row: TeamRow): Team {
     slug: row.slug,
     industry: row.industry,
     website: row.website,
+    email: row.email,
+    phone: row.phone,
+    city: row.city,
+    state: row.state,
     logoUrl: row.logo_url,
     bannerUrl: row.banner_url,
     completed: Boolean(row.onboarding_completed_at),
@@ -191,7 +203,7 @@ export async function listTeamMembers(client: TeamClient, organizationId: string
 export async function getIssuer(client: TeamClient, organizationId: string) {
   const { data } = await client
     .from("organizations")
-    .select("name, logo_url, website, email, phone, city")
+    .select("name, logo_url, website, email, phone, city, state")
     .eq("id", organizationId)
     .maybeSingle();
 
@@ -202,6 +214,7 @@ export async function getIssuer(client: TeamClient, organizationId: string) {
     email: data?.email ?? undefined,
     phone: data?.phone ?? undefined,
     city: data?.city ?? undefined,
+    state: data?.state ?? undefined,
   };
 }
 
@@ -287,7 +300,15 @@ function slugAttempts(name: string) {
   return variants;
 }
 
-type TeamValues = { name: string; industry: OrganizationIndustry; website: string | null };
+type TeamValues = {
+  name: string;
+  industry: OrganizationIndustry;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+};
 
 async function updateTeam(client: TeamClient, id: string, values: TeamValues, slugs: string[]) {
   for (const slug of slugs) {
@@ -326,7 +347,15 @@ async function createTeam(client: TeamClient, values: TeamValues, slugs: string[
 }
 
 export async function saveTeam(client: TeamClient, input: SaveTeamInput): Promise<ServiceResult<Team>> {
-  const values = { name: input.name, industry: input.industry, website: input.website };
+  const values = {
+    name: input.name,
+    industry: input.industry,
+    website: input.website,
+    email: input.email,
+    phone: input.phone,
+    city: input.city,
+    state: input.state,
+  };
   const slugs = slugAttempts(input.name);
 
   return input.organizationId

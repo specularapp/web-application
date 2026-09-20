@@ -6,7 +6,6 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { onlyDigits } from "@/lib/masks";
 import { variables, type FieldSpec, type NodeSpec } from "../catalog";
@@ -59,39 +58,31 @@ export function NodeFields({ spec, config, onChange, fields = spec.fields, compa
         ) : (
           field.label
         );
-        const hint = compact ? undefined : field.hint;
 
         if (field.type === "boolean") {
           return (
-            <div key={field.key} style={{ display: "grid", gap: "var(--space-half)" }}>
-              <Switch size="sm" checked={config[field.key] === true} onChange={(event) => onChange({ [field.key]: event.target.checked })}>
-                {field.label}
-              </Switch>
-              {hint && (
-                <Text variant="footnote" tone="secondary">
-                  {hint}
-                </Text>
-              )}
-            </div>
+            <Switch key={field.key} size="sm" checked={config[field.key] === true} onChange={(event) => onChange({ [field.key]: event.target.checked })}>
+              {field.label}
+            </Switch>
           );
         }
         if (field.type === "select") {
           return (
-            <Field key={field.key} label={label} hint={hint}>
+            <Field key={field.key} label={label}>
               <Select<string> label={field.label} size="sm" options={field.options ?? []} value={textOf(field.key) || undefined} onChange={(value) => onChange({ [field.key]: value })} />
             </Field>
           );
         }
         if (field.type === "textarea") {
           return (
-            <Field key={field.key} label={label} hint={hint}>
+            <Field key={field.key} label={label}>
               <Textarea size="sm" rows={compact ? 3 : 6} value={textOf(field.key)} placeholder={field.placeholder} className="nowheel" onChange={(event) => onChange({ [field.key]: event.target.value })} />
             </Field>
           );
         }
         if (field.type === "number") {
           return (
-            <Field key={field.key} label={label} hint={hint}>
+            <Field key={field.key} label={label}>
               <Input
                 type="text"
                 size="sm"
@@ -108,7 +99,7 @@ export function NodeFields({ spec, config, onChange, fields = spec.fields, compa
           );
         }
         return (
-          <Field key={field.key} label={label} hint={hint}>
+          <Field key={field.key} label={label}>
             <Input type={field.type === "time" ? "time" : field.type === "email" ? "email" : field.type === "url" ? "url" : "text"} size="sm" value={textOf(field.key)} placeholder={field.placeholder} autoComplete="off" onChange={(event) => onChange({ [field.key]: event.target.value })} />
           </Field>
         );

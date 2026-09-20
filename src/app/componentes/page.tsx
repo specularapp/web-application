@@ -652,7 +652,7 @@ const groups: Group[] = [
         layout: "stack",
         example: (
           <Stack gap={5}>
-            <Field label="E-mail" hint="Usamos para enviar o orçamento ao cliente" required>
+            <Field label="E-mail" required>
               <Input type="email" name="email" placeholder="cliente@empresa.com.br" autoComplete="email" />
             </Field>
             <Field label="CNPJ" error="Informe um CNPJ válido">
@@ -661,7 +661,7 @@ const groups: Group[] = [
             <Field label="Telefone" error="Informe um telefone com DDD" revealError>
               <Input mask="phone" name="telefone" placeholder="(00) 00000-0000" />
             </Field>
-            <Field label="Vencimento" hint="Primeira cobrança do contrato" required>
+            <Field label="Vencimento" required>
               <DatePicker name="vencimento" />
             </Field>
           </Stack>

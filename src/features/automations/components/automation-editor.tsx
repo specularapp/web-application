@@ -409,7 +409,7 @@ function Editor({ automation }: AutomationEditorProps) {
       <Field label="Nome" required>
         <Input type="text" size="sm" value={name} maxLength={automationLimits.name} placeholder="Nome da automação" onChange={(event) => changeMeta({ name: event.target.value })} />
       </Field>
-      <Field label="Descrição" hint={`${description.length} de ${automationLimits.description}`}>
+      <Field label="Descrição">
         <Textarea size="sm" rows={3} value={description} maxLength={automationLimits.description} placeholder="O que ela faz, em uma frase" onChange={(event) => changeMeta({ description: event.target.value })} />
       </Field>
       <div className={styles.facts}>

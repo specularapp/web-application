@@ -184,7 +184,6 @@ export function SidebarPanel({
     const result = folder?.tree === "funis" ? await saveCrmFolderAction({ name, parentId: null }) : await saveFolderAction({ name, parentId: null });
     if (!result.ok) return result.error;
     toast({ title: "Pasta criada", description: `${name} já está na árvore.`, tone: "success" });
-    router.refresh();
     return undefined;
   };
 
@@ -193,7 +192,6 @@ export function SidebarPanel({
     if (!result.ok) return result.error;
     toast({ title: "Funil criado", description: "Ele nasceu com as etapas padrão. Arrume pelo chevron da linha.", tone: "success" });
     router.push(`/crm/${result.slug}` as Route);
-    router.refresh();
     return undefined;
   };
   const [motion, setMotion] = useState<NavMotion | null>(null);

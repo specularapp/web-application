@@ -492,13 +492,13 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
             />
           </div>
 
-          <Field label="Nome" required hint="O nome do site ou de para quem o trabalho é feito" error={errorOf("name")}>
+          <Field label="Nome" required error={errorOf("name")}>
             <Input type="text" name="name" value={values.name} maxLength={projectLimits.name} placeholder="Estúdio Aurora" required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
-          <Field label="Endereço do site" hint="Sem site fica em branco" error={errorOf("url")}>
+          <Field label="Endereço do site" error={errorOf("url")}>
             <Input type="text" name="url" inputMode="url" autoComplete="off" value={values.url} maxLength={projectLimits.url} placeholder="estudioaurora.com.br" disabled={saving} iconStart={<GlobeSimpleIcon />} onChange={(event) => set("url", siteValue(event.target.value))} />
           </Field>
-          <Field label="Descrição" hint={`${values.description.length} de ${projectLimits.description} caracteres, a linha que o cartão mostra sob o nome`} error={errorOf("description")}>
+          <Field label="Descrição" error={errorOf("description")}>
             <Textarea name="description" value={values.description} rows={2} maxLength={projectLimits.description} placeholder="Site institucional com portfólio e formulário de contato" disabled={saving} onChange={(event) => set("description", event.target.value)} />
           </Field>
           <div className={styles.pair}>
@@ -509,7 +509,7 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
               <Select<string> label="Quem responde pelo projeto" options={ownerOptions} value={values.ownerId || undefined} placeholder="Escolha quem responde" searchable searchPlaceholder="Buscar na equipe" disabled={saving} onChange={(ownerId) => set("ownerId", ownerId)} />
             </Field>
           </div>
-          <Field label="Colaboradores" hint="Quem mais da equipe trabalha no projeto. Quem responde já entra sozinho" error={errorOf("memberIds")}>
+          <Field label="Colaboradores" error={errorOf("memberIds")}>
             <MemberPicker owners={owners} value={values.memberIds} disabled={saving} onChange={(memberIds) => set("memberIds", memberIds)} />
           </Field>
           <Field label="Situação" required error={errorOf("status")}>
@@ -537,19 +537,19 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
             <Field label="Começo" required error={errorOf("startedAt")}>
               <DatePicker value={toDate(values.startedAt)} disabled={saving} onChange={(date) => set("startedAt", toIso(date))} />
             </Field>
-            <Field label="Entrega" hint="Em branco fica sem prazo" error={errorOf("dueAt")}>
+            <Field label="Entrega" error={errorOf("dueAt")}>
               <DatePicker value={toDate(values.dueAt)} min={toDate(values.startedAt)} disabled={saving} onChange={(date) => set("dueAt", toIso(date))} />
             </Field>
           </div>
           <div className={styles.pair}>
-            <Field label="Valor mínimo" hint="Tudo em branco é a combinar" error={errorOf("budgetMin")}>
+            <Field label="Valor mínimo" error={errorOf("budgetMin")}>
               <Input type="text" name="budgetMin" mask="currency" value={values.budgetMin} placeholder="0,00" disabled={saving} onChange={digitsOf("budgetMin")} />
             </Field>
-            <Field label="Valor máximo" hint="Igual ao mínimo é valor fechado" error={errorOf("budgetMax")}>
+            <Field label="Valor máximo" error={errorOf("budgetMax")}>
               <Input type="text" name="budgetMax" mask="currency" value={values.budgetMax} placeholder="0,00" disabled={saving} onChange={digitsOf("budgetMax")} />
             </Field>
           </div>
-          <Field label="Andamento" hint="De 0 a 100" error={errorOf("progress")}>
+          <Field label="Andamento" error={errorOf("progress")}>
             <Input type="text" name="progress" mask="integer" value={values.progress} placeholder="0" inputMode="numeric" maxLength={3} disabled={saving} iconEnd={<FieldAffix data-tone="muted">%</FieldAffix>} onChange={digitsOf("progress")} />
           </Field>
         </Section>
@@ -557,10 +557,10 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
         <Separator className={styles.divider} />
 
         <Section icon={StackIcon} title="Ferramentas e etiquetas">
-          <Field label="Ferramentas" hint="As marcas que o cartão mostra, na ordem em que entram" error={errorOf("tools")}>
+          <Field label="Ferramentas" error={errorOf("tools")}>
             <ToolPicker value={values.tools} disabled={saving} onChange={(tools) => set("tools", tools)} />
           </Field>
-          <Field label="Etiquetas" hint={`O que foi feito, escolhido na lista. Até ${MAX_TAGS}`} error={errorOf("tags")}>
+          <Field label="Etiquetas" error={errorOf("tags")}>
             <TagPicker catalog={projectTagCatalog} label="Etiquetas do projeto" value={values.tags} max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
         </Section>

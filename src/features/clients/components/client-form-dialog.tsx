@@ -431,7 +431,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
           <Field label="Anotações" error={errorOf("about")}>
             <Textarea name="about" value={values.about} rows={3} maxLength={clientLimits.about} placeholder="Como chegou, o que pediu, como prefere ser atendido" disabled={saving} onChange={(event) => set("about", event.target.value)} />
           </Field>
-          <Field label="Etiquetas" hint={`Como este cliente se classifica, escolhido na lista. Até ${MAX_TAGS}`} error={errorOf("tags")}>
+          <Field label="Etiquetas" error={errorOf("tags")}>
             <TagPicker catalog={clientTagCatalog} label="Etiquetas do cliente" value={values.tags} max={MAX_TAGS} disabled={saving} onChange={(tags) => set("tags", tags)} />
           </Field>
         </Section>

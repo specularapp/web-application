@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowSquareOutIcon, CopySimpleIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -30,7 +29,6 @@ import { slugify } from "@/lib/utils/slug";
  * pessoa na casa. Os projetos públicos das equipes de que a pessoa faz parte entram sozinhos.
  */
 export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resume: Resume; publicUrl: string | null }) {
-  const router = useRouter();
   const { toast } = useToast();
   const [values, setValues] = useState(initial);
   const [skill, setSkill] = useState("");
@@ -84,7 +82,6 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
     setValues(result.resume);
     setPublicUrl(result.resume.resumeSlug ? `${siteConfig.url}/cv/${result.resume.resumeSlug}` : null);
     toast({ title: "Currículo salvo", description: result.resume.resumePublic ? "Já está no ar no seu endereço." : "Guardado; ligue a chave para publicar.", tone: "success" });
-    router.refresh();
   };
 
   const errorOf = (field: string) => (error?.field === field ? error.message : undefined);
@@ -120,7 +117,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
           <div className={styles.identity}>
             <Avatar name={values.fullName || "Você"} src={values.avatarUrl ?? undefined} size="lg" />
             <div className={styles.form} style={{ flex: 1, minWidth: "16rem" }}>
-              <Field label="Título" hint="O que você faz, em uma linha: Designer de produto, Estúdio de branding" error={errorOf("headline")}>
+              <Field label="Título" error={errorOf("headline")}>
                 <Input type="text" value={values.headline} maxLength={resumeLimits.headline} placeholder="Designer de produto" disabled={saving} onChange={(event) => set("headline", event.target.value)} />
               </Field>
               <Field label="Cidade" error={errorOf("location")}>
@@ -128,7 +125,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
               </Field>
             </div>
           </div>
-          <Field label="Sobre você" hint={`${values.bio.length} de ${resumeLimits.bio} caracteres`} error={errorOf("bio")}>
+          <Field label="Sobre você" error={errorOf("bio")}>
             <Textarea rows={5} value={values.bio} maxLength={resumeLimits.bio} placeholder="Como você trabalha, com quem já trabalhou, o que gosta de fazer." disabled={saving} onChange={(event) => set("bio", event.target.value)} />
           </Field>
         </SettingsSection>
@@ -207,7 +204,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl }: { resum
         </SettingsSection>
 
         <SettingsSection title="Endereço público" description="Sem endereço o currículo fica só para você. Com endereço e a chave ligada, qualquer pessoa com o link abre.">
-          <Field label="Endereço" hint="Letras minúsculas, números e hifens" error={errorOf("resumeSlug")}>
+          <Field label="Endereço" error={errorOf("resumeSlug")}>
             <Input
               type="text"
               value={values.resumeSlug}

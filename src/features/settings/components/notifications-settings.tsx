@@ -3,7 +3,6 @@
 import { BellIcon, BellSlashIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, type Icon } from "@phosphor-icons/react";
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { useRouter } from "next/navigation";
 import { useState, type CSSProperties } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import type { AppNotification, NotificationKind } from "@/components/layout/notifications";
@@ -31,7 +30,6 @@ type Filter = "all" | "unread";
  * onde a coisa aconteceu.
  */
 export function NotificationsSettings({ items: initial }: { items: AppNotification[] }) {
-  const router = useRouter();
   const { toast } = useToast();
   const [items, setItems] = useState(initial);
   const [filter, setFilter] = useState<Filter>("all");
@@ -50,7 +48,6 @@ export function NotificationsSettings({ items: initial }: { items: AppNotificati
       toast({ title: "Não deu para marcar", description: result.error, tone: "danger" });
       return;
     }
-    router.refresh();
   };
 
   const markAll = async () => {

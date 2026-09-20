@@ -53,7 +53,7 @@ export function ForgotPasswordForm({ turnstileSiteKey }: ForgotPasswordFormProps
       </Text>
 
       <form action={formAction} className={styles.form}>
-        <Field label="Endereço de e-mail" hint="Enviaremos um link para você redefinir a senha">
+        <Field label="Endereço de e-mail">
           <Input
             type="email"
             name="email"

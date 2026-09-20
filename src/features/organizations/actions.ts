@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { requireUser } from "@/features/auth/session";
 import { siteConfig } from "@/lib/metadata";
@@ -64,6 +64,10 @@ export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0];
     if (field === "website") return { ok: false, error: "Confira o endereço do site, algo como specular.com.br" };
+    if (field === "email") return { ok: false, error: "Confira o e-mail comercial da equipe." };
+    if (field === "phone") return { ok: false, error: "Informe um telefone com DDD." };
+    if (field === "city") return { ok: false, error: "A cidade precisa ter no máximo 80 caracteres." };
+    if (field === "state") return { ok: false, error: "Informe a UF com duas letras, como SP." };
     if (field === "name") return { ok: false, error: "O nome do time precisa ter entre 2 e 80 caracteres." };
     if (field === "industry") return { ok: false, error: "Escolha a área de atuação do time." };
     return { ok: false, error: INVALID };
@@ -81,7 +85,9 @@ export async function switchTeamAction(input: unknown): Promise<ServiceResult<un
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  return switchTeam(supabase, parsed.data.organizationId);
+  const result = await switchTeam(supabase, parsed.data.organizationId);
+  if (result.ok) refresh();
+  return result;
 }
 
 export async function inviteMemberAction(input: unknown): Promise<ServiceResult<TeamInvite>> {

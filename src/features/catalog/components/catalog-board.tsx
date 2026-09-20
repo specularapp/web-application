@@ -122,22 +122,27 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
      action grava. Item usado em orçamento é recusado pelo banco, e a mensagem que volta é a que aparece. */
   const [deleting, setDeleting] = useState<CatalogItem | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const items = page.items.filter((item) => !hidden.includes(item.id));
+  const total = Math.max(0, page.total - (page.items.length - items.length));
 
   const removeItem = async () => {
     if (!deleting) return;
+    const target = deleting;
+    setHidden((current) => [...new Set([...current, target.id])]);
+    setDeleting(null);
+    setOpen((current) => (current?.id === target.id ? null : current));
     setRemoving(true);
-    const result = await callAction(deleteCatalogItemsAction([deleting.id]));
+    const result = await callAction(deleteCatalogItemsAction([target.id]));
     setRemoving(false);
 
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
 
-    setDeleting(null);
-    setOpen((current) => (current?.id === deleting.id ? null : current));
-    toast({ title: "Item excluído", description: `${deleting.name} saiu do catálogo.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Item excluído", description: `${target.name} saiu do catálogo.`, tone: "success" });
   };
 
   useEffect(() => {
@@ -209,7 +214,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   // para o `auto-fill`. A medida entra no cookie para a próxima visita já vir do tamanho certo, e só pede
   // outra página quando o tamanho muda de verdade, depois de a janela parar de mudar.
   const gridRef = useRef<HTMLUListElement>(null);
-  const showing = page.items.length;
+  const showing = items.length;
   const currentSize = live.pageSize;
   const currentPage = live.page;
   useEffect(() => {
@@ -246,9 +251,9 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
 
   const createItem = () => openEditor("new");
 
-  const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
+  const pages = Math.max(1, Math.ceil(total / live.pageSize));
   const from = (live.page - 1) * live.pageSize + 1;
-  const to = Math.min(live.page * live.pageSize, page.total);
+  const to = Math.min(live.page * live.pageSize, total);
   const active = activeCatalogFilters(live);
   const filtering = Boolean(live.search) || active.length > 0;
   /* Limpar leva a busca junto dos filtros: no vazio a pessoa quer a lista de volta inteira, e não metade. */
@@ -370,7 +375,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
 
       {asTable ? (
         <CatalogTable
-          items={page.items}
+          items={items}
           isActive={isActive}
           onActiveChange={setActive}
           onOpen={setOpen}
@@ -379,15 +384,15 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
           range={{
             page: live.page,
             pageSize: live.pageSize,
-            total: page.total,
+            total,
           }}
           footer={
             pages > 1 ? (
-              <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas do catálogo" />
+              <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label="Páginas do catálogo" />
             ) : undefined
           }
         />
-      ) : page.items.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState
           icon={TagIcon}
           title={filtering ? "Nada encontrado no catálogo" : "Catálogo vazio"}
@@ -409,7 +414,7 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
-            {page.items.map((item) => (
+            {items.map((item) => (
               <CatalogCard
                 key={item.id}
                 item={item}
@@ -427,12 +432,12 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
       {/* O pé da grade, preso embaixo e à direita no desktop (pedido de 2026-09-08, porque subia e descia com
           a altura da grade): a contagem e, passando de uma página, a barra. Na tabela ele mora no pé da
           própria tabela. */}
-      {!asTable && page.items.length > 0 && (
+      {!asTable && items.length > 0 && (
         <div className={styles.foot}>
           <Text as="span" variant="footnote" tone="secondary">
-            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
+            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(total)}
           </Text>
-          {pages > 1 && !mobile && <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas do catálogo" />}
+          {pages > 1 && !mobile && <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label="Páginas do catálogo" />}
         </div>
       )}
 
@@ -458,7 +463,6 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
         onClose={() => openEditor(null)}
         onSaved={() => {
           openEditor(null);
-          router.refresh();
         }}
       />
     </div>

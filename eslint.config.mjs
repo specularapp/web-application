@@ -23,7 +23,22 @@ export default defineConfig([
         { object: "window", property: "sessionStorage", message: "Sem Web Storage. Ver src/docs/security.md" },
         { object: "window", property: "indexedDB", message: "Sem Web Storage. Ver src/docs/security.md" },
       ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message: "Use Select ou Listbox de src/components/ui; não crie um seletor paralelo.",
+        },
+        {
+          selector: "JSXAttribute[name.name='role'][value.value='menu']",
+          message: "Use DropdownMenu de src/components/ui; não crie outro menu flutuante.",
+        },
+      ],
     },
+  },
+  {
+    files: ["src/components/ui/dropdown-menu/index.tsx"],
+    rules: { "no-restricted-syntax": "off" },
   },
   {
     files: ["src/app/**/opengraph-image.tsx", "src/app/**/twitter-image.tsx"],

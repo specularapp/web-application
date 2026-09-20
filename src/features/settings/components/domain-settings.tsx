@@ -129,7 +129,7 @@ export function DomainSettings({ domain: initial }: { domain: CustomDomain }) {
         }
       >
         <form className={styles.form} onSubmit={(event) => void save(event)} noValidate>
-          <Field label="Domínio" hint="Só o domínio, sem https:// e sem barra" error={error ?? undefined}>
+          <Field label="Domínio" error={error ?? undefined}>
             <Input type="text" value={value} placeholder="portfolio.seuestudio.com.br" autoComplete="off" spellCheck={false} inputMode="url" disabled={saving} invalid={Boolean(error)} iconStart={<GlobeIcon />} onChange={(event) => setValue(event.target.value.toLowerCase())} />
           </Field>
           <div className={styles.actions}>

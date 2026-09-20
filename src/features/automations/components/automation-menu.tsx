@@ -1,6 +1,6 @@
 "use client";
 
-import { ClockCounterClockwiseIcon, CopySimpleIcon, LightningIcon, PauseCircleIcon, PencilSimpleIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, CopySimpleIcon, PauseCircleIcon, PencilSimpleIcon, PlayCircleIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import type { Automation } from "../summary";
 
@@ -29,10 +29,11 @@ export function AutomationMenu({ automation, onEdit, onTest, onToggle, onDuplica
       items: [
         ...(onEdit ? [{ id: "edit", label: "Abrir o editor", icon: PencilSimpleIcon, onSelect: onEdit }] : []),
         ...(onTest ? [{ id: "test", label: "Testar agora", icon: PlayIcon, onSelect: onTest }] : []),
-        ...(onToggle ? [{ id: "toggle", label: active ? "Pausar" : "Ativar", icon: active ? PauseCircleIcon : LightningIcon, onSelect: onToggle }] : []),
-        ...(onDuplicate ? [{ id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: onDuplicate }] : []),
       ],
     },
+    ...(onToggle
+      ? [{ id: "status", label: "Situação", items: [{ id: "toggle", label: active ? "Pausar" : "Ativar", icon: active ? PauseCircleIcon : PlayCircleIcon, onSelect: onToggle }] }]
+      : []),
     ...(onHistory
       ? [
           {
@@ -42,6 +43,7 @@ export function AutomationMenu({ automation, onEdit, onTest, onToggle, onDuplica
           },
         ]
       : []),
+    ...(onDuplicate ? [{ id: "more", label: "Mais ações", items: [{ id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: onDuplicate }] }] : []),
     ...(onDelete
       ? [
           {

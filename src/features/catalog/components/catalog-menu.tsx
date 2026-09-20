@@ -47,6 +47,12 @@ export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDe
       items: [
         { id: "view", label: "Visualizar", icon: EyeIcon, onSelect: onView },
         { id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit },
+      ],
+    },
+    {
+      id: "documents",
+      label: "Criar documento",
+      items: [
         {
           id: "quote",
           label: "Gerar orçamento",
@@ -64,6 +70,7 @@ export function CatalogMenu({ item, active, onActiveChange, onView, onEdit, onDe
     },
     {
       id: "flags",
+      label: "Situação",
       items: [{ kind: "toggle", id: "active", label: "Ativo", icon: CheckSquareIcon, checked: active, onChange: onActiveChange }],
     },
     {

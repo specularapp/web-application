@@ -3,7 +3,6 @@
 import type { Route } from "next";
 import { PencilSimpleIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -33,7 +32,6 @@ export type AccountSettingsProps = { account: Account; team: Team | null; viewer
  * editar abrindo a mesma gaveta do seletor de equipe, e o atalho para a página das pessoas.
  */
 export function AccountSettings({ account, team, viewer }: AccountSettingsProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(account.fullName);
@@ -58,7 +56,6 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
       return;
     }
     toast({ title: "Nome salvo", description: "É assim que a equipe passa a ver você.", tone: "success" });
-    router.refresh();
   };
 
   const pick = async (file: File | null) => {
@@ -72,7 +69,6 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
     }
     setAvatarUrl(result.url);
     toast({ title: "Foto atualizada", description: "Ela já aparece no menu e nos documentos.", tone: "success" });
-    router.refresh();
   };
 
   return (
@@ -102,7 +98,7 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
             <Field label="Nome" required error={error ?? undefined}>
               <Input type="text" value={name} maxLength={accountLimits.fullName} autoComplete="name" disabled={saving} invalid={Boolean(error)} onChange={(event) => setName(event.target.value)} />
             </Field>
-            <Field label="E-mail" hint="É o e-mail de entrada; para trocar, fale com quem administra a conta">
+            <Field label="E-mail">
               <Input type="email" value={account.email ?? ""} readOnly disabled />
             </Field>
             <div className={styles.actions}>
@@ -136,6 +132,9 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
               <SettingsFact label="Nome">{team.name}</SettingsFact>
               <SettingsFact label="Área de atuação">{team.industry ? industryLabels[team.industry] : "Não informada"}</SettingsFact>
               <SettingsFact label="Site">{team.website ? <TextLink href={team.website as Route} target="_blank" rel="noreferrer">{team.website.replace(/^https?:\/\//, "")}</TextLink> : "Sem site"}</SettingsFact>
+              <SettingsFact label="E-mail comercial">{team.email ?? "Não informado"}</SettingsFact>
+              <SettingsFact label="Telefone comercial">{team.phone ?? "Não informado"}</SettingsFact>
+              <SettingsFact label="Localização">{[team.city, team.state].filter(Boolean).join(" — ") || "Não informada"}</SettingsFact>
               <SettingsFact label="Seu papel">{roleLabels[viewer.role]}</SettingsFact>
             </dl>
           </div>
@@ -153,7 +152,6 @@ export function AccountSettings({ account, team, viewer }: AccountSettingsProps)
           owner={{ name: viewer.name ?? account.fullName, email: viewer.email ?? account.email, avatarUrl: viewer.avatarUrl ?? avatarUrl }}
           onClose={() => {
             setEditingTeam(false);
-            router.refresh();
           }}
         />
       )}

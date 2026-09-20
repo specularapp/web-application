@@ -98,9 +98,12 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   const [viewing, setViewing] = useState<Charge | null>(initialViewing ?? null);
   const [creating, setCreating] = useState(initialCreating);
-  const [seenPage, setSeenPage] = useState(page);
-  if (seenPage !== page) {
-    setSeenPage(page);
+  // A página pode receber dados novos enquanto uma ficha abre. Sincronizar pela identidade da rota, e não
+  // pelo objeto da página, impede uma resposta antiga de fechar a janela que a pessoa acabou de abrir.
+  const initialRoute = `${initialCreating}:${initialViewing?.id ?? ""}`;
+  const [seenRoute, setSeenRoute] = useState(initialRoute);
+  if (seenRoute !== initialRoute) {
+    setSeenRoute(initialRoute);
     setViewing(initialViewing ?? null);
     setCreating(initialCreating);
   }
@@ -121,11 +124,8 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     window.history.pushState(null, "", `${pathOf(nextViewing, nextCreating)}${window.location.search}`);
   };
 
-  const refresh = () => startTransition(() => router.refresh());
-
   const created = (charge: Charge) => {
     show(charge, false);
-    refresh();
   };
 
   const copyLink = async (charge: Charge) => {
@@ -149,7 +149,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       description: result.emailed ? `${payerOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
       tone: result.emailed ? "success" : "warning",
     });
-    refresh();
   };
 
   const [busyInstallment, setBusyInstallment] = useState<string | null>(null);
@@ -163,7 +162,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
     toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${payerOf(charge).company ?? payerOf(charge).name}.`, tone: "success" });
-    refresh();
   };
 
   const reopen = async (charge: Charge, installment: Installment) => {
@@ -176,7 +174,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
     toast({ title: "Parcela reaberta", description: "A entrada saiu das movimentações.", tone: "neutral" });
-    refresh();
   };
 
   const [cancelling, setCancelling] = useState<Charge | null>(null);
@@ -190,7 +187,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     toast({ title: "Recorrência encerrada", description: `${charge.reference} continua em aberto; a próxima não nasce mais.`, tone: "success" });
-    router.refresh();
   };
 
   const cancel = async () => {
@@ -205,7 +201,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     if (viewing?.id === cancelling.id) setViewing(result.charge);
     setCancelling(null);
     toast({ title: "Cobrança cancelada", description: `${cancelling.reference} não pode mais ser paga pelo link.`, tone: "neutral" });
-    refresh();
   };
 
   const actionsOf = (charge: Charge): ChargeMenuActions => {

@@ -307,9 +307,20 @@ export async function saveQuote(
   };
 
   let id = input.id ?? null;
+  let previousLines: Omit<LineRow, "catalog_items">[] = [];
 
   if (id) {
-    const { error } = await client
+    const { data, error } = await client
+      .from("quote_lines")
+      .select("id, catalog_item_id, name, description, quantity, unit_price, unit, courtesy, position")
+      .eq("quote_id", id)
+      .eq("organization_id", organizationId);
+    if (error) return { ok: false, error: SAVE_FAILED };
+    previousLines = data ?? [];
+  }
+
+  if (id) {
+    const { data, error } = await client
       .from("quotes")
       .update({
         ...values,
@@ -317,9 +328,11 @@ export async function saveQuote(
         sent_at: sending ? new Date().toISOString() : undefined,
       })
       .eq("id", id)
-      .eq("organization_id", organizationId);
+      .eq("organization_id", organizationId)
+      .select("id")
+      .maybeSingle();
 
-    if (error) return { ok: false, error: error.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: error?.message || "Esse orçamento não existe mais." };
   } else {
     /* O id nasce aqui, e não no banco, porque o resumo do token é derivado dele: gerar a linha primeiro
        obrigaria a uma segunda escrita só para gravar o resumo. */
@@ -337,7 +350,11 @@ export async function saveQuote(
     if (error) return { ok: false, error: error.message || SAVE_FAILED };
   }
 
-  await client.from("quote_lines").delete().eq("quote_id", id).eq("organization_id", organizationId);
+  const { error: deleteError } = await client.from("quote_lines").delete().eq("quote_id", id).eq("organization_id", organizationId);
+  if (deleteError) {
+    if (!input.id) await client.from("quotes").delete().eq("id", id).eq("organization_id", organizationId);
+    return { ok: false, error: SAVE_FAILED };
+  }
 
   const { error: linesError } = await client.from("quote_lines").insert(
     input.lines.map((line, position) => ({
@@ -354,7 +371,27 @@ export async function saveQuote(
     })),
   );
 
-  if (linesError) return { ok: false, error: linesError.message || SAVE_FAILED };
+  if (linesError) {
+    if (input.id && previousLines.length > 0) {
+      await client.from("quote_lines").insert(
+        previousLines.map((line) => ({
+          organization_id: organizationId,
+          quote_id: id,
+          catalog_item_id: line.catalog_item_id,
+          name: line.name,
+          description: line.description,
+          quantity: Number(line.quantity),
+          unit_price: line.unit_price,
+          unit: line.unit,
+          courtesy: line.courtesy,
+          position: line.position,
+        })),
+      );
+    } else if (!input.id) {
+      await client.from("quotes").delete().eq("id", id).eq("organization_id", organizationId);
+    }
+    return { ok: false, error: linesError.message || SAVE_FAILED };
+  }
 
   await logRecordEvent(client, organizationId, {
     recordType: "quote",
@@ -429,12 +466,13 @@ export async function getQuoteByToken(
   const payload = data as unknown as {
     quote: Omit<Row, "quote_lines"> & { organization_id: string };
     issuer: QuoteIssuer;
+    owner: QuotePerson;
     lines: LineRow[];
   };
   const row = { ...payload.quote, quote_lines: payload.lines } as Row;
 
   return {
-    quote: { ...toQuote(row, NOBODY, payload.issuer), status: readStatus(row) },
+    quote: { ...toQuote(row, payload.owner ?? NOBODY, payload.issuer), status: readStatus(row) },
     issuer: payload.issuer,
     organizationId: payload.quote.organization_id,
   };
@@ -515,7 +553,7 @@ export async function duplicateQuote(
   organizationId: string,
   id: string,
 ): Promise<ServiceResult<{ id: string }>> {
-  const { data: source } = await client
+  const { data: source, error: sourceError } = await client
     .from("quotes")
     .select(
       "title, client_id, client_name, client_company, client_email, client_phone, client_city, client_avatar_url, owner_id, discount_kind, discount_value, installments, payment_methods, cash_discount, notes, valid_until, quote_lines(catalog_item_id, name, description, quantity, unit_price, unit, courtesy, position)",
@@ -524,6 +562,7 @@ export async function duplicateQuote(
     .eq("id", id)
     .maybeSingle();
 
+  if (sourceError) return { ok: false, error: sourceError.message || SAVE_FAILED };
   if (!source) return { ok: false, error: "Esse orçamento não está mais na base." };
 
   const copyId = crypto.randomUUID();
@@ -547,7 +586,10 @@ export async function duplicateQuote(
     const { error: linesError } = await client.from("quote_lines").insert(
       (lines ?? []).map((line) => ({ ...line, organization_id: organizationId, quote_id: copyId })),
     );
-    if (linesError) return { ok: false, error: linesError.message || SAVE_FAILED };
+    if (linesError) {
+      await client.from("quotes").delete().eq("id", copyId).eq("organization_id", organizationId);
+      return { ok: false, error: linesError.message || SAVE_FAILED };
+    }
   }
 
   await logRecordEvent(client, organizationId, { recordType: "quote", recordId: copyId, action: "created", summary: "Nasceu como cópia de outro orçamento" });

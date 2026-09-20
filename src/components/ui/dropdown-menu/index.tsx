@@ -44,6 +44,9 @@ export type DropdownAction = {
   plan?: PlanId;
   /** Contagem no fim da linha, como quantos itens o histórico tem. */
   count?: number;
+  /** Conteúdo curto no fim da linha, como o plano atual. Evita cada consumidor inventar outro menu só
+   * para desenhar uma informação auxiliar. */
+  suffix?: ReactNode;
   tone?: "default" | "danger";
   /** Item marcado numa escolha única, como o período em vigor: vira `menuitemradio` com o check no fim. */
   selected?: boolean;
@@ -89,12 +92,12 @@ export type DropdownMenuProps = {
    * um rosto com o nome, texto solto) continuar parecendo o que é e ainda dar as opções.
    */
   triggerContent?: ReactNode;
-  /**
-   * A superfície do painel: o vidro da casa, ou sólida (2026-09-15) para o leque que abre sobre conteúdo
-   * de outra luz, como a folha branca do contrato no tema escuro, em que o vidro a 20% deixava o texto do
-   * menu quase invisível.
-   */
+  /** A superfície do painel: sólida por padrão; vidro fica reservado a contextos que o peçam de propósito. */
   surface?: "glass" | "solid";
+  /** Identidade ou contexto antes das opções, dentro da mesma superfície e comportamento do menu. */
+  header?: ReactNode;
+  /** Por padrão listas com mais de cinco opções ganham busca; `false` preserva menus curtos por seção. */
+  searchable?: boolean;
 };
 
 /* `disabled` entrou em 2026-09-16 com o seletor de etiquetas: o leque de um formulário fica mudo enquanto
@@ -150,7 +153,9 @@ const Popover = styled.div`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-anchor: none;
     overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   /* Abrindo para cima o gênio nasce de baixo; a posição em si já vem resolvida em pixels. */
@@ -174,7 +179,9 @@ const Sheet = styled.div`
   min-height: 0;
   padding: var(--space-2) var(--space-2) var(--space-4);
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 
   /* Aberta por cima de uma janela com ações na barra flutuante, a lista leva a folga da barra embaixo,
      dentro do que rola: o último item fecha acima dela, em vez de ficar atrás sem dar para tocar. */
@@ -436,7 +443,7 @@ function isExternal(href: string) {
 // rota ou endereço externo), com seta de mais opções, selo do plano que libera e contagem no fim da
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
-export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "glass" }: DropdownMenuProps) {
+export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "solid", header, searchable: searchableProp }: DropdownMenuProps) {
   const gate = usePlanGate();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -553,7 +560,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       );
     }
 
-    const trailing = (item.count !== undefined || item.plan || item.submenu || item.selected !== undefined) && (
+    const trailing = (item.count !== undefined || item.plan || item.suffix || item.submenu || item.selected !== undefined) && (
       <Trailing>
         {item.count !== undefined && (
           <Badge tone="neutral" size="sm">
@@ -565,6 +572,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
             {planBadges[item.plan]}
           </Badge>
         )}
+        {item.suffix}
         {item.submenu && <CaretRightIcon aria-hidden="true" weight="bold" />}
         {item.selected && <CheckIcon aria-hidden="true" weight="bold" data-selected />}
       </Trailing>
@@ -630,7 +638,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
    * fica sem item sai, para não sobrar título solto.
    */
   const listed = sections.reduce((sum, section) => sum + section.items.length, 0);
-  const searchable = listed > SEARCH_FROM;
+  const searchable = searchableProp ?? listed > SEARCH_FROM;
   const needle = slugify(query, 80);
   const shown =
     searchable && needle
@@ -657,6 +665,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
 
   const list = (
     <>
+      {header}
       {field}
       <div data-scroll>
         {shown.length === 0 ? (

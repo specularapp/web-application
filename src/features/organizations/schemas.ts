@@ -22,7 +22,7 @@ export type OrganizationIndustry = z.infer<typeof organizationIndustrySchema>;
  * `maxLength` do campo na tela (a pedido, 2026-09-10). O nome da equipe assina o documento do orçamento,
  * então um nome sem fim quebraria o cabeçalho da folha.
  */
-export const organizationLimits = { name: 80, slug: 40, inviteName: 120, inviteEmail: 254 } as const;
+export const organizationLimits = { name: 80, slug: 40, email: 120, city: 80, inviteName: 120, inviteEmail: 254 } as const;
 
 export const organizationNameSchema = z.string().trim().min(2).max(organizationLimits.name);
 export const organizationSlugSchema = z
@@ -61,11 +61,26 @@ export const saveTeamSchema = z
     name: organizationNameSchema,
     industry: organizationIndustrySchema,
     website: z.string().trim().max(200).optional(),
+    email: z.string().trim().toLowerCase().max(organizationLimits.email).optional(),
+    phone: z.string().trim().regex(/^\d{10,11}$/).optional().or(z.literal("")),
+    city: z.string().trim().max(organizationLimits.city).optional(),
+    state: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).optional().or(z.literal("")),
   })
-  .transform((value) => ({ ...value, website: normalizeWebsite(value.website) }))
+  .transform((value) => ({
+    ...value,
+    website: normalizeWebsite(value.website),
+    email: value.email || null,
+    phone: value.phone || null,
+    city: value.city || null,
+    state: value.state || null,
+  }))
   .refine((value) => value.website === null || z.url().max(200).safeParse(value.website).success, {
     message: "Confira o endereço do site",
     path: ["website"],
+  })
+  .refine((value) => value.email === null || z.email().max(organizationLimits.email).safeParse(value.email).success, {
+    message: "Confira o e-mail comercial",
+    path: ["email"],
   });
 export type SaveTeamInput = z.infer<typeof saveTeamSchema>;
 

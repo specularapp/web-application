@@ -1,7 +1,8 @@
 import { PDFDocument } from "pdf-lib";
 import { contractLimits } from "@/features/contracts/schemas";
 import { createPdfContract } from "@/features/contracts/service";
-import { requireOrganization } from "@/features/organizations/context";
+import { requireOrganization, revalidateDomain } from "@/features/organizations/context";
+import { cacheTags } from "@/lib/cache/tags";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 
 /**
@@ -48,5 +49,6 @@ export async function POST(request: Request) {
   const created = await createPdfContract(supabase, organizationId, user.id, { name: file.name, bytes, pages, clientId });
   if (!created.ok) return Response.json({ error: created.error }, { status: 400 });
 
+  await revalidateDomain(organizationId, [cacheTags.contracts], ["/contratos"], false);
   return Response.json({ id: created.data.id, pages });
 }

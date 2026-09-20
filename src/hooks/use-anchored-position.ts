@@ -46,8 +46,17 @@ export function useAnchoredPosition(
   useLayoutEffect(() => {
     if (!open) return;
 
-    const update = () => {
-      const rect = trigger.current?.getBoundingClientRect();
+    const update = (event?: Event) => {
+      const source = event?.target;
+      const anchor = trigger.current;
+
+      /* Um `scroll` capturado também chega quando quem rola é a própria lista portada. Ela não move o
+         gatilho, então medir de novo nesse caso só faz o painel perseguir uma mudança de layout ocorrida
+         atrás dele (como as etiquetas escolhidas que quebram de linha). Só a janela ou um ancestral real
+         do gatilho pode alterar sua posição na viewport. */
+      if (event?.type === "scroll" && source instanceof Element && anchor && !source.contains(anchor)) return;
+
+      const rect = anchor?.getBoundingClientRect();
       if (!rect) return;
 
       const box = Math.min(width, window.innerWidth - edge * 2);

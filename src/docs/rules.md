@@ -43,6 +43,10 @@ Leitura obrigatória antes de qualquer ação no código, a cada mensagem. Valem
 - `aria-*` somente quando o elemento semântico não resolve.
 - Respeitar `prefers-reduced-motion` em qualquer animação.
 - Todo componente funciona nos dois temas, só com tokens. Mapa em `src/docs/theme.md`.
+- Componentes de interface em `src/components/ui` são a fonte única. Dropdown de ação usa `DropdownMenu`,
+  campo de escolha usa `Select` ou `Listbox`, etiquetas usam `TagPicker` e datas usam `DatePicker`. É proibido
+  recriar posicionamento, superfície, rolagem ou teclado desses componentes dentro de uma feature. O lint
+  bloqueia `<select>` nativo e menus ARIA paralelos.
 
 ## 4. Segurança
 

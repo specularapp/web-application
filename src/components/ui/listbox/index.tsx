@@ -204,20 +204,15 @@ const List = styled.div`
      alargava o painel muito além do gatilho, e o que cede é o texto, por reticências. */
   width: max-content;
   max-width: min(26rem, calc(100vw - var(--space-8)));
-  /* Vidro da casa, a receita das camadas do menu (pedido de 2026-09-09): fundo quase transparente com o
-     borrão desenhando a caixa, o fio fino e a sombra grande. O canto é declarado direto, sem o recorte do
-     motor: a lista sai do container e o fallback cortaria o anel de foco dos itens.
-
-     A superfície é variável porque lista sobre lista existe: dentro de outra camada de vidro, como o
-     calendário, o painel a 20% ficava quase invisível, e quem o abre ali passa a superfície com mais corpo
-     (relato de 2026-09-09). */
-  background-color: var(--listbox-panel-bg, var(--glass-layer-bg));
+  /* Painéis de opção precisam preservar contraste sobre qualquer conteúdo. A variável continua aberta para
+     um contexto especializado, mas a superfície padrão é sólida e igual à dos demais dropdowns. */
+  background-color: var(--listbox-panel-bg, var(--color-bg-tertiary));
   border: 1px solid var(--color-border);
   border-radius: var(--listbox-trigger-radius, var(--radius-md));
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: var(--glass-layer-blur);
-  backdrop-filter: var(--glass-layer-blur);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
   /* Dentro de um campo de formulário, o painel tem a largura do campo e nada mais (acerto de 2026-09-09):
@@ -248,6 +243,9 @@ const SheetBody = styled.div`
   min-height: 0;
   padding: var(--space-2) var(--space-2) var(--space-4);
   overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
 
   html[data-floating-actions] & {
@@ -796,7 +794,7 @@ export function Listbox<T extends ListboxValue>({
         )}
       </Trigger>
       {sheet && (
-        <Dialog open={open} onClose={() => close(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => close(false)} label={label} surface="solid" scrim={false} focusOnOpen={false}>
           <SheetBody>{content}</SheetBody>
         </Dialog>
       )}

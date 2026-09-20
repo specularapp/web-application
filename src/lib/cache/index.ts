@@ -99,8 +99,16 @@ export async function dropTags(organizationId: string, tags: CacheTag[]) {
 
   try {
     const sets = tags.map((tag) => tagKey(organizationId, tag));
-    const keys = await Promise.all(sets.map((set) => redis.smembers(set)));
-    const flat = [...new Set(keys.flat())];
+    const reads = redis.pipeline();
+    for (const set of sets) reads.smembers(set);
+    const results = await reads.exec();
+    const flat = [
+      ...new Set(
+        (results ?? []).flatMap(([error, value]) =>
+          error || !Array.isArray(value) ? [] : value.filter((entry): entry is string => typeof entry === "string"),
+        ),
+      ),
+    ];
 
     const pipeline = redis.pipeline();
     if (flat.length > 0) pipeline.del(...flat);

@@ -290,7 +290,7 @@ async function createIssuerParty(client: ContractsClient, organizationId: string
   const id = crypto.randomUUID();
   const { hash } = shareCredentials("contract", id);
 
-  await client.from("contract_parties").insert({
+  const { error } = await client.from("contract_parties").insert({
     id,
     organization_id: organizationId,
     contract_id: contractId,
@@ -301,6 +301,8 @@ async function createIssuerParty(client: ContractsClient, organizationId: string
     token_hash: hash,
     position: 0,
   });
+
+  return error?.message ?? null;
 }
 
 type CreateInput = { source: "template" | "scratch"; templateId?: string; kind?: ContractKind; clientId?: string };
@@ -312,6 +314,9 @@ export async function createContract(
   userId: string,
   input: CreateInput,
 ): Promise<ServiceResult<Contract>> {
+  const template = input.source === "template" && input.templateId ? findTemplate(input.templateId) : null;
+  if (input.source === "template" && !template) return { ok: false, error: "Esse modelo de contrato não existe mais." };
+
   const id = crypto.randomUUID();
 
   const { error } = await client.from("contracts").insert({
@@ -327,28 +332,47 @@ export async function createContract(
 
   if (error) return { ok: false, error: error.message };
 
-  await createIssuerParty(client, organizationId, id, userId);
-  await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "created" });
-  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "created", summary: "Criou o contrato" });
+  const issuerError = await createIssuerParty(client, organizationId, id, userId);
+  if (issuerError) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    return { ok: false, error: "Não foi possível preparar quem assina pela equipe." };
+  }
 
   const created = await getContract(client, organizationId, id);
-  if (!created) return { ok: false, error: "Não foi possível criar o contrato." };
+  if (!created) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    return { ok: false, error: "Não foi possível criar o contrato." };
+  }
 
-  const template = input.source === "template" && input.templateId ? findTemplate(input.templateId) : null;
   const context = await contextOf(client, organizationId, created);
 
+  let documentError: string | null = null;
   if (template) {
     const built = template.build(context);
-    await client
+    const { error: updateError } = await client
       .from("contracts")
       .update({ title: built.title, description: built.description, body: built.body as unknown as Json, kind: template.kind, template_id: template.id })
       .eq("id", id);
+    documentError = updateError?.message ?? null;
   } else {
-    await client.from("contracts").update({ body: blankDocument(context) as unknown as Json }).eq("id", id);
+    const { error: updateError } = await client.from("contracts").update({ body: blankDocument(context) as unknown as Json }).eq("id", id);
+    documentError = updateError?.message ?? null;
+  }
+
+  if (documentError) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    return { ok: false, error: "Não foi possível montar o documento inicial." };
   }
 
   const contract = await getContract(client, organizationId, id);
-  return contract ? { ok: true, data: contract } : { ok: false, error: "Não foi possível criar o contrato." };
+  if (!contract) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    return { ok: false, error: "Não foi possível criar o contrato." };
+  }
+
+  await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "created" });
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "created", summary: "Criou o contrato" });
+  return { ok: true, data: contract };
 }
 
 /** Um rascunho novo a partir de um PDF anexado: o arquivo vai para o Storage e o contrato guarda o caminho. */
@@ -383,12 +407,21 @@ export async function createPdfContract(
     return { ok: false, error: error.message };
   }
 
-  await createIssuerParty(client, organizationId, id, userId);
+  const issuerError = await createIssuerParty(client, organizationId, id, userId);
+  if (issuerError) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    await client.storage.from(CONTRACT_BUCKET).remove([path]);
+    return { ok: false, error: "Não foi possível preparar quem assina pela equipe." };
+  }
+  const contract = await getContract(client, organizationId, id);
+  if (!contract) {
+    await client.from("contracts").delete().eq("id", id).eq("organization_id", organizationId);
+    await client.storage.from(CONTRACT_BUCKET).remove([path]);
+    return { ok: false, error: "Não foi possível criar o contrato." };
+  }
   await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "created" });
   await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "created", summary: "Criou o contrato" });
-
-  const contract = await getContract(client, organizationId, id);
-  return contract ? { ok: true, data: contract } : { ok: false, error: "Não foi possível criar o contrato." };
+  return { ok: true, data: contract };
 }
 
 /** Os bytes do PDF anexado, para a tela desenhar as páginas e para o download. */
@@ -406,6 +439,10 @@ export async function readContractFile(client: ContractsClient, organizationId: 
   if (file.error || !file.data) return null;
 
   return new Uint8Array(await file.data.arrayBuffer());
+}
+
+function validEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 /**
@@ -428,6 +465,10 @@ export async function saveContract(
   if (input.projectId && !project) return { ok: false, error: "Esse projeto não está mais na base.", field: "projectId" };
   const quote = input.quoteId ? lookups.quotes.find((entry) => entry.id === input.quoteId) : null;
   if (input.quoteId && !quote) return { ok: false, error: "Esse orçamento não está mais na base.", field: "quoteId" };
+  if (!validEmail(input.emails.issuer)) return { ok: false, error: "Informe um e-mail válido para a equipe.", field: "issuerEmail" };
+  if (contact && !validEmail(input.emails.client || contact.email || "")) {
+    return { ok: false, error: "Informe um e-mail válido para o cliente.", field: "clientEmail" };
+  }
 
   const { error } = await client
     .from("contracts")
@@ -456,21 +497,23 @@ export async function saveContract(
      com ele, guardando a credencial quando já tinha uma. */
   const issuer = current.parties.find((party) => party.role === "issuer");
   if (issuer && input.emails.issuer) {
-    await client.from("contract_parties").update({ email: input.emails.issuer.toLowerCase() }).eq("id", issuer.id);
+    const { error: issuerError } = await client.from("contract_parties").update({ email: input.emails.issuer.toLowerCase() }).eq("id", issuer.id);
+    if (issuerError) return { ok: false, error: "Não foi possível salvar o e-mail da equipe.", field: "issuerEmail" };
   }
 
   const existing = current.parties.find((party) => party.role === "client");
   if (contact) {
     const email = (input.emails.client || contact.email || existing?.email || "").toLowerCase();
     if (existing) {
-      await client
+      const { error: clientError } = await client
         .from("contract_parties")
         .update({ name: contact.name, avatar_url: contact.avatarUrl, email })
         .eq("id", existing.id);
+      if (clientError) return { ok: false, error: "Não foi possível salvar quem assina pelo cliente.", field: "clientEmail" };
     } else {
       const id = crypto.randomUUID();
       const { hash } = shareCredentials("contract", id);
-      await client.from("contract_parties").insert({
+      const { error: clientError } = await client.from("contract_parties").insert({
         id,
         organization_id: organizationId,
         contract_id: input.id,
@@ -481,15 +524,18 @@ export async function saveContract(
         token_hash: hash,
         position: 1,
       });
+      if (clientError) return { ok: false, error: "Não foi possível preparar quem assina pelo cliente.", field: "clientEmail" };
     }
   } else if (existing) {
-    await client.from("contract_parties").delete().eq("id", existing.id);
+    const { error: clientError } = await client.from("contract_parties").delete().eq("id", existing.id);
+    if (clientError) return { ok: false, error: "Não foi possível remover a parte anterior do contrato.", field: "clientId" };
   }
 
   if (current.source === "pdf") {
-    await client.from("contract_signature_fields").delete().eq("contract_id", input.id).eq("organization_id", organizationId);
+    const { error: fieldsDeleteError } = await client.from("contract_signature_fields").delete().eq("contract_id", input.id).eq("organization_id", organizationId);
+    if (fieldsDeleteError) return { ok: false, error: "Não foi possível atualizar os campos de assinatura." };
     if (input.fields.length > 0) {
-      await client.from("contract_signature_fields").insert(
+      const { error: fieldsInsertError } = await client.from("contract_signature_fields").insert(
         input.fields.map((field) => ({
           organization_id: organizationId,
           contract_id: input.id,
@@ -501,14 +547,29 @@ export async function saveContract(
           height: field.height,
         })),
       );
+      if (fieldsInsertError) {
+        if (current.fields.length > 0) {
+          await client.from("contract_signature_fields").insert(
+            current.fields.map((field) => ({
+              organization_id: organizationId,
+              contract_id: input.id,
+              party_id: field.partyId,
+              page: field.page,
+              x: field.x,
+              y: field.y,
+              width: field.width,
+              height: field.height,
+            })),
+          );
+        }
+        return { ok: false, error: "Não foi possível salvar os campos de assinatura." };
+      }
     }
   }
 
   const saved = await getContract(client, organizationId, input.id);
   return saved ? { ok: true, contract: saved } : { ok: false, error: "Não foi possível salvar o contrato." };
 }
-
-const validEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 /**
  * O que um contrato conta às automações: o cliente, o próprio contrato e o orçamento de origem, nos nomes

@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  ArrowSquareOutIcon,
   CopySimpleIcon,
+  EyeIcon,
   HashIcon,
   ProhibitIcon,
   ReceiptIcon,
@@ -10,10 +10,10 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
-import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/providers/toast-provider";
+import { callAction } from "@/lib/action";
 import { duplicateOpportunityAction } from "../actions";
 import { statusOf } from "../labels";
 import { crmStageMeta, type CrmStage } from "../stages";
@@ -40,18 +40,16 @@ export type OpportunityMenuProps = {
 // que se faz com ela, e pedir que a pessoa arraste o cartão até a última coluna para isso seria esconder o
 // que o funil existe para fazer. Cada uma só aparece enquanto ainda não é o caso.
 export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete }: OpportunityMenuProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const status = statusOf(opportunity);
 
   const duplicate = async () => {
-    const result = await duplicateOpportunityAction(opportunity.id);
+    const result = await callAction(duplicateOpportunityAction(opportunity.id));
     if (!result.ok) {
       toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
       return;
     }
     toast({ title: "Oportunidade duplicada", description: "A cópia entrou em aberto, na primeira etapa.", tone: "success" });
-    router.refresh();
   };
 
   const copyReference = async () => {
@@ -99,13 +97,14 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
     {
       id: "actions",
       items: [
-        ...(onOpen ? [{ id: "open", label: "Abrir oportunidade", icon: ArrowSquareOutIcon, onSelect: onOpen }] : []),
+        ...(onOpen ? [{ id: "open", label: "Abrir oportunidade", icon: EyeIcon, onSelect: onOpen }] : []),
         { id: "copy", label: "Copiar identificador", icon: HashIcon, onSelect: () => void copyReference() },
       ],
     },
     ...moveSection,
     {
-      id: "more",
+      id: "documents",
+      label: "Documento",
       items: [
         {
           id: "quote",
@@ -116,10 +115,10 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
             ? `/orcamentos/${opportunity.quote.id}`
             : `/orcamentos/novo?cliente=${opportunity.client.id}`) as Route,
         },
-        { id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() },
       ],
     },
-    ...(closing.length > 0 ? [{ id: "closing", items: closing }] : []),
+    { id: "more", label: "Mais ações", items: [{ id: "duplicate", label: "Duplicar", icon: CopySimpleIcon, onSelect: () => void duplicate() }] },
+    ...(closing.length > 0 ? [{ id: "closing", label: "Fechamento", items: closing }] : []),
     ...(onDelete
       ? [{ id: "danger", items: [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: onDelete }] }]
       : []),

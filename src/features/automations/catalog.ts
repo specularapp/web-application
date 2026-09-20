@@ -31,7 +31,6 @@ export type FieldSpec = {
   label: string;
   type: "text" | "email" | "url" | "textarea" | "number" | "select" | "time" | "boolean";
   placeholder?: string;
-  hint?: string;
   options?: FieldOption[];
   min?: number;
   max?: number;
@@ -126,7 +125,7 @@ const emailFields: FieldSpec[] = [
   { key: "to", label: "Para quem", type: "select", options: recipientOptions },
   { key: "email", label: "E-mail", type: "email", placeholder: "nome@empresa.com", when: { key: "to", equals: "custom" } },
   { key: "subject", label: "Assunto", type: "text", placeholder: "Assunto do e-mail", variables: true },
-  { key: "body", label: "Mensagem", type: "textarea", placeholder: "Escreva a mensagem. Cada linha vira um parágrafo.", hint: "Use as variáveis para trazer o nome, o valor e os links do evento.", variables: true },
+  { key: "body", label: "Mensagem", type: "textarea", placeholder: "Escreva a mensagem. Cada linha vira um parágrafo.", variables: true },
 ];
 
 const emailSummary = (config: NodeConfig) => {
@@ -186,7 +185,7 @@ export const nodeCatalog: Record<NodeKind, NodeSpec> = {
     label: "Cobrança perto de vencer",
     description: "Alguns dias antes do vencimento de uma cobrança em aberto",
     icon: CalendarCheckIcon,
-    fields: [{ key: "days", label: "Dias antes do vencimento", type: "number", min: 0, max: 60, hint: "Zero dispara no dia do vencimento" }],
+    fields: [{ key: "days", label: "Dias antes do vencimento", type: "number", min: 0, max: 60 }],
     defaults: { days: 3 },
     summary: (config) => {
       const days = num(config.days, 3);
@@ -331,7 +330,7 @@ export const nodeCatalog: Record<NodeKind, NodeSpec> = {
     description: "Manda os dados do evento para um endereço externo (n8n, Make, Zapier)",
     icon: WebhooksLogoIcon,
     fields: [
-      { key: "url", label: "Endereço", type: "url", placeholder: "https://", hint: "Só HTTPS. Os dados vão em JSON no corpo." },
+      { key: "url", label: "Endereço", type: "url", placeholder: "https://" },
       {
         key: "method",
         label: "Método",
@@ -360,9 +359,9 @@ export const nodeKinds = Object.keys(nodeCatalog) as NodeKind[];
 
 /** As configurações que todo passo tem, na aba Configurações da janela do passo: o motor lê as duas primeiras. */
 export const settingsFields: FieldSpec[] = [
-  { key: "continueOnFail", label: "Continuar se falhar", type: "boolean", hint: "O fluxo segue para os próximos passos mesmo que este falhe" },
-  { key: "retries", label: "Tentar de novo", type: "number", min: 0, max: 3, hint: "Quantas vezes repetir antes de desistir, até três" },
-  { key: "notes", label: "Notas", type: "textarea", placeholder: "Anotações sobre este passo, para a equipe", hint: "Só aparecem aqui" },
+  { key: "continueOnFail", label: "Continuar se falhar", type: "boolean" },
+  { key: "retries", label: "Tentar de novo", type: "number", min: 0, max: 3 },
+  { key: "notes", label: "Notas", type: "textarea", placeholder: "Anotações sobre este passo, para a equipe" },
 ];
 
 export const nodesOf = (category: NodeCategory) => nodeKinds.filter((kind) => nodeCatalog[kind].category === category).map((kind) => nodeCatalog[kind]);

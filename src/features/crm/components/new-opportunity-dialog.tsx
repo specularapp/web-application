@@ -1,7 +1,6 @@
 "use client";
 
 import { XIcon } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
@@ -60,7 +59,6 @@ export function NewOpportunityDialog({ open, onClose, stages, stage, funnelId = 
 }
 
 function OpportunityForm({ stages, stage, funnelId, onClose, onCreated }: Omit<NewOpportunityDialogProps, "open">) {
-  const router = useRouter();
   const { toast } = useToast();
   const titleId = useId();
 
@@ -115,7 +113,6 @@ function OpportunityForm({ stages, stage, funnelId, onClose, onCreated }: Omit<N
 
     toast({ title: "Oportunidade criada", description: `Ela entrou em ${crmStageMeta[chosenStage].label}.`, tone: "success" });
     onCreated(result.id);
-    router.refresh();
   };
 
   useFloatingActionsRegistration({
@@ -149,7 +146,7 @@ function OpportunityForm({ stages, stage, funnelId, onClose, onCreated }: Omit<N
           />
         </Field>
 
-        <Field label="De quem é" hint="O nome de quem pediu; o cadastro vem depois, pela ficha" error={errorOf("clientName")} required>
+        <Field label="De quem é" error={errorOf("clientName")} required>
           <Input
             type="text"
             value={clientName}
@@ -172,7 +169,7 @@ function OpportunityForm({ stages, stage, funnelId, onClose, onCreated }: Omit<N
             />
           </Field>
 
-          <Field label="Valor" hint="Em branco é a combinar" error={errorOf("value")}>
+          <Field label="Valor" error={errorOf("value")}>
             <Input type="text" mask="currency" inputMode="numeric" value={value} placeholder="0,00" disabled={saving} onChange={(event) => setValue(onlyDigits(event.target.value))} />
           </Field>
         </div>

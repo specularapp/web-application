@@ -15,8 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
@@ -56,7 +55,6 @@ const RelationMapDialog = dynamic(() => import("@/features/records/components/re
 // seis cópias das mesmas janelas com seis estados seria a mesma coisa escrita seis vezes. Quem chama passa,
 // no máximo, o que só ele sabe fazer (abrir a gaveta, abrir a edição, tirar a linha da lista).
 export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProps) {
-  const router = useRouter();
   const { toast } = useToast();
   const [active, setActive] = useState(client.active);
   const [favorite, setFavorite] = useState(client.favorite);
@@ -66,7 +64,6 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
   const [map, setMap] = useState<"never" | "open" | "closed">("never");
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [, startRefresh] = useTransition();
 
   /* O interruptor vira na hora e a gravação vem atrás: é um sim ou não, e esperar o servidor para a chave
      mexer faria o leque parecer travado. Se o servidor recusa, a chave volta e o aviso diz por quê. */
@@ -74,13 +71,12 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
     const set = flag === "active" ? setActive : setFavorite;
     set(value);
 
-    void setClientFlagAction({ id: client.id, flag, value }).then((result) => {
+    void callAction(setClientFlagAction({ id: client.id, flag, value })).then((result) => {
       if (!result.ok) {
         set(!value);
         toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
         return;
       }
-      startRefresh(() => router.refresh());
     });
   };
 
@@ -97,7 +93,6 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
 
     toast({ title: "Cliente excluído", description: `${client.name} saiu da base.`, tone: "success" });
     onDeleted?.();
-    router.refresh();
   };
 
   const sections: DropdownSection[] = [
@@ -110,6 +105,12 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
         onEdit
           ? { id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: onEdit }
           : { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}` as Route },
+      ],
+    },
+    {
+      id: "documents",
+      label: "Criar documento",
+      items: [
         {
           id: "quote",
           label: "Gerar orçamento",
@@ -134,11 +135,11 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
           submenu: true,
           plan: DOCUMENTS_PLAN,
         },
-        ...(client.phone
-          ? [{ id: "whatsapp", label: "Chamar no WhatsApp", icon: WhatsappLogoIcon, href: `https://wa.me/55${client.phone}` as const, submenu: true }]
-          : []),
       ],
     },
+    ...(client.phone
+      ? [{ id: "contact", label: "Contato", items: [{ id: "whatsapp", label: "Chamar no WhatsApp", icon: WhatsappLogoIcon, href: `https://wa.me/55${client.phone}` as const, submenu: true }] }]
+      : []),
     {
       id: "tracking",
       label: "Acompanhamento",
@@ -149,6 +150,7 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
     },
     {
       id: "flags",
+      label: "Situação",
       items: [
         { kind: "toggle", id: "active", label: "Ativo", icon: CheckSquareIcon, checked: active, onChange: (value) => toggle("active", value) },
         { kind: "toggle", id: "favorite", label: "Favoritar", icon: StarIcon, checked: favorite, onChange: (value) => toggle("favorite", value) },

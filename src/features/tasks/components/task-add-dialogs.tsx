@@ -99,7 +99,6 @@ function AddDialog({
   open,
   onClose,
   title,
-  hint,
   onSubmit,
   submitLabel,
   submitIcon,
@@ -110,7 +109,6 @@ function AddDialog({
   open: boolean;
   onClose: () => void;
   title: string;
-  hint?: string;
   onSubmit?: (event: FormEvent) => void;
   submitLabel?: string;
   submitIcon?: React.ReactNode;
@@ -144,11 +142,6 @@ function AddDialog({
           <Text as="h2" variant="headline" weight="semibold">
             {title}
           </Text>
-          {hint && (
-            <Text variant="footnote" tone="secondary">
-              {hint}
-            </Text>
-          )}
         </div>
 
         <div className={styles.body}>{children}</div>
@@ -208,7 +201,6 @@ export function SubtaskDialog({ open, onClose, team, onAdd }: SubtaskDialogProps
       open={open}
       onClose={onClose}
       title="Nova subtarefa"
-      hint="Um passo do trabalho, com responsável e prazo próprios quando fizer diferença."
       onSubmit={submit}
       submitLabel="Adicionar"
       submitIcon={<PlusIcon />}
@@ -287,7 +279,6 @@ export function LinkDialog({ open, onClose, records, linked, onAdd }: LinkDialog
       open={open}
       onClose={onClose}
       title="Vincular registro"
-      hint="Cliente, orçamento, projeto ou contrato. Escolher já vincula."
       size="lg"
     >
       <div className={styles.picker}>
@@ -355,7 +346,6 @@ export function AttachmentDialog({ open, onClose, onAdd }: AttachmentDialogProps
       open={open}
       onClose={onClose}
       title="Anexar arquivo"
-      hint="Arraste para cá ou escolha no computador. Imagem, PDF e documento."
       onSubmit={submit}
       submitLabel={picked.length > 1 ? `Anexar ${picked.length}` : "Anexar"}
       submitIcon={<PaperclipIcon />}

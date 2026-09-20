@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon, ArrowRightIcon, FilePdfIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
-import { useId, useState, type CSSProperties } from "react";
+import { useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { useDropzone } from "react-dropzone";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
@@ -73,14 +73,18 @@ const previews = new Map(contractTemplates.map((template) => [template.id, previ
 // tipo, o nome, a frase e as entregas. No celular é a bandeja da casa, com o sair na barra flutuante. Tem
 // endereço (`/contratos/novo`).
 export function NewContractDialog({ open, onClose, clientId, onCreated }: NewContractDialogProps) {
+  const workingRef = useRef(false);
+  const close = () => {
+    if (!workingRef.current) onClose();
+  };
   return (
-    <Dialog open={open} onClose={onClose} label="Novo contrato" size="lg" focusOnOpen={false}>
-      <Chooser onClose={onClose} clientId={clientId} onCreated={onCreated} />
+    <Dialog open={open} onClose={close} label="Novo contrato" size="lg" focusOnOpen={false}>
+      <Chooser onClose={onClose} clientId={clientId} onCreated={onCreated} workingRef={workingRef} />
     </Dialog>
   );
 }
 
-function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, "onClose" | "clientId" | "onCreated">) {
+function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractDialogProps, "onClose" | "clientId" | "onCreated"> & { workingRef: RefObject<boolean> }) {
   const { toast } = useToast();
   const titleId = useId();
   const [step, setStep] = useState<Step>("choose");
@@ -90,12 +94,17 @@ function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, 
 
   useFloatingActionsRegistration({
     primary: step === "upload" && file ? { label: working ? "Enviando" : "Continuar", loading: working, onClick: () => void upload() } : undefined,
-    cancel: { label: "Fechar", onClick: onClose },
+    cancel: { label: "Fechar", onClick: () => {
+      if (!workingRef.current) onClose();
+    } },
   });
 
   const create = async (input: { source: "template" | "scratch"; templateId?: string }) => {
+    if (workingRef.current) return;
+    workingRef.current = true;
     setBusy(input.templateId ?? input.source);
     const result = await callAction(createContractAction({ ...input, clientId }));
+    workingRef.current = false;
     setBusy(null);
     if (!result.ok) {
       toast({ title: "Não deu para criar", description: result.error, tone: "danger" });
@@ -107,7 +116,8 @@ function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, 
   /* O PDF sobe pela rota de arquivo, e não por action: a action tem teto de 1 MB e um contrato escaneado
      passa disso. A resposta é o id do rascunho, que abre no editor de campos. */
   const upload = async () => {
-    if (!file) return;
+    if (!file || workingRef.current) return;
+    workingRef.current = true;
     setBusy("pdf");
     try {
       const form = new FormData();
@@ -120,8 +130,13 @@ function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, 
     } catch (error) {
       toast({ title: "Não deu para enviar", description: error instanceof Error ? error.message : "Tente de novo.", tone: "danger" });
     } finally {
+      workingRef.current = false;
       setBusy(null);
     }
+  };
+
+  const close = () => {
+    if (!workingRef.current) onClose();
   };
 
   const choose = (source: ContractSource) => {
@@ -163,7 +178,7 @@ function Chooser({ onClose, clientId, onCreated }: Pick<NewContractDialogProps, 
             {subheading}
           </Text>
         </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={working} onClick={onClose}>
+        <IconButton label="Fechar" variant="ghost" size="sm" disabled={working} onClick={close}>
           <XIcon />
         </IconButton>
       </header>

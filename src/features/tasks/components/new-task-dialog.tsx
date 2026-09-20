@@ -192,7 +192,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
             />
           </Field>
 
-          <Field label="Detalhes" hint="O que quem for fazer precisa saber antes de começar" error={errorOf("description")}>
+          <Field label="Detalhes" error={errorOf("description")}>
             <Textarea
               value={description}
               rows={3}
@@ -209,7 +209,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
 
         <Section icon={KanbanIcon} title="Onde ela entra">
           {choosable.length > 0 && (
-            <Field label="Projeto" hint="Sem projeto, ela fica no balde das tarefas soltas" error={errorOf("projectId")}>
+            <Field label="Projeto" error={errorOf("projectId")}>
               <Select
                 label="Projeto"
                 value={chosenProject}
@@ -250,7 +250,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
 
         <Section icon={CalendarBlankIcon} title="Prazo e esforço">
           <div className={styles.pair}>
-            <Field label="Começo" hint="Em branco é começar quando der">
+            <Field label="Começo">
               <DatePicker value={startDate} disabled={saving} placeholder="Sem data" onChange={setStartDate} />
             </Field>
 
@@ -261,7 +261,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
 
           {/* A roleta de dias, horas e minutos da casa, a mesma da ficha: o dia aqui é o dia do calendário,
               como lá, para a mesma estimativa ler igual nos dois lugares. Zero é "sem estimativa". */}
-          <Field label="Estimativa de esforço" hint="Em branco é sem estimativa" error={errorOf("estimate")}>
+          <Field label="Estimativa de esforço" error={errorOf("estimate")}>
             <DurationPicker
               label="Estimativa de esforço"
               value={estimate}
@@ -278,7 +278,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
         <Separator className={styles.divider} />
 
         <Section icon={UsersThreeIcon} title="Quem e o quê">
-          <Field label="Responsável" hint="Quem assume agora; os demais envolvidos entram pela ficha" error={errorOf("ownerId")}>
+          <Field label="Responsável" error={errorOf("ownerId")}>
             <Select
               label="Responsável"
               value={ownerId}
@@ -297,7 +297,7 @@ function TaskForm({ stages, stage, projectId, projects, team, onClose, onCreated
             />
           </Field>
 
-          <Field label="Etiquetas" hint={`Até ${MAX_TAGS}, da gama da casa`} error={errorOf("tags")}>
+          <Field label="Etiquetas" error={errorOf("tags")}>
             <TagPicker catalog={taskTagCatalog} label="Etiquetas da tarefa" value={tags} max={MAX_TAGS} disabled={saving} onChange={setTags} />
           </Field>
         </Section>

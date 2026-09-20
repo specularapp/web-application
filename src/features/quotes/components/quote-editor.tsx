@@ -570,14 +570,17 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
      fecha mesmo assim e avisa, como antes: um fechar que não fecha prende a pessoa numa tela que ela já quis
      deixar, e a confirmação não é lugar de corrigir campo. */
   const saveAndClose = async () => {
+    if (saving !== null) return;
     setSaving("draft");
     const result = await callAction(saveQuoteAction(inputFor("draft")));
     setSaving(null);
     setConfirmingClose(false);
 
     if (!result.ok) {
-      toast({ title: "Rascunho não salvo", description: result.error, tone: "warning" });
-      onClose();
+      setError({ field: result.field, message: result.error });
+      setStep(stepOf(result.field ?? ""));
+      if (mobile) setTab("form");
+      toast({ title: "Rascunho não salvo", description: "Nada foi perdido. Corrija o campo indicado e tente novamente.", tone: "warning" });
       return;
     }
     toast({ title: editing ? "Orçamento salvo" : "Rascunho salvo", description: `${draft.number} está na lista.`, tone: "success" });
@@ -590,6 +593,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (saving !== null) return;
     const next = intent.current;
     setSaving(next);
     setError(null);
@@ -1153,7 +1157,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                   </Text>
                 )}
               </div>
-              <Field label="Observações" hint="Aparecem no documento" error={errorOf("notes")}>
+              <Field label="Observações" error={errorOf("notes")}>
                 <Textarea
                   name="notes"
                   value={values.notes}

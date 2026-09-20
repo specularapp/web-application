@@ -375,7 +375,9 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
               <View style={styles.details}>
                 {quote.issuer.email && <WithGlyph glyph={pdfIcons.envelope}>{quote.issuer.email}</WithGlyph>}
                 {quote.issuer.phone && <WithGlyph glyph={pdfIcons.phone}>{applyPattern("phone", quote.issuer.phone)}</WithGlyph>}
-                {quote.issuer.city && <WithGlyph glyph={pdfIcons.pin}>{quote.issuer.city}</WithGlyph>}
+                {(quote.issuer.city || quote.issuer.state) && (
+                  <WithGlyph glyph={pdfIcons.pin}>{[quote.issuer.city, quote.issuer.state].filter(Boolean).join(" — ")}</WithGlyph>
+                )}
               </View>
             </View>
           </View>

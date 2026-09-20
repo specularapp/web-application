@@ -70,7 +70,9 @@ const SheetBody = styled.div`
   min-height: 0;
   padding: var(--space-2) var(--space-4) var(--space-4);
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 
   html[data-floating-actions] & {
     padding-block-end: var(--floating-bar-inset);
@@ -140,19 +142,16 @@ const Popover = styled.div`
   z-index: var(--z-popover);
   width: min(20rem, calc(100vw - 2rem));
   padding: var(--space-3);
-  /* Vidro da casa, como o painel do listbox e as camadas do menu (pedido de 2026-09-09). Na bandeja do
-     celular o vidro é o da bandeja, mais corpo, porque ali o conteúdo da página passa perto do texto.
-     Os seletores de mês e ano abrem por cima deste vidro, então eles recebem a superfície da bandeja: vidro
-     a 20% sobre vidro a 20% ficava quase invisível. */
-  --listbox-panel-bg: var(--glass-sheet-bg);
+  /* Calendário e seletores internos compartilham a mesma superfície opaca para manter contraste. */
+  --listbox-panel-bg: var(--color-bg-tertiary);
 
-  background-color: var(--glass-layer-bg);
+  background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: var(--glass-layer-blur);
-  backdrop-filter: var(--glass-layer-blur);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   transform-origin: var(--origin);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
@@ -373,7 +372,7 @@ export function DatePicker({
       )}
       {name && <input type="hidden" name={name} value={date ? format(date, "yyyy-MM-dd") : ""} readOnly />}
       {open && sheet && (
-        <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="glass" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="solid" scrim={false} focusOnOpen={false}>
           <SheetBody ref={popoverRef} id={dialogId}>
             <Calendar>{calendar}</Calendar>
           </SheetBody>

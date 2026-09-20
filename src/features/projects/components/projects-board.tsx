@@ -3,7 +3,7 @@
 import { ArrowCounterClockwiseIcon, BriefcaseIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
@@ -109,27 +109,35 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
      volta é a que aparece. */
   const [deleting, setDeleting] = useState<Project | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const items = useMemo(() => page.items.filter((project) => !hidden.includes(project.id)), [page.items, hidden]);
+  const total = Math.max(0, page.total - (page.items.length - items.length));
 
   const removeProject = async () => {
     if (!deleting) return;
+    const target = deleting;
+    setHidden((current) => [...new Set([...current, target.id])]);
+    setDeleting(null);
+    setViewing((current) => (current?.id === target.id ? null : current));
     setRemoving(true);
-    const result = await callAction(deleteProjectAction(deleting.id));
+    const result = await callAction(deleteProjectAction(target.id));
     setRemoving(false);
 
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
 
-    setDeleting(null);
-    setViewing((current) => (current?.id === deleting.id ? null : current));
-    toast({ title: "Projeto excluído", description: `${deleting.name} saiu da lista.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Projeto excluído", description: `${target.name} saiu da lista.`, tone: "success" });
   };
   const [editing, setEditing] = useState<ProjectEditor>(initialEditing ?? null);
-  const [seenPage, setSeenPage] = useState(page);
-  if (seenPage !== page) {
-    setSeenPage(page);
+  // Dados novos da grade não sobrescrevem uma ficha aberta localmente. A sincronização segue a identidade
+  // da rota, que é a única fonte externa autorizada a trocar a janela.
+  const initialRoute = `${initialEditing === "new" ? "new" : initialEditing?.id ?? ""}:${initialViewing?.id ?? ""}`;
+  const [seenRoute, setSeenRoute] = useState(initialRoute);
+  if (seenRoute !== initialRoute) {
+    setSeenRoute(initialRoute);
     setViewing(initialViewing ?? null);
     setEditing(initialEditing ?? null);
   }
@@ -144,13 +152,13 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
         setEditing("new");
         return;
       }
-      const project = first ? (page.items.find((entry) => entry.id === first) ?? null) : null;
+      const project = first ? (items.find((entry) => entry.id === first) ?? null) : null;
       setViewing(project);
       setEditing(second === "editar" ? project : null);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [page.items]);
+  }, [items]);
 
   const show = (nextViewing: Project | null, nextEditing: ProjectEditor) => {
     setViewing(nextViewing);
@@ -206,7 +214,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
   // receita do catálogo. A medida entra no cookie para a próxima visita já vir do tamanho certo, e só pede
   // outra página quando o tamanho muda de verdade, depois de a janela parar de mudar.
   const gridRef = useRef<HTMLUListElement>(null);
-  const showing = page.items.length;
+  const showing = items.length;
   const currentSize = live.pageSize;
   const currentPage = live.page;
   useEffect(() => {
@@ -232,9 +240,9 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
     };
   }, [mobile, showing, currentSize, currentPage, go]);
 
-  const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
+  const pages = Math.max(1, Math.ceil(total / live.pageSize));
   const from = (live.page - 1) * live.pageSize + 1;
-  const to = Math.min(live.page * live.pageSize, page.total);
+  const to = Math.min(live.page * live.pageSize, total);
   const active = activeProjectsFilters(live);
   /* Sem busca e sem filtro, uma lista vazia quer dizer base vazia. */
   const filtering = Boolean(live.search) || active.length > 0;
@@ -347,7 +355,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
         }
       />
 
-      {page.items.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState
           icon={BriefcaseIcon}
           title={filtering ? "Nenhum projeto encontrado" : "Nenhum projeto ainda"}
@@ -369,7 +377,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
-            {page.items.map((project) => (
+            {items.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
@@ -384,12 +392,12 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
 
       {/* O pé da grade, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
           página, a barra. No celular a barra mora na barra flutuante do menu. */}
-      {page.items.length > 0 && (
+      {items.length > 0 && (
         <div className={styles.foot}>
           <Text as="span" variant="footnote" tone="secondary">
-            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
+            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(total)}
           </Text>
-          {pages > 1 && !mobile && <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de projetos" />}
+          {pages > 1 && !mobile && <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label="Páginas de projetos" />}
         </div>
       )}
 

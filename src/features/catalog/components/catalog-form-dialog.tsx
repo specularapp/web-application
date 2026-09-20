@@ -331,7 +331,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
           <Field label="Nome" required error={errorOf("name")}>
             <Input type="text" name="name" value={values.name} maxLength={catalogLimits.name} placeholder={service ? "Landing page" : "Certificado SSL"} required disabled={saving} onChange={(event) => set("name", event.target.value)} />
           </Field>
-          <Field label="Descrição" required hint="Uma ou duas frases: o cartão mostra as duas primeiras linhas" error={errorOf("description")}>
+          <Field label="Descrição" required error={errorOf("description")}>
             <Textarea name="description" value={values.description} rows={2} maxLength={catalogLimits.description} placeholder="O que é e o que a pessoa leva" disabled={saving} onChange={(event) => set("description", event.target.value)} />
           </Field>
         </Section>
@@ -348,15 +348,15 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
             </Field>
           </div>
           <div className={styles.pair}>
-            <Field label="Custo" hint="Direto e estimado; em branco quando a equipe não mede" error={errorOf("cost")}>
+            <Field label="Custo" error={errorOf("cost")}>
               <Input type="text" name="cost" mask="currency" value={values.cost} placeholder="0,00" disabled={saving} onChange={digitsOf("cost")} />
             </Field>
-            <Field label="Desconto máximo" hint="Sem aprovação" error={errorOf("maxDiscount")}>
+            <Field label="Desconto máximo" error={errorOf("maxDiscount")}>
               <Input type="text" name="maxDiscount" mask="integer" value={values.maxDiscount} placeholder="10" inputMode="numeric" disabled={saving} iconEnd={<FieldAffix data-tone="muted">%</FieldAffix>} onChange={digitsOf("maxDiscount")} />
             </Field>
           </div>
           <div className={styles.pair}>
-            <Field label="Garantia" hint="Dias de suporte depois da entrega" error={errorOf("supportDays")}>
+            <Field label="Garantia" error={errorOf("supportDays")}>
               <Input type="text" name="supportDays" mask="integer" value={values.supportDays} placeholder="30" inputMode="numeric" disabled={saving} iconEnd={<FieldAffix data-tone="muted">dias</FieldAffix>} onChange={digitsOf("supportDays")} />
             </Field>
             {service && (
@@ -368,7 +368,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
 
           {service ? (
             <div className={styles.pair}>
-              <Field label="Prazo mínimo" hint="Em branco fica indeterminado" error={errorOf("durationMin")}>
+              <Field label="Prazo mínimo" error={errorOf("durationMin")}>
                 <Input type="text" name="durationMin" mask="integer" value={values.durationMin} placeholder="7" inputMode="numeric" disabled={saving} iconEnd={<FieldAffix data-tone="muted">dias</FieldAffix>} onChange={digitsOf("durationMin")} />
               </Field>
               <Field label="Prazo máximo" error={errorOf("durationMax")}>
@@ -377,10 +377,10 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
             </div>
           ) : (
             <div className={styles.triple}>
-              <Field label="Em estoque" hint="Tudo em branco é sob demanda" error={errorOf("stockQuantity")}>
+              <Field label="Em estoque" error={errorOf("stockQuantity")}>
                 <Input type="text" name="stockQuantity" mask="integer" value={values.stockQuantity} placeholder="48" inputMode="numeric" disabled={saving} onChange={digitsOf("stockQuantity")} />
               </Field>
-              <Field label="Capacidade" hint="Quanto cabe cheio" error={errorOf("stockCapacity")}>
+              <Field label="Capacidade" error={errorOf("stockCapacity")}>
                 <Input type="text" name="stockCapacity" mask="integer" value={values.stockCapacity} placeholder="100" inputMode="numeric" disabled={saving} onChange={digitsOf("stockCapacity")} />
               </Field>
               <Field label="Avisar abaixo de" error={errorOf("stockMinimum")}>
@@ -393,7 +393,7 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
         <Separator className={styles.divider} />
 
         <Section icon={ListChecksIcon} title="Escopo e anotações">
-          <Field label="A entrega inclui" hint="Um item por vez, Enter para adicionar" error={errorOf("deliverables")}>
+          <Field label="A entrega inclui" error={errorOf("deliverables")}>
             <TagInput value={values.deliverables} placeholder="Layout aprovado em protótipo" max={MAX_LIST_ITEMS} maxLength={catalogLimits.listItem} disabled={saving} onChange={(deliverables) => set("deliverables", deliverables)} />
           </Field>
           <Field label="Pedimos ao cliente" error={errorOf("requirements")}>
