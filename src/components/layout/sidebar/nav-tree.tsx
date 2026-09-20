@@ -32,6 +32,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { NameDialog } from "@/components/ui/name-dialog";
 import { StagesDialog, type StageOption } from "@/components/ui/stages-dialog";
+import { StoredImage } from "@/components/ui/stored-image";
 import { deleteCrmFolderAction, deleteFunnelAction, moveFunnelAction, saveCrmFolderAction, saveFunnelAction, setFunnelStagesAction } from "@/features/crm/actions";
 import { crmStages, type CrmStage } from "@/features/crm/stages";
 import type { CrmTreeItem } from "@/features/crm/tree";
@@ -75,6 +76,12 @@ export type NavTreeItem =
       open: number;
       glyph: string;
       hue: string;
+      /**
+       * A cara da folha, quando ela tem uma: a logo do projeto, a do cliente ou o rosto dele. Veste o
+       * azulejo no lugar do glifo, que é o que faz a linha ser reconhecida pela marca antes do nome. O funil
+       * não tem imagem e segue no glifo.
+       */
+      imageUrl?: string | null;
       /** As etapas do quadro, na ordem das colunas: é o que a janela de etapas arruma. */
       stages: string[];
       /** O balde do que não tem pasta nem quadro próprio ("Sem funil"): não se edita nem se apaga. */
@@ -119,7 +126,7 @@ export const fromTaskTree = (items: TaskTreeItem[]): NavTreeItem[] =>
   items.map((item) =>
     item.kind === "folder"
       ? { kind: "folder", id: item.id, name: item.name, open: item.open, children: fromTaskTree(item.children) }
-      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, stages: item.stages, bucket: item.bucket },
+      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, imageUrl: item.imageUrl, stages: item.stages, bucket: item.bucket },
   );
 
 /** A árvore do funil na mesma forma: o funil é a folha. */
@@ -165,7 +172,6 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
      a árvore nova para o menu sem recarregar a página. */
   const done = (title: string, description: string) => {
     toast({ title, description, tone: "success" });
-    router.refresh();
   };
 
   /* --------------------------------------------- as ações --------------------------------------------- */
@@ -380,9 +386,18 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           {...squircle("md")}
         >
           {/* O azulejo no matiz da folha: é o que faz cada quadro ser reconhecido antes de o nome ser lido. A
-              pasta segue com o glifo solto, porque ela é o caminho, e não o destino. */}
+              pasta segue com o glifo solto, porque ela é o caminho, e não o destino.
+
+              Com imagem, ela cobre o azulejo (2026-09-20, a pedido): a marca do projeto ou a de quem
+              contratou diz de relance o que o glifo genérico não dizia. O matiz continua no fundo e na
+              contagem, então a linha segue lendo como a mesma identidade, e o véu por baixo é o que segura
+              a logo vazada ou de fundo claro. */}
           <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true" {...squircle("sm", { clip: true })}>
-            <Glyph weight="bold" />
+            {node.imageUrl ? (
+              <StoredImage src={node.imageUrl} alt="" width={20} height={20} className={tree.photo} />
+            ) : (
+              <Glyph weight="bold" />
+            )}
           </span>
           <span className={styles.label}>{node.name}</span>
           {/* A contagem no matiz da folha: ela e o azulejo leem como a mesma identidade, e a fila de números

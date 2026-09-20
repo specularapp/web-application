@@ -191,3 +191,12 @@
     margin-inline-end: 2rem;
   }
 }
+
+/* A imagem da folha dentro do azulejo: cobre a peça inteira, com o canto do próprio azulejo cortando as
+   quinas (o `clip` do sistema de cantos). Ela substitui o glifo, e não divide espaço com ele, senão a marca
+   sairia do tamanho de uma unha em uma linha de vinte pixels. */
+.node .tile .photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

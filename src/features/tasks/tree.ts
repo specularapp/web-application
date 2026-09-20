@@ -46,6 +46,11 @@ export type TaskProject = {
   glyph: ProjectGlyph;
   /** Token de cor do azulejo, como no `NavGroup`: a linha o passa por variável e o azulejo se tinge. */
   hue: string;
+  /**
+   * A cara do projeto no menu (2026-09-20, a pedido): a logo dele, a do cliente ou o rosto do cliente, na
+   * ordem de `projectFace`. Nulo cai no glifo, que é o que a maioria das contas novas vê.
+   */
+  imageUrl: string | null;
 };
 
 export type TaskTreeNode = TaskFolder | TaskProject;
@@ -67,6 +72,8 @@ export type TaskTreeItem =
       open: number;
       glyph: ProjectGlyph;
       hue: string;
+      /** A cara do projeto, quando ele tem uma: é ela que o azulejo do menu veste no lugar do glifo. */
+      imageUrl: string | null;
       /** As etapas do quadro, para o leque do menu arrumá-las sem ir à página. */
       stages: TaskStage[];
       /** O balde das tarefas sem projeto: não se edita nem se apaga. */
@@ -110,6 +117,7 @@ export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): Ta
       open: node.reference === null ? counts.loose : (counts.byProject[node.id] ?? 0),
       glyph: node.glyph,
       hue: node.hue,
+      imageUrl: node.imageUrl,
       stages: node.stages,
       bucket: node.reference === null || undefined,
     };
@@ -143,13 +151,17 @@ export function pathToItem(items: TaskTreeItem[], slug: string, trail: string[] 
 }
 
 /**
- * As etapas que o quadro de todas as tarefas mostra: as que de fato têm alguma, na ordem do catálogo. Ele
- * cruza projetos com fluxos diferentes, então uma lista fixa esconderia o que está em Publicação ou em
- * Bloqueada; e as etapas do catálogo que ninguém usa não viram coluna vazia à toa. Sem tarefa nenhuma, valem
- * as etapas padrão, para o quadro não abrir sem coluna.
+ * As etapas que o quadro de todas as tarefas mostra, na ordem do catálogo: as que **algum projeto escolheu**
+ * mais as que alguma tarefa ocupa. Ele cruza projetos com fluxos diferentes, então uma lista fixa esconderia
+ * o que está em Publicação ou em Bloqueada, e as etapas que ninguém configurou não viram coluna à toa.
+ *
+ * As etapas vêm do projeto, e não das tarefas (2026-09-20, a pedido de ver todas as etapas mesmo sem tarefa
+ * criada): antes a coluna só existia depois de alguém pôr algo nela, então um quadro novo abria vazio e o
+ * caminho que a equipe combinou não aparecia em lugar nenhum. As tarefas continuam entrando na conta para o
+ * que está numa etapa que o projeto tirou do quadro depois não sumir da vista.
  */
-export function stagesInUse(tasks: Task[]): TaskStage[] {
-  const used = new Set(tasks.map((task) => task.stage));
-  const present = stageValues.filter((stage) => used.has(stage));
+export function boardStages(tasks: Task[], nodes: TaskTreeNode[]): TaskStage[] {
+  const wanted = new Set<TaskStage>([...flattenProjects(nodes).flatMap((project) => project.stages), ...tasks.map((task) => task.stage)]);
+  const present = stageValues.filter((stage) => wanted.has(stage));
   return present.length > 0 ? present : defaultStages;
 }

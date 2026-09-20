@@ -1,6 +1,6 @@
 import "server-only";
 import { differenceInCalendarDays, format } from "date-fns";
-import type { ProjectFolderOption } from "./summary";
+import { projectFace, type ProjectFolderOption } from "./summary";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeWebsite } from "@/features/organizations/schemas";
 import { listTeamMembers } from "@/features/organizations/service";
@@ -577,7 +577,7 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
       .order("position"),
     client
       .from("projects")
-      .select("id, slug, reference, name, stages, glyph, hue, folder_id, status")
+      .select("id, slug, reference, name, stages, glyph, hue, folder_id, status, logo_url, clients(avatar_url, company_logo_url)")
       .eq("organization_id", organizationId)
       .in("status", ["active", "paused"])
       .order("started_at", { ascending: false }),
@@ -595,6 +595,10 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
       stages: project.stages as TaskStage[],
       glyph: project.glyph as ProjectGlyph,
       hue: `var(--sys-${project.hue})`,
+      imageUrl: projectFace({
+        logoUrl: project.logo_url,
+        client: project.clients && { avatarUrl: project.clients.avatar_url, logoUrl: project.clients.company_logo_url },
+      }),
     });
     leaves.set(project.folder_id, list);
   }

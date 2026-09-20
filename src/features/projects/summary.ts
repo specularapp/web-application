@@ -49,8 +49,21 @@ export type ProjectClient = {
  * quem contratou, e a linha ao lado já escreve o nome da empresa: mostrar o rosto ali dizia uma coisa
  * enquanto o texto dizia outra. `ProjectMark` segue a mesma ordem, com a logo do próprio projeto na frente.
  */
-export const clientFace = (client: Pick<ProjectClient, "avatarUrl" | "logoUrl"> | null | undefined) =>
+/* O mínimo para desenhar a cara de um cliente: os dois endereços, qualquer um podendo faltar. É mais solto
+   que o `ProjectClient` inteiro de propósito, porque quem chama nem sempre carrega a ficha completa. */
+type ClientFace = { avatarUrl?: string | null; logoUrl?: string | null };
+
+export const clientFace = (client: ClientFace | null | undefined) =>
   client ? (client.logoUrl ?? client.avatarUrl ?? undefined) : undefined;
+
+/**
+ * A cara do projeto, em todo lugar que o desenha como uma linha ou um azulejo: **a logo dele primeiro**,
+ * depois a do cliente, depois o rosto do cliente. Projeto costuma ser conhecido pela marca de quem
+ * contratou, e é por isso que a logo própria é opcional: na maior parte das contas a marca certa já está no
+ * cadastro do cliente. Sem nada disso é nulo, e quem desenha cai na arte gerada no matiz do projeto.
+ */
+export const projectFace = (project: { logoUrl?: string | null; client?: ClientFace | null }) =>
+  project.logoUrl ?? clientFace(project.client) ?? null;
 
 /**
  * As ferramentas do trabalho, pelo nome do arquivo em `public/brands`: são as marcas que o cartão mostra em

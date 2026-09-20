@@ -153,6 +153,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   /* A exclusão, no desenho das outras telas: o leque do cartão pede, a janela da casa pergunta, e só então a
      action grava. */
   const [deleting, setDeleting] = useState<Task | null>(null);
+  const [hidden, setHidden] = useState<string[]>([]);
   /* A etapa em que a tarefa nova vai nascer, e nulo quando não há criação aberta: o "+" de cada coluna manda
      a dela, e a barra manda a primeira do quadro. */
   const [creating, setCreating] = useState<TaskStage | null>(null);
@@ -160,37 +161,42 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
      etapa voltar, mas somem da vista, e isso merece a pergunta. */
   const [removingStage, setRemovingStage] = useState<TaskStage | null>(null);
   const [removingStageBusy, setRemovingStageBusy] = useState(false);
+  const [hiddenStages, setHiddenStages] = useState<TaskStage[]>([]);
 
   const removeStage = async () => {
     if (!removingStage || !projectId) return;
-    setRemovingStageBusy(true);
-    const result = await setProjectStagesAction({ id: projectId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== removingStage) });
-    setRemovingStageBusy(false);
+    const target = removingStage;
+    setHiddenStages((current) => [...new Set([...current, target])]);
     setRemovingStage(null);
+    setRemovingStageBusy(true);
+    const result = await setProjectStagesAction({ id: projectId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== target) });
+    setRemovingStageBusy(false);
     if (!result.ok) {
+      setHiddenStages((current) => current.filter((stage) => stage !== target));
       toast({ title: "Não deu para tirar a etapa", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Etapa retirada", description: `${taskStageMeta[removingStage].label} saiu do quadro. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Etapa retirada", description: `${taskStageMeta[target].label} saiu do quadro. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
   };
   const [removing, setRemoving] = useState(false);
 
   const removeTask = async () => {
     if (!deleting) return;
+    const target = deleting;
+    setHidden((current) => [...new Set([...current, target.id])]);
+    setDeleting(null);
+    setOpen((current) => (current?.id === target.id ? null : current));
     setRemoving(true);
-    const result = await callAction(deleteTaskAction(deleting.id));
+    const result = await callAction(deleteTaskAction(target.id));
     setRemoving(false);
 
     if (!result.ok) {
+      setHidden((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para excluir", description: result.error, tone: "danger" });
       return;
     }
 
-    setDeleting(null);
-    setOpen((current) => (current?.id === deleting.id ? null : current));
-    toast({ title: "Tarefa excluída", description: `${deleting.title} saiu do quadro.`, tone: "success" });
-    router.refresh();
+    toast({ title: "Tarefa excluída", description: `${target.title} saiu do quadro.`, tone: "success" });
   };
 
   /**
@@ -270,11 +276,13 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * é ela quem manda na pilha; arrastar muda a etapa, e não o lugar na fila.
    */
   const columns = useMemo(() => {
-    if (Object.keys(moved).length === 0) return board.columns;
-    const known = new Set(board.columns.map((column) => column.stage));
-    const piles = new Map<TaskStage, Task[]>(board.columns.map((column) => [column.stage, []]));
-    for (const column of board.columns) {
+    const visibleColumns = board.columns.filter((column) => !hiddenStages.includes(column.stage));
+    if (Object.keys(moved).length === 0 && hidden.length === 0) return visibleColumns;
+    const known = new Set(visibleColumns.map((column) => column.stage));
+    const piles = new Map<TaskStage, Task[]>(visibleColumns.map((column) => [column.stage, []]));
+    for (const column of visibleColumns) {
       for (const task of column.tasks) {
+        if (hidden.includes(task.id)) continue;
         const to = moved[task.id];
         /* Destino que este quadro não tem (o filtro mudou, o projeto é outro) fica de fora: a tarefa
            continua onde o servidor a pôs. */
@@ -282,8 +290,8 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         piles.get(target)?.push(target === task.stage ? task : { ...task, stage: target });
       }
     }
-    return board.columns.map((column) => ({ ...column, tasks: piles.get(column.stage) ?? [] }));
-  }, [board.columns, moved]);
+    return visibleColumns.map((column) => ({ ...column, tasks: piles.get(column.stage) ?? [] }));
+  }, [board.columns, moved, hidden, hiddenStages]);
 
   /**
    * Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/8" e as setas andam a
@@ -467,25 +475,19 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         }
       />
 
-      {/* Sem nada que bata com o filtro, a frase toma o lugar do trilho: cinco colunas vazias lado a lado
-          leriam como quadro quebrado, e não como busca sem resultado. */}
-      {board.matched === 0 ? (
-        /* Sem o botão de criar: criar tarefa ainda não existe, e o da barra de cima também não leva a
-           lugar nenhum. Ele entra aqui no dia em que a criação entrar. */
+      {/* Busca sem resultado troca o trilho pela frase: colunas vazias lado a lado leriam como quadro
+          quebrado, e não como "nada bateu". **Quadro sem tarefa nenhuma é outra coisa** (2026-09-20, a
+          pedido): ali as etapas ficam, vazias, porque coluna é lugar e não conteúdo, e é vendo o caminho
+          inteiro que a pessoa entende onde a primeira tarefa vai nascer. Cada coluna já traz o "+" dela. */}
+      {board.matched === 0 && filtering ? (
         <EmptyState
           icon={ListChecksIcon}
-          title={filtering ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa ainda"}
-          description={
-            filtering
-              ? "Nada bateu com o que você procurou. Tente outro título, etiqueta ou nome de quem está envolvido, ou limpe a busca."
-              : "Crie a primeira tarefa para o quadro começar a andar."
-          }
+          title="Nenhuma tarefa encontrada"
+          description="Nada bateu com o que você procurou. Tente outro título, etiqueta ou nome de quem está envolvido, ou limpe a busca."
         >
-          {filtering && (
-            <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
-              Limpar busca
-            </Button>
-          )}
+          <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
+            Limpar busca
+          </Button>
         </EmptyState>
       ) : (
         // O arraste do quadro: pegar o cartão, passear pelas etapas e soltar. `closestCorners` acha a coluna

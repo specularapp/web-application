@@ -3,7 +3,7 @@ import { StoredImage } from "@/components/ui/stored-image";
 import { cx } from "@/lib/utils/cx";
 import { squircle } from "@/lib/corners";
 import { projectArtworkUrl } from "../list-options";
-import type { Project, ProjectHue } from "../summary";
+import { projectFace, type Project, type ProjectHue } from "../summary";
 import styles from "./project-mark.module.css";
 
 export type ProjectMarkSize = "sm" | "md" | "lg";
@@ -40,7 +40,7 @@ const pixelSizes: Record<ProjectMarkSize, number> = { sm: 32, md: 40, lg: 52 };
  */
 export function ProjectMark({ project, size = "md", className }: ProjectMarkProps) {
   const side = pixelSizes[size];
-  const borrowed = project.logoUrl ?? project.client?.logoUrl ?? project.client?.avatarUrl ?? null;
+  const borrowed = projectFace(project);
 
   return (
     <span
