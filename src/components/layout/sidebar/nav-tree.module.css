@@ -117,9 +117,10 @@
   height: 1.125rem;
 }
 
-/* O azulejo do projeto: o véu do matiz dele com o glifo na tinta cheia da cor, nas mesmas contas do `Badge`
-   suave da casa. É o que distingue um quadro do outro de relance. O canto é o `sm` da casa com a superelipse
-   pelo sistema de cantos (o `data-squircle` do componente), e não um arredondamento solto. */
+/* A marca do projeto: o véu do matiz dele com o glifo na tinta cheia da cor, nas mesmas contas do `Badge`
+   suave da casa. É o que distingue um quadro do outro de relance. **Redonda**, e por isso sem o sistema de
+   cantos: círculo é o caso que a regra da casa deixa de fora, porque `round` já é o padrão. O `overflow`
+   é o que corta a logo no círculo, papel que antes era do recorte do squircle. */
 .node .tile {
   --tile-ink: color-mix(in oklab, var(--project-hue) 70%, var(--color-label));
 
@@ -127,7 +128,10 @@
     color-mix(in oklab, var(--project-hue) 14%, transparent),
     color-mix(in oklab, var(--project-hue) 20%, transparent)
   );
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
+
+  /* Corta a logo no círculo: o papel que antes era do recorte do squircle. */
+  overflow: hidden;
 }
 
 .node .tile svg {

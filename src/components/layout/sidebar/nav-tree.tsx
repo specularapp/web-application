@@ -385,14 +385,18 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           onClick={onNavigate}
           {...squircle("md")}
         >
-          {/* O azulejo no matiz da folha: é o que faz cada quadro ser reconhecido antes de o nome ser lido. A
+          {/* A marca no matiz da folha: é o que faz cada quadro ser reconhecido antes de o nome ser lido. A
               pasta segue com o glifo solto, porque ela é o caminho, e não o destino.
 
-              Com imagem, ela cobre o azulejo (2026-09-20, a pedido): a marca do projeto ou a de quem
-              contratou diz de relance o que o glifo genérico não dizia. O matiz continua no fundo e na
-              contagem, então a linha segue lendo como a mesma identidade, e o véu por baixo é o que segura
-              a logo vazada ou de fundo claro. */}
-          <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true" {...squircle("sm", { clip: true })}>
+              Com imagem, ela cobre a peça (2026-09-20, a pedido): a marca do projeto ou a de quem contratou
+              diz de relance o que o glifo genérico não dizia. O matiz continua no fundo e na contagem, então
+              a linha segue lendo como a mesma identidade, e o véu por baixo é o que segura a logo vazada ou
+              de fundo claro.
+
+              Redonda, e não azulejo (a pedido, na mesma rodada): num quadrado de vinte pixels a logo
+              encostava nas quatro quinas e lia como recorte seco. Círculo **não declara canto nenhum**,
+              pela regra da casa: `round` já é o padrão do sistema de cantos, e é o CSS que arredonda e corta. */}
+          <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true">
             {node.imageUrl ? (
               <StoredImage src={node.imageUrl} alt="" width={20} height={20} className={tree.photo} />
             ) : (

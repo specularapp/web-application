@@ -135,19 +135,13 @@
   list-style: none;
 }
 
-/* A ficha do projeto, a mesma peça da janela. Ela nasce como coluna de uma grade de duas na janela, então
-   aqui ela recebe a largura de leitura de uma coluna só: a ficha se desenha inteira e nada estica de ponta a
-   ponta de uma tela larga. O fundo é o da superfície, para a ficha destacar do agrupado da prévia. */
+/* A ficha do projeto, a mesma peça da janela, na largura inteira da coluna (2026-09-20, a pedido): presa a
+   uma largura de leitura ela sobrava metade da prévia em fundo vazio, e a capa e os azulejos, que são o que
+   se olha primeiro, ficavam pequenos à toa. Sem recuo próprio, porque a ficha já traz o dela por dentro:
+   dobrar os dois era desenhar uma moldura de espaço em volta de outra. */
 .sheetFrame {
-  width: min(100%, 40rem);
-  padding: var(--space-4);
+  width: 100%;
   background-color: var(--color-bg-elevated);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
-}
-
-@media (max-width: 47.9375rem) {
-  .sheetFrame {
-    padding: var(--space-3);
-  }
 }
