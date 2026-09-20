@@ -68,6 +68,12 @@ const columns = {
     write: (client: UploadClient, id: string, org: string, url: string | null) =>
       client.from("projects").update({ logo_url: url }).eq("id", id).eq("organization_id", org),
   },
+  "charge-image": {
+    read: (client: UploadClient, id: string, org: string) =>
+      client.from("charges").select("image_url").eq("id", id).eq("organization_id", org).maybeSingle(),
+    write: (client: UploadClient, id: string, org: string, url: string | null) =>
+      client.from("charges").update({ image_url: url }).eq("id", id).eq("organization_id", org),
+  },
 } as const;
 
 /** O registro precisa existir e ser da organização: é dele que sai a pasta, e é ele que vai receber o endereço. */

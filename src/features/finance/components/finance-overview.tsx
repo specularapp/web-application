@@ -229,10 +229,10 @@ function DueList({ items, empty, onOpen }: { items: UpcomingInstallment[]; empty
       {items.slice(0, 5).map((entry) => (
         <li key={entry.installmentId}>
           <button type="button" className={styles.dueRow} onClick={() => onOpen(entry)}>
-            <Avatar name={entry.clientName} src={entry.clientAvatarUrl ?? undefined} size="sm" shape="squircle" />
+            <Avatar name={entry.clientName ?? entry.title} src={entry.clientAvatarUrl ?? undefined} size="sm" shape="squircle" />
             <span className={styles.dueCopy}>
               <Text as="span" variant="footnote" weight="medium" truncate>
-                {entry.clientName}
+                {entry.clientName ?? "Cobrança avulsa"}
               </Text>
               <Text as="span" variant="caption1" tone="secondary" truncate>
                 {installmentLabel(entry.number, entry.total)} de {entry.title}

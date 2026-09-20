@@ -142,3 +142,52 @@
   flex-shrink: 0;
   margin-inline-start: auto;
 }
+
+/* A linha e o chevron dela lado a lado. O chevron mora fora da linha, porque a linha é botão ou link, e
+   ocupa a mesma ponta da contagem: no hover a contagem sai e ele entra, no mesmo lugar, para a linha não
+   ganhar largura nem pular. */
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.actions {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--space-1);
+  display: grid;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+/* Aberto o leque, o chevron fica à vista mesmo com o mouse longe: senão a linha "perderia" o botão que
+   acabou de ser tocado. */
+.actions:has([aria-expanded="true"]),
+.actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .item:hover .actions {
+    opacity: 1;
+  }
+
+  .item:hover .count,
+  .item:has(.actions [aria-expanded="true"]) .count,
+  .item:focus-within .count {
+    visibility: hidden;
+  }
+}
+
+/* No toque não há hover: o chevron fica sempre à vista e a contagem cede o lugar de vez. */
+@media (hover: none) {
+  .actions {
+    opacity: 1;
+  }
+
+  .item .count {
+    margin-inline-end: 2rem;
+  }
+}

@@ -1,0 +1,267 @@
+/* A moldura de toda página de configuração: o título com a linha de apoio e as seções em superfície. */
+.page {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-8);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 60ch;
+  min-width: 0;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Os fatos, rótulo apagado em cima e valor embaixo; duas colunas a partir do tablet. */
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* O formulário de uma seção: os campos e, embaixo, a linha das ações alinhada ao fim. */
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* A pessoa: a foto grande ao lado dos campos, com o enviar embaixo dela. */
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+.avatar {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Uma linha de lista: o rosto ou o glifo, o texto e a ação na ponta. */
+.list {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 3.25rem;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.row[data-unread] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.rowCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.rowLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+}
+
+.rowEnd {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O glifo de uma integração ou de um tipo de notificação, num azulejo no matiz dele. */
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--item-hue, var(--color-label-secondary));
+  background-color: light-dark(color-mix(in oklab, var(--item-hue, var(--color-label)) 12%, transparent), color-mix(in oklab, var(--item-hue, var(--color-label)) 20%, transparent));
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.glyph svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Um bloco de código curto: o endereço do webhook, o valor do CNAME. */
+.code {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-code);
+  font-size: var(--text-footnote);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.code code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* As habilidades do currículo, em pílulas com o × para tirar. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  padding-inline-start: var(--space-3);
+  font-size: var(--text-footnote);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+/* Uma linha de projeto na vitrine: a marca, o nome, a legenda e o interruptor. */
+.pick {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 3.5rem;
+  padding: var(--space-2);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.picks {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.empty {
+  padding-block: var(--space-4);
+}
+
+/* A grade dos cartões de integração e das estatísticas de conquista. */
+.cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .cards[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-4);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.cardHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.cardCopy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}

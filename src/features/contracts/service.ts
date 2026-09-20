@@ -7,6 +7,7 @@ import { quoteTotals } from "@/features/quotes/totals";
 import { siteConfig } from "@/lib/metadata";
 import { shareCredentials, shareTokenHash } from "@/lib/security/share-token";
 import { formatMoney } from "@/lib/utils/format";
+import { logRecordEvent } from "@/features/records/history";
 import type { Database, Json } from "@/types/database";
 import type { ContractsListPage, ContractsQuery } from "./list-options";
 import type { SaveContractInput } from "./schemas";
@@ -328,6 +329,7 @@ export async function createContract(
 
   await createIssuerParty(client, organizationId, id, userId);
   await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "created" });
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "created", summary: "Criou o contrato" });
 
   const created = await getContract(client, organizationId, id);
   if (!created) return { ok: false, error: "Não foi possível criar o contrato." };
@@ -383,6 +385,7 @@ export async function createPdfContract(
 
   await createIssuerParty(client, organizationId, id, userId);
   await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "created" });
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "created", summary: "Criou o contrato" });
 
   const contract = await getContract(client, organizationId, id);
   return contract ? { ok: true, data: contract } : { ok: false, error: "Não foi possível criar o contrato." };
@@ -444,6 +447,10 @@ export async function saveContract(
     .eq("organization_id", organizationId);
 
   if (error) return { ok: false, error: error.message };
+
+  /* O editor grava a cada pausa, então o histórico registra a edição sem o campo a campo, que aqui seria o
+     documento inteiro a cada tecla. */
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: input.id, action: "updated", summary: "Editou o rascunho" });
 
   /* As partes: quem emite sempre existe e só troca o e-mail; quem contrata nasce com o cliente e vai embora
      com ele, guardando a credencial quando já tinha uma. */
@@ -590,6 +597,8 @@ export async function sendContract(
   // O envio de verdade (não o lembrete) é um evento para as automações, que rodam sem segurar a resposta.
   if (!reminder) void dispatchAutomationEvent(organizationId, "contract_sent", automationContext(sent)).catch(() => undefined);
 
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "updated", summary: reminder ? "Reenviou para assinatura" : "Enviou para assinatura" });
+
   return { ok: true, contract: sent, reminder };
 }
 
@@ -612,6 +621,7 @@ export async function cancelContract(
   if (error) return { ok: false, error: error.message };
 
   await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "cancelled", actor });
+  await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "archived", summary: "Cancelou o contrato" });
 
   const cancelled = await getContract(client, organizationId, id);
   return cancelled ? { ok: true, data: cancelled } : { ok: false, error: "Não foi possível cancelar o contrato." };

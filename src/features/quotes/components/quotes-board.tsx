@@ -12,8 +12,6 @@ import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
-import type { CatalogItem } from "@/features/catalog/summary";
-import type { ClientListItem } from "@/features/clients/list-options";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
@@ -37,24 +35,15 @@ import {
   type QuotesListPage,
   type QuotesQuery,
 } from "../list-options";
-import type { Quote, QuoteIssuer, QuotePerson } from "../summary";
+import type { Quote } from "../summary";
 import { saveQuotesGridSize, saveQuotesView, type QuotesView } from "../view-cookie";
 import { QuoteCard } from "./quote-card";
-import { QuoteEditorDialog, type QuoteEditor, type QuotePrefill } from "./quote-editor-dialog";
 import { QuotesTable } from "./quotes-table";
 import styles from "./quotes-board.module.css";
 
 export type QuotesBoardProps = {
   page: QuotesListPage;
   query: QuotesQuery;
-  /** O orçamento que a URL pede aberto no editor: um para editar, `"new"` para criar, nada para só listar. */
-  editing?: Quote | "new";
-  prefill?: QuotePrefill;
-  clients: ClientListItem[];
-  catalog: CatalogItem[];
-  issuer: QuoteIssuer;
-  owner: QuotePerson;
-  nextNumber: string;
   /** O jeito de ver que o cookie guardou: tabela ou grade de cartões. */
   view: QuotesView;
 };
@@ -80,7 +69,7 @@ const viewOptions = [
 // quem faz o trabalho é o servidor; aqui ficam a espera do campo de busca, o filtro adiantado, o jeito de ver,
 // o tamanho da página da grade e o orçamento aberto no editor, que tem endereço (`/orcamentos/novo`,
 // `/orcamentos/<id>`) como a ficha do cliente. Trocar qualquer filtro leva de volta para a primeira página.
-export function QuotesBoard({ page, query, editing, prefill, clients, catalog, issuer, owner, nextNumber, view: saved }: QuotesBoardProps) {
+export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
   const router = useRouter();
   const [search, setSearch] = useState(query.search);
   const [live, setLive] = useState(query);
@@ -100,32 +89,14 @@ export function QuotesBoard({ page, query, editing, prefill, clients, catalog, i
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
-  // O editor com endereço, no contrato da base de clientes: nasce do que a URL pediu e daí em diante troca
-  // só a URL por `pushState`; o voltar do navegador fecha pelo `popstate`.
-  const [editor, setEditor] = useState<QuoteEditor>(editing ?? null);
-
-  useEffect(() => {
-    const onPopState = () => {
-      const [, , segment] = window.location.pathname.split("/");
-      if (!segment) setEditor(null);
-      else if (segment === "novo") setEditor("new");
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  const editorPath = (next: QuoteEditor) => (next === null ? "/orcamentos" : next === "new" ? "/orcamentos/novo" : `/orcamentos/${next.id}`);
-
-  const openEditor = (next: QuoteEditor) => {
-    setEditor(next);
-    // Ao fechar, os parâmetros de pré-preenchimento saem da URL junto com o editor.
+  /* Abrir um orçamento é **navegar** (2026-09-16): o editor virou tela, com endereço próprio, e não mais
+     uma janela sobre a lista. Antes isto empurrava a URL com `pushState` e mantinha a janela por cima, o
+     que obrigava a ouvir o botão de voltar do navegador na mão. */
+  const openEditor = (next: Quote | "new") => {
     const params = new URLSearchParams(window.location.search);
-    if (next === null) {
-      params.delete("item");
-      params.delete("cliente");
-    }
     const search = params.toString();
-    window.history.pushState(null, "", `${editorPath(next)}${search ? `?${search}` : ""}`);
+    const path = next === "new" ? "/orcamentos/novo" : `/orcamentos/${next.id}`;
+    router.push((search ? `${path}?${search}` : path) as Route);
   };
 
   const go = useCallback(
@@ -140,10 +111,11 @@ export function QuotesBoard({ page, query, editing, prefill, clients, catalog, i
       if (merged.pageSize !== QUOTES_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
 
       const search = params.toString();
-      const base = editorPath(editor);
+      /* A lista mora sempre em /orcamentos: o editor deixou de ser uma camada sobre ela. */
+      const base = "/orcamentos";
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [live, editor, router],
+    [live, router],
   );
 
   const changeView = (next: QuotesView) => {
@@ -333,21 +305,6 @@ export function QuotesBoard({ page, query, editing, prefill, clients, catalog, i
           {pagination}
         </div>
       )}
-
-      <QuoteEditorDialog
-        editor={editor}
-        clients={clients}
-        catalog={catalog}
-        issuer={issuer}
-        owner={owner}
-        nextNumber={nextNumber}
-        prefill={prefill}
-        onClose={() => openEditor(null)}
-        onSaved={() => {
-          openEditor(null);
-          router.refresh();
-        }}
-      />
     </div>
   );
 }

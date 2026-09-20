@@ -12,7 +12,8 @@ export type TaskStatus = "upcoming" | "ongoing" | "done";
 /** Quanto pesa na fila: sobe a cor da bandeira. */
 export type TaskPriority = "low" | "normal" | "high" | "urgent";
 
-export type TaskPerson = { name: string; avatarUrl: string | null };
+/** Uma pessoa como o cartão a desenha. O id vem quando ela é da equipe e pode ser escolhida (2026-09-17). */
+export type TaskPerson = { id?: string; name: string; avatarUrl: string | null };
 
 export type Subtask = {
   id: string;

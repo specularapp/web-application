@@ -45,7 +45,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { deleteProjectAction } from "../actions";
 import { ProjectCard } from "./project-card";
 import { ProjectDialog } from "./project-dialog";
-import { ProjectFormDialog, type ProjectEditor } from "./project-form-dialog";
+import type { ProjectEditor } from "./project-form-dialog";
 import styles from "./projects-board.module.css";
 
 export type ProjectsBoardProps = {
@@ -80,7 +80,7 @@ const pathOf = (viewing: Project | null, editing: ProjectEditor) =>
 // é o servidor, então a página é compartilhável e volta igual pelo histórico; aqui ficam a espera do campo
 // de busca, o filtro adiantado, o projeto aberto na janela e a ficha aberta na gaveta. Trocar qualquer filtro
 // leva de volta para a primeira página.
-export function ProjectsBoard({ page, query, viewing: initialViewing, editing: initialEditing, clients, owners }: ProjectsBoardProps) {
+export function ProjectsBoard({ page, query, viewing: initialViewing, editing: initialEditing }: ProjectsBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
@@ -158,14 +158,11 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
     window.history.pushState(null, "", `${pathOf(nextViewing, nextEditing)}${window.location.search}`);
   };
 
-  // Salvo, a gaveta fecha e a lista é refeita pelo servidor pelo endereço de destino: a janela do projeto,
-  // quando a edição saiu dela, para a ficha voltar já com os dados novos; a lista nua nos outros casos, com o
-  // projeto novo ou editado no lugar dele.
-  const saved = () => {
-    setEditing(null);
-    const target = `${pathOf(viewing, null)}${window.location.search}` as Route;
-    startTransition(() => router.replace(target, { scroll: false }));
-  };
+  /* Criar e editar são a tela do editor, em página inteira e com a prévia ao lado (2026-09-17, a pedido, na
+     moldura do editor de contrato): montar um projeto é trabalho de tela, e a gaveta sobre a lista disputava
+     altura com a própria lista. A prancha só leva até lá. */
+  const create = () => router.push("/projetos/novo");
+  const edit = (project: Project) => router.push(`/projetos/${project.id}/editar` as Route);
 
   const go = useCallback(
     (next: Partial<ProjectsQuery>) => {
@@ -337,12 +334,12 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
              não saltar na hidratação: os dois existem e cada largura mostra um. */
           <>
             <span className={styles.wide}>
-              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, "new")}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={create}>
                 Novo projeto
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Novo projeto" size="sm" radius="md" onClick={() => show(viewing, "new")}>
+              <IconButton label="Novo projeto" size="sm" radius="md" onClick={create}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -365,7 +362,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
               Limpar busca
             </Button>
           )}
-          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, "new")}>
+          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={create}>
             Novo projeto
           </Button>
         </EmptyState>
@@ -377,7 +374,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
                 key={project.id}
                 project={project}
                 onOpen={() => show(project, null)}
-                onEdit={() => show(viewing, project)}
+                onEdit={() => edit(project)}
                 onDelete={() => setDeleting(project)}
               />
             ))}
@@ -399,7 +396,7 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
       <ProjectDialog
         project={viewing}
         onClose={() => show(null, null)}
-        onEdit={(project) => show(viewing, project)}
+        onEdit={edit}
         onDelete={setDeleting}
       />
       <ConfirmDialog
@@ -410,7 +407,6 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
         onClose={() => setDeleting(null)}
         onConfirm={() => void removeProject()}
       />
-      <ProjectFormDialog editor={editing} clients={clients} owners={owners} onClose={() => show(viewing, null)} onSaved={saved} />
     </div>
   );
 }

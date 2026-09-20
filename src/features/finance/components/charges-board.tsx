@@ -18,8 +18,8 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { formatMoney } from "@/lib/utils/format";
-import { cancelChargeAction, payInstallmentAction, reopenInstallmentAction, sendChargeAction } from "../actions";
-import { chargeMethods, chargeStatuses } from "../labels";
+import { cancelChargeAction, payInstallmentAction, reopenInstallmentAction, sendChargeAction, stopRecurrenceAction } from "../actions";
+import { chargeMethods, chargeStatuses, payerOf } from "../labels";
 import {
   GRID_PER_PAGE_DEFAULT,
   METHOD_PARAM,
@@ -131,7 +131,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   const copyLink = async (charge: Charge) => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/cobranca/${charge.token}`);
-      toast({ title: "Link copiado", description: `O link de ${charge.client.name} está na área de transferência.`, tone: "success" });
+      toast({ title: "Link copiado", description: `O link de ${payerOf(charge).name} está na área de transferência.`, tone: "success" });
     } catch {
       toast({ title: "Não deu para copiar", description: "Abra a ficha e copie o endereço pela barra do navegador.", tone: "warning" });
     }
@@ -146,7 +146,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     if (viewing?.id === charge.id) setViewing(result.charge);
     toast({
       title: result.reminder ? "Lembrete enviado" : "Cobrança enviada",
-      description: result.emailed ? `${charge.client.name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
+      description: result.emailed ? `${payerOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
       tone: result.emailed ? "success" : "warning",
     });
     refresh();
@@ -162,7 +162,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
-    toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${charge.client.company ?? charge.client.name}.`, tone: "success" });
+    toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${payerOf(charge).company ?? payerOf(charge).name}.`, tone: "success" });
     refresh();
   };
 
@@ -181,6 +181,18 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   const [cancelling, setCancelling] = useState<Charge | null>(null);
   const [removing, setRemoving] = useState(false);
+  /* Encerrar a série: a cobrança fica, a próxima não nasce. Sem confirmação, porque nada se perde e a
+     recorrência pode ser religada na próxima cobrança. */
+  const stopRecurrence = async (charge: Charge) => {
+    const result = await callAction(stopRecurrenceAction({ id: charge.id }));
+    if (!result.ok) {
+      toast({ title: "Não deu para encerrar", description: result.error, tone: "danger" });
+      return;
+    }
+    toast({ title: "Recorrência encerrada", description: `${charge.reference} continua em aberto; a próxima não nasce mais.`, tone: "success" });
+    router.refresh();
+  };
+
   const cancel = async () => {
     if (!cancelling) return;
     setRemoving(true);
@@ -202,6 +214,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       onSend: () => void send(charge),
       onCopyLink: () => void copyLink(charge),
       onPayNext: next ? () => void pay(charge, next) : undefined,
+      onStopRecurrence: charge.recurrence !== "none" ? () => void stopRecurrence(charge) : undefined,
       onCancel: () => setCancelling(charge),
     };
   };

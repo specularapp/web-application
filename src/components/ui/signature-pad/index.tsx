@@ -113,7 +113,8 @@ export function SignaturePad({ onChange, disabled = false, label = "Área para d
   };
 
   const start = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
+    /* Só o ponteiro principal desenha: um segundo dedo apoiado na tela não pode roubar o traço do primeiro. */
+    if (disabled || !event.isPrimary) return;
     const context = event.currentTarget.getContext("2d");
     if (!context) return;
     event.currentTarget.setPointerCapture(event.pointerId);

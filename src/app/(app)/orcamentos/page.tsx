@@ -38,11 +38,6 @@ export default async function QuotesPage({ searchParams }: PageProps<"/orcamento
       page={data.page}
       query={query}
       ai={ai}
-      clients={data.clients}
-      catalog={data.catalog}
-      issuer={data.issuer}
-      owner={data.owner}
-      nextNumber={data.nextNumber}
       view={view}
     />
   );

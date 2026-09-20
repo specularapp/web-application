@@ -269,3 +269,16 @@
     display: none;
   }
 }
+
+/* Dentro da tela do editor, sem cabeçalho nem rodapé próprios: o corpo é o formulário inteiro, e quem rola é
+   a coluna da tela. */
+.dialog[data-frame="screen"] {
+  grid-template-rows: minmax(0, 1fr);
+  height: auto;
+  min-height: 0;
+}
+
+.dialog[data-frame="screen"] .body {
+  overflow: visible;
+  padding-block-start: var(--space-4);
+}

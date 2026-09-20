@@ -1,10 +1,7 @@
-import { cookies } from "next/headers";
 import { getAiUsageData } from "@/features/ai/queries";
-import { ProjectsScreen } from "@/features/projects/components/projects-screen";
-import { PROJECTS_GRID_COOKIE, parseProjectsGridSize, parseProjectsQuery } from "@/features/projects/list";
-import { getProjectsScreenData } from "@/features/projects/queries";
+import { ProjectEditorScreen } from "@/features/projects/components/project-editor-screen";
+import { loadProjectEditorData } from "@/features/projects/queries";
 import { createMetadata } from "@/lib/metadata";
-import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Novo projeto",
@@ -13,24 +10,13 @@ export const metadata = createMetadata({
   noIndex: true,
 });
 
-// A mesma tela da lista, com a gaveta de criar já aberta: a ficha tem endereço próprio, e abrir pela lista
-// só troca a URL, sem sair da tela. Mesmo contrato de `/clientes/novo` e `/catalogo/novo`.
-export default async function NewProjectPage({ searchParams }: PageProps<"/projetos/novo">) {
-  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
-  const gridSize = parseProjectsGridSize(cookieStore.get(PROJECTS_GRID_COOKIE)?.value);
-  const query = parseProjectsQuery(
-    {
-      busca: first(params.busca),
-      situacao: first(params.situacao),
-      entrega: first(params.entrega),
-      etiqueta: first(params.etiqueta),
-      pagina: first(params.pagina),
-      porPagina: first(params.porPagina),
-    },
-    gridSize,
-  );
+/**
+ * O editor de um projeto novo, em tela inteira (2026-09-17, a pedido, na moldura do editor de contrato e do de
+ * orçamento). Era a lista com a gaveta aberta por cima; montar um projeto é trabalho de tela, e a lista atrás
+ * só disputava altura. A prévia ao lado mostra o cartão como vai ficar.
+ */
+export default async function NewProjectPage() {
+  const [data, ai] = await Promise.all([loadProjectEditorData("/projetos/novo"), getAiUsageData()]);
 
-  const [data, ai] = await Promise.all([getProjectsScreenData(query), getAiUsageData()]);
-
-  return <ProjectsScreen page={data.page} query={query} ai={ai} editing="new" clients={data.clients} owners={data.owners} />;
+  return <ProjectEditorScreen clients={data.clients} owners={data.owners} ai={ai} />;
 }

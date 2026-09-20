@@ -46,7 +46,7 @@ export async function loadTasksScreenData(query: TasksQuery, slug?: string, next
 
   return {
     tasks,
-    team: members.map((member) => ({ name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl })),
+    team: members.map((member) => ({ id: member.userId, name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl })),
     tree,
     project,
     records,

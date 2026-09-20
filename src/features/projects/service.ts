@@ -10,6 +10,7 @@ import { defaultStages, type TaskStage } from "@/features/tasks/stages";
 import type { TaskPriority } from "@/features/tasks/summary";
 import type { ProjectGlyph, TaskTreeNode } from "@/features/tasks/tree";
 import { slugify } from "@/lib/utils/slug";
+import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import { projectHueFor } from "./list-options";
 import type { ProjectsListPage, ProjectsQuery } from "./list-options";
@@ -373,6 +374,14 @@ export async function saveProject(
   };
 
   if (input.id) {
+    /* O que estava, para o histórico dizer o de e o para. Uma leitura a mais só na edição. */
+    const { data: before } = await client
+      .from("projects")
+      .select("name, url, description, is_public, client_id, owner_id, status, tags, tools, budget_min, budget_max, started_at, due_at, progress")
+      .eq("organization_id", organizationId)
+      .eq("id", input.id)
+      .maybeSingle();
+
     const { data, error } = await client
       .from("projects")
       .update(values)
@@ -382,6 +391,12 @@ export async function saveProject(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const changes = diffFields(before, values, projectHistoryLabels);
+    if (changes.length > 0) {
+      await logRecordEvent(client, organizationId, { recordType: "project", recordId: data.id, action: "updated", summary: summarize(changes), changes });
+    }
+
     return { ok: true, data: { id: data.id } };
   }
 
@@ -397,8 +412,29 @@ export async function saveProject(
     .single();
 
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, { recordType: "project", recordId: data.id, action: "created", summary: `Criou o projeto ${input.name}` });
+
   return { ok: true, data: { id: data.id } };
 }
+
+/* Os nomes que a pessoa lê no histórico do projeto: só o que ela mesma edita na ficha. */
+const projectHistoryLabels = {
+  name: "nome",
+  url: "site",
+  description: "descrição",
+  is_public: "público",
+  client_id: "cliente",
+  owner_id: "responsável",
+  status: "situação",
+  tags: "etiquetas",
+  tools: "ferramentas",
+  budget_min: "valor mínimo",
+  budget_max: "valor máximo",
+  started_at: "começo",
+  due_at: "entrega",
+  progress: "andamento",
+} as const;
 
 export async function deleteProject(
   client: ProjectsClient,
@@ -407,6 +443,10 @@ export async function deleteProject(
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("projects").delete().eq("organization_id", organizationId).eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  /* O histórico sobrevive ao registro: apagar o projeto não apaga quem o apagou. */
+  await logRecordEvent(client, organizationId, { recordType: "project", recordId: id, action: "deleted", summary: "Excluiu o projeto" });
+
   return { ok: true, data: undefined };
 }
 
@@ -575,3 +615,81 @@ export async function moveProject(
 
 /** Quanto falta para a entrega, em dias: negativo é atraso. Usado pelo aviso da ficha e pelo menu. */
 export const daysToDue = (dueAt: string) => differenceInCalendarDays(new Date(dueAt), new Date());
+
+/** A situação do projeto, pelo leque: pausar, retomar, concluir. Escrita própria, e não a ficha inteira. */
+export async function setProjectStatus(
+  client: ProjectsClient,
+  organizationId: string,
+  id: string,
+  status: ProjectStatus,
+): Promise<ServiceResult<undefined>> {
+  const { data, error } = await client
+    .from("projects")
+    .update({ status, ...(status === "done" ? { progress: 100 } : {}) })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, {
+    recordType: "project",
+    recordId: id,
+    action: "updated",
+    summary: status === "paused" ? "Pausou o projeto" : status === "done" ? "Concluiu o projeto" : status === "cancelled" ? "Cancelou o projeto" : "Retomou o projeto",
+    changes: [{ field: "status", label: "situação", from: null, to: status }],
+  });
+
+  return { ok: true, data: undefined };
+}
+
+/**
+ * As etapas do quadro do projeto, na ordem das colunas. Uma tarefa numa etapa que saiu fica onde está e some
+ * do quadro até a etapa voltar; o gatilho do banco cuida de as novas só nascerem em etapa que existe.
+ */
+export async function setProjectStages(
+  client: ProjectsClient,
+  organizationId: string,
+  id: string,
+  stages: TaskStage[],
+): Promise<ServiceResult<undefined>> {
+  const { data, error } = await client
+    .from("projects")
+    .update({ stages })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: undefined };
+}
+
+/** Entra ou sai da vitrine pública. Escrita própria, porque a página do portfólio não tem a ficha em mãos. */
+export async function setProjectPublic(
+  client: ProjectsClient,
+  organizationId: string,
+  id: string,
+  isPublic: boolean,
+): Promise<ServiceResult<undefined>> {
+  const { data, error } = await client
+    .from("projects")
+    .update({ is_public: isPublic })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, {
+    recordType: "project",
+    recordId: id,
+    action: "updated",
+    summary: isPublic ? "Colocou no portfólio" : "Tirou do portfólio",
+    changes: [{ field: "is_public", label: "público", from: isPublic ? "não" : "sim", to: isPublic ? "sim" : "não" }],
+  });
+
+  return { ok: true, data: undefined };
+}

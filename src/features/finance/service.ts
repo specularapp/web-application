@@ -6,8 +6,9 @@ import { dispatchAutomationEvent } from "@/features/automations/service";
 import { listTeamMembers } from "@/features/organizations/service";
 import { quoteTotals } from "@/features/quotes/totals";
 import { shareCredentials, shareTokenHash } from "@/lib/security/share-token";
+import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
-import { installmentLabel } from "./labels";
+import { installmentLabel, recurrenceMonths } from "./labels";
 import type { CreateChargeInput, CreateTransactionInput, PayInstallmentInput } from "./schemas";
 import { chargeUrl } from "./share";
 import {
@@ -17,6 +18,7 @@ import {
   type Charge,
   type ChargeEvent,
   type ChargeMethod,
+  type ChargeRecurrence,
   type FinanceMonth,
   type FinanceOverview,
   type FinancePeriod,
@@ -39,7 +41,7 @@ export type ReportResult =
 
 const columns = `
   id, reference, title, description, client_id, client_name, client_company, client_email,
-  client_avatar_url, owner_id, amount, method, payment_info, notes, token_version,
+  client_avatar_url, image_url, recurrence, recurring_from_id, owner_id, amount, method, payment_info, notes, token_version,
   created_at, sent_at, viewed_at, cancelled_at,
   quotes(id, reference),
   contracts(id, reference),
@@ -58,6 +60,9 @@ type Row = {
   client_company: string | null;
   client_email: string | null;
   client_avatar_url: string | null;
+  image_url: string | null;
+  recurrence: ChargeRecurrence;
+  recurring_from_id: string | null;
   owner_id: string | null;
   amount: number;
   method: ChargeMethod;
@@ -99,13 +104,18 @@ function toCharge(row: Row, owner: { name: string; avatarUrl: string | null }): 
     reference: row.reference,
     title: row.title,
     description: row.description,
-    client: {
-      id: row.client_id,
-      name: row.client_name,
-      company: row.client_company ?? undefined,
-      email: row.client_email,
-      avatarUrl: row.client_avatar_url,
-    },
+    /* Sem nome não há contraparte: é a cobrança avulsa, e a tela mostra o título e a foto no lugar. */
+    client: row.client_name
+      ? {
+          id: row.client_id,
+          name: row.client_name,
+          company: row.client_company ?? undefined,
+          email: row.client_email,
+          avatarUrl: row.client_avatar_url,
+        }
+      : null,
+    imageUrl: row.image_url,
+    recurrence: row.recurrence,
     owner,
     amount: row.amount,
     method: row.method,
@@ -252,14 +262,17 @@ export async function createCharge(
   userId: string,
   input: CreateChargeInput,
 ): Promise<ChargeResult> {
-  const { data: contact } = await client
-    .from("clients")
-    .select("id, name, company, email, avatar_url")
-    .eq("organization_id", organizationId)
-    .eq("id", input.clientId ?? "")
-    .maybeSingle();
+  /* Sem cliente é a cobrança avulsa, e aí não há ninguém para buscar: quem dá nome a ela é o título. */
+  const { data: contact } = input.clientId
+    ? await client
+        .from("clients")
+        .select("id, name, company, email, avatar_url")
+        .eq("organization_id", organizationId)
+        .eq("id", input.clientId)
+        .maybeSingle()
+    : { data: null };
 
-  if (!contact) return { ok: false, error: "Esse cliente não está mais na base." };
+  if (input.clientId && !contact) return { ok: false, error: "Esse cliente não está mais na base." };
 
   const id = crypto.randomUUID();
   const { hash } = shareCredentials("charge", id);
@@ -269,17 +282,18 @@ export async function createCharge(
     organization_id: organizationId,
     title: input.title,
     description: input.description,
-    client_id: contact.id,
-    client_name: contact.name,
-    client_company: contact.company,
-    client_email: contact.email,
-    client_avatar_url: contact.avatar_url,
+    client_id: contact?.id ?? null,
+    client_name: contact?.name ?? null,
+    client_company: contact?.company ?? null,
+    client_email: contact?.email ?? null,
+    client_avatar_url: contact?.avatar_url ?? null,
     owner_id: userId,
     amount: input.amount,
     method: input.method,
     payment_info: input.paymentInfo,
     notes: input.notes,
     quote_id: input.quoteId,
+    recurrence: input.recurrence,
     token_hash: hash,
   });
 
@@ -301,6 +315,7 @@ export async function createCharge(
   }
 
   await client.from("charge_events").insert({ organization_id: organizationId, charge_id: id, kind: "created" });
+  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "created", summary: `Criou a cobrança ${input.title}` });
 
   const charge = await getCharge(client, organizationId, id);
   return charge ? { ok: true, charge } : { ok: false, error: "Não foi possível criar a cobrança." };
@@ -310,11 +325,13 @@ export async function createCharge(
 function automationContext(charge: Charge) {
   const next = charge.installments.find((installment) => !installment.paidAt);
   return {
+    /* Na cobrança avulsa não há cliente: as variáveis do fluxo recebem o título no lugar do nome, para um
+       modelo de e-mail não escrever "Olá, " e parar. */
     cliente: {
-      nome: charge.client.name,
-      primeiro_nome: charge.client.name.split(" ")[0] ?? "",
-      email: charge.client.email ?? "",
-      empresa: charge.client.company ?? charge.client.name,
+      nome: charge.client?.name ?? charge.title,
+      primeiro_nome: (charge.client?.name ?? charge.title).split(" ")[0] ?? "",
+      email: charge.client?.email ?? "",
+      empresa: charge.client?.company ?? charge.client?.name ?? charge.title,
     },
     cobranca: {
       numero: charge.reference,
@@ -336,6 +353,7 @@ export async function sendCharge(
   const charge = await getCharge(client, organizationId, id);
   if (!charge) return { ok: false, error: "Essa cobrança não existe mais." };
   if (charge.cancelledAt) return { ok: false, error: "Essa cobrança foi cancelada." };
+  if (!charge.client) return { ok: false, error: "Cobrança avulsa não tem para quem mandar. Copie o link e envie por onde quiser." };
   if (!charge.client.email) return { ok: false, error: "O cliente não tem e-mail cadastrado." };
 
   const reminder = Boolean(charge.sentAt);
@@ -389,14 +407,14 @@ export async function payInstallment(
       organization_id: organizationId,
       kind: "income",
       status: "confirmed",
-      title: charge.client.company ?? charge.client.name,
+      title: charge.client?.company ?? charge.client?.name ?? charge.title,
       description: `${installmentLabel(installment.number, charge.installments.length)} de ${charge.title}`,
       amount: installment.amount,
       date: paidOn,
       method_type: method,
       method_label: methodLabels[method],
       visual_type: "person",
-      visual_avatar_url: charge.client.avatarUrl,
+      visual_avatar_url: charge.client?.avatarUrl ?? charge.imageUrl,
       charge_id: charge.id,
       created_by: userId,
     })
@@ -428,8 +446,71 @@ export async function payInstallment(
 
   void dispatchAutomationEvent(organizationId, "payment_received", automationContext(updated)).catch(() => undefined);
 
+  /* Quitada a última parcela, a próxima do ciclo nasce. É aqui, e não num relógio: a casa ainda não tem um,
+     e amarrar a repetição ao fechamento tem uma vantagem própria: nunca se acumulam doze cobranças abertas
+     de uma assinatura que a pessoa parou de pagar. */
+  await spawnNextRecurrence(client, organizationId, userId, updated);
+
   const saved = updated.installments.find((entry) => entry.id === installment.id)!;
   return { ok: true, charge: updated, installment: saved };
+}
+
+/**
+ * A próxima cobrança de uma série recorrente, com o vencimento adiantado de um ciclo. Só nasce quando a
+ * anterior fecha por inteiro, e só uma vez: a trava é o índice único de `recurring_from_id`, e não um `if`
+ * daqui, que duas abas abertas ao mesmo tempo furariam.
+ */
+async function spawnNextRecurrence(client: FinanceClient, organizationId: string, userId: string, charge: Charge) {
+  if (charge.recurrence === "none") return;
+  if (charge.installments.some((installment) => !installment.paidAt)) return;
+
+  const months = recurrenceMonths[charge.recurrence];
+  const id = crypto.randomUUID();
+  const { hash } = shareCredentials("charge", id);
+
+  const { error } = await client.from("charges").insert({
+    id,
+    organization_id: organizationId,
+    title: charge.title,
+    description: charge.description,
+    client_id: charge.client?.id ?? null,
+    client_name: charge.client?.name ?? null,
+    client_company: charge.client?.company ?? null,
+    client_email: charge.client?.email ?? null,
+    client_avatar_url: charge.client?.avatarUrl ?? null,
+    image_url: charge.imageUrl,
+    owner_id: userId,
+    amount: charge.amount,
+    method: charge.method,
+    payment_info: charge.paymentInfo,
+    notes: charge.notes,
+    recurrence: charge.recurrence,
+    recurring_from_id: charge.id,
+    token_hash: hash,
+  });
+
+  /* Já existia a próxima desta: o índice único barrou, e não há nada a corrigir. */
+  if (error) return;
+
+  const first = charge.installments[0];
+  const base = first ? parseISO(first.dueDate) : new Date();
+
+  await client.from("charge_installments").insert(
+    charge.installments.map((installment, index) => ({
+      organization_id: organizationId,
+      charge_id: id,
+      number: installment.number,
+      amount: installment.amount,
+      due_date: isoDate(addMonths(base, months + index)),
+    })),
+  );
+
+  await client.from("charge_events").insert({
+    organization_id: organizationId,
+    charge_id: id,
+    kind: "created",
+    detail: `Repetição de ${charge.reference}`,
+  });
 }
 
 /** Desfaz a baixa: apaga a entrada que ela gerou, senão o caixa ficaria com dinheiro que não entrou. */
@@ -492,6 +573,7 @@ export async function cancelCharge(
   if (error) return { ok: false, error: error.message };
 
   await client.from("charge_events").insert({ organization_id: organizationId, charge_id: id, kind: "cancelled", actor });
+  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "archived", summary: "Cancelou a cobrança" });
 
   const cancelled = await getCharge(client, organizationId, id);
   return cancelled ? { ok: true, charge: cancelled } : { ok: false, error: "Não foi possível cancelar." };
@@ -532,8 +614,12 @@ function scheduledOf(entry: UpcomingInstallment): Transaction {
     reference: entry.reference,
     kind: "scheduled",
     visual: { type: "person", avatarUrl: entry.clientAvatarUrl },
-    title: entry.clientName,
-    description: `${installmentLabel(entry.number, entry.total)} de ${entry.title}`,
+    /* Na avulsa quem dá nome à movimentação é o título da cobrança: ela não é de ninguém da base, e repetir
+       o título embaixo diria a mesma coisa duas vezes. */
+    title: entry.clientName ?? entry.title,
+    description: entry.clientName
+      ? `${installmentLabel(entry.number, entry.total)} de ${entry.title}`
+      : installmentLabel(entry.number, entry.total),
     amount: entry.amount,
     date: entry.dueDate,
     chargeId: entry.chargeId,
@@ -718,4 +804,26 @@ export async function reportPayment(admin: FinanceClient, token: string, install
   const teamEmail = members.find((member) => member.role === "owner")?.email ?? members[0]?.email ?? "";
 
   return { ok: true, charge: found.charge, installment, teamEmail, organizationId: found.organizationId };
+}
+
+/**
+ * Encerra a série recorrente: a cobrança de agora continua valendo até ser quitada, mas a próxima não nasce
+ * mais. É a única forma de parar uma assinatura sem cancelar o que já está em aberto, que é o que a pessoa
+ * quer quando o cliente avisa que vai parar no mês que vem.
+ */
+export async function stopRecurrence(client: FinanceClient, organizationId: string, id: string): Promise<ChargeResult> {
+  const { data, error } = await client
+    .from("charges")
+    .update({ recurrence: "none" })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || "Não foi possível encerrar a recorrência." };
+
+  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "updated", summary: "Encerrou a recorrência" });
+
+  const charge = await getCharge(client, organizationId, id);
+  return charge ? { ok: true, charge } : { ok: false, error: "Não foi possível encerrar a recorrência." };
 }

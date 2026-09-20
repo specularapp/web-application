@@ -3,7 +3,7 @@
 import { CalendarBlankIcon, CheckIcon, FolderSimpleIcon, GlobeSimpleIcon, PlusIcon, StackIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode, type RefObject } from "react";
 import { FloatingLayer, useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -22,6 +22,7 @@ import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip } from "@/components/ui/tooltip";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
@@ -93,7 +94,38 @@ function valuesOf(project?: Project) {
   };
 }
 
-type Values = ReturnType<typeof valuesOf>;
+export type ProjectFormValues = ReturnType<typeof valuesOf>;
+type Values = ProjectFormValues;
+
+/**
+ * O que a prévia ao lado do editor recebe a cada tecla (2026-09-17): os valores como estão, as imagens que a
+ * tela mostra (a escolhida agora ou a que já estava) e o cliente e o matiz resolvidos. É o bastante para
+ * desenhar o cartão do projeto como ele vai aparecer na lista, sem a prévia saber de arquivo nenhum.
+ */
+export type ProjectPreviewSnapshot = {
+  values: ProjectFormValues;
+  cover: string | null;
+  logo: string | null;
+  client: ProjectClient | null;
+  hue: Project["hue"];
+};
+
+export type ProjectFormProps = {
+  project?: Project;
+  clients: ProjectClient[];
+  owners: ProjectOwnerOption[];
+  onClose: () => void;
+  onSaved: (id: string) => void;
+  /**
+   * Onde o formulário mora: na gaveta, com título, X e rodapé próprios; ou na tela do editor, que já tem a
+   * barra de cima com salvar e sair, e aí o formulário entra só com os campos.
+   */
+  frame?: "drawer" | "screen";
+  /** Na tela, quem dispara o envio é a barra de cima: ela pede `requestSubmit()` por aqui. */
+  formRef?: RefObject<HTMLFormElement | null>;
+  /** A prévia ao lado, avisada a cada mudança. */
+  onPreview?: (snapshot: ProjectPreviewSnapshot) => void;
+};
 
 /* O valor do "sem cliente" na lista: o campo guarda texto vazio, e o seletor da casa não aceita vazio como
    escolha, porque vazio para ele é "nada escolhido". */
@@ -198,7 +230,7 @@ export function ProjectFormDialog({ editor, clients, owners, onClose, onSaved }:
 
 /* O formulário nasce de novo a cada abertura, porque a janela só monta o conteúdo aberta: o estado começa
    limpo sem precisar zerar nada. */
-function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?: Project; clients: ProjectClient[]; owners: ProjectOwnerOption[]; onClose: () => void; onSaved: (id: string) => void }) {
+export function ProjectForm({ project, clients, owners, onClose, onSaved, frame = "drawer", formRef, onPreview }: ProjectFormProps) {
   const { toast } = useToast();
   const [values, setValues] = useState<Values>(() => valuesOf(project));
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
@@ -222,7 +254,8 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   const editing = Boolean(project);
   const titleId = useId();
   const publicId = useId();
-  const form = useRef<HTMLFormElement>(null);
+  const ownForm = useRef<HTMLFormElement>(null);
+  const form = formRef ?? ownForm;
   const fileInput = useRef<HTMLInputElement>(null);
 
   // No celular salvar e sair moram na barra flutuante do menu, acima da bandeja, e o rodapé some. O disparo
@@ -378,6 +411,12 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   const hue = { "--project-hue": `var(--sys-${preview.hue})` } as CSSProperties;
   const busy = saving || reading;
 
+  /* A prévia ao lado recebe o retrato a cada mudança. Efeito, e não chamada no render, porque avisar o pai
+     durante o render dispararia o aviso de estado em cascata do React. */
+  useEffect(() => {
+    onPreview?.({ values, cover: shownCover, logo: shownLogo, client: shownClient, hue: preview.hue });
+  }, [onPreview, values, shownCover, shownLogo, shownClient, preview.hue]);
+
   /* "Sem cliente" no topo da lista, e não um campo que se deixa em branco (2026-09-16, a pedido): projeto de
      estudo e projeto próprio existem, e escolher explicitamente é o que diz que o branco foi de propósito. */
   const clientOptions = [
@@ -398,15 +437,22 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
   }));
 
   return (
-    <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
-      <header className={styles.head}>
-        <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-          {editing ? "Editar projeto" : "Novo projeto"}
-        </Text>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-          <XIcon />
-        </IconButton>
-      </header>
+    <form ref={form} className={styles.dialog} data-frame={frame} onSubmit={submit} noValidate aria-labelledby={titleId}>
+      {/* Na tela do editor o título e o sair moram na barra de cima; o formulário entra só com os campos. */}
+      {frame === "drawer" ? (
+        <header className={styles.head}>
+          <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
+            {editing ? "Editar projeto" : "Novo projeto"}
+          </Text>
+          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
+            <XIcon />
+          </IconButton>
+        </header>
+      ) : (
+        <VisuallyHidden>
+          <h2 id={titleId}>{editing ? "Editar projeto" : "Novo projeto"}</h2>
+        </VisuallyHidden>
+      )}
 
       <div className={styles.body}>
         <Section icon={FolderSimpleIcon} title="O projeto">
@@ -575,14 +621,16 @@ function ProjectForm({ project, clients, owners, onClose, onSaved }: { project?:
         )}
       </div>
 
-      <footer className={styles.foot}>
-        <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} disabled={reading}>
-          {saving ? "Salvando" : editing ? "Salvar" : "Criar projeto"}
-        </Button>
-      </footer>
+      {frame === "drawer" && (
+        <footer className={styles.foot}>
+          <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} disabled={reading}>
+            {saving ? "Salvando" : editing ? "Salvar" : "Criar projeto"}
+          </Button>
+        </footer>
+      )}
     </form>
   );
 }

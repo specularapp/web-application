@@ -3,7 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import styled from "@emotion/styled";
 import { LockIcon } from "@phosphor-icons/react";
-import type { ComponentPropsWithoutRef, ComponentType, CSSProperties, ReactNode, Ref } from "react";
+import type { ComponentPropsWithoutRef, ComponentType, CSSProperties, HTMLAttributeAnchorTarget, ReactNode, Ref } from "react";
 import {
   concentric,
   cornerRadius,
@@ -40,6 +40,9 @@ export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   loading?: boolean;
   locked?: boolean;
   href?: string;
+  /** Só com `href`: onde o link abre, como em uma âncora. `_blank` é o que os links de fora usam. */
+  target?: HTMLAttributeAnchorTarget;
+  rel?: string;
   /** Com `href`, faz o clique baixar o endereço em vez de navegar, e o texto é o nome sugerido do arquivo. */
   download?: string | boolean;
   plan?: string;

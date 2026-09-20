@@ -1,0 +1,102 @@
+/* A janela das etapas: título com o X, a lista e o rodapé. No celular o rodapé some e as ações sobem para a
+   barra flutuante. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Uma etapa por linha: a caixa de ligar, o glifo no matiz dela, o nome e as setas de ordem na ponta. */
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 2.5rem;
+  padding: var(--space-1) var(--space-2);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+/* Desligada, a linha apaga mas continua no lugar: é o que deixa ver o que está fora sem sumir com a opção. */
+.row[data-off] {
+  opacity: 0.55;
+}
+
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--stage-hue);
+  background-color: light-dark(color-mix(in oklab, var(--stage-hue) 14%, transparent), color-mix(in oklab, var(--stage-hue) 22%, transparent));
+  border-radius: var(--radius-sm);
+}
+
+.glyph svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+}
+
+.order {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+
+  .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}

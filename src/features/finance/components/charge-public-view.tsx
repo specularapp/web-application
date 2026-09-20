@@ -12,7 +12,7 @@ import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { reportPaymentAction } from "../actions";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate } from "../labels";
+import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, payerOf } from "../labels";
 import { chargeOpen, chargeReceived, chargeStatusOf, installmentStatusOf, type Charge } from "../summary";
 import styles from "./charge-public-view.module.css";
 
@@ -30,6 +30,7 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
   const [charge, setCharge] = useState(initial);
   const [reporting, setReporting] = useState<string | null>(null);
   const status = chargeStatuses[chargeStatusOf(charge)];
+  const payer = payerOf(charge);
   const method = chargeMethods[charge.method];
   const received = chargeReceived(charge);
   const open = chargeOpen(charge);
@@ -72,9 +73,9 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
           )}
         </div>
         <div className={styles.client}>
-          <Avatar name={charge.client.name} src={charge.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />
           <Text as="span" variant="footnote" tone="secondary">
-            Para {charge.client.company ?? charge.client.name}
+            {payer.standalone ? payer.name : `Para ${payer.company ?? payer.name}`}
           </Text>
         </div>
       </header>

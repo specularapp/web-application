@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -44,6 +44,8 @@ export type TaskColumnProps = {
   stages?: TaskStage[];
   /** Leva a tarefa para outra etapa, pelo leque do cartão. */
   onMove?: (task: Task, stage: TaskStage) => void;
+  /** Tira esta etapa do quadro do projeto; ausente no quadro de todas as tarefas, que não tem dono. */
+  onRemoveStage?: () => void;
 };
 
 // Uma coluna do quadro. O cabeçalho é o que esta rodada acertou (2026-09-10, a pedido, sobre uma referência
@@ -101,6 +103,7 @@ export function TaskColumn({
   stages,
   onMove,
   onDelete,
+  onRemoveStage,
 }: TaskColumnProps) {
   const Glyph = stage.icon;
   const count = tasks.length;
@@ -110,9 +113,9 @@ export function TaskColumn({
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stage: stage.id } });
 
   /* O menu do chevron duplo: a ordem de dentro da coluna, que vale na hora e não fecha o menu (a pessoa
-     costuma experimentar mais de uma), e o que se faz com a etapa em si. Recolher funciona e fica no cookie;
-     renomear e excluir só fecham o menu enquanto as etapas são uma lista fixa em código, e passam a valer
-     quando a tabela nascer. */
+     costuma experimentar mais de uma), e o que se faz com a etapa em si. Recolher fica no cookie; tirar do
+     quadro grava nas etapas do projeto. Não há "renomear": o nome da etapa é do catálogo, o mesmo em toda
+     a base, e é isso que deixa uma tarefa saber onde cair em qualquer quadro. */
   const sections: DropdownSection[] = [
     {
       id: "sort",
@@ -136,10 +139,9 @@ export function TaskColumn({
           icon: collapsed ? ArrowsOutLineHorizontalIcon : ArrowsInLineHorizontalIcon,
           onSelect: () => onCollapsedChange(!collapsed),
         },
-        { id: "rename", label: "Renomear etapa", icon: PencilSimpleIcon },
       ],
     },
-    { id: "remove", items: [{ id: "delete", label: "Excluir etapa", icon: TrashIcon, tone: "danger" }] },
+    ...(onRemoveStage ? [{ id: "remove", items: [{ id: "delete", label: "Tirar etapa do quadro", icon: TrashIcon, tone: "danger" as const, onSelect: onRemoveStage }] }] : []),
   ];
 
   return (

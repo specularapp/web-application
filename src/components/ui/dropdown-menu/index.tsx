@@ -10,7 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import { createPortal } from "react-dom";
 import { usePlanGate } from "@/features/billing/components/plan-gate";
 import { planBadges, type PlanId } from "@/features/billing/plans";
-import { useLayer } from "@/hooks/use-layer";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
@@ -458,9 +458,11 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
   // A caixa colada no gatilho entra na mesma fila das janelas: aberta de dentro de uma, é ela quem
   // responde ao Escape e ao toque fora, e a janela de baixo fica quieta em vez de fechar junto. No
   // celular quem registra é o `Dialog` da bandeja.
-  useLayer(open && !mobile);
+  const layer = useLayer(open && !mobile);
 
-  useOutsideDismiss(open && !mobile, [popoverRef, triggerRef], () => setOpen(false));
+  /* Só a camada de cima responde ao toque fora: um seletor aberto de dentro de um item do leque não pode
+     fechar o leque junto ao ser escolhido. */
+  useOutsideDismiss(open && !mobile, [popoverRef, triggerRef], () => setOpen(false), () => isTopLayer(layer));
 
   // A estimativa do hook decide o lado antes de pintar; aqui a caixa já montada é medida de verdade e
   // encaixada na janela, ainda antes do primeiro quadro: abaixo do gatilho se couber, acima se couber

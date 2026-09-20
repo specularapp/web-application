@@ -24,6 +24,7 @@ const domainOf: Record<UploadTarget, { tag: DomainTag; path: string }> = {
   "catalog-image": { tag: cacheTags.catalog, path: "/catalogo" },
   "project-cover": { tag: cacheTags.projects, path: "/projetos" },
   "project-logo": { tag: cacheTags.projects, path: "/projetos" },
+  "charge-image": { tag: cacheTags.finance, path: "/cobrancas" },
 };
 
 /* Assinar um endereço é barato, mas é escrita no Storage do outro lado: o limite existe para uma aba aberta

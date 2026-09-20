@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { stageValues } from "@/features/tasks/stages";
 import { MAX_TAGS } from "@/lib/tags";
 import { projectTagValues } from "./tags";
 import type { ProjectStatus, ProjectTool } from "./summary";
@@ -147,3 +148,20 @@ export type ProjectFormInput = z.infer<typeof projectFormSchema>;
 
 /** O identificador de um projeto vindo da tela: uuid, porque é o que a tabela gera. */
 export const projectIdSchema = z.uuid();
+
+/* Situação e etapas pelo leque, sem a ficha inteira (2026-09-17): quem clica no cartão ou no menu lateral
+   não tem o formulário em mãos, e mandar o resto em branco apagaria o que não foi editado. */
+export const projectStatusSchema = z.object({ id: z.uuid(), status: z.enum(projectStatusValues) });
+
+/** As etapas do quadro do projeto, na ordem das colunas: ao menos uma, sem repetir, e só do catálogo. */
+export const projectStagesSchema = z.object({
+  id: z.uuid(),
+  stages: z
+    .array(z.enum(stageValues))
+    .min(1, "O quadro precisa de ao menos uma etapa")
+    .max(stageValues.length)
+    .refine((list) => new Set(list).size === list.length, "Etapa repetida"),
+});
+
+/** Entra ou sai da vitrine pública, pelo interruptor da página do portfólio. */
+export const projectPublicSchema = z.object({ id: z.uuid(), isPublic: z.boolean() });

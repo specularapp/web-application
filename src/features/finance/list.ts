@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { payerOf } from "./labels";
 import { GRID_PER_PAGE_DEFAULT, MAX_PER_PAGE, TABLE_PER_PAGE, defaultQuery, methodFilterValues, statusFilterValues, type ChargesListPage, type ChargesQuery } from "./list-options";
 import { chargeOpen, chargeStatusOf, nextInstallment, todayIso, type Charge, type ChargeStatus } from "./summary";
 import { DEFAULT_CHARGES_VIEW, chargesViewValues, type ChargesView } from "./view-cookie";
@@ -58,7 +59,7 @@ export function listCharges(items: Charge[], query: ChargesQuery, today = todayI
   const filtered = items
     .filter((charge) => query.status === "todas" || statuses.get(charge.id) === query.status)
     .filter((charge) => query.method === "todas" || charge.method === query.method)
-    .filter((charge) => !needle || needle.split(/\s+/).every((part) => plain([charge.title, charge.reference, charge.client.name, charge.client.company ?? "", charge.description].join(" ")).includes(part)))
+    .filter((charge) => !needle || needle.split(/\s+/).every((part) => plain([charge.title, charge.reference, payerOf(charge).name, payerOf(charge).company ?? "", charge.description].join(" ")).includes(part)))
     .sort((a, b) => {
       const order = statusOrder[statuses.get(a.id)!] - statusOrder[statuses.get(b.id)!];
       if (order !== 0) return order;

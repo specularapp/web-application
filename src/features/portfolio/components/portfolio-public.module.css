@@ -1,0 +1,149 @@
+/* A vitrine pública: uma coluna centrada, o topo com a equipe e a grade de cartões. */
+.page {
+  display: grid;
+  gap: var(--space-8);
+  width: min(100%, 64rem);
+  padding: var(--space-6) var(--space-4) var(--space-10);
+  margin-inline: auto;
+}
+
+.hero {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.banner {
+  position: relative;
+  aspect-ratio: 4 / 1;
+  max-width: 100%;
+  background-color: var(--color-fill-tertiary);
+}
+
+.bannerImage {
+  object-fit: cover;
+}
+
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.empty {
+  padding-block: var(--space-10);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* O cartão: a mesma caixa do cartão da lista, sem o que é da equipe. */
+.card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-bg-tertiary);
+  border: 0.0375rem solid var(--color-border);
+}
+
+.cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  background-color: light-dark(color-mix(in oklab, var(--project-hue) 14%, transparent), color-mix(in oklab, var(--project-hue) 20%, transparent));
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.art {
+  width: 6rem;
+  height: 6rem;
+}
+
+.cardBody {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.cardTitle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tools {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+  padding-block-start: var(--space-6);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.brand {
+  color: inherit;
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .brand:hover {
+    text-decoration: underline;
+  }
+}

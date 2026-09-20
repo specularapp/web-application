@@ -73,7 +73,10 @@ export async function getSidebarAlerts(client: ShellClient, organizationId: stri
       title: installment.charges.title,
       detail: describeAlert("invoice", { startsAt }, today),
       startsAt: startsAt.toISOString(),
-      people: [{ name: installment.charges.client_name, avatarUrl: installment.charges.client_avatar_url }],
+      /* Cobrança avulsa não tem de quem: o aviso mostra só o título, em vez de um rosto sem nome. */
+      people: installment.charges.client_name
+        ? [{ name: installment.charges.client_name, avatarUrl: installment.charges.client_avatar_url }]
+        : [],
       action: { label: "Ver cobrança", href: `/cobrancas/${installment.charges.id}` as Route },
     });
   }

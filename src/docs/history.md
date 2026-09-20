@@ -17,6 +17,98 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-07 (dom) | em andamento (tarde e noite, commits às 16:20 e no fim do dia) | Painel completo, os oito blocos com conteúdo: clientes, tarefas, equipe, desafio diário, último orçamento e conquistas entraram hoje; conquistas sem cabeçalho com o arrasto de pontos e o painel abrindo por ele; lista compartilhada entre blocos; grade com linhas fixas; identificador `ORC-2026-0042` para toda a aplicação; `Card` com fio em duas camadas para o canto sair igual no fallback |
 | 2026-09-08 (seg) | em andamento | Rodada de acertos no celular: cartão do caixa na proporção do cartão físico, fila de ações dos perfis sem a peça duplicada e sem rolagem lateral, fatos e containers refeitos nas janelas, fila de camadas que separa um modal do outro, arrastar a alça da bandeja para fechar e varredura de peso que levou o painel de 791 KB para 347 KB |
 | 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
+| 2026-09-17 (qui) | em andamento | Toda opção da aplicação funcionando: mapa de item morto por script, leque do cliente inteiro (histórico e mapa de relação em janela), orçamento (marcar, duplicar, excluir), tarefa (criar com responsável, duplicar, concluir), funil (criar, duplicar, orçamento), projeto (situação, mover para pasta), colunas tiram etapa do quadro; histórico gravado em todos os domínios; modal central de plano é o mesmo dos primeiros passos; cobrança avulsa com foto e recorrência; chevron da árvore do menu com renomear, etapas e excluir; editor de projeto em tela cheia com prévia; auditoria dos primitivos (camadas, toque, bandejas); onze páginas que devolviam nulo agora existem (conta, equipe, segurança, notificações, domínio, integrações, conquistas, portfólio e currículo, com as duas vitrines públicas); encerrar recorrência, mover funil, projeto público |
+
+## 2026-09-17
+
+Tempo: em andamento.
+
+Feito:
+
+- **Ações do cliente inteiras e o portão de plano** (a pedido: "todas as ações dos clientes totalmente
+  funcionais, e os bloqueios de plano também"). O leque do cliente passou a fazer tudo o que oferece:
+  visualizar abre a gaveta, editar abre a ficha, gerar orçamento, cobrança e contrato abrem já com
+  `?cliente=` (contrato pelas três origens, inclusive o PDF), WhatsApp, histórico e mapa de relação em
+  janela, ativo e favorito gravam por `setClientFlagAction` com volta atrás em erro, excluir com a
+  confirmação da casa. Toda opção com `plan` no leque passou a **agir**: bloqueada, abre o modal central de
+  plano em vez de decorar a linha com um selo.
+- **O modal central de plano é literalmente o passo 3 dos primeiros passos** (correção a pedido, depois de
+  uma primeira versão que desenhou uma cópia parecida): o `PlanStep` virou `PlanChooser` em cobrança e o
+  onboarding ficou como invólucro fino que só acrescenta o encerrar da configuração. Sem uma palavra trocada.
+  A janela `xl` da casa tem altura cheia por ser a de trabalho; o modal solta a altura só para ele.
+- **Histórico e mapa de relação** (`features/records`): tabela `record_history` única para todos os
+  domínios, gravada pela função `log_record_event` de dentro do serviço (histórico que a tela pode escrever é
+  histórico que a tela pode inventar), sem chave estrangeira para o registro (o histórico sobrevive à
+  exclusão). Cliente, catálogo e orçamento já gravam campo a campo com `diffFields`. O mapa desenha, no motor
+  de fluxo das automações, o que se liga ao cliente (oportunidade, orçamento, projeto, contrato, cobrança),
+  um pai por nó, e o plano é conferido na action, não só no leque.
+- **Varredura de item morto na aplicação inteira**, com dois scripts (item de leque sem ação, botão sem
+  clique), e tudo ligado: o seletor de equipe entrou na pilha de camadas (o leque dele abria num portal e o
+  seletor engolia o clique como "toque fora"); orçamento marca enviado/aprovado, duplica e exclui; catálogo
+  tem histórico; projeto pausa, retoma, conclui, reabre e gera cobrança com o cliente dele; tarefa nasce pela
+  barra e pelo "+" da coluna (`NewTaskDialog` curto), duplica e conclui; oportunidade duplica e abre o
+  orçamento; colunas tiram a etapa do quadro (renomear saiu: nome de etapa é do catálogo). "Editar" saiu do
+  leque de tarefa e de oportunidade porque a ficha já é o editor. O mapa completo está em `structure.md`.
+- **Cobrança avulsa, com foto e recorrência** (a pedido). `client_name` deixou de ser obrigatório: a
+  cobrança pode não ser de ninguém da base (uma assinatura de sistema, um serviço solto), e quem diz do que
+  se trata é o título e a foto, que aparece também no link de quem paga (balde público `charge-images`, no
+  contrato de upload que já existia). Recorrência mensal, trimestral ou anual: **a próxima nasce quando a
+  atual é quitada**, e não por relógio, que a casa ainda não tem, e nunca duas vezes da mesma, pelo índice
+  único de `recurring_from_id`. `payerOf()` em `finance/labels.ts` é quem responde "quem paga" nas sete
+  telas que mostram isso.
+- **Chevron na árvore do menu lateral** (a pedido): no hover, a contagem da linha dá lugar ao chevron com o
+  leque do nó. Pasta renomeia, cria dentro e exclui; projeto edita a ficha e as etapas do quadro; funil
+  renomeia, arruma etapas e exclui. Duas peças novas da casa nasceram para isso e valem para tudo:
+  `NameDialog` (um nome só) e `StagesDialog` (ligar, desligar e ordenar etapas do catálogo). Pastas e
+  funis ganharam criar, renomear e apagar no CRM, no mesmo contrato do que projetos já tinha.
+- **Escrita rápida para quem usa**: toda action derruba só as tags do domínio (a cascata leva a concha
+  junto), os interruptores viram na hora e a gravação vem atrás, e as janelas pesadas (histórico, mapa com
+  React Flow) chegam por importação dinâmica só quando alguém as abre.
+- **As pendências da rodada anterior, fechadas**: "Mover para" no chevron do projeto (a lista de pastas sai
+  da própria árvore, sem segunda leitura); `NewOpportunityDialog` curto (título, de quem é, etapa, valor,
+  origem, temperatura) ligado à barra e ao "+" de cada coluna do funil; histórico gravado em projetos
+  (campo a campo), tarefas (campo a campo, sem o mover de coluna, que é ruído), oportunidades (campo a campo
+  mais os desfechos), contratos (criar, editar, enviar, cancelar) e cobranças (criar, cancelar); e o
+  responsável já na criação da tarefa, porque `TaskPerson` passou a carregar o id de quem é da equipe.
+- **Editor de projeto em tela cheia, com a prévia ao lado** (a pedido, na moldura do editor de contrato e do
+  de orçamento, que o usuário já tinha posto em tela cheia): `/projetos/novo` e `/projetos/<id>/editar` deixaram
+  de ser a lista com a gaveta por cima. O formulário é o mesmo de antes (`ProjectForm`, agora exportado e com
+  a moldura `screen`, sem cabeçalho nem rodapé próprios), e a prévia é o **próprio `ProjectCard`**, redesenhado
+  a cada tecla a partir de um retrato que o formulário emite, mais os fatos da ficha. Inerte, porque o leque e
+  o botão do endereço são de verdade. No celular vira duas abas, dados e prévia. A prancha só leva até lá; a
+  leitura da tela é `loadProjectEditorData`, só clientes e equipe, sem a página da grade.
+- **Auditoria dos primitivos** (a pedido: "leves, otimizados e rápidos sem bugs, nem no mobile"): lidos por
+  inteiro Listbox, DropdownMenu, Dialog, DataTable, DatePicker, DurationPicker, Tooltip, HoverCard, Input,
+  FieldShell, Button, Carousel, SheetSwitcher, TagInput/TagPicker. O que estava errado e foi corrigido está
+  em `structure.md`, seção "Auditoria dos primitivos". O que está certo e vale registrar: piso de 16px em
+  todo campo de texto (sem zoom no iPhone), alvos de 44px em ponteiro grosso, listeners de rolagem e
+  redimensionamento sempre desmontados, `ResizeObserver` no lugar de medir no render, carrossel que para
+  com a aba escondida, drag da bandeja agrupado por quadro.
+
+- **As três pendências, fechadas**: "Encerrar recorrência" no menu da cobrança que se repete
+  (`stopRecurrenceAction`: a atual segue em aberto, só a próxima deixa de nascer); "Mover para" no chevron do
+  funil, igual ao do projeto (`moveFunnelAction`, a lista de pastas sai da própria árvore); e a chave
+  "Projeto público" na ficha (`setProjectPublicAction`), que é o que alimenta a vitrine.
+- **Onze páginas que devolviam nulo agora existem**, todas na estrutura da casa (domínio com schemas, service,
+  actions, queries; moldura `SettingsPage`; primitivos de sempre): `/configuracoes` (foto, nome, equipe com
+  o painel dos primeiros passos), `/configuracoes/equipe`, `/configuracoes/seguranca` (senha, MFA),
+  `/configuracoes/notificacoes`, `/configuracoes/dominio` (domínio próprio do plano Pro, conferido por CNAME
+  no servidor), `/configuracoes/integracoes`, `/conquistas`, `/portfolio` e `/curriculo`, mais as duas
+  vitrines públicas `/p/<slug>` e `/cv/<slug>`. Duas migrações: `custom_domain` na organização com
+  `public_portfolio`, e o currículo em `profiles` com `public_resume` e o balde `user-avatars`. O detalhe de
+  cada uma está em `structure.md`, seções "Conta, equipe, segurança...", "Portfólio e currículo" e
+  "Conquistas".
+- **Auditoria dos primitivos, completa**: os sete que faltavam foram lidos; só o `SignaturePad` precisou de
+  ajuste (segundo dedo não começa traço). O `Button` ganhou `target` e `rel` tipados, porque três telas
+  novas abrem links de fora e a casa não tinha como fazê-lo sem uma âncora crua.
+
+Pendências:
+
+- O `proxy.ts` ainda não reescreve o pedido que chega por um domínio próprio conferido para `/p/<host>`;
+  sem isso o domínio é guardado e conferido, mas não serve a vitrine.
+- Gamificação sem conquistas nomeadas nem quadro de posições; `/conquistas` mostra só o que já é medido.
+- O editor de orçamento em tela cheia é do usuário e não passou pela auditoria desta rodada.
+- Trocar o e-mail da conta e excluir a conta não têm tela.
 
 ## 2026-09-16
 

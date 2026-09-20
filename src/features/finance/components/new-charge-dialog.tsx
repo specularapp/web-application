@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, ImageSquareIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { addDays, addMonths, format, parseISO } from "date-fns";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -16,13 +16,14 @@ import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { uploadImage } from "@/features/uploads/upload";
 import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import { createChargeAction } from "../actions";
-import { chargeMethods, shortDate } from "../labels";
-import { chargeLimits, chargeMethodValues } from "../schemas";
+import { chargeMethods, recurrenceLabels, shortDate } from "../labels";
+import { chargeLimits, chargeMethodValues, chargeRecurrenceValues } from "../schemas";
 import type { ChargeLookups } from "../service";
-import type { Charge, ChargeMethod } from "../summary";
+import type { Charge, ChargeMethod, ChargeRecurrence } from "../summary";
 import { callAction } from "@/lib/action";
 import styles from "./new-charge-dialog.module.css";
 
@@ -35,15 +36,25 @@ export type NewChargeDialogProps = {
   onCreated: (charge: Charge) => void;
 };
 
-type Values = { quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string };
+type Values = { quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string; recurrence: ChargeRecurrence };
 
-const blank = (clientId: string | null = null): Values => ({ quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "" });
+const blank = (clientId: string | null = null): Values => ({ quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none" });
 
 const installmentOptions = Array.from({ length: 12 }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
 
 const methodOptions = chargeMethodValues.map((value) => ({ value, label: chargeMethods[value].label }));
 
 const NO_QUOTE = "__none__";
+
+/* A cobrança avulsa: não é de ninguém da base. Entra como a primeira opção do seletor de quem paga, e não
+   como um interruptor à parte, porque é a mesma pergunta ("de quem é esta cobrança?") com uma resposta a
+   mais, e não uma segunda decisão. */
+const NO_CLIENT = "__avulsa__";
+
+const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label: recurrenceLabels[value] }));
+
+/** Teto da foto da cobrança, o mesmo do balde. */
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 // A gaveta de nova cobrança (2026-09-15): nasce de um orçamento aprovado, que já traz o cliente, o título, o
 // valor e as parcelas, ou do zero. Cliente com busca e rosto, título, descrição, valor, quantas parcelas e o
@@ -64,6 +75,29 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
   const [values, setValues] = useState<Values>(() => blank(clientId ?? null));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
+
+  /* A foto sobe **depois** de a cobrança existir: o arquivo mora numa pasta com o id dela, e na criação esse
+     id só aparece agora. Até lá o que a tela mostra é um endereço local, que só vale nesta aba. */
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  useEffect(
+    () => () => {
+      if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);
+    },
+    [imageUrl],
+  );
+
+  const pickImage = (file: File | null) => {
+    if (file && file.size > IMAGE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A foto passa de 5 MB. Escolha uma menor.", tone: "warning" });
+      return;
+    }
+    if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);
+    setImageUrl(file ? URL.createObjectURL(file) : null);
+    setImageFile(file);
+  };
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((current) => ({ ...current, [key]: value }));
 
@@ -100,6 +134,7 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
     const result = await callAction(
       createChargeAction({
         clientId: values.clientId,
+        recurrence: values.recurrence,
         title: values.title,
         description: values.description,
         amount,
@@ -116,6 +151,12 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
       setError({ message: result.error, field: result.field });
       return;
     }
+    /* A foto vai depois do salvamento, e não junto: falha dela não desfaz a cobrança, que já está gravada. */
+    if (imageFile) {
+      const sent = await uploadImage("charge-image", result.charge.id, imageFile);
+      if (!sent.ok) toast({ title: "Cobrança criada, foto não", description: sent.error, tone: "warning" });
+    }
+
     toast({ title: "Cobrança criada", description: `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`, tone: "success" });
     onCreated(result.charge);
   };
@@ -147,14 +188,64 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
         <Field label="Orçamento aprovado" hint="Traz o cliente, o título, o valor e as parcelas">
           <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
         </Field>
-        <Field label="Cliente" required error={error?.field === "clientId" ? error.message : undefined}>
-          <Select<string> label="Quem paga" size="sm" options={clientOptions} value={values.clientId ?? undefined} placeholder="Escolha o cliente" searchable searchPlaceholder="Buscar cliente" invalid={error?.field === "clientId"} onChange={(clientId) => set("clientId", clientId)} />
+        <Field
+          label="Quem paga"
+          hint={values.clientId ? undefined : "Sem cliente: o título e a foto são quem dizem do que se trata"}
+          error={error?.field === "clientId" ? error.message : undefined}
+        >
+          <Select<string>
+            label="Quem paga"
+            size="sm"
+            options={[{ value: NO_CLIENT, label: "Cobrança avulsa", caption: "Um serviço, um sistema, algo fora da base" }, ...clientOptions]}
+            value={values.clientId ?? NO_CLIENT}
+            searchable
+            searchPlaceholder="Buscar cliente"
+            invalid={error?.field === "clientId"}
+            onChange={(value) => set("clientId", value === NO_CLIENT ? null : value)}
+          />
         </Field>
         <Field label="Título" required error={error?.field === "title" ? error.message : undefined}>
           <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder="Do que é a cobrança" invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
         </Field>
         <Field label="Descrição">
           <Input type="text" size="sm" value={values.description} maxLength={chargeLimits.description} placeholder="Uma frase que aparece para o cliente" onChange={(event) => set("description", event.target.value)} />
+        </Field>
+
+        {/* A foto do que está sendo cobrado. Aparece no link de quem paga, e é o que separa "Assinatura do
+            sistema" de "Serviço de manutenção" numa lista de avulsas, que sem cliente ficariam iguais. */}
+        <Field label="Foto" hint="Opcional, aparece para quem paga">
+          <div className={styles.photo}>
+            <span className={styles.photoFrame}>
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- é o arquivo que a pessoa acabou de escolher, num endereço local que o next/image não busca
+                <img src={imageUrl} alt="" className={styles.photoImage} />
+              ) : (
+                <ImageSquareIcon weight="duotone" aria-hidden="true" />
+              )}
+            </span>
+            <div className={styles.photoActions}>
+              <Button variant="outline" size="sm" radius="md" iconStart={<UploadSimpleIcon />} disabled={saving} onClick={() => fileInput.current?.click()}>
+                {imageUrl ? "Trocar" : "Enviar"}
+              </Button>
+              {imageUrl && (
+                <IconButton label="Remover foto" variant="ghost" size="sm" radius="md" disabled={saving} onClick={() => pickImage(null)}>
+                  <XIcon />
+                </IconButton>
+              )}
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/avif"
+              className={styles.fileInput}
+              aria-label="Enviar foto da cobrança"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                event.target.value = "";
+                pickImage(file);
+              }}
+            />
+          </div>
         </Field>
         <div className={styles.pair}>
           <Field label="Valor total" required error={error?.field === "amount" ? error.message : undefined}>
@@ -172,6 +263,11 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
             <Select<ChargeMethod> label="Forma de pagamento" size="sm" options={methodOptions} value={values.method} onChange={(value) => set("method", value)} />
           </Field>
         </div>
+        {/* Repetir: a próxima nasce quando esta fecha, e não por relógio. Assim ninguém acumula doze
+            cobranças abertas de uma assinatura que o pagador parou de pagar. */}
+        <Field label="Repetir" hint={values.recurrence === "none" ? undefined : "A próxima nasce quando esta for quitada"}>
+          <Select<ChargeRecurrence> label="Com que frequência se repete" size="sm" options={recurrenceOptions} value={values.recurrence} onChange={(value) => set("recurrence", value)} />
+        </Field>
         <Field label="Como pagar" hint={method.hint}>
           <Textarea size="sm" rows={2} value={values.paymentInfo} maxLength={chargeLimits.paymentInfo} placeholder={values.method === "pix" ? "Chave Pix: contato@empresa.com" : "O que o cliente precisa para pagar"} onChange={(event) => set("paymentInfo", event.target.value)} />
         </Field>

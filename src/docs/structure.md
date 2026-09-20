@@ -304,6 +304,7 @@ De cima para baixo, seguindo a referência do usuário (a barra de projeto da Ve
 - A tela cheia do celular desbota na base num degradê para a cor do fundo, uma camada grudada no rodapé da tela que rola (`::after` em `sticky`), onde o conteúdo passa por trás da barra flutuante, em vez de ser cortado pela borda da tela. Era `mask-image` na tela inteira até 2026-09-07, e a máscara desbotava o fundo opaco junto: a página aparecia por baixo do menu.
 - Celular: o painel não fica na tela. Uma barra flutuante no rodapé, ao centro, traz "Buscar" e o botão de abrir; aberto, o painel toma a tela inteira, sem a marca, e as ações da conta aparecem listadas em vez de escondidas atrás do botão de seta, porque no celular esconder opção atrás de camada custa um toque a mais e uma camada a mais.
 - A seta dupla do time abre a janela de troca (`TeamSwitcher`, 2026-09-03), a primeira camada flutuante do menu. Opções da conta, busca e notificações vieram depois, e `DropdownMenu` saiu do stub em 2026-09-07, descrito abaixo.
+- **O chevron da árvore** (2026-09-17, a pedido): ao passar o mouse numa linha da árvore de tarefas ou de funis, a contagem da ponta direita dá lugar a um chevron que abre o leque daquele nó, no mesmo lugar, sem a linha ganhar largura. Pasta: renomear, criar pasta/projeto/funil dentro, excluir (o que estava dentro volta para a raiz, porque o vínculo é `set null`). Projeto: editar a ficha (`/projetos/<id>/editar`) e as etapas do quadro (`StagesDialog`). Funil: renomear, etapas, excluir (as oportunidades vão para o balde "Sem funil"). O balde não tem chevron: ele é o que sobra, e não um quadro que alguém criou. O chevron mora **ao lado** da linha, e não dentro, porque a linha é botão ou link e botão dentro de botão não é HTML; no toque, sem hover, ele fica sempre à vista. O "+" do cabeçalho da pasta cria na raiz: projeto vai para a página dele, pasta e funil pedem só um nome (`NameDialog`). Toda escrita derruba `projects`/`crm`, que levam a concha na cascata de tags, e a árvore volta nova pelo `router.refresh()`.
 - **A barra do celular aceita as ações de uma janela** (`FloatingActionsProvider` e `useFloatingActionsRegistration`, em `components/layout/floating-actions/`, 2026-09-08, a pedido, acertado no mesmo dia): a gaveta da ficha do cliente pendura salvar e sair, e a barra troca a busca e o sino por eles, com o botão do menu onde sempre fica; sem ações, a barra é a de sempre. A barra mora em `--z-floating-bar` (60) e, com ações, sobe para cima das janelas, porque a bandeja cobriria o lugar dela; a página atrás continua bloqueada pelo fundo da janela. **A tela cheia do menu sobe com ela** (acerto de 2026-09-10, do relato de que o menu abria atrás de qualquer janela): ela vivia numa camada solta abaixo das janelas, então o menu chamado pela barra nascia atrás do formulário aberto e só a barra ficava à vista. Agora as três se empilham em ordem, janela, menu e barra (`--z-modal`, mais um, mais dois): o degrau entre menu e janela é obrigatório, e não empate, porque a janela é portada para o fim do corpo da página e com o mesmo valor venceria por ordem de irmão; a barra fica no topo porque é dela que sai o X que fecha o menu. Junto, **a tela do menu entrou na fila de camadas** (`useLayer`), como janela, bandeja e caixa colada no gatilho: aberta por cima de um formulário, é ela quem responde ao Escape, que antes fechava a janela por baixo dela. Descer as janelas para baixo da barra foi tentado por uma rodada em 2026-09-08 e saiu a pedido. O provedor vive na `AppFrame`; a janela registra a cada render e o provedor guarda as funções numa referência e só muda estado quando o que se desenha muda (rótulo, espera), para o menu não re-renderizar a cada tecla digitada. Menu aberto continua recolhendo o grupo até sobrar o X. **Regra para o conteúdo nessa situação** (2026-09-08): a folga fica **dentro do que rola**, abaixo do último item, e nunca na moldura da janela, porque na moldura ela virava uma faixa vazia à vista em toda bandeja curta. A medida é o token `--floating-bar-inset` (a altura da barra mais o recuo, um respiro e a área segura). Quem abre com ações na barra dá essa folga ao próprio corpo no celular (a ficha do cliente e criar equipe), e o menu de opções que abre por cima lê a marca `data-floating-actions` que o provedor põe no `html` e dá a folga à própria lista, então o menu de situação da ficha fecha acima da barra. Uma versão que pôs a folga na moldura de toda bandeja durou uma rodada e saiu a pedido. **A troca de modo é um fundido de verdade**: os modos ficam montados um sobre o outro e o que sai desbota e encolhe um fio enquanto o que entra aparece, com a curva que assenta, só em `opacity` e `transform`; o apagado fica `inert`. **Quem mede a barra é só o modo em vigor** (acerto de 2026-09-10): o apagado sai do fluxo, em posição absoluta, então a largura é a do que está à vista. Os três dividiam uma cela de grade e a caixa ficava do tamanho do maior, o que servia enquanto eles tinham medidas parecidas; com uma ação a mais no modo de janela, a barra da lista voltava do editor larga demais, com um vão vazio ao lado da busca (relato de 2026-09-10). O último modo de ações fica guardado para o fundido de saída ter o que desenhar, e o modo de ações existe desde o começo, apagado e inerte, com um rótulo de espera, senão ele montava já no estado final e entrava sem fundido (remontar o conteúdo, a versão anterior, piscava). **A gaveta de criar equipe segue a mesma dinâmica** (2026-09-08): registra criar e sair enquanto está aberta (com criar desligado até o formulário estar preenchido, pelo `disabled` das ações), some com o rodapé no celular e liga o escurecimento ali. Toda janela de criar ou editar da casa entra nesse contrato.
 
 ### Movimento das camadas
@@ -504,7 +505,11 @@ requisições por endereço de origem: `anon` não tem select em tabela nenhuma.
   própria aplicação e o teste manual; o agendado entra com o Inngest, mapeado em `libs.md`.
 - O gateway de pagamento das cobranças ao cliente: o link mostra o que pagar e registra o aviso de
   "já paguei", e quem baixa a parcela é a equipe.
-- Portfólio, currículo e gamificação além dos pontos e do acesso diário.
+- O domínio próprio do portfólio é guardado e conferido (`organizations.custom_domain`, CNAME lido no
+  servidor), e `public_portfolio` já responde por ele; falta o `proxy.ts` reescrever o pedido que chega
+  por um host que não é o da casa para `/p/<host>`. Até lá o domínio conferido não serve a vitrine.
+- Gamificação além dos pontos, do bônus diário e da constância: não há conquistas nomeadas nem quadro
+  de posições, e a página `/conquistas` mostra só o que o banco já mede.
 
 ## O que é igual em toda tela
 
@@ -527,6 +532,35 @@ O teto é `MAX_TAGS`, doze, e vem de `lib/tags.ts`: um número só, do zod ao ca
 O `TagInput` continua existindo, e é o certo para **lista de texto livre de verdade**: entregáveis e
 pré-requisitos de um item do catálogo, que são frases escritas pela equipe, e não classificação.
 
+### Criar e editar em tela cheia, com a prévia ao lado
+
+Contrato, orçamento e projeto (2026-09-17) criam e editam **numa tela**, e não numa gaveta sobre a lista:
+montar um documento é trabalho de tela, e a lista atrás só disputava altura. A moldura é uma só: a barra de
+cima com o voltar, o nome, o identificador e as ações; embaixo, a ficha à esquerda (27rem) e a prévia à
+direita, cada uma rolando por conta; no celular, duas abas (dados e prévia) e as ações na barra flutuante. A
+prévia é **a mesma peça que a lista desenha** (o cartão do projeto, a folha do orçamento), e não um segundo
+desenho, redesenhada a cada tecla a partir de um retrato que o formulário emite. Salvar leva à ficha do
+registro; sair volta à lista. A prancha da lista só leva até lá, por rota, e a página do editor lê só o que
+os seletores precisam (`loadProjectEditorData`, `loadQuoteEditorData`), sem a página da grade. A gaveta
+lateral segue sendo o lugar de fichas curtas (cliente, item de catálogo, cobrança), que cabem em 30rem.
+
+### Um nome só pede uma janela só (NameDialog)
+
+`components/ui/name-dialog` (2026-09-17). Criar pasta, renomear funil, batizar um quadro: a mesma caixinha
+com um campo, o erro do servidor aceso no próprio campo e o botão no rodapé (barra flutuante no celular).
+É o par da `ConfirmDialog`: aquela pergunta "tem certeza?", esta pergunta "como se chama?". Quem chama
+recebe o nome, grava e devolve o erro; a janela fecha sozinha quando não há erro.
+
+### As etapas de um quadro são do catálogo, e a janela é uma só (StagesDialog)
+
+`components/ui/stages-dialog` (2026-09-17). O quadro de tarefas de um projeto e o funil de vendas têm a
+mesma regra: o catálogo de etapas é global (`tasks/stages.ts`, `crm/stages.ts`) e cada quadro **escolhe as
+suas e em que ordem** (`projects.stages`, `crm_funnels.stages`). A janela liga, desliga e ordena; nunca
+renomeia, porque nome de etapa é o mesmo em toda a base, e é isso que deixa o filtro da URL ter lista fechada
+e uma tarefa saber onde cair em qualquer quadro. Nomear uma etapa nova é uma linha no catálogo. O que está
+numa etapa desligada continua no banco e volta quando ela é ligada de novo; o gatilho do banco só barra
+**novo** registro em etapa que o quadro não tem.
+
 ### Ação sem volta pede confirmação, e a janela é uma só
 
 `components/ui/confirm-dialog`. Janela pequena de vidro, o que sai no topo (os rostos de quem sai, ou o
@@ -543,6 +577,25 @@ fazer nada, enquanto a action já existia dos dois lados. Cada leque agora receb
 guarda o estado, chama a action, mostra o aviso e refaz a lista. Menu que oferece o que não acontece é pior
 que menu sem a opção.
 
+Em 2026-09-17 a varredura foi para a aplicação inteira, com dois scripts que acham item de leque sem
+`onSelect`/`href` e botão sem `onClick`/`href`/`type="submit"` (vale repetir a busca a cada rodada grande).
+O que estava morto e o que foi feito:
+
+| Onde | Opção | O que passou a acontecer |
+| --- | --- | --- |
+| Seletor de equipe | Editar, Arquivar | Funcionavam, mas o leque abre num portal e o seletor tratava o clique como "fora": fechava e engolia o clique. O seletor entrou na pilha de camadas (`useLayer` + `isTopLayer`), que é a regra da casa para toda caixa que abre outra. |
+| Cliente | Visualizar, Editar, gerar documentos, Histórico, Mapa de relação, Ativo, Favoritar, Excluir | Tudo ligado; histórico e mapa em janela (`features/records`), interruptores gravam por `setClientFlagAction`, documentos abrem já com `?cliente=`. |
+| Orçamento | Histórico, Marcar como enviado/aprovado, Duplicar, Excluir | `markQuoteStatusAction`, `duplicateQuoteAction` (abre a cópia no editor), exclusão com confirmação. |
+| Catálogo | Histórico de edições | Janela de histórico; o serviço passou a gravar campo a campo. |
+| Projeto | Histórico, Pausar, Retomar, Concluir, Reabrir, Gerar cobrança | `setProjectStatusAction`; a cobrança abre com o cliente do projeto. |
+| Tarefa | Nova tarefa (barra e "+" da coluna), Duplicar, Marcar como concluída | `NewTaskDialog` curto (título, etapa, prazo, prioridade); `duplicateTaskAction`; concluir move para a etapa de fechamento do quadro. "Editar" saiu: a ficha **é** o editor. |
+| Funil | Duplicar, Ver/Gerar orçamento | `duplicateOpportunityAction`; orçamento abre o existente ou o editor com o cliente. "Editar" saiu pelo mesmo motivo da tarefa. |
+| Colunas (tarefas e funil) | Renomear etapa, Excluir etapa | Renomear **saiu**: o nome é do catálogo, o mesmo em toda a base. "Tirar etapa do quadro/funil" grava em `stages` do projeto/funil, com confirmação. |
+| Menu lateral | Novo projeto, Nova pasta, Novo funil, e o chevron de cada pasta/projeto/funil | Ver "Menu (Sidebar)". |
+
+Regra que ficou: item sem regra **sai** do leque em vez de ficar de pé e mudo; e item que só repete outro
+("Editar" numa ficha que já é editável) também sai.
+
 ### O resto que já era igual, e continua
 
 | Coisa | Onde |
@@ -556,6 +609,32 @@ que menu sem a opção.
 | Aviso de sucesso e de erro | `useToast()` |
 | Situação em etiqueta | `Badge` com o tom de `features/<dominio>/labels.ts` |
 | Quem responde por um registro | id do usuário, nunca o nome |
+
+### Auditoria dos primitivos (2026-09-17)
+
+Lidos por inteiro os primitivos interativos da casa, procurando o que pesa, o que vaza e o que quebra no
+toque. O que estava errado e foi corrigido:
+
+| Primitivo | O que estava errado | O que ficou |
+| --- | --- | --- |
+| `TeamSwitcher` | Não entrava na pilha de camadas: o leque de uma equipe, num portal, contava como "toque fora", a caixa fechava e o engolidor comia o clique. Editar e arquivar equipe pareciam mortos. | `useLayer` + `isTopLayer` no toque fora e no Escape. |
+| `Listbox`, `DropdownMenu` | Registravam a camada mas não a consultavam no toque fora: uma caixa aberta por cima fecharia a de baixo junto. | `useOutsideDismiss(..., () => isTopLayer(layer))`. |
+| `DurationPicker` | Não registrava camada nenhuma: aberto de dentro da ficha da tarefa, o Escape fechava a caixa **e** a ficha. | Entrou na pilha; Escape e toque fora só quando é a camada de cima. |
+| `Tooltip` | No dedo o balão abria no tap, grudava até o próximo toque em outro lugar e cobria o que a pessoa ia tocar. | Ignora ponteiro de toque e o foco que vem dele; segue para mouse, caneta e teclado. |
+| `Listbox`, `DurationPicker` (bandeja) | A bandeja era montada só com `open`, então sumia de um corte em vez de descer. | A `Dialog` fica montada e fechada, como todas as bandejas da casa. |
+| `SignaturePad` | Um segundo dedo apoiado na tela começava outro traço e roubava a captura do primeiro. | Só o ponteiro principal (`isPrimary`) desenha. |
+| `Dialog` (`xl`) | Altura cheia sempre, feita para o editor de duas colunas; o modal de plano ficava com uma faixa vazia embaixo. | Só o modal de plano solta a altura, pela classe repetida que vence a folha do Emotion. |
+
+Regras que a auditoria confirmou e que toda peça nova deve manter: **toda caixa que abre outra entra na
+pilha de camadas** e só a de cima responde a Escape e a toque fora; campo de texto com piso de 16px
+(`fieldMetrics`), senão o iPhone dá zoom; alvo de toque de 44px em ponteiro grosso; listener de janela
+sempre desmontado; medida por `ResizeObserver`, nunca no render; hover só dentro de `@media (hover: hover)`;
+bandeja sempre montada, para a saída animar; nada pesado na carga da lista (histórico, mapa e editor chegam
+por importação dinâmica).
+
+Lidos e sem correção: `Profile`, `DetailsDialog`, `CodeInput`, `Celebration` (só animação em CSS, desligada
+com movimento reduzido), `GradientBlinds` (laço parado com a aba escondida e com movimento reduzido, WebGL
+solto na desmontagem) e `ProgressRing`.
 
 ## Velocidade: o que faz a tela abrir rápido com a base cheia
 
@@ -1020,6 +1099,61 @@ Rotas `/financeiro` (Visão geral) e `/cobrancas` (Cobranças), na pasta Finance
 - Plano gratuito conclui a configuração direto. Plano pago troca a etapa pelo checkout **no mesmo painel**, sem modal novo e sem sair para o Stripe: duas colunas dentro dos 66rem que já estavam abertos, resumo do pedido à esquerda e os campos de cartão à direita, com o mesmo gradiente das quinas atrás. Confirmado o cartão, `complete_onboarding` marca `organizations.onboarding_completed_at` e a pessoa vai para o painel.
 - O resumo mostra "Total hoje R$ 0,00" e a data da primeira cobrança quando há teste gratuito, calculada no cliente porque a assinatura só nasce depois do cartão. Esse bloco só existe após um clique, então não há renderização no servidor para divergir da hidratação.
 - A linha "7 dias grátis para testar" ocupa espaço reservado nos três cartões quando algum plano tem teste, senão o botão do Pro desceria uma linha sozinho e a fileira ficaria torta.
+
+### Conta, equipe, segurança, notificações, domínio e integrações
+
+As seis páginas de `/configuracoes` (2026-09-17) são um domínio, `features/settings`, com o mesmo empilhado
+dos outros: `schemas.ts`, `service.ts`, `actions.ts`, `queries.ts` e uma moldura só, `SettingsPage` /
+`SettingsSection` / `SettingsFact` (`components/settings-page.tsx`, estilos em `settings.module.css`), que
+toda página de ajuste usa para o título, as seções com cabeçalho e o `aside` à direita. O que cada uma faz:
+
+- **`/configuracoes` (Sua conta)**: foto (balde `user-avatars`, caminho `<uid>/avatar-<uuid>`, política por
+  `auth.uid()`; sobe pelo `features/settings/upload.ts` e cola com `attachAvatarAction`), nome (também vai
+  para `auth.users.raw_user_meta_data`, para o cabeçalho não ficar com o nome velho) e os fatos da equipe em
+  que a pessoa está, com **Editar equipe** abrindo o `CreateTeamPanel` dos primeiros passos com o `teamId`
+  (o mesmo painel, sem cópia). Quem é `member` vê a equipe, mas não edita.
+- **`/configuracoes/equipe`**: a lista de membros e convites do passo de equipe dos primeiros passos, na
+  moldura de página (`TeamSettings`, adaptado de `MembersStep`): convidar, mudar papel, remover, reenviar e
+  cancelar convite. Só quem não é `member` mexe.
+- **`/configuracoes/seguranca`**: e-mail e como a pessoa entra (senha ou provedores), trocar a senha
+  (`changePasswordAction`; com MFA cadastrado o Supabase exige o segundo fator, e a tela manda para
+  `/mfa?next=/configuracoes/seguranca`), e os autenticadores TOTP com **Remover** em `ConfirmDialog`.
+- **`/configuracoes/notificacoes`**: as duzentas últimas, filtro todas/não lidas, marcar lidas em lote
+  (`markNotificationsReadBatchAction`), e cada uma leva ao que avisou.
+- **`/configuracoes/dominio`**: o endereço da casa (`/p/<slug>`, sempre), e no plano Pro o domínio
+  próprio: guardar (`setCustomDomainAction`, que abre o modal de plano quando o plano não deixa), a
+  instrução do CNAME com o destino (`siteConfig.hosts.app`) e **Conferir CNAME** (`verifyCustomDomainAction`,
+  `dns.promises.resolveCname` no servidor). O conferido fica em `custom_domain_verified_at`.
+- **`/configuracoes/integracoes`**: a verdade sobre o que está ligado (Stripe, e-mail, IA, automações),
+  o webhook de entrada do n8n com o cabeçalho do segredo, e a base da API `/api/v1` com a forma da
+  credencial. Ligação que não existe não aparece; não há "em breve".
+
+### Portfólio e currículo
+
+Duas vitrines públicas, feitas em 2026-09-17, que seguem a regra dos links públicos: função
+`security definer` com `search_path = ''` concedida só ao `service_role`, chamada pelo cliente admin com
+`checkRateLimit("publicLink")`, e `notFound()` para o que não existe.
+
+- **Portfólio** é da equipe. `features/portfolio`: `public_portfolio(p_slug)` devolve a equipe (nome, logo,
+  faixa, área, site) e os projetos com `is_public` (capa, nome, descrição, endereço, etiquetas, ferramentas,
+  sem cliente, valor, prazo ou situação), por slug ou por domínio conferido. `/portfolio` (dentro) é a lista
+  de projetos com um interruptor cada, ligado ao `setProjectPublicAction`, mais o endereço para copiar;
+  `/p/<slug>` (fora) é a vitrine, `PortfolioPublic`, cujo cartão `PortfolioCard` é a versão de rua do
+  `ProjectCard`. A mesma chave está na ficha do projeto ("Projeto público").
+- **Currículo** é da pessoa, e vai com ela quando muda de equipe. Colunas em `profiles` (`headline`, `bio`,
+  `location`, `skills`, `links`, `resume_slug` único, `resume_public`); `public_resume(p_slug)` só responde
+  com o slug preenchido e a chave ligada, e traz os projetos públicos das equipes de que a pessoa faz parte.
+  `/curriculo` é o editor (`features/resume/components/resume-editor.tsx`, salva por `saveResumeAction`,
+  slug já normalizado pelo `slugify`, 23505 vira "endereço em uso"); `/cv/<slug>` é a página pública,
+  `ResumePublic`, que reaproveita a grade e o cartão da vitrine.
+
+### Conquistas
+
+`/conquistas` (2026-09-17) é a página que o painel não tem espaço para ser: as mesmas duas leituras,
+`getGamificationBlocks` (pontos, posição, ritmo por dia, bônus do dia; semana e sequência), em cartões, o
+arrasto do bônus (`ClaimReward`), o bloco da semana (`ChallengeBlock`, o mesmo do painel) e um histórico
+de doze semanas com um quadradinho por dia (meta batida, entrou, não entrou). Nada novo é medido; a página
+só desenha o que `gamification/summary.ts` já calcula.
 
 ### Plano e assinatura
 

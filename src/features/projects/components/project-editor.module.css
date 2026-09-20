@@ -1,0 +1,154 @@
+/* O editor de projeto em tela inteira, na moldura do editor de contrato e do de orçamento: a barra de cima e,
+   embaixo, a ficha à esquerda e a prévia à direita, cada uma rolando por conta. */
+.editor {
+  --panel-line: 0.0375rem;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.heading {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+}
+
+/* As duas abas do celular, no lugar das ações: dados e prévia. */
+.tabs {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  padding: var(--space-half);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.tab {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: 1.75rem;
+  padding-inline: var(--space-2);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-label);
+  background-color: var(--color-bg-tertiary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Uma coluna no celular; a partir do tablet a ficha em 27rem e a prévia no resto, como no editor de
+   orçamento. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .body[data-form][data-preview] {
+    grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+  }
+}
+
+/* A ficha rola sozinha; o recuo lateral é o do próprio formulário. */
+.form {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .form {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+/* A prévia, no fundo agrupado, com o cartão centrado na largura de um cartão da grade. */
+.preview {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+@media (min-width: 48rem) {
+  .body[data-form] .preview {
+    border-inline-start: var(--panel-line) solid var(--color-border);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .preview {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.previewTitle {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* O cartão vive numa lista na grade, então aqui ele entra numa lista de um só, na largura de uma coluna. */
+.cardFrame {
+  display: grid;
+  width: min(100%, 24rem);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Os fatos da ficha, em duas colunas, rótulo apagado em cima e valor embaixo. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: min(100%, 24rem);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.fact dd {
+  margin: 0;
+}

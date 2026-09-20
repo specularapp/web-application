@@ -22,8 +22,12 @@ export const chargeMethodValues = ["pix", "boleto", "transfer", "card"] as const
 const idSchema = z.uuid();
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data.");
 
+export const chargeRecurrenceValues = ["none", "monthly", "quarterly", "yearly"] as const;
+
 export const createChargeSchema = z.object({
-  clientId: idSchema.nullable().refine((value) => value !== null, { message: "Escolha o cliente." }),
+  /* Nulo é a **cobrança avulsa**: nem tudo que se cobra é de um cliente cadastrado, e obrigar a cadastrar
+     alguém só para poder cobrar sujaria a base de clientes. O que dá nome a ela é o título. */
+  clientId: idSchema.nullable(),
   title: z.string().trim().min(2, "Dê um título à cobrança.").max(chargeLimits.title, "O título está longo demais."),
   description: z.string().trim().max(chargeLimits.description, "A descrição está longa demais."),
   amount: z.number().int().min(100, "O valor precisa ser de pelo menos R$ 1,00.").max(chargeLimits.amount, "Confira o valor."),
@@ -33,6 +37,8 @@ export const createChargeSchema = z.object({
   paymentInfo: z.string().trim().max(chargeLimits.paymentInfo, "As instruções estão longas demais."),
   notes: z.string().trim().max(chargeLimits.notes, "As observações estão longas demais."),
   quoteId: idSchema.nullable(),
+  /** Com que frequência ela se repete; a próxima nasce quando esta fecha. */
+  recurrence: z.enum(chargeRecurrenceValues),
 });
 
 export type CreateChargeInput = z.infer<typeof createChargeSchema>;
@@ -67,3 +73,6 @@ export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export const financePeriodValues = ["mes", "trimestre", "ano", "tudo"] as const;
 
 export const financePeriodSchema = z.enum(financePeriodValues).catch("mes");
+
+/** Encerrar a série: a cobrança de agora fica como está, e a próxima não nasce mais. */
+export const stopRecurrenceSchema = z.object({ id: idSchema });

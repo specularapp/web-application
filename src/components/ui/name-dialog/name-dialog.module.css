@@ -1,0 +1,44 @@
+/* A janela de um nome só: título com o X, um campo e o rodapé com as duas ações. No celular o rodapé some,
+   porque criar e cancelar sobem para a barra flutuante da casa. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.body {
+  padding: var(--space-5);
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+
+  .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}

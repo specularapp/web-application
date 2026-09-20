@@ -8,7 +8,7 @@ import { DataTable, DataTableDate, DataTableMoney, DataTableTitle, type DataTabl
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone } from "../labels";
+import { chargeMethods, chargeStatuses, dueLabel, dueTone, payerOf } from "../labels";
 import { chargeReceived, chargeStatusOf, nextInstallment, type Charge } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 
@@ -50,13 +50,16 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
       id: "client",
       header: "Cliente",
       hideBelow: "md",
-      cell: (charge) => (
-        <DataTableTitle
-          title={charge.client.company ?? charge.client.name}
-          caption={charge.client.company ? charge.client.name : undefined}
-          media={<Avatar name={charge.client.name} src={charge.client.avatarUrl ?? undefined} size="sm" shape="squircle" />}
-        />
-      ),
+      cell: (charge) => {
+        const payer = payerOf(charge);
+        return (
+          <DataTableTitle
+            title={payer.company ?? payer.name}
+            caption={payer.company ? payer.name : payer.standalone ? "Cobrança avulsa" : undefined}
+            media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />}
+          />
+        );
+      },
     },
     {
       id: "amount",

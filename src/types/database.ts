@@ -627,11 +627,12 @@ export type Database = {
           client_company: string | null
           client_email: string | null
           client_id: string | null
-          client_name: string
+          client_name: string | null
           contract_id: string | null
           created_at: string
           description: string
           id: string
+          image_url: string | null
           method: Database["public"]["Enums"]["payment_method"]
           notes: string
           organization_id: string
@@ -639,6 +640,8 @@ export type Database = {
           payment_info: string
           project_id: string | null
           quote_id: string | null
+          recurrence: Database["public"]["Enums"]["charge_recurrence"]
+          recurring_from_id: string | null
           reference: string
           sent_at: string | null
           title: string
@@ -654,11 +657,12 @@ export type Database = {
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
-          client_name: string
+          client_name?: string | null
           contract_id?: string | null
           created_at?: string
           description?: string
           id?: string
+          image_url?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
           notes?: string
           organization_id: string
@@ -666,6 +670,8 @@ export type Database = {
           payment_info?: string
           project_id?: string | null
           quote_id?: string | null
+          recurrence?: Database["public"]["Enums"]["charge_recurrence"]
+          recurring_from_id?: string | null
           reference?: string
           sent_at?: string | null
           title: string
@@ -681,11 +687,12 @@ export type Database = {
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
-          client_name?: string
+          client_name?: string | null
           contract_id?: string | null
           created_at?: string
           description?: string
           id?: string
+          image_url?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
           notes?: string
           organization_id?: string
@@ -693,6 +700,8 @@ export type Database = {
           payment_info?: string
           project_id?: string | null
           quote_id?: string | null
+          recurrence?: Database["public"]["Enums"]["charge_recurrence"]
+          recurring_from_id?: string | null
           reference?: string
           sent_at?: string | null
           title?: string
@@ -735,6 +744,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_recurring_from_id_fkey"
+            columns: ["recurring_from_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
             referencedColumns: ["id"]
           },
         ]
@@ -1685,6 +1701,8 @@ export type Database = {
           city: string | null
           created_at: string
           created_by: string | null
+          custom_domain: string | null
+          custom_domain_verified_at: string | null
           email: string | null
           id: string
           industry: Database["public"]["Enums"]["organization_industry"] | null
@@ -1703,6 +1721,8 @@ export type Database = {
           city?: string | null
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
+          custom_domain_verified_at?: string | null
           email?: string | null
           id?: string
           industry?: Database["public"]["Enums"]["organization_industry"] | null
@@ -1721,6 +1741,8 @@ export type Database = {
           city?: string | null
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
+          custom_domain_verified_at?: string | null
           email?: string | null
           id?: string
           industry?: Database["public"]["Enums"]["organization_industry"] | null
@@ -1804,29 +1826,50 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           current_organization_id: string | null
           email: string | null
           full_name: string | null
+          headline: string | null
           id: string
+          links: Json
+          location: string | null
+          resume_public: boolean
+          resume_slug: string | null
+          skills: string[]
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           current_organization_id?: string | null
           email?: string | null
           full_name?: string | null
+          headline?: string | null
           id: string
+          links?: Json
+          location?: string | null
+          resume_public?: boolean
+          resume_slug?: string | null
+          skills?: string[]
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           current_organization_id?: string | null
           email?: string | null
           full_name?: string | null
+          headline?: string | null
           id?: string
+          links?: Json
+          location?: string | null
+          resume_public?: boolean
+          resume_slug?: string | null
+          skills?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -2903,6 +2946,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      public_portfolio: { Args: { p_slug: string }; Returns: Json }
+      public_resume: { Args: { p_slug: string }; Returns: Json }
       quote_by_token: { Args: { p_token_hash: string }; Returns: Json }
       record_access: { Args: { p_minutes?: number }; Returns: undefined }
       record_automation_run: {
@@ -3011,6 +3056,7 @@ export type Database = {
         | "paid"
         | "reopened"
         | "cancelled"
+      charge_recurrence: "none" | "monthly" | "quarterly" | "yearly"
       contract_event_kind:
         | "created"
         | "sent"
@@ -3336,6 +3382,7 @@ export const Constants = {
         "reopened",
         "cancelled",
       ],
+      charge_recurrence: ["none", "monthly", "quarterly", "yearly"],
       contract_event_kind: [
         "created",
         "sent",

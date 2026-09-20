@@ -51,6 +51,7 @@ export default async function TaskProjectPage({ params, searchParams }: PageProp
       basePath={`/tarefas/${projeto}`}
       team={data.team}
       records={data.records}
+      projectId={data.project.id}
     />
   );
 }

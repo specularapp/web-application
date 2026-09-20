@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Fragment,
   useEffect,
@@ -29,6 +29,10 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
+import { NameDialog } from "@/components/ui/name-dialog";
+import { useToast } from "@/components/providers/toast-provider";
+import { saveCrmFolderAction, saveFunnelAction } from "@/features/crm/actions";
+import { saveFolderAction } from "@/features/projects/actions";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -108,17 +112,19 @@ function folderIsCurrent(pathname: string, folder: NavFolder) {
   return folder.items.some((item) => isCurrent(pathname, item.href));
 }
 
-/* Criar dentro da pasta que abre árvore: declarado e ainda sem regra, como as opções do cliente nasceram.
-   Pasta, projeto e funil só passam a nascer de verdade quando a tabela existir. O nome do primeiro item
-   segue a árvore da pasta, senão a pasta do funil ofereceria "Novo projeto". */
-const createSections = (tree: "tarefas" | "funis"): DropdownSection[] => [
+/* O que nasce na raiz da árvore, pelo "+" do cabeçalho da pasta (2026-09-17, tudo funcionando): projeto novo
+   vai para a página dele, que tem a ficha inteira; funil e pasta pedem só um nome, na janela de nome da casa.
+   O nome do primeiro item segue a árvore da pasta, senão a pasta do funil ofereceria "Novo projeto". */
+type Creating = "folder" | "funnel";
+
+const createSections = (tree: "tarefas" | "funis", onCreate: (kind: Creating) => void): DropdownSection[] => [
   {
     id: "create",
     items: [
       tree === "funis"
-        ? { id: "funnel", label: "Novo funil", icon: FunnelIcon }
-        : { id: "project", label: "Novo projeto", icon: KanbanIcon },
-      { id: "folder", label: "Nova pasta", icon: FolderPlusIcon },
+        ? { id: "funnel", label: "Novo funil", icon: FunnelIcon, onSelect: () => onCreate("funnel") }
+        : { id: "project", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route },
+      { id: "folder", label: "Nova pasta", icon: FolderPlusIcon, onSelect: () => onCreate("folder") },
     ],
   },
 ];
@@ -165,9 +171,31 @@ export function SidebarPanel({
   onNavigate,
 }: PanelProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const commandKey = useCommandKey();
   const navRef = useRef<HTMLElement>(null);
   const [folder, setFolder] = useState<NavFolder | null>(null);
+  /* O que está sendo criado na raiz pelo "+" da pasta: uma pasta ou um funil, cada um com a sua janela. */
+  const [creating, setCreating] = useState<Creating | null>(null);
+
+  /* Cada escrita derruba o cache do domínio, que leva a concha junto; refazer a rota traz a árvore nova. */
+  const createFolder = async (name: string) => {
+    const result = folder?.tree === "funis" ? await saveCrmFolderAction({ name, parentId: null }) : await saveFolderAction({ name, parentId: null });
+    if (!result.ok) return result.error;
+    toast({ title: "Pasta criada", description: `${name} já está na árvore.`, tone: "success" });
+    router.refresh();
+    return undefined;
+  };
+
+  const createFunnel = async (name: string) => {
+    const result = await saveFunnelAction({ name, folderId: null });
+    if (!result.ok) return result.error;
+    toast({ title: "Funil criado", description: "Ele nasceu com as etapas padrão. Arrume pelo chevron da linha.", tone: "success" });
+    router.push(`/crm/${result.slug}` as Route);
+    router.refresh();
+    return undefined;
+  };
   const [motion, setMotion] = useState<NavMotion | null>(null);
   // O projeto aberto sai do endereço (`/tarefas/<slug>`): é ele que marca a linha da árvore, e o caminho de
   // pastas até ele é o galho que a árvore abre ao aparecer.
@@ -330,7 +358,7 @@ export function SidebarPanel({
                   <DropdownMenu
                     label={`Criar em ${folder.label}`}
                     triggerLabel={folder.tree === "funis" ? "Criar pasta ou funil" : "Criar pasta ou projeto"}
-                    sections={createSections(folder.tree)}
+                    sections={createSections(folder.tree, setCreating)}
                     icon={<PlusIcon />}
                     size="sm"
                   />
@@ -369,6 +397,16 @@ export function SidebarPanel({
                     onNavigate={onNavigate}
                   />
                 </>
+              )}
+              {creating && (
+                <NameDialog
+                  open
+                  onClose={() => setCreating(null)}
+                  title={creating === "folder" ? "Nova pasta" : "Novo funil"}
+                  description={creating === "folder" ? "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta." : "Ele nasce com as etapas padrão, que você arruma depois."}
+                  placeholder={creating === "folder" ? "Clientes, Interno, 2026" : "Indicações, Licitações, Loja"}
+                  onSubmit={creating === "folder" ? createFolder : createFunnel}
+                />
               )}
             </div>
           ) : (

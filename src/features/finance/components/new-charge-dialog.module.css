@@ -83,3 +83,56 @@
     display: none;
   }
 }
+
+/* A foto da cobrança: a miniatura à esquerda e as ações ao lado, no mesmo desenho da arte do item de
+   catálogo. O campo de arquivo é invisível e o botão é quem o aciona, porque o campo de arquivo do
+   navegador não se veste. */
+.photo {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.photoFrame {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  overflow: hidden;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-fill-tertiary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+.photoFrame svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.photoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photoActions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* Fora da vista e fora do fluxo, mas ainda no documento: campo de arquivo escondido com `display: none`
+   deixa de ser clicável por script em alguns navegadores. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}

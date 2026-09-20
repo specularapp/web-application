@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -394,7 +395,9 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
 
   // A bandeja fecha sozinha por Escape e por toque fora; no desktop a caixa é avulsa e precisa dos
   // dois aqui. O toque fora engole o clique, para o botão embaixo não disparar junto.
-  useOutsideDismiss(open && !sheet, [popoverRef, triggerRef], close);
+  /* Na pilha de camadas: só a caixa de cima responde ao toque fora (auditoria de 2026-09-17). */
+  const layer = useLayer(open && !sheet);
+  useOutsideDismiss(open && !sheet, [popoverRef, triggerRef], close, () => isTopLayer(layer));
 
   useEffect(() => {
     if (!open || sheet) return;

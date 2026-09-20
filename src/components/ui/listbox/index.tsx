@@ -5,7 +5,7 @@ import { CaretDownIcon, CaretUpIcon, CheckIcon, MagnifyingGlassIcon } from "@pho
 import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
-import { useLayer } from "@/hooks/use-layer";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { slugify } from "@/lib/utils/slug";
@@ -544,8 +544,11 @@ export function Listbox<T extends ListboxValue>({
   // A caixa entra na fila das camadas da casa: aberta de dentro de uma janela, é ela quem responde ao toque
   // fora, e a janela de baixo fica quieta em vez de fechar junto. Na bandeja quem cuida disso é o `Dialog`.
   const floating = open && !sheet;
-  useLayer(floating);
-  useOutsideDismiss(floating, [panelRef, triggerRef], () => close(false));
+  const layer = useLayer(floating);
+  /* Só responde ao toque fora quando é a camada de cima: com outra caixa aberta por cima desta (um
+     calendário dentro de um seletor, um leque de ações), o toque fora dela fecharia esta junto e engoliria o
+     clique, que foi o defeito do seletor de equipe em 2026-09-17. */
+  useOutsideDismiss(floating, [panelRef, triggerRef], () => close(false), () => isTopLayer(layer));
 
   const anchor = useAnchoredPosition(floating, triggerRef, {
     width: measured || 240,
@@ -792,7 +795,7 @@ export function Listbox<T extends ListboxValue>({
           </>
         )}
       </Trigger>
-      {open && sheet && (
+      {sheet && (
         <Dialog open={open} onClose={() => close(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
           <SheetBody>{content}</SheetBody>
         </Dialog>

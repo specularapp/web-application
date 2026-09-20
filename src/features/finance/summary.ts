@@ -75,6 +75,14 @@ export type InstallmentStatus = "open" | "overdue" | "paid" | "cancelled";
 
 export type ChargeStatus = "open" | "partial" | "overdue" | "paid" | "cancelled";
 
+/** Com que frequência a cobrança se repete. A próxima nasce quando esta fecha, e não por relógio. */
+export type ChargeRecurrence = "none" | "monthly" | "quarterly" | "yearly";
+
+/**
+ * A contraparte da cobrança. Nula inteira na **cobrança avulsa**: nem tudo que se cobra é de um cliente
+ * cadastrado (uma assinatura de sistema, um serviço solto, um rateio), e obrigar a cadastrar alguém só para
+ * poder cobrar sujaria a base de clientes. Ali quem diz do que se trata é o título, e a foto.
+ */
 export type ChargeClient = {
   /** O cliente da base; nulo quando a cobrança foi para alguém fora dela. */
   id: string | null;
@@ -103,7 +111,12 @@ export type Charge = {
   reference: string;
   title: string;
   description: string;
-  client: ChargeClient;
+  /** Nulo na cobrança avulsa, que não é de ninguém da base. */
+  client: ChargeClient | null;
+  /** A foto do que está sendo cobrado, quando isso tem rosto; aparece também no link do pagador. */
+  imageUrl: string | null;
+  /** Com que frequência ela se repete; `none` é a de uma vez só. */
+  recurrence: ChargeRecurrence;
   owner: { name: string; avatarUrl: string | null };
   /** O total, em centavos: a soma das parcelas. */
   amount: number;
@@ -156,7 +169,8 @@ export type UpcomingInstallment = {
   installmentId: string;
   reference: string;
   title: string;
-  clientName: string;
+  /** Nulo na cobrança avulsa, que não é de ninguém da base: ali o título é quem diz do que se trata. */
+  clientName: string | null;
   clientAvatarUrl: string | null;
   number: number;
   total: number;

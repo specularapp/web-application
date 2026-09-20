@@ -59,7 +59,19 @@ export const isCrmFolder = (node: CrmTreeNode): node is CrmFolder => node.kind =
  */
 export type CrmTreeItem =
   | { kind: "folder"; id: string; name: string; open: number; children: CrmTreeItem[] }
-  | { kind: "funnel"; id: string; slug: string; name: string; open: number; glyph: FunnelGlyph; hue: string };
+  | {
+      kind: "funnel";
+      id: string;
+      slug: string;
+      name: string;
+      open: number;
+      glyph: FunnelGlyph;
+      hue: string;
+      /** As etapas do funil, para o leque do menu arrumá-las sem ir à página. */
+      stages: CrmStage[];
+      /** O balde "Sem funil": não se edita nem se apaga. */
+      bucket?: boolean;
+    };
 
 /** As oportunidades de um funil: as do identificador dele, ou as sem funil nenhum quando ele é o balde. */
 export function opportunitiesOfFunnel(opportunities: Opportunity[], funnel: CrmFunnel) {
@@ -97,6 +109,8 @@ export function buildCrmTree(nodes: CrmTreeNode[], counts: CrmOpenCounts): CrmTr
       open: node.reference === null ? counts.loose : (counts.byFunnel[node.id] ?? 0),
       glyph: node.glyph,
       hue: node.hue,
+      stages: node.stages,
+      bucket: node.reference === null || undefined,
     };
   });
 }

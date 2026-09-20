@@ -59,7 +59,19 @@ export const isTaskFolder = (node: TaskTreeNode): node is TaskFolder => node.kin
  */
 export type TaskTreeItem =
   | { kind: "folder"; id: string; name: string; open: number; children: TaskTreeItem[] }
-  | { kind: "project"; id: string; slug: string; name: string; open: number; glyph: ProjectGlyph; hue: string };
+  | {
+      kind: "project";
+      id: string;
+      slug: string;
+      name: string;
+      open: number;
+      glyph: ProjectGlyph;
+      hue: string;
+      /** As etapas do quadro, para o leque do menu arrumá-las sem ir à página. */
+      stages: TaskStage[];
+      /** O balde das tarefas sem projeto: não se edita nem se apaga. */
+      bucket?: boolean;
+    };
 
 /** As tarefas de um projeto: as do identificador dele, ou as sem projeto nenhum quando ele é o balde. */
 export function tasksOfProject(tasks: Task[], project: TaskProject) {
@@ -98,6 +110,8 @@ export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): Ta
       open: node.reference === null ? counts.loose : (counts.byProject[node.id] ?? 0),
       glyph: node.glyph,
       hue: node.hue,
+      stages: node.stages,
+      bucket: node.reference === null || undefined,
     };
   });
 }

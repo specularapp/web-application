@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import {
+  ArrowLeftIcon,
   FloppyDiskIcon,
   LinkIcon,
   PaperPlaneTiltIcon,
@@ -19,6 +21,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -52,16 +55,16 @@ import { QuoteDiscardDialog } from "./quote-discard-dialog";
 import { QuoteDocument } from "./quote-document";
 import { QuoteLineFacts, QuoteLineInfo } from "./quote-line-info";
 import { QuotePaper } from "./quote-paper";
-import styles from "./quote-editor-dialog.module.css";
+import styles from "./quote-editor.module.css";
 
 /** O que a janela edita: um orçamento da lista ou `"new"` para criar. Nulo fecha. */
-export type QuoteEditor = Quote | "new" | null;
+export type QuoteEditorTarget = Quote | "new" | null;
 
 /** O que a URL pode pedir já preenchido num orçamento novo: o cliente e o item do catálogo. */
 export type QuotePrefill = { clientId?: string; itemId?: string };
 
 export type QuoteEditorDialogProps = {
-  editor: QuoteEditor;
+  editor: QuoteEditorTarget;
   clients: ClientListItem[];
   catalog: CatalogItem[];
   /** Quem emite e quem responde, para o documento em prévia ser o que o cliente vai receber. */
@@ -284,49 +287,51 @@ function InstallmentsInfo({ onOpen, ...plan }: InstallmentPlanProps & { onOpen?:
 // dados e prévia, e salvar e sair vão para a barra flutuante. O formulário é um acordeão de três partes,
 // Informações, Itens e Condições, uma aberta por vez, e a que fecha mostra o resumo do que foi respondido com
 // um lápis para reabrir. O estado é local e o envio é a action, que valida com zod de novo no servidor.
-export function QuoteEditorDialog({ editor, clients, catalog, issuer, owner, nextNumber, prefill, onClose, onSaved }: QuoteEditorDialogProps) {
+/**
+ * O editor de orçamento **como tela**, e não mais como janela sobre a lista (2026-09-16, a pedido de que ele
+ * abra igual ao editor de contrato). A janela tinha o preço de toda janela: abre, fecha, some por engano no
+ * toque fora e disputa a altura com a lista atrás. Aqui o editor é o destino, com endereço próprio, voltar
+ * de verdade e a tela inteira para o documento.
+ */
+export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber, prefill, onLeave, onSaved }: QuoteEditorProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
-  const [shown, setShown] = useState<QuoteEditor>(editor);
-  if (editor !== null && editor !== shown) setShown(editor);
-
-  // Quem fecha é o formulário, que salva o rascunho antes se algo mudou (pedido de 2026-09-10): a janela só
-  // repassa o pedido, venha ele do fundo, do Escape, do arrasto da alça ou da barra flutuante. O formulário
-  // registra o próprio fechar a cada render; antes de ele existir, fechar é fechar.
-  const closeHandler = useRef<() => void>(onClose);
+  /* O fechar que o formulário registra salva o rascunho antes de sair; enquanto ele não existe, sair é sair. */
+  const leave = useRef<() => void>(onLeave);
 
   return (
-    <Dialog
-      open={editor !== null}
-      onClose={() => closeHandler.current()}
-      label={editor === "new" ? "Novo orçamento" : "Editar orçamento"}
-      size="xl"
-      surface="page"
-      /* Escurece a página atrás em qualquer largura (pedido de 2026-09-09): a janela toma quase a tela toda,
-         e sem o fundo escuro a lista atrás competia com o documento. */
-      scrim
-      focusOnOpen={false}
-    >
-      {shown !== null && (
-        <QuoteForm
-          key={shown === "new" ? "new" : shown.id}
-          quote={shown === "new" ? undefined : shown}
-          clients={clients}
-          catalog={catalog}
-          issuer={issuer}
-          owner={owner}
-          nextNumber={nextNumber}
-          prefill={shown === "new" ? prefill : undefined}
-          mobile={mobile}
-          onClose={onClose}
-          onSaved={onSaved}
-          registerClose={(close) => {
-            closeHandler.current = close;
-          }}
-        />
-      )}
-    </Dialog>
+    <QuoteForm
+      key={quote?.id ?? "new"}
+      quote={quote}
+      clients={clients}
+      catalog={catalog}
+      issuer={issuer}
+      owner={owner}
+      nextNumber={nextNumber}
+      prefill={quote ? undefined : prefill}
+      mobile={mobile}
+      onClose={() => leave.current()}
+      onSaved={onSaved}
+      registerClose={(close) => {
+        leave.current = close;
+      }}
+    />
   );
 }
+
+export type QuoteEditorProps = {
+  /** O orçamento que está sendo editado; ausente é um novo. */
+  quote?: Quote;
+  clients: ClientListItem[];
+  catalog: CatalogItem[];
+  issuer: QuoteIssuer;
+  owner: QuotePerson;
+  nextNumber: string;
+  prefill?: QuotePrefill;
+  /** Sair do editor: volta para a lista. */
+  onLeave: () => void;
+  /** Depois de salvar. */
+  onSaved: () => void;
+};
 
 type QuoteFormProps = {
   quote?: Quote;
@@ -764,16 +769,31 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
 
   return (
     <form ref={form} className={styles.editor} onSubmit={submit} noValidate aria-labelledby={titleId}>
+      {/* A barra do editor, a mesma do contrato: o voltar, a rota até o orçamento com o número na etiqueta, e
+          as ações na ponta. O total e a contagem de itens ficam ao lado do nome, porque aqui eles são o que a
+          pessoa confere enquanto monta. */}
       <header className={styles.head}>
-        <div className={styles.heading}>
-          <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-            {editing ? "Editar orçamento" : "Novo orçamento"}
+        <IconButton label="Voltar aos orçamentos" variant="ghost" size="sm" onClick={onClose}>
+          <ArrowLeftIcon />
+        </IconButton>
+        <nav className={styles.crumbs} aria-label="Onde o orçamento mora" id={titleId}>
+          <Link href="/orcamentos" className={styles.crumb}>
+            Orçamentos
+          </Link>
+          <span className={styles.slash} aria-hidden="true">
+            /
+          </span>
+          <Text as="span" variant="footnote" weight="semibold" truncate>
+            {values.title || (editing ? "Orçamento sem título" : "Novo orçamento")}
           </Text>
+          <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
+            {draft.number}
+          </Badge>
           <Text variant="caption1" tone="secondary" truncate className={styles.subtitle}>
-            {draft.number}, {formatMoney(totals.total)}
+            {formatMoney(totals.total)}
             {draft.lines.length > 0 ? `, ${draft.lines.length} ${draft.lines.length === 1 ? "item" : "itens"}` : ""}
           </Text>
-        </div>
+        </nav>
         <div className={styles.headActions}>
           {mobile ? (
             /* No celular o cabeçalho tem só as abas (pedido de 2026-09-10): salvar, enviar, copiar o link e

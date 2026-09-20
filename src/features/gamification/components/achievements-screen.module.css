@@ -1,0 +1,45 @@
+/* O histórico das doze semanas: doze colunas de sete dias, um quadradinho por dia, no matiz da meta. */
+.grid {
+  display: grid;
+  grid-template-rows: repeat(7, 0.875rem);
+  grid-auto-flow: column;
+  grid-auto-columns: 0.875rem;
+  gap: var(--space-half);
+  justify-content: start;
+  overflow-x: auto;
+  padding-block-end: var(--space-1);
+}
+
+.day {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-xs);
+}
+
+.day[data-state="met"] {
+  background-color: var(--sys-green);
+}
+
+.day[data-state="partial"] {
+  background-color: light-dark(color-mix(in oklab, var(--sys-green) 45%, transparent), color-mix(in oklab, var(--sys-green) 55%, transparent));
+}
+
+.day[data-state="upcoming"] {
+  opacity: 0.35;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.legend span {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}

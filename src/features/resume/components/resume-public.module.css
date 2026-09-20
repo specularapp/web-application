@@ -1,0 +1,61 @@
+/* O currículo público: a pessoa no topo e as seções em coluna, na mesma largura da vitrine. */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.location {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.location svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.label {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.bio {
+  max-width: 70ch;
+  white-space: pre-line;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

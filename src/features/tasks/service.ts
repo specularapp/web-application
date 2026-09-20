@@ -2,6 +2,7 @@ import "server-only";
 import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers } from "@/features/organizations/service";
+import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { TasksQuery } from "./list-options";
 import type { TaskFormInput } from "./schemas";
@@ -363,6 +364,13 @@ export async function saveTask(
   };
 
   if (input.id) {
+    const { data: before } = await client
+      .from("tasks")
+      .select("title, description, due_date, start_date, estimate_minutes, stage, priority, owner_id, tags, alert")
+      .eq("organization_id", organizationId)
+      .eq("id", input.id)
+      .maybeSingle();
+
     const { data, error } = await client
       .from("tasks")
       .update(values)
@@ -372,13 +380,37 @@ export async function saveTask(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const changes = diffFields(before, values, taskHistoryLabels);
+    if (changes.length > 0) {
+      await logRecordEvent(client, organizationId, { recordType: "task", recordId: data.id, action: "updated", summary: summarize(changes), changes });
+    }
+
     return { ok: true, data: { id: data.id } };
   }
 
   const { data, error } = await client.from("tasks").insert(values).select("id").single();
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, { recordType: "task", recordId: data.id, action: "created", summary: `Criou a tarefa ${input.title}` });
+
   return { ok: true, data: { id: data.id } };
 }
+
+/* Os nomes que a pessoa lê no histórico da tarefa. Mover de coluna não entra: é o gesto mais frequente do
+   quadro e encheria a linha do tempo com o que a própria coluna já conta. */
+const taskHistoryLabels = {
+  title: "título",
+  description: "descrição",
+  due_date: "prazo",
+  start_date: "começo",
+  estimate_minutes: "estimativa",
+  stage: "etapa",
+  priority: "prioridade",
+  owner_id: "responsável",
+  tags: "etiquetas",
+  alert: "aviso",
+} as const;
 
 /** Mover o cartão de coluna: a única escrita que o quadro faz ao arrastar. */
 export async function moveTask(
@@ -405,6 +437,9 @@ export async function deleteTask(
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("tasks").delete().eq("organization_id", organizationId).eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  await logRecordEvent(client, organizationId, { recordType: "task", recordId: id, action: "deleted", summary: "Excluiu a tarefa" });
+
   return { ok: true, data: undefined };
 }
 

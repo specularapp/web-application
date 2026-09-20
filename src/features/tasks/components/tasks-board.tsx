@@ -52,8 +52,10 @@ import type { Task, TaskPerson } from "../summary";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { deleteTaskAction } from "../actions";
+import { setProjectStagesAction } from "@/features/projects/actions";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
+import { NewTaskDialog } from "./new-task-dialog";
 import { TaskDialog } from "./task-dialog";
 import styles from "./tasks-board.module.css";
 import { callAction } from "@/lib/action";
@@ -69,6 +71,8 @@ export type TasksBoardProps = {
   team?: TaskPerson[];
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
+  /** O projeto deste quadro; nulo no balde de tarefas soltas, que é o que `/tarefas` mostra. */
+  projectId?: string | null;
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -128,7 +132,7 @@ const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAU
 // A ficha da tarefa é **uma só para o quadro inteiro**, guardando quem está aberto, e não uma por cartão:
 // com vinte e quatro cartões seriam vinte e quatro janelas montadas, que é a mesma decisão da gaveta da base
 // de clientes.
-export function TasksBoard({ board, query, collapsed: saved, basePath, team, records }: TasksBoardProps) {
+export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null }: TasksBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -149,6 +153,27 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   /* A exclusão, no desenho das outras telas: o leque do cartão pede, a janela da casa pergunta, e só então a
      action grava. */
   const [deleting, setDeleting] = useState<Task | null>(null);
+  /* A etapa em que a tarefa nova vai nascer, e nulo quando não há criação aberta: o "+" de cada coluna manda
+     a dela, e a barra manda a primeira do quadro. */
+  const [creating, setCreating] = useState<TaskStage | null>(null);
+  /* A etapa que vai sair do quadro, esperando a confirmação: as tarefas dela ficam no banco e voltam quando a
+     etapa voltar, mas somem da vista, e isso merece a pergunta. */
+  const [removingStage, setRemovingStage] = useState<TaskStage | null>(null);
+  const [removingStageBusy, setRemovingStageBusy] = useState(false);
+
+  const removeStage = async () => {
+    if (!removingStage || !projectId) return;
+    setRemovingStageBusy(true);
+    const result = await setProjectStagesAction({ id: projectId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== removingStage) });
+    setRemovingStageBusy(false);
+    setRemovingStage(null);
+    if (!result.ok) {
+      toast({ title: "Não deu para tirar a etapa", description: result.error, tone: "danger" });
+      return;
+    }
+    toast({ title: "Etapa retirada", description: `${taskStageMeta[removingStage].label} saiu do quadro. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
+    router.refresh();
+  };
   const [removing, setRemoving] = useState(false);
 
   const removeTask = async () => {
@@ -429,12 +454,12 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         action={
           <>
             <span className={styles.wide}>
-              <Button size="sm" radius="md" iconStart={<PlusIcon />}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => setCreating(columns[0]?.stage ?? "todo")}>
                 Nova tarefa
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Nova tarefa" size="sm" radius="md">
+              <IconButton label="Nova tarefa" size="sm" radius="md" onClick={() => setCreating(columns[0]?.stage ?? "todo")}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -489,7 +514,8 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
                 sort={sorts[column.stage]}
                 onSortChange={(sort) => changeSort(column.stage, sort)}
                 onOpen={setOpen}
-                onAdd={() => undefined}
+                onAdd={() => setCreating(column.stage)}
+                onRemoveStage={projectId && columns.length > 1 ? () => setRemovingStage(column.stage) : undefined}
                 landing={landing === column.stage}
                 draggable={!mobile}
                 stages={board.columns.map((entry) => entry.stage)}
@@ -526,6 +552,26 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
           moveTask(open, stage, open.stage);
           setOpen({ ...open, stage });
         }}
+      />
+      {/* A criação nasce na etapa de onde o "+" foi tocado, e na primeira do quadro quando veio da barra. */}
+      <NewTaskDialog
+        open={creating !== null}
+        onClose={() => setCreating(null)}
+        stages={board.columns.map((column) => column.stage)}
+        stage={creating ?? board.columns[0]?.stage ?? "todo"}
+        projectId={projectId}
+        team={team}
+        onCreated={() => setCreating(null)}
+      />
+      <ConfirmDialog
+        open={removingStage !== null}
+        pending={removingStageBusy}
+        title={`Tirar ${removingStage ? taskStageMeta[removingStage].label : "a etapa"} do quadro?`}
+        description="As tarefas que estão nela não somem: ficam guardadas e voltam a aparecer quando a etapa for ligada de novo nas etapas do quadro."
+        confirmLabel="Tirar etapa"
+        pendingLabel="Tirando"
+        onClose={() => setRemovingStage(null)}
+        onConfirm={() => void removeStage()}
       />
       <ConfirmDialog
         open={deleting !== null}

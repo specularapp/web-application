@@ -1,0 +1,56 @@
+/* A caixa de nova oportunidade: título com o X, os campos e o rodapé com as duas ações. No celular o rodapé some,
+   porque criar e cancelar sobem para a barra flutuante da casa. */
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.body {
+  display: grid;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Dois campos por linha: etapa e prazo, prioridade e responsável. No celular eles empilham. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 30rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+
+  .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}

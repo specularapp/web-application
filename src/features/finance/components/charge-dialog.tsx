@@ -15,7 +15,7 @@ import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, momentLabel, shortDate } from "../labels";
+import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, momentLabel, payerOf, recurrenceLabels, shortDate } from "../labels";
 import { chargeOpen, chargeReceived, chargeStatusOf, installmentStatusOf, nextInstallment, type Charge, type ChargeEvent, type Installment } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 import styles from "./charge-dialog.module.css";
@@ -58,6 +58,7 @@ function ChargeDetail({ charge, onClose, onSend, onCopyLink, onCancel, onPay, on
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const status = chargeStatuses[chargeStatusOf(charge)];
+  const payer = payerOf(charge);
   const method = chargeMethods[charge.method];
   const received = chargeReceived(charge);
   const open = chargeOpen(charge);
@@ -91,13 +92,13 @@ function ChargeDetail({ charge, onClose, onSend, onCopyLink, onCancel, onPay, on
           <Link href="/cobrancas" className={styles.crumb}>
             Cobranças
           </Link>
-          {charge.client.id && (
+          {payer.clientId && (
             <>
               <span className={styles.slash} aria-hidden="true">
                 /
               </span>
-              <Link href={`/clientes/${charge.client.id}` as Route} className={styles.crumb}>
-                {charge.client.company ?? charge.client.name}
+              <Link href={`/clientes/${payer.clientId}` as Route} className={styles.crumb}>
+                {payer.company ?? payer.name}
               </Link>
             </>
           )}
@@ -141,14 +142,13 @@ function ChargeDetail({ charge, onClose, onSend, onCopyLink, onCancel, onPay, on
             )}
           </div>
           <div className={styles.client}>
-            <Avatar name={charge.client.name} src={charge.client.avatarUrl ?? undefined} size="md" shape="squircle" />
+            <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="md" shape="squircle" />
             <span className={styles.clientCopy}>
               <Text as="span" variant="footnote" weight="semibold" truncate>
-                {charge.client.company ?? charge.client.name}
+                {payer.company ?? payer.name}
               </Text>
               <Text as="span" variant="caption1" tone="secondary" truncate>
-                {charge.client.company ? `${charge.client.name}, ` : ""}
-                {charge.client.email ?? "sem e-mail"}
+                {payer.standalone ? recurrenceLabels[charge.recurrence] : `${payer.company ? `${payer.name}, ` : ""}${payer.email ?? "sem e-mail"}`}
               </Text>
             </span>
           </div>

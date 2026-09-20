@@ -15,6 +15,9 @@ export const uploadTargets = {
   "catalog-image": { bucket: "catalog-images", folder: "item" },
   "project-cover": { bucket: "project-covers", folder: "capa" },
   "project-logo": { bucket: "project-covers", folder: "logo" },
+  /* A foto da cobrança avulsa: o que está sendo cobrado, quando isso tem rosto. Balde público, porque quem
+     paga abre por link sem ter conta. */
+  "charge-image": { bucket: "charge-images", folder: "cobranca" },
 } as const;
 
 export type UploadTarget = keyof typeof uploadTargets;
@@ -43,6 +46,7 @@ export const uploadMaxBytes: Record<UploadTarget, number> = {
   "catalog-image": 5 * 1024 * 1024,
   "project-cover": 5 * 1024 * 1024,
   "project-logo": 2 * 1024 * 1024,
+  "charge-image": 5 * 1024 * 1024,
 };
 
 /* O avatar de cliente só aceita três tipos, como o balde dele; os outros aceitam avif também. */

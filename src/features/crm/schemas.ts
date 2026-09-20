@@ -69,3 +69,38 @@ export const opportunityMoveSchema = z.object({
 });
 
 export const opportunityIdSchema = z.uuid();
+
+/* Pastas e funis, pelo leque do menu lateral (2026-09-17). */
+export const crmFolderLimits = { name: 60 } as const;
+
+export const saveCrmFolderSchema = z.object({
+  /** Presente ao renomear; ausente ao criar. */
+  id: z.uuid().optional(),
+  name: z.string().trim().min(1, "Dê um nome à pasta").max(crmFolderLimits.name, "Nome longo demais"),
+  parentId: z.uuid().nullable().default(null),
+});
+
+export const crmFolderIdSchema = z.uuid();
+
+export const funnelLimits = { name: 60 } as const;
+
+export const saveFunnelSchema = z.object({
+  id: z.uuid().optional(),
+  name: z.string().trim().min(2, "Dê um nome ao funil").max(funnelLimits.name, "Nome longo demais"),
+  folderId: z.uuid().nullable().default(null),
+});
+
+export const funnelIdSchema = z.uuid();
+
+/** As etapas do funil, na ordem das colunas: ao menos uma, sem repetir, e só do catálogo. */
+export const funnelStagesSchema = z.object({
+  id: z.uuid(),
+  stages: z
+    .array(z.enum(crmStageValues))
+    .min(1, "O funil precisa de ao menos uma etapa")
+    .max(crmStageValues.length)
+    .refine((list) => new Set(list).size === list.length, "Etapa repetida"),
+});
+
+/** Para onde o funil vai: uma pasta, ou a raiz quando é nulo. */
+export const moveFunnelSchema = z.object({ id: z.uuid(), folderId: z.uuid().nullable() });

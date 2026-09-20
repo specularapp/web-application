@@ -14,8 +14,7 @@ import {
   createTransactionSchema,
   installmentRefSchema,
   payInstallmentSchema,
-  reportPaymentSchema,
-} from "./schemas";
+  reportPaymentSchema, stopRecurrenceSchema } from "./schemas";
 import { chargePath, chargeUrl } from "./share";
 import {
   cancelCharge,
@@ -25,8 +24,7 @@ import {
   payInstallment,
   reopenInstallment,
   reportPayment,
-  sendCharge,
-} from "./service";
+  sendCharge, stopRecurrence } from "./service";
 import type { Charge, Transaction } from "./summary";
 
 /**
@@ -116,6 +114,21 @@ export async function reopenInstallmentAction(input: unknown): Promise<{ ok: tru
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/financeiro"]);
   return { ok: true, charge: result.charge };
+}
+
+/** Encerra a série recorrente: esta cobrança fica, a próxima não nasce. */
+export async function stopRecurrenceAction(input: unknown): Promise<{ ok: true; charge: Charge } | ActionError> {
+  const guard = await guardAction("charge-recurrence-stop");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = stopRecurrenceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+
+  const stopped = await stopRecurrence(guard.context.supabase, guard.context.organizationId, parsed.data.id);
+  if (!stopped.ok) return stopped;
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/financeiro"]);
+  return { ok: true, charge: stopped.charge };
 }
 
 export async function cancelChargeAction(input: unknown): Promise<{ ok: true; charge: Charge } | ActionError> {

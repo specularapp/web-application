@@ -50,8 +50,9 @@ import { crmStageMeta, crmStageValues, type CrmStage } from "../stages";
 import type { CrmPerson, Opportunity } from "../summary";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
-import { deleteOpportunityAction } from "../actions";
+import { deleteOpportunityAction, setFunnelStagesAction } from "../actions";
 import { OpportunityCard } from "./opportunity-card";
+import { NewOpportunityDialog } from "./new-opportunity-dialog";
 import { OpportunityColumn } from "./opportunity-column";
 import { OpportunityDialog } from "./opportunity-dialog";
 import styles from "./crm-board.module.css";
@@ -66,6 +67,8 @@ export type CrmBoardProps = {
   basePath: string;
   /** Quem pode assumir uma venda, para os seletores da ficha. */
   team?: CrmPerson[];
+  /** O funil deste quadro; ausente no quadro de todas e no balde, que não têm etapas próprias. */
+  funnelId?: string;
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -114,9 +117,31 @@ const initialSorts = Object.fromEntries(crmStageValues.map((stage) => [stage, DE
 //
 // A ficha da oportunidade é **uma só para o quadro inteiro**, guardando quem está aberto, e não uma por
 // cartão: com vinte e dois cartões seriam vinte e duas janelas montadas.
-export function CrmBoard({ board, query, collapsed: saved, basePath, team }: CrmBoardProps) {
+export function CrmBoard({ board, query, collapsed: saved, basePath, team, funnelId }: CrmBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
+
+  /* A etapa em que a venda nova vai nascer, e nulo quando não há criação aberta: o "+" de cada coluna manda a
+     dela, e a barra manda a primeira do quadro. */
+  const [creating, setCreating] = useState<CrmStage | null>(null);
+
+  /* A etapa que vai sair do funil, esperando a confirmação. */
+  const [removingStage, setRemovingStage] = useState<CrmStage | null>(null);
+  const [removingStageBusy, setRemovingStageBusy] = useState(false);
+
+  const removeStage = async () => {
+    if (!removingStage || !funnelId) return;
+    setRemovingStageBusy(true);
+    const result = await setFunnelStagesAction({ id: funnelId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== removingStage) });
+    setRemovingStageBusy(false);
+    setRemovingStage(null);
+    if (!result.ok) {
+      toast({ title: "Não deu para tirar a etapa", description: result.error, tone: "danger" });
+      return;
+    }
+    toast({ title: "Etapa retirada", description: `${crmStageMeta[removingStage].label} saiu do funil. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
+    router.refresh();
+  };
 
   const [search, setSearch] = useState(query.search);
   // O filtro em vigor na tela, adiantado: a escolha marca na hora e a URL vai atrás. Quando a resposta
@@ -366,12 +391,12 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team }: Crm
         action={
           <>
             <span className={styles.wide}>
-              <Button size="sm" radius="md" iconStart={<PlusIcon />}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => setCreating(board.columns[0]?.stage ?? "lead")}>
                 Nova oportunidade
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Nova oportunidade" size="sm" radius="md">
+              <IconButton label="Nova oportunidade" size="sm" radius="md" onClick={() => setCreating(board.columns[0]?.stage ?? "lead")}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -423,7 +448,8 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team }: Crm
                 sort={sorts[column.stage]}
                 onSortChange={(sort) => changeSort(column.stage, sort)}
                 onOpen={setOpen}
-                onAdd={() => undefined}
+                onAdd={() => setCreating(column.stage)}
+                onRemoveStage={funnelId && columns.length > 1 ? () => setRemovingStage(column.stage) : undefined}
                 landing={landing === column.stage}
                 draggable={!mobile}
                 stages={board.columns.map((entry) => entry.stage)}
@@ -457,6 +483,25 @@ export function CrmBoard({ board, query, collapsed: saved, basePath, team }: Crm
           moveOpportunity(open, stage, open.stage);
           setOpen({ ...open, stage });
         }}
+      />
+      {/* A criação nasce na etapa de onde o "+" foi tocado, e na primeira do quadro quando veio da barra. */}
+      <NewOpportunityDialog
+        open={creating !== null}
+        onClose={() => setCreating(null)}
+        stages={board.columns.map((column) => column.stage)}
+        stage={creating ?? board.columns[0]?.stage ?? "lead"}
+        funnelId={funnelId ?? null}
+        onCreated={() => setCreating(null)}
+      />
+      <ConfirmDialog
+        open={removingStage !== null}
+        pending={removingStageBusy}
+        title={`Tirar ${removingStage ? crmStageMeta[removingStage].label : "a etapa"} do funil?`}
+        description="As oportunidades que estão nela não somem: ficam guardadas e voltam a aparecer quando a etapa for ligada de novo nas etapas do funil."
+        confirmLabel="Tirar etapa"
+        pendingLabel="Tirando"
+        onClose={() => setRemovingStage(null)}
+        onConfirm={() => void removeStage()}
       />
       <ConfirmDialog
         open={deleting !== null}

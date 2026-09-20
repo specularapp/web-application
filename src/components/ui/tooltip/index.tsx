@@ -98,6 +98,10 @@ const Arrow = styled.span`
 
 export function Tooltip({ content, side = "top", align = "center", open, className, children }: TooltipProps) {
   const [hovered, setHovered] = useState(false);
+  /* Toque não tem hover: no dedo o balão abria no tap, ficava grudado até o próximo toque em outro lugar e
+     ainda cobria o que a pessoa ia tocar em seguida (auditoria de 2026-09-17). Quem toca com o dedo já tem
+     o rótulo no próprio botão; o balão é do ponteiro e do teclado. */
+  const touching = useRef(false);
   const rootRef = useRef<HTMLSpanElement>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const bubbleId = useId();
@@ -143,10 +147,20 @@ export function Tooltip({ content, side = "top", align = "center", open, classNa
     <Root
       ref={rootRef}
       className={className}
-      onPointerEnter={() => setHovered(true)}
+      onPointerDownCapture={(event) => {
+        touching.current = event.pointerType === "touch";
+      }}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") setHovered(true);
+      }}
       onPointerLeave={() => setHovered(false)}
-      onFocusCapture={() => setHovered(true)}
-      onBlurCapture={() => setHovered(false)}
+      onFocusCapture={() => {
+        if (!touching.current) setHovered(true);
+      }}
+      onBlurCapture={() => {
+        touching.current = false;
+        setHovered(false);
+      }}
       onKeyDown={close}
     >
       {cloneElement(children, { "aria-describedby": visible ? bubbleId : undefined })}

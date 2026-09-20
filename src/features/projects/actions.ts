@@ -2,8 +2,27 @@
 
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
-import { folderIdSchema, moveProjectSchema, projectFormSchema, projectIdSchema, saveFolderSchema } from "./schemas";
-import { deleteProject, deleteProjectFolder, getProjectDetails, moveProject, saveProject, saveProjectFolder } from "./service";
+import {
+  folderIdSchema,
+  moveProjectSchema,
+  projectFormSchema,
+  projectIdSchema,
+  projectPublicSchema,
+  projectStagesSchema,
+  projectStatusSchema,
+  saveFolderSchema,
+} from "./schemas";
+import {
+  deleteProject,
+  deleteProjectFolder,
+  getProjectDetails,
+  moveProject,
+  saveProject,
+  saveProjectFolder,
+  setProjectPublic,
+  setProjectStages,
+  setProjectStatus,
+} from "./service";
 import type { ProjectDetails } from "./summary";
 
 export type ProjectSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
@@ -107,5 +126,53 @@ export async function moveProjectAction(input: unknown): Promise<FolderResult> {
   if (!moved.ok) return { ok: false, error: moved.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos"]);
+  return { ok: true };
+}
+
+/**
+ * A situação pelo leque: pausar, retomar, concluir. Derruba `projects`, que leva tarefas e concha na
+ * cascata: o projeto concluído sai da árvore do menu, e o quadro dele passa a mostrar isso.
+ */
+export async function setProjectStatusAction(input: unknown): Promise<FolderResult> {
+  const guard = await guardAction("project-status");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = projectStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Situação inválida." };
+
+  const saved = await setProjectStatus(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.status);
+  if (!saved.ok) return { ok: false, error: saved.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/tarefas"]);
+  return { ok: true };
+}
+
+/** As etapas do quadro do projeto, na ordem das colunas. */
+export async function setProjectStagesAction(input: unknown): Promise<FolderResult> {
+  const guard = await guardAction("project-stages");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = projectStagesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error).error };
+
+  const saved = await setProjectStages(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.stages);
+  if (!saved.ok) return { ok: false, error: saved.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/tarefas"]);
+  return { ok: true };
+}
+
+/** Entra ou sai da vitrine pública. Derruba `projects`, que leva a lista e o portfólio junto. */
+export async function setProjectPublicAction(input: unknown): Promise<FolderResult> {
+  const guard = await guardAction("project-public");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = projectPublicSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Projeto inválido." };
+
+  const saved = await setProjectPublic(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.isPublic);
+  if (!saved.ok) return { ok: false, error: saved.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/portfolio"]);
   return { ok: true };
 }

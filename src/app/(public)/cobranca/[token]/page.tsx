@@ -15,7 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 
   return createMetadata({
     title: `${charge.reference}: ${charge.title}`,
-    description: `${issuer.name} emitiu esta cobrança de ${formatMoney(charge.amount)} para ${charge.client.company ?? charge.client.name}.`,
+    description: charge.client
+      ? `${issuer.name} emitiu esta cobrança de ${formatMoney(charge.amount)} para ${charge.client.company ?? charge.client.name}.`
+      : `${issuer.name} emitiu esta cobrança de ${formatMoney(charge.amount)}.`,
     path: `/cobranca/${token}`,
     noIndex: true,
     absoluteTitle: true,

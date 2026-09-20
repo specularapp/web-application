@@ -79,3 +79,25 @@ export async function getTasksTree(next = "/tarefas"): Promise<TaskTreeNode[]> {
     () => getProjectTree(supabase, organizationId),
   );
 }
+
+/** O que a tela do editor precisa: os clientes e a equipe dos seletores, sem a página da grade. */
+export type ProjectEditorData = { clients: ProjectClient[]; owners: ProjectOwnerOption[] };
+
+export async function loadProjectEditorData(next = "/projetos/novo"): Promise<ProjectEditorData> {
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  const [clients, owners] = await Promise.all([
+    cached(
+      cacheKey(organizationId, "projects:clients"),
+      { organizationId, tags: [cacheTags.clients], ttl: cacheTtl.summary },
+      () => listProjectClients(supabase, organizationId),
+    ),
+    cached(
+      cacheKey(organizationId, "projects:owners"),
+      { organizationId, tags: [cacheTags.organization], ttl: cacheTtl.summary },
+      () => listProjectOwners(supabase, organizationId),
+    ),
+  ]);
+
+  return { clients, owners };
+}

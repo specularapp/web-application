@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -37,6 +37,8 @@ export type OpportunityColumnProps = {
   onMove?: (opportunity: Opportunity, stage: CrmStage) => void;
   /** Pede a exclusão de uma oportunidade; quem confirma é o quadro. */
   onDelete?: (opportunity: Opportunity) => void;
+  /** Tira esta etapa do funil; ausente no quadro de todas as oportunidades, que não tem dono. */
+  onRemoveStage?: () => void;
 };
 
 function DraggableCard({
@@ -92,6 +94,7 @@ export function OpportunityColumn({
   stages,
   onMove,
   onDelete,
+  onRemoveStage,
 }: OpportunityColumnProps) {
   const Glyph = stage.icon;
   const count = opportunities.length;
@@ -124,10 +127,9 @@ export function OpportunityColumn({
           icon: collapsed ? ArrowsOutLineHorizontalIcon : ArrowsInLineHorizontalIcon,
           onSelect: () => onCollapsedChange(!collapsed),
         },
-        { id: "rename", label: "Renomear etapa", icon: PencilSimpleIcon },
       ],
     },
-    { id: "remove", items: [{ id: "delete", label: "Excluir etapa", icon: TrashIcon, tone: "danger" }] },
+    ...(onRemoveStage ? [{ id: "remove", items: [{ id: "delete", label: "Tirar etapa do funil", icon: TrashIcon, tone: "danger" as const, onSelect: onRemoveStage }] }] : []),
   ];
 
   return (

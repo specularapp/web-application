@@ -15,14 +15,63 @@
   flex: 1 1 auto;
 }
 
+/* A barra do editor: o voltar, a rota e as ações. O recuo da esquerda é menor que o da direita porque ali
+   quem abre a linha é um botão de ícone, que já traz a própria folga. */
 .head {
   display: flex;
   flex-shrink: 0;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-3);
   border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+/* A rota até o orçamento, no desenho da barra do editor de contrato: os degraus em tinta apagada, o título
+   cedendo por reticências, o número na etiqueta e o total logo depois, que é o que se confere enquanto
+   monta. Nenhum deles cede antes do título. */
+.crumbs {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-quaternary);
+}
+
+.reference {
+  flex-shrink: 0;
+}
+
+/* No celular a rota fica só com o título: o resto não cabe ao lado das abas. */
+@media (max-width: 47.9375rem) {
+  .crumbs > .crumb,
+  .crumbs > .slash,
+  .crumbs > .reference {
+    display: none;
+  }
 }
 
 .heading {

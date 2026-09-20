@@ -1,11 +1,16 @@
+import { AchievementsScreen } from "@/features/gamification/components/achievements-screen";
+import { getGamificationBlocks } from "@/features/gamification/queries";
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
   title: "Conquistas",
-  description: "Seu progresso e evolução na plataforma",
+  description: "Seus pontos, sua posição e a constância de quem entra todo dia",
   path: "/conquistas",
+  noIndex: true,
 });
 
-export default function AchievementsPage() {
-  return null;
+// A página de conquistas (2026-09-17): as mesmas duas leituras do painel, com o espaço que ele não tem.
+export default async function AchievementsPage() {
+  const { points, challenge } = await getGamificationBlocks();
+  return <AchievementsScreen points={points} challenge={challenge} />;
 }

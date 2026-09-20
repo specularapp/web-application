@@ -4,6 +4,7 @@ import styled from "@emotion/styled";
 import { CaretDownIcon, CaretUpIcon, TimerIcon } from "@phosphor-icons/react";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Dialog } from "../dialog";
 import { FieldAdornment, FieldShell } from "../field-shell";
@@ -195,6 +196,10 @@ export function DurationPicker({
   const popoverRef = useRef<HTMLDivElement>(null);
   const dialogId = useId();
   const sheet = useMediaQuery(MOBILE_QUERY);
+  /* A caixa entra na fila de camadas da casa (auditoria de 2026-09-17): aberta de dentro da ficha da tarefa,
+     o Escape fechava a caixa **e** a ficha, porque a ficha não sabia que havia alguém por cima dela. Na
+     bandeja quem registra é o `Dialog`. */
+  const layer = useLayer(open && !sheet);
 
   const parts = split(value, hoursPerDay);
   const options: Record<Column, number[]> = {
@@ -227,12 +232,13 @@ export function DurationPicker({
   useEffect(() => {
     if (!open || sheet) return;
     const onPointerDown = (event: PointerEvent) => {
+      if (!isTopLayer(layer)) return;
       const target = event.target as Node;
       if (shellRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
       setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || !isTopLayer(layer)) return;
       setOpen(false);
       triggerRef.current?.focus();
     };
@@ -242,7 +248,7 @@ export function DurationPicker({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, sheet]);
+  }, [open, sheet, layer]);
 
   const wheels = (
     <Wheels>
@@ -276,7 +282,7 @@ export function DurationPicker({
         </Glyph>
       )}
       {name && <input type="hidden" name={name} value={value} readOnly />}
-      {open && sheet && (
+      {sheet && (
         <Dialog open={open} onClose={() => setOpen(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
           <SheetBody ref={popoverRef} id={dialogId}>
             {wheels}

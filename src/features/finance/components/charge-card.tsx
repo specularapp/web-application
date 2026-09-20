@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, shortDate } from "../labels";
+import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, payerOf, shortDate } from "../labels";
 import { chargeReceived, chargeStatusOf, nextInstallment, type Charge } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 import styles from "./charge-card.module.css";
@@ -24,6 +24,7 @@ const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']
 // ficha; o leque tem ação própria.
 export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
   const status = chargeStatuses[chargeStatusOf(charge)];
+  const payer = payerOf(charge);
   const received = chargeReceived(charge);
   const next = nextInstallment(charge);
   const method = chargeMethods[charge.method];
@@ -63,13 +64,13 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         </div>
 
         <div className={styles.client}>
-          <Avatar name={charge.client.name} src={charge.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />
           <span className={styles.clientCopy}>
             <Text as="span" variant="footnote" weight="medium" truncate>
-              {charge.client.company ?? charge.client.name}
+              {payer.company ?? payer.name}
             </Text>
             <Text as="span" variant="caption1" tone="secondary" truncate>
-              {charge.client.company ? charge.client.name : (charge.client.email ?? "Sem e-mail")}
+              {payer.company ? payer.name : (payer.email ?? (payer.standalone ? "Cobrança avulsa" : "Sem e-mail"))}
             </Text>
           </span>
         </div>

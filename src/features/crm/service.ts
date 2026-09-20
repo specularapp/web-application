@@ -3,10 +3,11 @@ import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers } from "@/features/organizations/service";
 import { slugify } from "@/lib/utils/slug";
+import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { CrmQuery } from "./list-options";
 import type { OpportunityFormInput } from "./schemas";
-import type { CrmStage } from "./stages";
+import { defaultCrmStages, type CrmStage } from "./stages";
 import type {
   CrmPerson,
   Opportunity,
@@ -290,6 +291,13 @@ export async function saveOpportunity(
   };
 
   if (input.id) {
+    const { data: before } = await client
+      .from("opportunities")
+      .select("title, description, client_name, client_company, contact_name, contact_email, contact_phone, stage, value, temperature, probability, city, state, expected_at, owner_id, tags, source")
+      .eq("organization_id", organizationId)
+      .eq("id", input.id)
+      .maybeSingle();
+
     const { data, error } = await client
       .from("opportunities")
       .update(values)
@@ -299,13 +307,43 @@ export async function saveOpportunity(
       .maybeSingle();
 
     if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+    const changes = diffFields(before, values, opportunityHistoryLabels);
+    if (changes.length > 0) {
+      await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: data.id, action: "updated", summary: summarize(changes), changes });
+    }
+
     return { ok: true, data: { id: data.id } };
   }
 
   const { data, error } = await client.from("opportunities").insert(values).select("id").single();
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+
+  await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: data.id, action: "created", summary: `Abriu a oportunidade ${input.title}` });
+
   return { ok: true, data: { id: data.id } };
 }
+
+/* Os nomes que a pessoa lê no histórico da oportunidade. */
+const opportunityHistoryLabels = {
+  title: "título",
+  description: "descrição",
+  client_name: "cliente",
+  client_company: "empresa",
+  contact_name: "contato",
+  contact_email: "e-mail",
+  contact_phone: "telefone",
+  stage: "etapa",
+  value: "valor",
+  temperature: "temperatura",
+  probability: "chance",
+  city: "cidade",
+  state: "estado",
+  expected_at: "previsão",
+  owner_id: "responsável",
+  tags: "etiquetas",
+  source: "origem",
+} as const;
 
 /** Mover o cartão de coluna: a única escrita que o quadro faz ao arrastar. */
 export async function moveOpportunity(
@@ -322,6 +360,19 @@ export async function moveOpportunity(
     .eq("organization_id", organizationId);
 
   if (error) return { ok: false, error: error.message };
+
+  /* Só os desfechos entram no histórico: mover de coluna é o gesto mais frequente do funil e encheria a linha
+     do tempo com o que a própria coluna já conta. Ganhar e perder são a coisa mais decisiva que se faz. */
+  if (closing) {
+    await logRecordEvent(client, organizationId, {
+      recordType: "opportunity",
+      recordId: id,
+      action: "updated",
+      summary: stage === "won" ? "Marcou como ganha" : "Marcou como perdida",
+      changes: [{ field: "stage", label: "etapa", from: null, to: stage }],
+    });
+  }
+
   return { ok: true, data: undefined };
 }
 
@@ -332,6 +383,9 @@ export async function deleteOpportunity(
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("opportunities").delete().eq("organization_id", organizationId).eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: id, action: "deleted", summary: "Excluiu a oportunidade" });
+
   return { ok: true, data: undefined };
 }
 
@@ -401,4 +455,128 @@ export async function duplicateOpportunity(
 
   if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
   return { ok: true, data: { id: data.id } };
+}
+
+/* ------------------------------------------------------------------------------------------------------ */
+/* Pastas e funis: criar, renomear, apagar e arrumar etapas (2026-09-17, a pedido do leque do menu lateral). */
+/* ------------------------------------------------------------------------------------------------------ */
+
+/** Cria uma pasta do funil, ou renomeia a que veio com id. A posição nasce no fim do nível. */
+export async function saveCrmFolder(
+  client: CrmClient,
+  organizationId: string,
+  input: { id?: string; name: string; parentId: string | null },
+): Promise<ServiceResult<{ id: string }>> {
+  if (input.id) {
+    const { data, error } = await client
+      .from("crm_folders")
+      .update({ name: input.name })
+      .eq("id", input.id)
+      .eq("organization_id", organizationId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    return { ok: true, data: { id: data.id } };
+  }
+
+  /* Quantas já existem no mesmo nível, para a nova entrar no fim. `is` só aceita nulo, e `eq` não acha nulo. */
+  const level = client.from("crm_folders").select("id", { count: "exact", head: true }).eq("organization_id", organizationId);
+  const { count } = await (input.parentId ? level.eq("parent_id", input.parentId) : level.is("parent_id", null));
+
+  const { data, error } = await client
+    .from("crm_folders")
+    .insert({ organization_id: organizationId, name: input.name, parent_id: input.parentId, position: count ?? 0 })
+    .select("id")
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: { id: data.id } };
+}
+
+/** Apaga a pasta. Os funis dentro dela voltam para a raiz: o vínculo é `set null`, pasta é só organização. */
+export async function deleteCrmFolder(client: CrmClient, organizationId: string, id: string): Promise<ServiceResult<undefined>> {
+  const { error } = await client.from("crm_folders").delete().eq("id", id).eq("organization_id", organizationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Cria um funil, ou renomeia o que veio com id. O novo nasce com as etapas padrão e dentro da pasta pedida;
+ * o slug sai do nome e é único na organização, porque é ele que vira endereço.
+ */
+export async function saveFunnel(
+  client: CrmClient,
+  organizationId: string,
+  input: { id?: string; name: string; folderId: string | null },
+): Promise<ServiceResult<{ id: string; slug: string }>> {
+  if (input.id) {
+    const { data, error } = await client
+      .from("crm_funnels")
+      .update({ name: input.name })
+      .eq("id", input.id)
+      .eq("organization_id", organizationId)
+      .select("id, slug")
+      .maybeSingle();
+
+    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    return { ok: true, data: { id: data.id, slug: data.slug } };
+  }
+
+  const { count } = await client.from("crm_funnels").select("id", { count: "exact", head: true }).eq("organization_id", organizationId);
+
+  const { data, error } = await client
+    .from("crm_funnels")
+    .insert({
+      organization_id: organizationId,
+      name: input.name,
+      slug: await uniqueFunnelSlug(client, organizationId, input.name),
+      folder_id: input.folderId,
+      stages: defaultCrmStages,
+      position: count ?? 0,
+    })
+    .select("id, slug")
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: { id: data.id, slug: data.slug } };
+}
+
+/**
+ * Apaga um funil. As oportunidades dele **não** somem: o vínculo é `set null`, então elas caem no balde
+ * "Sem funil" e continuam contando. Apagar o quadro não é apagar as vendas que estavam nele.
+ */
+export async function deleteFunnel(client: CrmClient, organizationId: string, id: string): Promise<ServiceResult<undefined>> {
+  const { error } = await client.from("crm_funnels").delete().eq("id", id).eq("organization_id", organizationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * As etapas de um funil, na ordem das colunas. Uma oportunidade numa etapa que saiu fica onde está no banco
+ * e some do quadro até a etapa voltar; o gatilho do banco cuida de as novas só entrarem em etapa que existe.
+ */
+export async function setFunnelStages(
+  client: CrmClient,
+  organizationId: string,
+  id: string,
+  stages: CrmStage[],
+): Promise<ServiceResult<undefined>> {
+  const { data, error } = await client
+    .from("crm_funnels")
+    .update({ stages })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  return { ok: true, data: undefined };
+}
+
+/** Move um funil para uma pasta, ou para a raiz quando ela é nula. */
+export async function moveFunnel(client: CrmClient, organizationId: string, input: { id: string; folderId: string | null }): Promise<ServiceResult<undefined>> {
+  const { error } = await client.from("crm_funnels").update({ folder_id: input.folderId }).eq("id", input.id).eq("organization_id", organizationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: undefined };
 }
