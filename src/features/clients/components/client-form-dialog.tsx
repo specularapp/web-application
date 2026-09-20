@@ -12,8 +12,8 @@ import {
   XIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import Image from "next/image";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
+import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
@@ -56,9 +57,6 @@ export type ClientFormDialogProps = {
   /** Depois de salvar com sucesso, além de fechar. */
   onSaved: () => void;
 };
-
-/** Tamanho máximo da foto e da logo, em bytes: 2 MB, o mesmo teto da logo da equipe. */
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
 /* O formulário guarda texto cru; a ficha guarda tipos. A conversão mora aqui, num lugar só. */
 function valuesOf(client?: Client) {
@@ -119,7 +117,7 @@ function ImageField({
   return (
     <div className={styles.image}>
       <span className={styles.imageFrame} {...squircle("lg", { clip: true })}>
-        {preview ? <Image src={preview} alt="" fill sizes="3.5rem" unoptimized className={styles.imagePreview} /> : fallback}
+        {preview ? <StoredImage src={preview} alt="" fill sizes="3.5rem" className={styles.imagePreview} /> : fallback}
       </span>
       <div className={styles.imageCopy}>
         <Text as="span" variant="footnote" weight="medium" truncate>
@@ -145,8 +143,8 @@ function ImageField({
         onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
           event.target.value = "";
-          if (file && file.size > IMAGE_MAX_BYTES) {
-            onSelect(null, "A imagem passa de 2 MB. Escolha uma menor.");
+          if (file && file.size > SOURCE_MAX_BYTES) {
+            onSelect(null, "A imagem passa de 25 MB. Escolha uma menor.");
             return;
           }
           onSelect(file);

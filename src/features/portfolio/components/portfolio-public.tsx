@@ -1,8 +1,8 @@
 "use client";
 
 import { ArrowSquareOutIcon, GlobeSimpleIcon } from "@phosphor-icons/react";
-import Image from "next/image";
 import type { CSSProperties } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export function PortfolioPublic({ team, projects }: Portfolio) {
       <header className={styles.hero}>
         {team.bannerUrl && (
           <div className={styles.banner} {...squircle("xl", { clip: true })}>
-            <Image src={team.bannerUrl} alt="" fill sizes="(min-width: 64rem) 64rem, 100vw" unoptimized className={styles.bannerImage} priority />
+            <StoredImage src={team.bannerUrl} alt="" fill sizes="(min-width: 64rem) 64rem, 100vw" quality={90} className={styles.bannerImage} priority />
           </div>
         )}
         <div className={styles.identity}>
@@ -92,7 +92,7 @@ export function PortfolioCard({ project }: { project: PortfolioProject }) {
     <li className={styles.card} {...squircle("xl", { clip: true })}>
       <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
         {project.coverUrl ? (
-          <Image src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" unoptimized className={styles.photo} />
+          <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" quality={90} className={styles.photo} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- a arte gerada é um SVG servido pela casa, que o next/image não otimiza
           <img src={projectArtworkUrl({ id: project.id, hue: project.hue })} alt="" width={96} height={96} loading="lazy" decoding="async" className={styles.art} />

@@ -5,6 +5,7 @@ import { addDays, addMonths, format, parseISO } from "date-fns";
 import { useEffect, useId, useRef, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
+import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -53,9 +54,6 @@ const NO_CLIENT = "__avulsa__";
 
 const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label: recurrenceLabels[value] }));
 
-/** Teto da foto da cobrança, o mesmo do balde. */
-const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-
 // A gaveta de nova cobrança (2026-09-15): nasce de um orçamento aprovado, que já traz o cliente, o título, o
 // valor e as parcelas, ou do zero. Cliente com busca e rosto, título, descrição, valor, quantas parcelas e o
 // primeiro vencimento (as outras caem mês a mês), a forma de pagar com as instruções que o cliente vê, e as
@@ -90,8 +88,8 @@ function ChargeForm({ lookups, clientId, onClose, onCreated }: Omit<NewChargeDia
   );
 
   const pickImage = (file: File | null) => {
-    if (file && file.size > IMAGE_MAX_BYTES) {
-      toast({ title: "Imagem grande demais", description: "A foto passa de 5 MB. Escolha uma menor.", tone: "warning" });
+    if (file && file.size > SOURCE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A foto passa de 25 MB. Escolha uma menor.", tone: "warning" });
       return;
     }
     if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);

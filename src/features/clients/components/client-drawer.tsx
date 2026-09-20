@@ -1,10 +1,10 @@
 "use client";
 
 import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
-import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useEffect, useState } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -200,7 +200,7 @@ function CompanyMark({ name, src }: { name: string; src?: string | null }) {
   return (
     <span className={styles.company} role="img" aria-label={`Empresa: ${name}`} title={name}>
       {src ? (
-        <Image src={src} alt="" width={24} height={24} unoptimized className={styles.companyImage} />
+        <StoredImage src={src} alt="" width={24} height={24} className={styles.companyImage} />
       ) : (
         <span aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
       )}

@@ -18,8 +18,8 @@ import {
 import { Background, BackgroundVariant, Handle, Position, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import type { Route } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { memo, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -276,10 +276,9 @@ const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
     <>
       <span className={styles.nodeHead}>
         {/* A imagem do registro quando ele tem uma (a logo da marca, a do projeto, a capa), e o glifo do
-            domínio quando não tem: é o que deixa reconhecer o registro antes de ler o nome. Vem de fora e
-            sem domínio para liberar, então sem otimizador, como a logo da empresa na ficha do cliente. */}
+            domínio quando não tem: é o que deixa reconhecer o registro antes de ler o nome. */}
         {relation.imageUrl ? (
-          <Image src={relation.imageUrl} alt="" width={36} height={36} unoptimized className={styles.nodePhoto} {...squircle("md", { clip: true })} />
+          <StoredImage src={relation.imageUrl} alt="" width={36} height={36} className={styles.nodePhoto} {...squircle("md", { clip: true })} />
         ) : (
           <span className={styles.nodeGlyph} aria-hidden="true" {...squircle("md")}>
             <kind.icon weight="duotone" />

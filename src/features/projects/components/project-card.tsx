@@ -1,8 +1,8 @@
 "use client";
 
 import { CalendarBlankIcon, FolderSimpleIcon, GlobeSimpleIcon } from "@phosphor-icons/react";
-import Image from "next/image";
 import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
@@ -120,7 +120,7 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
             SVG, como no avatar. */}
         <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
           {project.coverUrl ? (
-            <Image src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" unoptimized className={styles.photo} />
+            <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" quality={90} className={styles.photo} />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={projectArtworkUrl(project)} alt="" width={96} height={96} loading="lazy" decoding="async" className={styles.art} />

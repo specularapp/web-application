@@ -17,6 +17,7 @@ import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
+import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
@@ -40,9 +41,6 @@ export type CatalogFormDialogProps = {
   /** Depois de salvar com sucesso, além de fechar. */
   onSaved: () => void;
 };
-
-/** Tamanho máximo da imagem, em bytes: 2 MB, o mesmo teto da foto do cliente. */
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -156,8 +154,8 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
   useEffect(() => () => revokeLocal(imageUrl), [imageUrl]);
 
   const pickImage = (file: File | null) => {
-    if (file && file.size > IMAGE_MAX_BYTES) {
-      toast({ title: "Imagem grande demais", description: "A imagem passa de 2 MB. Escolha uma menor.", tone: "warning" });
+    if (file && file.size > SOURCE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A imagem passa de 25 MB. Escolha uma menor.", tone: "warning" });
       return;
     }
     setImageUrl(file ? URL.createObjectURL(file) : null);

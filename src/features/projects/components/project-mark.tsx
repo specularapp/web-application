@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { CSSProperties } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { cx } from "@/lib/utils/cx";
 import { squircle } from "@/lib/corners";
 import { projectArtworkUrl } from "../list-options";
@@ -51,9 +51,7 @@ export function ProjectMark({ project, size = "md", className }: ProjectMarkProp
       {...squircle(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
     >
       {borrowed ? (
-        /* A imagem vem de fora e sem domínio para liberar, então vai sem otimizador, como a logo da empresa
-           na ficha do cliente. */
-        <Image src={borrowed} alt="" width={side} height={side} unoptimized className={styles.photo} />
+        <StoredImage src={borrowed} alt="" width={side} height={side} className={styles.photo} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={projectArtworkUrl(project)} alt="" width={side} height={side} loading="lazy" decoding="async" className={styles.art} />

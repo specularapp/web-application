@@ -18,10 +18,10 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -250,7 +250,7 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
               matiz do projeto, numa faixa mais deitada que a do cartão porque aqui ela tem largura de sobra. */}
           <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
             {project.coverUrl ? (
-              <Image src={project.coverUrl} alt="" fill sizes="(min-width: 64rem) 48rem, 100vw" unoptimized className={styles.photo} />
+              <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 64rem) 48rem, 100vw" quality={90} className={styles.photo} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={projectArtworkUrl(project)} alt="" width={128} height={128} loading="lazy" decoding="async" className={styles.art} />

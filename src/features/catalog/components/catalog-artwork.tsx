@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { CSSProperties } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { cx } from "@/lib/utils/cx";
 import { squircle } from "@/lib/corners";
 import { catalogArtworkUrl } from "../list-options";
@@ -23,8 +23,8 @@ const pixelSizes: Record<CatalogArtworkSize, number> = { sm: 32, md: 40, lg: 52 
 //
 // A arte vem da rota, e não embutida, pelo mesmo motivo do rosto do avatar: é um arquivo com cache de um
 // ano, e o mesmo item em cinco lugares custa uma requisição. `<img>` cru para o SVG, como no avatar: o
-// otimizador não mexe em SVG sem `dangerouslyAllowSVG`. A foto, quando houver, virá de fora e sem domínio
-// para liberar, então vai sem otimizador, como a logo da empresa na ficha do cliente.
+// otimizador não mexe em SVG sem `dangerouslyAllowSVG`. A foto do item é nossa, do armazenamento, então
+// passa pelo otimizador: quem decide isso é o `StoredImage`.
 export function CatalogArtwork({ item, size = "md", className }: CatalogArtworkProps) {
   const side = pixelSizes[size];
 
@@ -37,7 +37,7 @@ export function CatalogArtwork({ item, size = "md", className }: CatalogArtworkP
       {...squircle(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
     >
       {item.imageUrl ? (
-        <Image src={item.imageUrl} alt="" width={side} height={side} unoptimized className={styles.photo} />
+        <StoredImage src={item.imageUrl} alt="" width={side} height={side} className={styles.photo} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={catalogArtworkUrl(item)} alt="" width={side} height={side} loading="lazy" decoding="async" className={styles.art} />

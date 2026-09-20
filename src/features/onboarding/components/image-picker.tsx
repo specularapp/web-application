@@ -1,11 +1,11 @@
 "use client";
 
 import { CloudArrowUpIcon } from "@phosphor-icons/react";
-import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 import type { ReactNode } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { Text } from "@/components/ui/text";
-import { LOGO_MAX_BYTES } from "@/features/organizations/schemas";
+import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { cx } from "@/lib/utils/cx";
 import styles from "./onboarding.module.css";
 
@@ -40,7 +40,7 @@ const sizes = {
 export function ImagePicker({ variant, label, hint, preview, disabled = false, onSelect, onReject }: ImagePickerProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept,
-    maxSize: LOGO_MAX_BYTES,
+    maxSize: SOURCE_MAX_BYTES,
     multiple: false,
     disabled,
     onDrop: (accepted, rejected) => {
@@ -50,7 +50,7 @@ export function ImagePicker({ variant, label, hint, preview, disabled = false, o
         return;
       }
       const code = rejected[0]?.errors[0]?.code;
-      if (code === "file-too-large") onReject("A imagem precisa ter no máximo 2 MB");
+      if (code === "file-too-large") onReject("A imagem precisa ter no máximo 25 MB");
       else if (code) onReject("Envie a imagem em PNG, JPG ou WEBP");
     },
   });
@@ -68,13 +68,7 @@ export function ImagePicker({ variant, label, hint, preview, disabled = false, o
       <input {...getInputProps()} />
       <span className={styles.targetInner}>
         {preview ? (
-          <Image
-            src={preview}
-            alt=""
-            fill
-            sizes={sizes[variant]}
-            unoptimized={preview.startsWith("blob:")}
-          />
+          <StoredImage src={preview} alt="" fill sizes={sizes[variant]} />
         ) : (
           <>
             <CloudArrowUpIcon weight="bold" aria-hidden="true" />

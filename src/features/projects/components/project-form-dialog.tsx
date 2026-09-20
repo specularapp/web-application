@@ -2,8 +2,8 @@
 
 import { CalendarBlankIcon, CheckIcon, FolderSimpleIcon, GlobeSimpleIcon, PlusIcon, StackIcon, UploadSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
-import Image from "next/image";
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode, type RefObject } from "react";
+import { StoredImage } from "@/components/ui/stored-image";
 import { FloatingLayer, useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -28,6 +28,7 @@ import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
+import { compressImage, SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { ProjectMark } from "./project-mark";
 import { saveProjectAction } from "../actions";
 import { projectStatuses, projectTools } from "../labels";
@@ -53,12 +54,8 @@ export type ProjectFormDialogProps = {
   onSaved: (id: string) => void;
 };
 
-/** Teto da imagem escolhida, em bytes: 8 MB, folgado, porque ela é redimensionada aqui antes de subir. */
-const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
-
-/** A capa sobe em 1440 por 810, o dobro do que a janela desenha: nítida em tela densa e leve no envio. */
-const COVER_WIDTH = 1440;
-const COVER_HEIGHT = 810;
+/* A capa escolhida é reduzida aqui para a prévia sair leve, na mesma receita de `lib/images` que a subida
+   usa: a segunda passagem reconhece o WebP já no tamanho e devolve o mesmo arquivo, sem reencodar. */
 
 const today = () => format(new Date(), "yyyy-MM-dd");
 const toDate = (iso: string) => (iso ? parseISO(iso) : undefined);
@@ -131,57 +128,6 @@ export type ProjectFormProps = {
 /* O valor do "sem cliente" na lista: o campo guarda texto vazio, e o seletor da casa não aceita vazio como
    escolha, porque vazio para ele é "nada escolhido". */
 const NO_CLIENT = "sem-cliente";
-
-/* A imagem decodificada já na orientação certa, pelo `createImageBitmap`, que lê a orientação do arquivo;
-   onde ele não existe, o `<img>` cru resolve. */
-async function loadSource(file: File): Promise<ImageBitmap | HTMLImageElement> {
-  if ("createImageBitmap" in window) {
-    try {
-      return await createImageBitmap(file, { imageOrientation: "from-image" });
-    } catch {
-      /* cai para o <img> */
-    }
-  }
-  const url = URL.createObjectURL(file);
-  try {
-    const image = document.createElement("img");
-    image.src = url;
-    await image.decode();
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-/**
- * A capa é redimensionada no navegador antes de subir: cabe em 1440 por 810 e sai em WebP (JPEG onde o
- * navegador não grava WebP), embutida em `data:`. É o que deixa uma foto de câmera caber no envio da action
- * e o que faz a imagem que a tela mostra ser a que fica guardada. Quando o armazenamento de arquivos nascer,
- * o mesmo redimensionar alimenta o envio para lá.
- */
-async function readCover(file: File): Promise<File> {
-  const source = await loadSource(file);
-  const width = "naturalWidth" in source ? source.naturalWidth : source.width;
-  const height = "naturalHeight" in source ? source.naturalHeight : source.height;
-  const scale = Math.min(1, COVER_WIDTH / width, COVER_HEIGHT / height);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * scale));
-  canvas.height = Math.max(1, Math.round(height * scale));
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Sem canvas");
-  context.drawImage(source, 0, 0, canvas.width, canvas.height);
-  if ("close" in source) source.close();
-  /* Um arquivo, e não mais um `data:` embutido (2026-09-16, correção): a capa embutida ia dentro da action
-     e era gravada na coluna, que o banco limita a 500 caracteres, então uma capa de verdade nunca chegava a
-     salvar. Agora ela sobe para o Storage e o que vai para a coluna é o endereço. O redimensionamento para
-     1440 por 810 continua, e agora ele serve para o arquivo subir leve. */
-  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.82));
-  const ready = blob?.type === "image/webp" ? blob : await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/jpeg", 0.85));
-  if (!ready) throw new Error("Sem imagem");
-
-  const extension = ready.type === "image/webp" ? "webp" : "jpg";
-  return new File([ready], `capa.${extension}`, { type: ready.type });
-}
 
 /* Um bloco do formulário: o glifo e o título numa linha, e os campos embaixo. Quem separa um bloco do
    outro é o fio, de ponta a ponta, como na gaveta do cliente e do catálogo. */
@@ -274,13 +220,13 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
   const digitsOf = (key: keyof Values) => (event: { target: { value: string } }) => set(key, onlyDigits(event.target.value) as never);
 
   const pickCover = async (file: File) => {
-    if (file.size > IMAGE_MAX_BYTES) {
-      toast({ title: "Imagem grande demais", description: "A imagem passa de 8 MB. Escolha uma menor.", tone: "warning" });
+    if (file.size > SOURCE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A imagem passa de 25 MB. Escolha uma menor.", tone: "warning" });
       return;
     }
     setReading(true);
     try {
-      const prepared = await readCover(file);
+      const prepared = await compressImage(file, "cover");
       setCoverFile(prepared);
       setCoverPreview(URL.createObjectURL(prepared));
       /* O valor do formulário guarda o endereço **salvo**, e não a prévia: é ele que vai para a action, e um
@@ -300,8 +246,8 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
   };
 
   const pickLogo = (file: File) => {
-    if (file.size > IMAGE_MAX_BYTES) {
-      toast({ title: "Imagem grande demais", description: "A logo passa de 8 MB. Escolha uma menor.", tone: "warning" });
+    if (file.size > SOURCE_MAX_BYTES) {
+      toast({ title: "Imagem grande demais", description: "A logo passa de 25 MB. Escolha uma menor.", tone: "warning" });
       return;
     }
     setLogoFile(file);
@@ -463,7 +409,7 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
           <div className={styles.artwork}>
             <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
               {shownCover ? (
-                <Image src={shownCover} alt="" fill sizes="9rem" unoptimized className={styles.photo} />
+                <StoredImage src={shownCover} alt="" fill sizes="9rem" className={styles.photo} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={projectArtworkUrl(preview)} alt="" width={64} height={64} decoding="async" className={styles.art} />
