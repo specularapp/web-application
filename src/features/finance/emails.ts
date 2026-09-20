@@ -1,7 +1,7 @@
 import "server-only";
 import { formatMoney } from "@/lib/utils/format";
 import { deliver, escapeHtml, shell } from "@/lib/resend/template";
-import { installmentLabel, longDate, payerOf } from "./labels";
+import { installmentLabel, longDate, partyOf } from "./labels";
 import type { Charge, Installment } from "./summary";
 
 /**
@@ -15,7 +15,7 @@ const bold = (value: string) => `<strong style="color: #000000; font-weight: 600
 export async function sendChargeEmail(input: { charge: Charge; url: string; issuerName: string; reminder: boolean }) {
   const { charge, url, issuerName, reminder } = input;
   /* Sem e-mail não há para quem mandar: a cobrança avulsa se compartilha pelo link, e não por e-mail. */
-  const payer = payerOf(charge);
+  const payer = partyOf(charge);
   if (!payer.email) return false;
   const firstName = payer.name.split(" ")[0] ?? payer.name;
   const next = [...charge.installments].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).find((installment) => !installment.paidAt);
@@ -44,7 +44,7 @@ export async function sendChargeEmail(input: { charge: Charge; url: string; issu
 
 export async function sendPaymentReportedEmail(input: { to: string; charge: Charge; installment: Installment; appUrl: string }) {
   const { to, charge, installment, appUrl } = input;
-  const subject = `${payerOf(charge).name} avisou o pagamento da ${installmentLabel(installment.number, charge.installments.length).toLowerCase()} de ${charge.reference}`;
+  const subject = `${partyOf(charge).name} avisou o pagamento da ${installmentLabel(installment.number, charge.installments.length).toLowerCase()} de ${charge.reference}`;
   return deliver(
     to,
     subject,
@@ -53,7 +53,7 @@ export async function sendPaymentReportedEmail(input: { to: string; charge: Char
       preview: `Confirme o recebimento de ${formatMoney(installment.amount)}`,
       heading: "Pagamento avisado pelo cliente",
       lines: [
-        `${bold(payerOf(charge).name)} disse pelo link que pagou a ${escapeHtml(installmentLabel(installment.number, charge.installments.length).toLowerCase())} da cobrança ${bold(charge.reference)} (${escapeHtml(charge.title)}), de ${bold(formatMoney(installment.amount))}, com vencimento em ${escapeHtml(longDate(installment.dueDate))}.`,
+        `${bold(partyOf(charge).name)} disse pelo link que pagou a ${escapeHtml(installmentLabel(installment.number, charge.installments.length).toLowerCase())} da cobrança ${bold(charge.reference)} (${escapeHtml(charge.title)}), de ${bold(formatMoney(installment.amount))}, com vencimento em ${escapeHtml(longDate(installment.dueDate))}.`,
         "Confira o extrato e confirme o recebimento na ficha da cobrança: a entrada só entra no caixa quando você confirma.",
       ],
       button: { label: "Abrir a cobrança", url: appUrl },

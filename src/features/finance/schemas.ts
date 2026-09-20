@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { chargeDirectionValues } from "./summary";
 
 /**
  * O zod do financeiro: o que chega das janelas de nova cobrança, de pagamento de parcela e de nova
@@ -25,9 +26,14 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data.");
 export const chargeRecurrenceValues = ["none", "monthly", "quarterly", "yearly"] as const;
 
 export const createChargeSchema = z.object({
-  /* Nulo é a **cobrança avulsa**: nem tudo que se cobra é de um cliente cadastrado, e obrigar a cadastrar
-     alguém só para poder cobrar sujaria a base de clientes. O que dá nome a ela é o título. */
+  /** Para que lado o dinheiro anda: recebida é cobrança, paga é despesa. */
+  direction: z.enum(chargeDirectionValues),
+  /* Nulo é a **avulsa**: nem tudo que se cobra é de um cliente cadastrado, e obrigar a cadastrar alguém só
+     para poder lançar sujaria a base de clientes. O que dá nome a ela é o título, ou `partyName`. */
   clientId: idSchema.nullable(),
+  /* A contraparte digitada, para quando ela não é ninguém da base: o fornecedor da despesa, quase sempre, e
+     o pagador solto de uma cobrança avulsa. Vazio é não ter contraparte, e aí o título responde por ela. */
+  partyName: z.string().trim().max(80, "O nome está longo demais."),
   title: z.string().trim().min(2, "Dê um título à cobrança.").max(chargeLimits.title, "O título está longo demais."),
   description: z.string().trim().max(chargeLimits.description, "A descrição está longa demais."),
   amount: z.number().int().min(100, "O valor precisa ser de pelo menos R$ 1,00.").max(chargeLimits.amount, "Confira o valor."),

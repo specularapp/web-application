@@ -29,6 +29,55 @@
 }
 
 /* O resumo: a receber, vencido e a contagem, em uma linha de fatos, com o vencido em vermelho quando há. */
+/* O segmento do lado: as três abas no fundo agrupado da casa, a escolhida na superfície com sombra, na
+   mesma receita do seletor do editor de projeto. O ponto colorido é a leitura de relance, verde no que
+   entra e vermelho no que sai, igual à das movimentações. */
+.sides {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-self: start;
+  padding: var(--space-half);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.side {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: 1.75rem;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.side[aria-selected="true"] {
+  color: var(--color-label);
+  background-color: var(--color-bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.sideDot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: var(--radius-full);
+}
+
+.sideDot[data-side="incoming"] {
+  background-color: var(--sys-green);
+}
+
+.sideDot[data-side="outgoing"] {
+  background-color: var(--sys-red);
+}
+
 .totals {
   display: flex;
   flex-wrap: wrap;

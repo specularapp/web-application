@@ -100,8 +100,23 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
         <div className={styles.tiles}>
           <Tile icon={<ArrowDownLeftIcon weight="bold" />} hue="var(--sys-green)" label={`Recebido, ${periodLabel.toLowerCase()}`} value={overview.received} foot={`${overview.receivedCount} ${overview.receivedCount === 1 ? "entrada" : "entradas"}`} />
           <Tile icon={<ArrowUpRightIcon weight="bold" />} hue="var(--sys-red)" label={`Saídas, ${periodLabel.toLowerCase()}`} value={overview.expenses} foot={`${overview.expensesCount} ${overview.expensesCount === 1 ? "saída" : "saídas"}`} />
-          <Tile icon={<CalendarCheckIcon weight="bold" />} hue="var(--sys-blue)" label="A receber" value={overview.receivable} foot={`${overview.receivableCount} ${overview.receivableCount === 1 ? "parcela em aberto" : "parcelas em aberto"}`} />
-          <Tile icon={<WarningCircleIcon weight="bold" />} hue={overview.overdue > 0 ? "var(--sys-red)" : "var(--sys-gray)"} label="Em atraso" value={overview.overdue} foot={overview.overdueCount === 0 ? "Nada vencido" : `${overview.overdueCount} ${overview.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"}`} />
+          {/* A receber e a pagar lado a lado, e nunca somados (2026-09-20, com a despesa): um saldo único
+              diria que a equipe tem mais dinheiro a caminho do que tem, que é o engano que a despesa
+              existe para não deixar acontecer. O atraso de cada lado vai no pé do azulejo dele. */}
+          <Tile
+            icon={<CalendarCheckIcon weight="bold" />}
+            hue="var(--sys-blue)"
+            label="A receber"
+            value={overview.receivable}
+            foot={overview.overdueCount > 0 ? `${formatMoney(overview.overdue)} em atraso` : `${overview.receivableCount} ${overview.receivableCount === 1 ? "parcela em aberto" : "parcelas em aberto"}`}
+          />
+          <Tile
+            icon={<WarningCircleIcon weight="bold" />}
+            hue={overview.payable > 0 ? "var(--sys-red)" : "var(--sys-gray)"}
+            label="A pagar"
+            value={overview.payable}
+            foot={overview.payableOverdueCount > 0 ? `${formatMoney(overview.payableOverdue)} em atraso` : overview.payableCount === 0 ? "Nada a pagar" : `${overview.payableCount} ${overview.payableCount === 1 ? "parcela em aberto" : "parcelas em aberto"}`}
+          />
         </div>
       </div>
 

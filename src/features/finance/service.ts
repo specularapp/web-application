@@ -8,7 +8,7 @@ import { quoteTotals } from "@/features/quotes/totals";
 import { shareCredentials, shareTokenHash } from "@/lib/security/share-token";
 import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
-import { installmentLabel, recurrenceMonths } from "./labels";
+import { chargeDirections, installmentLabel, recurrenceMonths } from "./labels";
 import type { CreateChargeInput, CreateTransactionInput, PayInstallmentInput } from "./schemas";
 import { chargeUrl } from "./share";
 import {
@@ -16,6 +16,7 @@ import {
   statusOf,
   todayIso,
   type Charge,
+  type ChargeDirection,
   type ChargeEvent,
   type ChargeMethod,
   type ChargeRecurrence,
@@ -40,7 +41,7 @@ export type ReportResult =
   | { ok: false; error: string };
 
 const columns = `
-  id, reference, title, description, client_id, client_name, client_company, client_email,
+  id, reference, direction, title, description, client_id, client_name, client_company, client_email,
   client_avatar_url, image_url, recurrence, recurring_from_id, owner_id, amount, method, payment_info, notes, token_version,
   created_at, sent_at, viewed_at, cancelled_at,
   quotes(id, reference),
@@ -53,6 +54,7 @@ const columns = `
 type Row = {
   id: string;
   reference: string;
+  direction: ChargeDirection;
   title: string;
   description: string;
   client_id: string | null;
@@ -102,6 +104,7 @@ function toCharge(row: Row, owner: { name: string; avatarUrl: string | null }): 
   return {
     id: row.id,
     reference: row.reference,
+    direction: row.direction,
     title: row.title,
     description: row.description,
     /* Sem nome não há contraparte: é a cobrança avulsa, e a tela mostra o título e a foto no lugar. */
@@ -262,7 +265,9 @@ export async function createCharge(
   userId: string,
   input: CreateChargeInput,
 ): Promise<ChargeResult> {
-  /* Sem cliente é a cobrança avulsa, e aí não há ninguém para buscar: quem dá nome a ela é o título. */
+  /* Sem cliente é a avulsa, e aí não há ninguém para buscar: quem dá nome a ela é o título, ou o nome
+     digitado. É o caso de quase toda despesa, porque fornecedor não é cliente e não tem por que entrar na
+     base de clientes para uma assinatura ser paga. */
   const { data: contact } = input.clientId
     ? await client
         .from("clients")
@@ -282,8 +287,9 @@ export async function createCharge(
     organization_id: organizationId,
     title: input.title,
     description: input.description,
+    direction: input.direction,
     client_id: contact?.id ?? null,
-    client_name: contact?.name ?? null,
+    client_name: contact?.name ?? (input.partyName || null),
     client_company: contact?.company ?? null,
     client_email: contact?.email ?? null,
     client_avatar_url: contact?.avatar_url ?? null,
@@ -314,11 +320,12 @@ export async function createCharge(
     return { ok: false, error: installmentsError.message };
   }
 
+  const noun = chargeDirections[input.direction].label.toLocaleLowerCase("pt-BR");
   await client.from("charge_events").insert({ organization_id: organizationId, charge_id: id, kind: "created" });
-  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "created", summary: `Criou a cobrança ${input.title}` });
+  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "created", summary: `Criou a ${noun} ${input.title}` });
 
   const charge = await getCharge(client, organizationId, id);
-  return charge ? { ok: true, charge } : { ok: false, error: "Não foi possível criar a cobrança." };
+  return charge ? { ok: true, charge } : { ok: false, error: `Não foi possível criar a ${noun}.` };
 }
 
 /** O que uma cobrança conta às automações, nos nomes que as variáveis do fluxo usam. */
@@ -344,6 +351,8 @@ function automationContext(charge: Charge) {
   };
 }
 
+/* Enviar é coisa de cobrança: o link existe para o cliente ver o que deve e avisar que pagou, e do lado de
+   cá quem paga é a própria equipe. O banco recusa de novo, pelo `charges_outgoing_not_shared`. */
 export async function sendCharge(
   client: FinanceClient,
   organizationId: string,
@@ -401,11 +410,16 @@ export async function payInstallment(
   const method = input.method ?? charge.method;
   const paidOn = input.paidOn ?? todayIso();
 
+  /* **O sinal sai da direção** (2026-09-20): baixar a parcela de uma despesa tira do caixa, e não põe. É o
+     único ponto em que as duas direções divergem de fato; todo o resto (parcela, vencimento, situação,
+     linha do tempo, recorrência) é a mesma regra para as duas. */
+  const outgoing = charge.direction === "outgoing";
+
   const { data: transaction, error: transactionError } = await client
     .from("transactions")
     .insert({
       organization_id: organizationId,
-      kind: "income",
+      kind: outgoing ? "expense" : "income",
       status: "confirmed",
       title: charge.client?.company ?? charge.client?.name ?? charge.title,
       description: `${installmentLabel(installment.number, charge.installments.length)} de ${charge.title}`,
@@ -421,7 +435,7 @@ export async function payInstallment(
     .select("id")
     .single();
 
-  if (transactionError || !transaction) return { ok: false, error: transactionError?.message || "Não foi possível registrar a entrada." };
+  if (transactionError || !transaction) return { ok: false, error: transactionError?.message || `Não foi possível registrar a ${outgoing ? "saída" : "entrada"}.` };
 
   const { error } = await client
     .from("charge_installments")
@@ -444,7 +458,9 @@ export async function payInstallment(
   const updated = await getCharge(client, organizationId, charge.id);
   if (!updated) return { ok: false, error: "Não foi possível baixar a parcela." };
 
-  void dispatchAutomationEvent(organizationId, "payment_received", automationContext(updated)).catch(() => undefined);
+  /* O fluxo de "pagamento recebido" é do dinheiro que entra: disparar nele a baixa de uma despesa mandaria
+     o agradecimento ao fornecedor que a equipe acabou de pagar. */
+  if (!outgoing) void dispatchAutomationEvent(organizationId, "payment_received", automationContext(updated)).catch(() => undefined);
 
   /* Quitada a última parcela, a próxima do ciclo nasce. É aqui, e não num relógio: a casa ainda não tem um,
      e amarrar a repetição ao fechamento tem uma vantagem própria: nunca se acumulam doze cobranças abertas
@@ -608,6 +624,7 @@ export async function createTransaction(
 }
 
 /* Uma parcela por vencer como movimentação prevista, para a lista do painel e o filtro "Previstas". */
+/** A parcela em aberto vista como movimentação prevista, no lado em que ela vai cair. */
 function scheduledOf(entry: UpcomingInstallment): Transaction {
   return {
     id: `sched-${entry.installmentId}`,
@@ -630,7 +647,7 @@ function scheduledOf(entry: UpcomingInstallment): Transaction {
 async function upcomingOf(client: FinanceClient, organizationId: string, today: string): Promise<UpcomingInstallment[]> {
   const { data } = await client
     .from("charge_installments")
-    .select("id, number, amount, due_date, reported, charges!inner(id, reference, title, client_name, client_company, client_avatar_url, cancelled_at, charge_installments(id))")
+    .select("id, number, amount, due_date, reported, charges!inner(id, reference, direction, title, client_name, client_company, client_avatar_url, cancelled_at, charge_installments(id))")
     .eq("organization_id", organizationId)
     .is("paid_at", null)
     .order("due_date");
@@ -650,6 +667,7 @@ async function upcomingOf(client: FinanceClient, organizationId: string, today: 
       dueDate: row.due_date,
       overdue: row.due_date < today,
       reported: row.reported,
+      direction: row.charges.direction,
     }));
 }
 
@@ -716,8 +734,15 @@ export async function getFinanceOverview(
     };
   });
 
+  /* As duas pontas contam separado: somar "a receber" com "a pagar" num número só diria que a equipe tem
+     mais dinheiro a caminho do que tem, que é exatamente o erro que a despesa existe para não deixar
+     acontecer. O que vence e o que já venceu seguem misturando as duas na lista, porque ali a pergunta é
+     "o que cai esta semana", e cada linha diz de que lado está. */
+  const receivables = pending.filter((entry) => entry.direction === "incoming");
+  const payables = pending.filter((entry) => entry.direction === "outgoing");
   const late = pending.filter((entry) => entry.overdue);
   const upcoming = pending.filter((entry) => !entry.overdue && entry.dueDate <= day(30));
+  const sum = (list: UpcomingInstallment[]) => list.reduce((total, entry) => total + entry.amount, 0);
 
   return {
     period,
@@ -726,10 +751,14 @@ export async function getFinanceOverview(
     receivedCount: incomes.length,
     expenses: expenses.reduce((sum, transaction) => sum + transaction.amount, 0),
     expensesCount: expenses.length,
-    receivable: pending.reduce((sum, entry) => sum + entry.amount, 0),
-    receivableCount: pending.length,
-    overdue: late.reduce((sum, entry) => sum + entry.amount, 0),
-    overdueCount: late.length,
+    receivable: sum(receivables),
+    receivableCount: receivables.length,
+    payable: sum(payables),
+    payableCount: payables.length,
+    overdue: sum(receivables.filter((entry) => entry.overdue)),
+    overdueCount: receivables.filter((entry) => entry.overdue).length,
+    payableOverdue: sum(payables.filter((entry) => entry.overdue)),
+    payableOverdueCount: payables.filter((entry) => entry.overdue).length,
     months,
     transactions: sortTransactions([...upcoming.slice(0, 6).map(scheduledOf), ...transactions.filter(inPeriod)]),
     upcoming: upcoming.slice(0, 8),

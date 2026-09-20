@@ -48,9 +48,19 @@ export function statusOf(transaction: Transaction): TransactionStatus {
 /**
  * As cobranças (2026-09-15): o que a equipe cobra do cliente, em uma ou mais parcelas, cada uma com o
  * vencimento e o registro do pagamento. A situação da cobrança não é gravada: sai das parcelas e da data de
- * hoje, então uma parcela que passou do vencimento vira "vencida" sozinha. Cada parcela paga vira uma
- * entrada nas movimentações, e é assim que a cobrança e o caixa batem.
+ * hoje, então uma parcela que passou do vencimento vira "vencida" sozinha. Cada parcela baixada vira uma
+ * movimentação, e é assim que a cobrança e o caixa batem.
+ *
+ * **A despesa é a mesma peça virada para o outro lado** (2026-09-20, a pedido): mesmo título, mesma
+ * contraparte, mesmas parcelas com vencimento, mesma situação, mesma baixa. O que muda é o sinal, e por isso
+ * é uma direção aqui e não um segundo modelo: duplicar tudo para inverter um sinal deixaria duas cópias da
+ * mesma regra para sair de sincronia no primeiro acerto.
  */
+
+/** `incoming`: a equipe recebe (cobrança). `outgoing`: a equipe paga (despesa). */
+export type ChargeDirection = "incoming" | "outgoing";
+
+export const chargeDirectionValues = ["incoming", "outgoing"] as const;
 
 export type ChargeMethod = PaymentMethod["type"];
 
@@ -79,9 +89,11 @@ export type ChargeStatus = "open" | "partial" | "overdue" | "paid" | "cancelled"
 export type ChargeRecurrence = "none" | "monthly" | "quarterly" | "yearly";
 
 /**
- * A contraparte da cobrança. Nula inteira na **cobrança avulsa**: nem tudo que se cobra é de um cliente
- * cadastrado (uma assinatura de sistema, um serviço solto, um rateio), e obrigar a cadastrar alguém só para
- * poder cobrar sujaria a base de clientes. Ali quem diz do que se trata é o título, e a foto.
+ * A contraparte: quem paga, na cobrança, e quem recebe, na despesa. Nula inteira na **avulsa**: nem tudo
+ * que se cobra é de um cliente cadastrado (uma assinatura de sistema, um serviço solto, um rateio), e
+ * obrigar a cadastrar alguém só para poder lançar sujaria a base de clientes. Ali quem diz do que se trata
+ * é o título, e a foto. Numa despesa ela é quase sempre um nome digitado: fornecedor não é cliente, e não
+ * tem por que entrar na base de clientes para uma assinatura ser paga.
  */
 export type ChargeClient = {
   /** O cliente da base; nulo quando a cobrança foi para alguém fora dela. */
@@ -109,6 +121,8 @@ export type Charge = {
   id: string;
   /** "COB-2026-0031", pelo padrão de `lib/utils/reference.ts`. */
   reference: string;
+  /** Para que lado o dinheiro anda: recebida é cobrança, paga é despesa. */
+  direction: ChargeDirection;
   title: string;
   description: string;
   /** Nulo na cobrança avulsa, que não é de ninguém da base. */
@@ -121,7 +135,8 @@ export type Charge = {
   /** O total, em centavos: a soma das parcelas. */
   amount: number;
   method: ChargeMethod;
-  /** O que o cliente precisa para pagar (a chave Pix, os dados da conta), no link e no e-mail. */
+/** Como o pagamento acontece: a chave Pix e os dados da conta. Na cobrança é o que o cliente precisa
+   * para pagar, e vai no link e no e-mail; na despesa é para onde a equipe paga, e fica só aqui dentro. */
   paymentInfo: string;
   installments: Installment[];
   quote: { id: string; number: string } | null;
@@ -153,9 +168,10 @@ export function chargeStatusOf(charge: Charge, today = todayIso()): ChargeStatus
   return unpaid.length < charge.installments.length ? "partial" : "open";
 }
 
-export const chargeReceived = (charge: Charge) => charge.installments.reduce((sum, installment) => sum + (installment.paidAt ? installment.amount : 0), 0);
+/** Quanto já foi liquidado: recebido na cobrança, pago na despesa. */
+export const chargeSettled = (charge: Charge) => charge.installments.reduce((sum, installment) => sum + (installment.paidAt ? installment.amount : 0), 0);
 
-export const chargeOpen = (charge: Charge) => (charge.cancelledAt ? 0 : charge.amount - chargeReceived(charge));
+export const chargeOpen = (charge: Charge) => (charge.cancelledAt ? 0 : charge.amount - chargeSettled(charge));
 
 /** A parcela que vem agora: a mais antiga ainda não paga. */
 export const nextInstallment = (charge: Charge) => [...charge.installments].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).find((installment) => !installment.paidAt) ?? null;
@@ -178,6 +194,8 @@ export type UpcomingInstallment = {
   dueDate: string;
   overdue: boolean;
   reported: boolean;
+  /** De que lado ela está: o que a equipe tem a receber, ou o que ela tem a pagar. */
+  direction: ChargeDirection;
 };
 
 export type FinancePeriod = "mes" | "trimestre" | "ano" | "tudo";
@@ -192,8 +210,14 @@ export type FinanceOverview = {
   expensesCount: number;
   receivable: number;
   receivableCount: number;
+  /** O que a equipe deve e ainda não pagou: a soma das parcelas em aberto das despesas. */
+  payable: number;
+  payableCount: number;
   overdue: number;
   overdueCount: number;
+  /** Do que a equipe deve, o que já passou do vencimento. */
+  payableOverdue: number;
+  payableOverdueCount: number;
   months: FinanceMonth[];
   transactions: Transaction[];
   upcoming: UpcomingInstallment[];

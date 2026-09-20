@@ -21,10 +21,10 @@ import { uploadImage } from "@/features/uploads/upload";
 import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import { createChargeAction } from "../actions";
-import { chargeMethods, recurrenceLabels, shortDate } from "../labels";
+import { chargeDirections, chargeMethods, recurrenceLabels, shortDate } from "../labels";
 import { chargeLimits, chargeMethodValues, chargeRecurrenceValues } from "../schemas";
 import type { ChargeLookups } from "../service";
-import type { Charge, ChargeMethod, ChargeRecurrence } from "../summary";
+import { chargeDirectionValues, type Charge, type ChargeDirection, type ChargeMethod, type ChargeRecurrence } from "../summary";
 import { callAction } from "@/lib/action";
 import styles from "./new-charge-dialog.module.css";
 
@@ -33,13 +33,15 @@ export type NewChargeDialogProps = {
   lookups: ChargeLookups;
   /** De quem é a cobrança, quando ela nasce da ficha de um cliente: o campo já vem escolhido. */
   clientId?: string;
+  /** Em que lado ela abre: o da lista que está à vista, para o "+" de "A pagar" não abrir uma cobrança. */
+  direction?: ChargeDirection;
   onClose: () => void;
   onCreated: (charge: Charge) => void;
 };
 
-type Values = { quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string; recurrence: ChargeRecurrence };
+type Values = { direction: ChargeDirection; partyName: string; quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string; recurrence: ChargeRecurrence };
 
-const blank = (clientId: string | null = null): Values => ({ quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none" });
+const blank = (clientId: string | null = null, direction: ChargeDirection = "incoming"): Values => ({ direction, partyName: "", quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none" });
 
 const installmentOptions = Array.from({ length: 12 }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
 
@@ -58,23 +60,23 @@ const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label:
 // valor e as parcelas, ou do zero. Cliente com busca e rosto, título, descrição, valor, quantas parcelas e o
 // primeiro vencimento (as outras caem mês a mês), a forma de pagar com as instruções que o cliente vê, e as
 // observações. Embaixo, as parcelas como vão ficar. Salva no servidor e abre a ficha.
-export function NewChargeDialog({ open, lookups, clientId, onClose, onCreated }: NewChargeDialogProps) {
+export function NewChargeDialog({ open, lookups, clientId, direction = "incoming", onClose, onCreated }: NewChargeDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const savingRef = useRef(false);
   const close = () => {
     if (!savingRef.current) onClose();
   };
   return (
-    <Dialog open={open} onClose={close} label="Nova cobrança" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
-      <ChargeForm lookups={lookups} clientId={clientId} onClose={onClose} onCreated={onCreated} savingRef={savingRef} />
+    <Dialog open={open} onClose={close} label={direction === "outgoing" ? "Nova despesa" : "Nova cobrança"} size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
+      <ChargeForm lookups={lookups} clientId={clientId} direction={direction} onClose={onClose} onCreated={onCreated} savingRef={savingRef} />
     </Dialog>
   );
 }
 
-function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<NewChargeDialogProps, "open"> & { savingRef: RefObject<boolean> }) {
+function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCreated, savingRef }: Omit<NewChargeDialogProps, "open"> & { savingRef: RefObject<boolean> }) {
   const { toast } = useToast();
   const titleId = useId();
-  const [values, setValues] = useState<Values>(() => blank(clientId ?? null));
+  const [values, setValues] = useState<Values>(() => blank(clientId ?? null, direction));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
 
@@ -111,6 +113,18 @@ function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<N
     media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
   }));
 
+  const outgoing = values.direction === "outgoing";
+
+  /* Trocar de lado limpa o que era do outro: um orçamento e um cliente da base vieram de uma cobrança, e
+     numa despesa eles apontariam para a pessoa errada; o nome do fornecedor, ao contrário. */
+  const chooseDirection = (direction: ChargeDirection) => {
+    setValues((current) =>
+      direction === "outgoing"
+        ? { ...current, direction, quoteId: null, clientId: null }
+        : { ...current, direction, partyName: "" },
+    );
+  };
+
   /* Escolher o orçamento preenche o que ele sabe; trocar para "sem orçamento" só solta o vínculo. */
   const chooseQuote = (value: string) => {
     if (value === NO_QUOTE) {
@@ -137,6 +151,8 @@ function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<N
     setError(null);
     const result = await callAction(
       createChargeAction({
+        direction: values.direction,
+        partyName: values.clientId ? "" : values.partyName,
         clientId: values.clientId,
         recurrence: values.recurrence,
         title: values.title,
@@ -188,10 +204,7 @@ function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<N
       <header className={styles.head}>
         <div className={styles.heading}>
           <Text as="h2" id={titleId} variant="headline" weight="semibold">
-            Nova cobrança
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            De um orçamento aprovado ou do zero, em uma ou mais parcelas.
+            {outgoing ? "Nova despesa" : "Nova cobrança"}
           </Text>
         </div>
         <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
@@ -200,24 +213,65 @@ function ChargeForm({ lookups, clientId, onClose, onCreated, savingRef }: Omit<N
       </header>
 
       <div className={styles.body}>
-        <Field label="Orçamento aprovado">
-          <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
-        </Field>
-        <Field
-          label="Quem paga"
-          error={error?.field === "clientId" ? error.message : undefined}
-        >
-          <Select<string>
-            label="Quem paga"
-            size="sm"
-            options={[{ value: NO_CLIENT, label: "Cobrança avulsa", caption: "Um serviço, um sistema, algo fora da base" }, ...clientOptions]}
-            value={values.clientId ?? NO_CLIENT}
-            searchable
-            searchPlaceholder="Buscar cliente"
-            invalid={error?.field === "clientId"}
-            onChange={(value) => set("clientId", value === NO_CLIENT ? null : value)}
-          />
-        </Field>
+        {/* O lado é a primeira decisão, e não um campo no meio do formulário: ele muda o nome da janela, de
+            quem é a outra ponta e o que a baixa faz no caixa. Segmento, porque são dois e a escolha é
+            excludente. */}
+        <div className={styles.sides} role="tablist" aria-label="O que está sendo lançado">
+          {chargeDirectionValues.map((value) => {
+            const meta = chargeDirections[value];
+            return (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={values.direction === value}
+                className={styles.side}
+                data-side={value}
+                disabled={saving}
+                onClick={() => chooseDirection(value)}
+              >
+                <meta.icon weight="bold" aria-hidden="true" />
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Despesa não nasce de orçamento: orçamento é o que a equipe cobra. */}
+        {!outgoing && (
+          <Field label="Orçamento aprovado">
+            <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
+          </Field>
+        )}
+
+        {/* Na cobrança a outra ponta sai da base de clientes; na despesa ela é um nome digitado, porque
+            fornecedor não é cliente e não tem por que entrar na base para uma assinatura ser paga. */}
+        {outgoing ? (
+          <Field label="Fornecedor" error={error?.field === "partyName" ? error.message : undefined}>
+            <Input
+              type="text"
+              size="sm"
+              value={values.partyName}
+              maxLength={80}
+              placeholder="Para quem a equipe paga"
+              invalid={error?.field === "partyName"}
+              onChange={(event) => set("partyName", event.target.value)}
+            />
+          </Field>
+        ) : (
+          <Field label="Quem paga" error={error?.field === "clientId" ? error.message : undefined}>
+            <Select<string>
+              label="Quem paga"
+              size="sm"
+              options={[{ value: NO_CLIENT, label: "Cobrança avulsa", caption: "Um serviço, um sistema, algo fora da base" }, ...clientOptions]}
+              value={values.clientId ?? NO_CLIENT}
+              searchable
+              searchPlaceholder="Buscar cliente"
+              invalid={error?.field === "clientId"}
+              onChange={(value) => set("clientId", value === NO_CLIENT ? null : value)}
+            />
+          </Field>
+        )}
         <Field label="Título" required error={error?.field === "title" ? error.message : undefined}>
           <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder="Do que é a cobrança" invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
         </Field>

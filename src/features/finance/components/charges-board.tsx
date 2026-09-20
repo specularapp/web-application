@@ -19,7 +19,7 @@ import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { formatMoney } from "@/lib/utils/format";
 import { cancelChargeAction, payInstallmentAction, reopenInstallmentAction, sendChargeAction, stopRecurrenceAction } from "../actions";
-import { chargeMethods, chargeStatuses, payerOf } from "../labels";
+import { chargeMethods, chargeStatuses, partyOf } from "../labels";
 import {
   GRID_PER_PAGE_DEFAULT,
   METHOD_PARAM,
@@ -31,6 +31,8 @@ import {
   TABLE_PER_PAGE,
   activeChargesFilters,
   clearedFilters,
+  directionFilterLabels,
+  directionFilterValues,
   defaultQuery,
   gridPageSize,
   methodFilterLabels,
@@ -42,7 +44,7 @@ import {
   type ChargesQuery,
 } from "../list-options";
 import type { ChargeLookups } from "../service";
-import { nextInstallment, type Charge, type ChargeMethod, type Installment } from "../summary";
+import { nextInstallment, type Charge, type ChargeDirection, type ChargeMethod, type Installment } from "../summary";
 import { saveChargesGridSize, saveChargesView, type ChargesView } from "../view-cookie";
 import { ChargeCard } from "./charge-card";
 import { ChargeDialog } from "./charge-dialog";
@@ -131,7 +133,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   const copyLink = async (charge: Charge) => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/cobranca/${charge.token}`);
-      toast({ title: "Link copiado", description: `O link de ${payerOf(charge).name} está na área de transferência.`, tone: "success" });
+      toast({ title: "Link copiado", description: `O link de ${partyOf(charge).name} está na área de transferência.`, tone: "success" });
     } catch {
       toast({ title: "Não deu para copiar", description: "Abra a ficha e copie o endereço pela barra do navegador.", tone: "warning" });
     }
@@ -146,7 +148,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     if (viewing?.id === charge.id) setViewing(result.charge);
     toast({
       title: result.reminder ? "Lembrete enviado" : "Cobrança enviada",
-      description: result.emailed ? `${payerOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
+      description: result.emailed ? `${partyOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
       tone: result.emailed ? "success" : "warning",
     });
   };
@@ -161,7 +163,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
-    toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${payerOf(charge).company ?? payerOf(charge).name}.`, tone: "success" });
+    toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${partyOf(charge).company ?? partyOf(charge).name}.`, tone: "success" });
   };
 
   const reopen = async (charge: Charge, installment: Installment) => {
@@ -317,6 +319,11 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     ...(active.length > 0 ? [{ id: "reset", items: [{ id: "reset", label: "Limpar filtros", icon: ArrowCounterClockwiseIcon, onSelect: () => go({ ...clearedFilters, page: 1 }) }] }] : []),
   ];
 
+  /* A criação nasce no lado que a lista está mostrando: com "A pagar" à vista, o "+" abre uma despesa, e
+     não uma cobrança que a pessoa teria de virar à mão. Em "Tudo" vale a cobrança, que é a maioria. */
+  const creatingSide: ChargeDirection = live.direction === "outgoing" ? "outgoing" : "incoming";
+  const createLabel = creatingSide === "outgoing" ? "Nova despesa" : "Nova cobrança";
+
   const pagination = pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de cobranças" /> : undefined;
 
   return (
@@ -330,11 +337,11 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
           <>
             <span className={styles.wide}>
               <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, true)}>
-                Nova cobrança
+                {createLabel}
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Nova cobrança" size="sm" radius="md" onClick={() => show(viewing, true)}>
+              <IconButton label={createLabel} size="sm" radius="md" onClick={() => show(viewing, true)}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -342,15 +349,51 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
         }
       />
 
+      {/* O lado vem antes de qualquer filtro, como segmento e não como leque: "estou olhando o que entra ou
+          o que sai" é a primeira pergunta da tela, e misturar os dois numa lista só faria a soma ao lado
+          mentir. A contagem em cada aba diz o tamanho da lista antes de ela ser aberta. */}
+      <div className={styles.sides} role="tablist" aria-label="O que mostrar">
+        {directionFilterValues.map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={live.direction === value}
+            className={styles.side}
+            onClick={() => go({ direction: value, page: 1 })}
+          >
+            {value !== "todas" && <span className={styles.sideDot} data-side={value} aria-hidden="true" />}
+            {directionFilterLabels[value]}
+            <Text as="span" variant="caption1" tone="tertiary" numeric>
+              {numberFormat.format(value === "todas" ? page.sides.incoming + page.sides.outgoing : page.sides[value])}
+            </Text>
+          </button>
+        ))}
+      </div>
+
       <div className={styles.totals} aria-label="Resumo das cobranças">
-        <span className={styles.total}>
-          <Text as="span" variant="caption1" tone="secondary">
-            A receber
-          </Text>
-          <Text as="span" variant="footnote" weight="semibold" numeric>
-            {formatMoney(page.totals.receivable)}
-          </Text>
-        </span>
+        {/* A receber e a pagar são dois números, e nunca um saldo: somá-los diria que a equipe tem mais
+            dinheiro a caminho do que tem, que é o engano que a despesa existe para não deixar acontecer. */}
+        {live.direction !== "outgoing" && (
+          <span className={styles.total}>
+            <Text as="span" variant="caption1" tone="secondary">
+              A receber
+            </Text>
+            <Text as="span" variant="footnote" weight="semibold" numeric>
+              {formatMoney(page.totals.receivable)}
+            </Text>
+          </span>
+        )}
+        {live.direction !== "incoming" && (
+          <span className={styles.total} data-tone={page.totals.payable > 0 ? "danger" : undefined}>
+            <Text as="span" variant="caption1" tone="secondary">
+              A pagar
+            </Text>
+            <Text as="span" variant="footnote" weight="semibold" numeric>
+              {formatMoney(page.totals.payable)}
+            </Text>
+          </span>
+        )}
         <span className={styles.total} data-tone={page.totals.overdue > 0 ? "danger" : undefined}>
           <Text as="span" variant="caption1" tone="secondary">
             Vencido
@@ -361,10 +404,10 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
         </span>
         <span className={styles.total}>
           <Text as="span" variant="caption1" tone="secondary">
-            Cobranças
+            Lançamentos
           </Text>
           <Text as="span" variant="footnote" weight="semibold" numeric>
-            {numberFormat.format(page.counts.open + page.counts.partial + page.counts.overdue)} em aberto, {numberFormat.format(page.counts.paid)} pagas
+            {numberFormat.format(page.counts.open + page.counts.partial + page.counts.overdue)} em aberto, {numberFormat.format(page.counts.paid)} liquidados
           </Text>
         </span>
       </div>
@@ -416,7 +459,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
       <ChargeDialog charge={viewing} onClose={() => show(null, false)} onSend={viewing ? () => void send(viewing) : undefined} onCopyLink={viewing ? () => void copyLink(viewing) : undefined} onCancel={viewing ? () => setCancelling(viewing) : undefined} onPay={viewing ? (installment) => void pay(viewing, installment) : undefined} onReopen={viewing ? (installment) => void reopen(viewing, installment) : undefined} busyInstallment={busyInstallment} />
 
-      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} onClose={() => show(viewing, false)} onCreated={created} />
+      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} direction={creatingSide} onClose={() => show(viewing, false)} onCreated={created} />
 
       <Dialog open={cancelling !== null} onClose={() => !removing && setCancelling(null)} label="Cancelar cobrança" size="sm" focusOnOpen={false}>
         {cancelling && <ConfirmCancel charge={cancelling} busy={removing} onCancel={() => setCancelling(null)} onConfirm={() => void cancel()} />}

@@ -136,3 +136,50 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* O lado do lançamento, no segmento da casa: duas abas no fundo agrupado, a escolhida na superfície com
+   sombra. O glifo diz a direção do dinheiro antes do nome, e a tinta da escolhida acompanha o lado, verde
+   no que entra e vermelho no que sai, como nas movimentações. */
+.sides {
+  display: inline-flex;
+  gap: var(--space-half);
+  align-self: start;
+  padding: var(--space-half);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.side {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: 2rem;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+}
+
+.side svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.side[aria-selected="true"] {
+  background-color: var(--color-bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.side[aria-selected="true"][data-side="incoming"] {
+  color: var(--sys-green);
+}
+
+.side[aria-selected="true"][data-side="outgoing"] {
+  color: var(--sys-red);
+}

@@ -15,8 +15,8 @@ import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, momentLabel, payerOf, recurrenceLabels, shortDate } from "../labels";
-import { chargeOpen, chargeReceived, chargeStatusOf, installmentStatusOf, nextInstallment, type Charge, type ChargeEvent, type Installment } from "../summary";
+import { chargeDirections, chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, momentLabel, partyOf, recurrenceLabels, shortDate } from "../labels";
+import { chargeOpen, chargeSettled, chargeStatusOf, installmentStatusOf, nextInstallment, type Charge, type ChargeEvent, type Installment } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 import styles from "./charge-dialog.module.css";
 
@@ -54,13 +54,20 @@ export function ChargeDialog({ charge, onClose, ...rest }: ChargeDialogProps) {
   );
 }
 
-function ChargeDetail({ charge, onClose, onSend, onCopyLink, onCancel, onPay, onReopen, busyInstallment }: Omit<ChargeDialogProps, "charge"> & { charge: Charge }) {
+function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp, onCancel, onPay, onReopen, busyInstallment }: Omit<ChargeDialogProps, "charge"> & { charge: Charge }) {
+  /* Despesa não se envia nem tem link de pagador: o link existe para o cliente ver o que deve e avisar que
+     pagou, e do lado de cá quem paga é a própria equipe. O banco recusa de novo, pelo
+     `charges_outgoing_not_shared`; aqui as ações simplesmente não existem, em vez de existirem e falharem. */
+  const side = chargeDirections[charge.direction];
+  const outgoing = charge.direction === "outgoing";
+  const onSend = outgoing ? undefined : sendProp;
+  const onCopyLink = outgoing ? undefined : copyProp;
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const status = chargeStatuses[chargeStatusOf(charge)];
-  const payer = payerOf(charge);
+  const payer = partyOf(charge);
   const method = chargeMethods[charge.method];
-  const received = chargeReceived(charge);
+  const received = chargeSettled(charge);
   const open = chargeOpen(charge);
   const next = nextInstallment(charge);
   const active = !charge.cancelledAt && open > 0;
@@ -156,11 +163,11 @@ function ChargeDetail({ charge, onClose, onSend, onCopyLink, onCancel, onPay, on
 
         <section className={styles.facts} aria-label="Números da cobrança">
           <Fact label="Total" value={formatMoney(charge.amount)} caption={charge.installments.length > 1 ? `${charge.installments.length} parcelas` : "Parcela única"} />
-          <Fact label="Recebido" value={formatMoney(received)} caption={`${charge.installments.filter((installment) => installment.paidAt).length} de ${charge.installments.length} pagas`} tone="success" />
+          <Fact label={side.settledLabel === "Paga" ? "Pago" : "Recebido"} value={formatMoney(received)} caption={`${charge.installments.filter((installment) => installment.paidAt).length} de ${charge.installments.length} baixadas`} tone={outgoing ? "danger" : "success"} />
           <Fact label="Em aberto" value={formatMoney(open)} caption={charge.cancelledAt ? "Cancelada" : open === 0 ? "Nada a receber" : `${charge.installments.filter((installment) => !installment.paidAt).length} por pagar`} tone={chargeStatusOf(charge) === "overdue" ? "danger" : undefined} />
           <Fact label="Próxima parcela" value={next ? shortDate(next.dueDate) : "Nenhuma"} caption={next ? dueLabel(next.dueDate) : "Tudo em dia"} tone={next ? dueTone(next.dueDate) : undefined} />
         </section>
-        <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : "success"} aria-label={`Recebido ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
+        <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : outgoing ? "accent" : "success"} aria-label={`${outgoing ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
 
         <section className={styles.section} aria-label="Parcelas">
           <Text as="h3" variant="subheadline" weight="semibold">

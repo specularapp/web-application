@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, payerOf, shortDate } from "../labels";
-import { chargeReceived, chargeStatusOf, nextInstallment, type Charge } from "../summary";
+import { chargeDirections, chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, partyOf, shortDate } from "../labels";
+import { chargeSettled, chargeStatusOf, nextInstallment, type Charge } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 import styles from "./charge-card.module.css";
 
@@ -24,8 +24,9 @@ const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']
 // ficha; o leque tem ação própria.
 export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
   const status = chargeStatuses[chargeStatusOf(charge)];
-  const payer = payerOf(charge);
-  const received = chargeReceived(charge);
+  const side = chargeDirections[charge.direction];
+  const payer = partyOf(charge);
+  const received = chargeSettled(charge);
   const next = nextInstallment(charge);
   const method = chargeMethods[charge.method];
   const paidCount = charge.installments.filter((installment) => installment.paidAt).length;
@@ -48,6 +49,11 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
     <article className={styles.card} data-status={chargeStatusOf(charge)}>
       <div className={styles.inner} role="button" tabIndex={0} aria-label={`Abrir a cobrança ${charge.reference}`} onClick={onClick} onKeyDown={onKeyDown}>
         <header className={styles.head}>
+          {/* O lado antes da situação: "em aberto" quer dizer coisas opostas conforme o dinheiro entre ou
+              saia, e é o glifo com a cor que resolve isso de relance. */}
+          <Badge tone={side.tone} variant="soft" size="sm" icon={<side.icon />}>
+            {side.label}
+          </Badge>
           <Badge tone={status.tone} size="sm" icon={<status.icon />}>
             {status.label}
           </Badge>

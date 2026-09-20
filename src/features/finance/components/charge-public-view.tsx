@@ -12,8 +12,8 @@ import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { reportPaymentAction } from "../actions";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, payerOf } from "../labels";
-import { chargeOpen, chargeReceived, chargeStatusOf, installmentStatusOf, type Charge } from "../summary";
+import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, partyOf } from "../labels";
+import { chargeOpen, chargeSettled, chargeStatusOf, installmentStatusOf, type Charge } from "../summary";
 import styles from "./charge-public-view.module.css";
 
 export type ChargePublicViewProps = {
@@ -30,9 +30,9 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
   const [charge, setCharge] = useState(initial);
   const [reporting, setReporting] = useState<string | null>(null);
   const status = chargeStatuses[chargeStatusOf(charge)];
-  const payer = payerOf(charge);
+  const payer = partyOf(charge);
   const method = chargeMethods[charge.method];
-  const received = chargeReceived(charge);
+  const received = chargeSettled(charge);
   const open = chargeOpen(charge);
 
   const report = async (installmentId: string) => {

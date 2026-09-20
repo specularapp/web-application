@@ -3,17 +3,62 @@ import { ArrowDownLeftIcon, ArrowUpRightIcon, BankIcon, BarcodeIcon, CalendarChe
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { BadgeTone } from "@/components/ui/badge";
-import type { Charge, ChargeMethod, ChargeRecurrence, ChargeStatus, FinancePeriod, InstallmentStatus, TransactionKind } from "./summary";
+import type { Charge, ChargeDirection, ChargeMethod, ChargeRecurrence, ChargeStatus, FinancePeriod, InstallmentStatus, TransactionKind } from "./summary";
 
 /**
- * Quem paga, como toda tela mostra. Na cobrança com cliente é o cliente; na **avulsa** não há ninguém da
- * base, e quem dá nome à cobrança é o próprio título, com a foto no lugar do rosto.
+ * Cada direção por extenso, num lugar só: é daqui que saem o nome da lista, o verbo da baixa, como a outra
+ * ponta se chama e o sinal que o cartão desenha. Sem este mapa, a mesma cobrança sairia "paga" numa tela e
+ * "quitada" na outra, e a despesa falaria em "cliente" no formulário.
+ *
+ * O tom é o do dinheiro, e não o da situação: verde no que entra, vermelho no que sai, como nas
+ * movimentações. Quem diz se está em dia ou vencida continua sendo `chargeStatuses`.
+ */
+export const chargeDirections: Record<ChargeDirection, {
+  /** O nome da coisa, no singular: "Cobrança", "Despesa". */
+  label: string;
+  /** O nome da lista: "A receber", "A pagar". */
+  listLabel: string;
+  /** Como a outra ponta se chama no formulário e na ficha. */
+  partyLabel: string;
+  /** O verbo da baixa, já no particípio: "Recebida", "Paga". */
+  settledLabel: string;
+  /** O que a baixa faz no caixa, para a janela de confirmar dizer a verdade. */
+  settleLabel: string;
+  tone: BadgeTone;
+  icon: Icon;
+  sign: string;
+}> = {
+  incoming: {
+    label: "Cobrança",
+    listLabel: "A receber",
+    partyLabel: "Cliente",
+    settledLabel: "Recebida",
+    settleLabel: "Confirmar recebimento",
+    tone: "success",
+    icon: ArrowDownLeftIcon,
+    sign: "+",
+  },
+  outgoing: {
+    label: "Despesa",
+    listLabel: "A pagar",
+    partyLabel: "Fornecedor",
+    settledLabel: "Paga",
+    settleLabel: "Confirmar pagamento",
+    tone: "danger",
+    icon: ArrowUpRightIcon,
+    sign: "-",
+  },
+};
+
+/**
+ * A contraparte, como toda tela mostra: o cliente na cobrança, o fornecedor na despesa. Na **avulsa** não há
+ * ninguém da base, e quem dá nome ao lançamento é o próprio título, com a foto no lugar do rosto.
  *
  * Mora aqui, e não em cada tela, porque são sete lugares que desenham a mesma linha (o cartão, a tabela, a
  * ficha, o link do pagador, os avisos, o e-mail e a busca): sete `charge.client ?? ...` sairiam de sincronia
  * na primeira mudança de texto.
  */
-export function payerOf(charge: Pick<Charge, "client" | "title" | "imageUrl">) {
+export function partyOf(charge: Pick<Charge, "client" | "title" | "imageUrl">) {
   if (charge.client) {
     return {
       name: charge.client.name,

@@ -631,6 +631,7 @@ export type Database = {
           contract_id: string | null
           created_at: string
           description: string
+          direction: Database["public"]["Enums"]["charge_direction"]
           id: string
           image_url: string | null
           method: Database["public"]["Enums"]["payment_method"]
@@ -661,6 +662,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           description?: string
+          direction?: Database["public"]["Enums"]["charge_direction"]
           id?: string
           image_url?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
@@ -691,6 +693,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           description?: string
+          direction?: Database["public"]["Enums"]["charge_direction"]
           id?: string
           image_url?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
@@ -1711,8 +1714,8 @@ export type Database = {
           name: string
           onboarding_completed_at: string | null
           phone: string | null
-          state: string | null
           slug: string
+          state: string | null
           updated_at: string
           website: string | null
         }
@@ -1732,8 +1735,8 @@ export type Database = {
           name: string
           onboarding_completed_at?: string | null
           phone?: string | null
-          state?: string | null
           slug: string
+          state?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -1753,8 +1756,8 @@ export type Database = {
           name?: string
           onboarding_completed_at?: string | null
           phone?: string | null
-          state?: string | null
           slug?: string
+          state?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -3050,6 +3053,7 @@ export type Database = {
       billing_plan: "free" | "pro" | "alliance"
       catalog_kind: "product" | "service"
       catalog_unit: "project" | "hour" | "month" | "unit"
+      charge_direction: "incoming" | "outgoing"
       charge_event_kind:
         | "created"
         | "sent"
@@ -3375,6 +3379,7 @@ export const Constants = {
       billing_plan: ["free", "pro", "alliance"],
       catalog_kind: ["product", "service"],
       catalog_unit: ["project", "hour", "month", "unit"],
+      charge_direction: ["incoming", "outgoing"],
       charge_event_kind: [
         "created",
         "sent",

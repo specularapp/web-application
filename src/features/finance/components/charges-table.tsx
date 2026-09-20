@@ -8,8 +8,8 @@ import { DataTable, DataTableDate, DataTableMoney, DataTableTitle, type DataTabl
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { formatMoney } from "@/lib/utils/format";
-import { chargeMethods, chargeStatuses, dueLabel, dueTone, payerOf } from "../labels";
-import { chargeReceived, chargeStatusOf, nextInstallment, type Charge } from "../summary";
+import { chargeDirections, chargeMethods, chargeStatuses, dueLabel, dueTone, partyOf } from "../labels";
+import { chargeSettled, chargeStatusOf, nextInstallment, type Charge } from "../summary";
 import { ChargeMenu, type ChargeMenuActions } from "./charge-menu";
 
 export type ChargesTableProps = {
@@ -43,19 +43,34 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
   const columns: DataTableColumn<Charge>[] = [
     {
       id: "title",
-      header: "Cobrança",
+      header: "Lançamento",
       cell: (charge) => <DataTableTitle title={charge.title} caption={charge.reference} onClick={() => onOpen(charge)} />,
     },
     {
-      id: "client",
-      header: "Cliente",
+      /* O lado logo depois do nome: numa lista que mistura as duas pontas, saber se aquela linha entra ou
+         sai é o que se lê antes do valor. "Em aberto" quer dizer coisas opostas de um lado e do outro. */
+      id: "side",
+      header: "Lado",
       hideBelow: "md",
       cell: (charge) => {
-        const payer = payerOf(charge);
+        const side = chargeDirections[charge.direction];
+        return (
+          <Badge tone={side.tone} variant="soft" size="sm" icon={<side.icon />}>
+            {side.listLabel}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "client",
+      header: "Contraparte",
+      hideBelow: "md",
+      cell: (charge) => {
+        const payer = partyOf(charge);
         return (
           <DataTableTitle
             title={payer.company ?? payer.name}
-            caption={payer.company ? payer.name : payer.standalone ? "Cobrança avulsa" : undefined}
+            caption={payer.company ? payer.name : payer.standalone ? `${chargeDirections[charge.direction].label} avulsa` : undefined}
             media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />}
           />
         );
@@ -78,12 +93,12 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
     },
     {
       id: "received",
-      header: "Recebido",
+      header: "Liquidado",
       hideBelow: "lg",
       sortable: true,
-      sortValue: (charge) => chargeReceived(charge) / Math.max(1, charge.amount),
+      sortValue: (charge) => chargeSettled(charge) / Math.max(1, charge.amount),
       cell: (charge) => {
-        const received = chargeReceived(charge);
+        const received = chargeSettled(charge);
         return (
           <Stack>
             <Progress value={received} max={charge.amount} size="xs" tone={chargeStatusOf(charge) === "overdue" ? "danger" : "success"} aria-label={`Recebido ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
@@ -105,7 +120,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
         if (charge.cancelledAt || !next) {
           return (
             <Text as="span" variant="caption1" tone="tertiary">
-              {charge.cancelledAt ? "Cancelada" : "Tudo recebido"}
+              {charge.cancelledAt ? "Cancelada" : charge.direction === "outgoing" ? "Tudo pago" : "Tudo recebido"}
             </Text>
           );
         }
