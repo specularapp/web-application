@@ -1,7 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
+import { unstable_rethrow } from "next/navigation";
+import { UNEXPECTED, firstIssue, guardedAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -21,47 +22,55 @@ export type QuoteStatusResult = { ok: true } | { ok: false; error: string };
  * como enviado marca a data de envio; o token do link público nunca vem da tela, é derivado no servidor.
  */
 export async function saveQuoteAction(input: unknown): Promise<QuoteSaveResult> {
-  const guard = await guardAction("quote-save");
-  if (!guard.ok) return { ok: false, error: guard.error };
+  return guardedAction<QuoteSaveResult>(
+    "quote-save",
+    async ({ supabase, organizationId, user }) => {
+      const parsed = quoteFormSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
 
-  const parsed = quoteFormSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+      const saved = await saveQuote(supabase, organizationId, user.id, parsed.data);
+      if (!saved.ok) return { ok: false, error: saved.error, field: saved.error.includes("cliente") ? "clientId" : undefined };
 
-  const { supabase, organizationId, user } = guard.context;
-  const saved = await saveQuote(supabase, organizationId, user.id, parsed.data);
-  if (!saved.ok) return { ok: false, error: saved.error, field: saved.error.includes("cliente") ? "clientId" : undefined };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true, id: saved.data.id, status: saved.data.status };
+      await revalidateDomain(organizationId, [cacheTags.quotes], ["/orcamentos"]);
+      return { ok: true, id: saved.data.id, status: saved.data.status };
+    },
+    (error) => ({ ok: false, error }),
+  );
 }
 
 export async function deleteQuotesAction(input: unknown): Promise<QuoteDeleteResult> {
-  const guard = await guardAction("quote-delete");
-  if (!guard.ok) return { ok: false, error: guard.error };
+  return guardedAction<QuoteDeleteResult>(
+    "quote-delete",
+    async ({ supabase, organizationId }) => {
+      const parsed = quoteIdsSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, error: "Escolha ao menos um orçamento." };
 
-  const parsed = quoteIdsSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Escolha ao menos um orçamento." };
+      const removed = await deleteQuotes(supabase, organizationId, parsed.data);
+      if (!removed.ok) return { ok: false, error: removed.error };
 
-  const removed = await deleteQuotes(guard.context.supabase, guard.context.organizationId, parsed.data);
-  if (!removed.ok) return { ok: false, error: removed.error };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true, deleted: removed.data.deleted };
+      await revalidateDomain(organizationId, [cacheTags.quotes], ["/orcamentos"]);
+      return { ok: true, deleted: removed.data.deleted };
+    },
+    (error) => ({ ok: false, error }),
+  );
 }
 
 /** Gera um link novo e derruba o anterior, para quando o endereço vazou ou foi para a pessoa errada. */
 export async function rotateQuoteTokenAction(input: unknown): Promise<QuoteTokenResult> {
-  const guard = await guardAction("quote-token");
-  if (!guard.ok) return { ok: false, error: guard.error };
+  return guardedAction<QuoteTokenResult>(
+    "quote-token",
+    async ({ supabase, organizationId }) => {
+      const parsed = quoteIdSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, error: "Orçamento inválido." };
 
-  const parsed = quoteIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Orçamento inválido." };
+      const rotated = await rotateQuoteToken(supabase, organizationId, parsed.data);
+      if (!rotated.ok) return { ok: false, error: rotated.error };
 
-  const rotated = await rotateQuoteToken(guard.context.supabase, guard.context.organizationId, parsed.data);
-  if (!rotated.ok) return { ok: false, error: rotated.error };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true, token: rotated.data.token };
+      await revalidateDomain(organizationId, [cacheTags.quotes], ["/orcamentos"]);
+      return { ok: true, token: rotated.data.token };
+    },
+    (error) => ({ ok: false, error }),
+  );
 }
 
 /**
@@ -77,11 +86,20 @@ export async function respondToQuoteAction(input: unknown): Promise<QuoteRespons
   const { allowed } = await checkRateLimit("publicLink", `quote-response:${ip}`, crypto.randomUUID());
   if (!allowed) return { ok: false, error: "Muitas tentativas. Aguarde um instante." };
 
-  const responded = await respondToQuote(createAdminClient(), parsed.data.token, parsed.data.decision === "approve");
-  if (!responded.ok) return { ok: false, error: responded.error };
+  /* O mesmo contorno do `guardedAction`, à mão, porque aqui não há sessão nem time para guardar: quem
+     responde é o cliente, e uma exceção solta nesta ponta vira "não foi possível falar com o servidor" numa
+     tela onde ninguém pode tentar de novo por outro caminho. */
+  try {
+    const responded = await respondToQuote(createAdminClient(), parsed.data.token, parsed.data.decision === "approve");
+    if (!responded.ok) return { ok: false, error: responded.error };
 
-  await revalidateDomain(responded.data.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true, status: responded.data.status };
+    await revalidateDomain(responded.data.organizationId, [cacheTags.quotes], ["/orcamentos"]);
+    return { ok: true, status: responded.data.status };
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("ação quote-respond falhou:", error);
+    return { ok: false, error: error instanceof Error && error.message ? error.message : UNEXPECTED };
+  }
 }
 
 /**
@@ -89,30 +107,36 @@ export async function respondToQuoteAction(input: unknown): Promise<QuoteRespons
  * telefone. O documento continua o mesmo; o que muda é o que a casa sabe sobre ele.
  */
 export async function markQuoteStatusAction(input: unknown): Promise<QuoteStatusResult> {
-  const guard = await guardAction("quote-status");
-  if (!guard.ok) return { ok: false, error: guard.error };
+  return guardedAction<QuoteStatusResult>(
+    "quote-status",
+    async ({ supabase, organizationId }) => {
+      const parsed = quoteStatusSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, error: "Situação inválida." };
 
-  const parsed = quoteStatusSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Situação inválida." };
+      const marked = await markQuoteStatus(supabase, organizationId, parsed.data.id, parsed.data.status);
+      if (!marked.ok) return { ok: false, error: marked.error };
 
-  const marked = await markQuoteStatus(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.status);
-  if (!marked.ok) return { ok: false, error: marked.error };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true };
+      await revalidateDomain(organizationId, [cacheTags.quotes], ["/orcamentos"]);
+      return { ok: true };
+    },
+    (error) => ({ ok: false, error }),
+  );
 }
 
 /** Uma cópia em rascunho, com número e link novos. Devolve o id, para o editor abrir nela. */
 export async function duplicateQuoteAction(input: unknown): Promise<QuoteSaveResult> {
-  const guard = await guardAction("quote-duplicate");
-  if (!guard.ok) return { ok: false, error: guard.error };
+  return guardedAction<QuoteSaveResult>(
+    "quote-duplicate",
+    async ({ supabase, organizationId }) => {
+      const parsed = quoteIdSchema.safeParse(input);
+      if (!parsed.success) return { ok: false, error: "Escolha um orçamento." };
 
-  const parsed = quoteIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Escolha um orçamento." };
+      const copy = await duplicateQuote(supabase, organizationId, parsed.data);
+      if (!copy.ok) return { ok: false, error: copy.error };
 
-  const copy = await duplicateQuote(guard.context.supabase, guard.context.organizationId, parsed.data);
-  if (!copy.ok) return { ok: false, error: copy.error };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.quotes], ["/orcamentos"]);
-  return { ok: true, id: copy.data.id, status: "draft" };
+      await revalidateDomain(organizationId, [cacheTags.quotes], ["/orcamentos"]);
+      return { ok: true, id: copy.data.id, status: "draft" };
+    },
+    (error) => ({ ok: false, error }),
+  );
 }

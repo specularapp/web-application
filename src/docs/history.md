@@ -1189,3 +1189,26 @@ Tambem: `npm install` desta maquina estava desatualizado e faltavam `lowlight` e
 que o pull trouxe, o que quebrava o typecheck e o build. Nada no repositorio, so o `node_modules` local.
 
 Typecheck, lint e build aprovados.
+
+### 2026-09-22 | salvar orcamento dizia so "nao foi possivel falar com o servidor"
+
+Toda excecao do servidor dentro de uma Server Action de orcamento chegava na tela como a frase generica do
+`callAction`, que e o que ele diz quando a promessa rejeita. O mesmo recado servia para um segredo faltando no
+ambiente, uma funcao de banco que sumiu e a rede que caiu: quem estava na tela nao sabia o que corrigir e quem
+mantem nao sabia o que procurar.
+
+Entrou o `guardedAction` em `organizations/context.ts`, que e o `guardAction` com contorno de erro por cima: o
+que estoura vai inteiro para o registro do servidor e a frase dele volta para a tela. As excecoes com que o
+Next desvia o fluxo (`redirect`, `notFound`) seguem subindo, por `unstable_rethrow`. As seis acoes de orcamento
+passaram a usa-lo; a resposta pelo link publico, que nao tem sessao, ganhou o mesmo contorno a mao.
+
+O suspeito numero um nesse caminho e o `SHARE_LINK_SECRET`: `saveQuote` deriva o token do link publico dele ao
+gravar um orcamento novo, e `env.share()` estoura quando ele falta ou tem menos de 32 caracteres. Numa conta
+sem nenhum orcamento, contrato ou cobranca gravado, essa e a primeira vez que o segredo e exigido, entao a
+falta dele so aparece na primeira gravacao. `npm run env:check` passou a conferi-lo, o que antes nao acontecia,
+e o recado de configuracao deixou de mandar olhar o `.env.local`, que nao existe em producao.
+
+Typecheck, lint e build aprovados.
+
+Pendencia: confirmar no ambiente hospedado qual erro o registro do servidor mostra agora. Se for o segredo,
+basta gera-lo e publicar de novo.

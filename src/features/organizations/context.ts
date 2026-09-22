@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { refresh, revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSessionUser, requireUser, type SessionUser } from "@/features/auth/session";
 import { dropTags } from "@/lib/cache";
@@ -76,6 +76,7 @@ export async function requireOrganization(next = DASHBOARD_PATH): Promise<Organi
 export const TOO_MANY = "Muitas ações em pouco tempo. Aguarde um instante e tente de novo.";
 export const NO_TEAM = "Escolha ou crie um time antes de continuar.";
 export const INVALID_INPUT = "Confira os dados informados.";
+export const UNEXPECTED = "Algo quebrou no servidor ao executar esta ação.";
 
 /**
  * A casca de toda Server Action de domínio: sessão, time em vigor e teto de requisições, na mesma ordem e
@@ -93,6 +94,36 @@ export async function guardAction(
   if (!allowed) return { ok: false, error: TOO_MANY };
 
   return { ok: true, context };
+}
+
+/**
+ * A mesma casca, com o contorno de erro por cima: o que estourar dentro da ação volta como falha com recado,
+ * e não como promessa rejeitada.
+ *
+ * Sem isto, toda exceção do servidor chega à tela como "Não foi possível falar com o servidor", que é o que
+ * `callAction` diz quando a promessa rejeita: o mesmo recado para um segredo que falta no ambiente, uma
+ * função de banco que sumiu e a rede que caiu. Quem está na tela não sabe o que corrigir, e quem mantém não
+ * sabe o que procurar. Aqui o erro vai inteiro para o registro do servidor e a frase dele vai para a tela,
+ * que nas falhas de configuração já diz qual variável está faltando.
+ *
+ * As exceções com que o Next desvia o fluxo (`redirect`, `notFound`) continuam subindo, senão engoli-las
+ * transformaria uma navegação em erro.
+ */
+export async function guardedAction<T>(
+  operation: string,
+  run: (context: OrganizationContext) => Promise<T>,
+  onFailure: (error: string) => T,
+): Promise<T> {
+  const guard = await guardAction(operation);
+  if (!guard.ok) return onFailure(guard.error);
+
+  try {
+    return await run(guard.context);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error(`ação ${operation} falhou:`, error);
+    return onFailure(error instanceof Error && error.message ? error.message : UNEXPECTED);
+  }
 }
 
 /**

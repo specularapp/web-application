@@ -8,8 +8,10 @@ function define<T extends z.ZodObject>(service: string, schema: T, read: Reader)
     if (cached) return cached;
     const parsed = schema.safeParse(read());
     if (!parsed.success) {
+      /* O recado não cita o `.env.local`: em produção as variáveis moram no painel da hospedagem, e mandar
+         olhar um arquivo que não existe lá desviava quem foi corrigir. */
       const fields = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");
-      throw new Error(`Configuração inválida para ${service}. Verifique no .env.local: ${fields}`);
+      throw new Error(`Configuração inválida para ${service}: confira ${fields} no ambiente.`);
     }
     cached = parsed.data;
     return cached;

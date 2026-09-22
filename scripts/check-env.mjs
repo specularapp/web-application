@@ -88,6 +88,13 @@ await check("Redis", ["REDIS_URL"], async () => {
   }
 }, { optional: true });
 
+/* Sem este segredo nada que gere link publico salva: orcamento, contrato e cobranca derivam o token dele na
+   hora de gravar, e a falta dele so aparecia como erro generico na tela de quem estava salvando. */
+await check("Links publicos", ["SHARE_LINK_SECRET"], async () => {
+  if (e.SHARE_LINK_SECRET.length < 32) throw new Error("precisa ter no minimo 32 caracteres");
+  return "formato OK";
+});
+
 await check("n8n", ["N8N_WEBHOOK_URL", "N8N_WEBHOOK_SECRET"], async () => {
   new URL(e.N8N_WEBHOOK_URL);
   if (e.N8N_WEBHOOK_SECRET.length < 32) throw new Error("secret precisa ter no mínimo 32 caracteres");
