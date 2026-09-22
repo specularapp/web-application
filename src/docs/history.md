@@ -1172,3 +1172,20 @@ A ficha de oportunidade recuperou a composição visual anterior e passou a edit
 O cliente selecionado passou a usar avatar e nome na ficha, no mesmo padrão visual do responsável. Textos editáveis e valores fixos agora permanecem em uma linha e cedem espaço com reticências. A linha do caminho no funil foi centralizada nos marcadores e estes ganharam fundo sólido, evitando que o traço atravesse os ícones.
 
 O seletor de origem da oportunidade ganhou uma identificação própria em cada opção e no valor selecionado. WhatsApp, Instagram e Facebook usam seus logotipos, Google usa a marca colorida e as demais origens usam ícones semânticos distintos.
+
+### 2026-09-22 | sair do editor de orcamento
+
+O editor de orcamento nao deixava sair. Quando ele virou tela (2026-09-16), o `registerClose` da epoca da janela
+ficou para tras: o formulario entregava o proprio `requestClose` para a referencia que o `onClose` dele chamava,
+entao toda saida voltava para si mesma. Sem alteracao, voltar e o X estouravam a pilha; com alteracao, sair sem
+salvar reabria a pergunta para sempre. A referencia saiu e o `onClose` volta a ser a saida de verdade; a pergunta
+de descartar continua, agora tambem no voltar.
+
+Junto: o campo recusado pelo servidor abre o item dele, porque so um fica aberto por vez e o aceso podia estar
+entre os fechados, e o erro de salvar passou a avisar por toast como o de rascunho ja avisava. Desconto com a
+chave ligada e o valor vazio deixou de salvar em silencio sem desconto e agora e recusado no campo.
+
+Tambem: `npm install` desta maquina estava desatualizado e faltavam `lowlight` e o `@tiptap/extension-code-block-lowlight`
+que o pull trouxe, o que quebrava o typecheck e o build. Nada no repositorio, so o `node_modules` local.
+
+Typecheck, lint e build aprovados.

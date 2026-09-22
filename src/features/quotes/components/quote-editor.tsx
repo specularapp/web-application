@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -57,25 +57,8 @@ import { QuoteLineFacts, QuoteLineInfo } from "./quote-line-info";
 import { QuotePaper } from "./quote-paper";
 import styles from "./quote-editor.module.css";
 
-/** O que a janela edita: um orçamento da lista ou `"new"` para criar. Nulo fecha. */
-export type QuoteEditorTarget = Quote | "new" | null;
-
 /** O que a URL pode pedir já preenchido num orçamento novo: o cliente e o item do catálogo. */
 export type QuotePrefill = { clientId?: string; itemId?: string };
-
-export type QuoteEditorDialogProps = {
-  editor: QuoteEditorTarget;
-  clients: ClientListItem[];
-  catalog: CatalogItem[];
-  /** Quem emite e quem responde, para o documento em prévia ser o que o cliente vai receber. */
-  issuer: QuoteIssuer;
-  owner: QuotePerson;
-  /** O número que um orçamento novo vai receber. */
-  nextNumber: string;
-  prefill?: QuotePrefill;
-  onClose: () => void;
-  onSaved: () => void;
-};
 
 const DEFAULT_VALIDITY_DAYS = 15;
 const FREE_ITEM = "__avulso";
@@ -295,8 +278,6 @@ function InstallmentsInfo({ onOpen, ...plan }: InstallmentPlanProps & { onOpen?:
  */
 export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber, prefill, onLeave, onSaved }: QuoteEditorProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
-  /* O fechar que o formulário registra salva o rascunho antes de sair; enquanto ele não existe, sair é sair. */
-  const leave = useRef<() => void>(onLeave);
 
   return (
     <QuoteForm
@@ -309,11 +290,8 @@ export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber
       nextNumber={nextNumber}
       prefill={quote ? undefined : prefill}
       mobile={mobile}
-      onClose={() => leave.current()}
+      onClose={onLeave}
       onSaved={onSaved}
-      registerClose={(close) => {
-        leave.current = close;
-      }}
     />
   );
 }
@@ -342,13 +320,12 @@ type QuoteFormProps = {
   nextNumber: string;
   prefill?: QuotePrefill;
   mobile: boolean;
+  /** Sair do editor de verdade: é o destino, e nunca a pergunta de sair, que mora aqui dentro. */
   onClose: () => void;
   onSaved: () => void;
-  /** Por onde a janela pede para fechar: o formulário entrega o fechar que salva o rascunho antes. */
-  registerClose: (close: () => void) => void;
 };
 
-function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved, registerClose }: QuoteFormProps) {
+function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved }: QuoteFormProps) {
   const { toast } = useToast();
   const [values, setValues] = useState<Values>(() => valuesOf(quote, catalog, prefill));
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
@@ -500,7 +477,10 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
       unit: line.unit,
       courtesy: line.courtesy,
     })),
-    discount: values.discountOn && values.discountValue ? { kind: values.discountKind, value: Number(values.discountValue) } : null,
+    /* Com a chave ligada o desconto vai mesmo vazio, para o servidor recusar e acender o campo: antes ele
+       virava nulo aqui, e quem ligou a chave sem preencher salvava sem desconto sem nenhum aviso. Vazio soma
+       zero, então a prévia não muda enquanto a pessoa não digita. */
+    discount: values.discountOn ? { kind: values.discountKind, value: Number(values.discountValue || 0) } : null,
     installments: Math.max(1, Number(values.installments || 1)),
     paymentMethods: values.paymentMethods,
     cashDiscount: Number(values.cashDiscount || 0),
@@ -526,6 +506,23 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     if (field.startsWith("lines")) return "items";
     if (["installments", "paymentMethods", "cashDiscount", "discount", "notes"].some((entry) => field.startsWith(entry))) return "terms";
     return "info";
+  };
+
+  /* O campo recusado vira o campo à vista: a parte dele abre e, sendo de um item, o item também, porque com
+     mais de um na lista só um fica aberto e o aceso podia estar entre os fechados. No celular o item abre na
+     bandeja, que é onde os campos dele moram, e a aba volta para os dados, senão o aviso nasce atrás da prévia. */
+  const showError = (field: string | undefined, message: string) => {
+    setError({ field, message });
+    setStep(stepOf(field ?? ""));
+
+    const position = Number(field?.match(/^lines\.(\d+)\./)?.[1]);
+    const line = Number.isNaN(position) ? undefined : values.lines[position];
+    if (line) {
+      setOpenLine(line.id);
+      if (mobile) setLineSheet(line.id);
+    }
+
+    if (mobile) setTab("form");
   };
 
   /* O que a action recebe, montado do rascunho que a prévia já desenha. */
@@ -577,19 +574,13 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     setConfirmingClose(false);
 
     if (!result.ok) {
-      setError({ field: result.field, message: result.error });
-      setStep(stepOf(result.field ?? ""));
-      if (mobile) setTab("form");
+      showError(result.field, result.error);
       toast({ title: "Rascunho não salvo", description: "Nada foi perdido. Corrija o campo indicado e tente novamente.", tone: "warning" });
       return;
     }
     toast({ title: editing ? "Orçamento salvo" : "Rascunho salvo", description: `${draft.number} está na lista.`, tone: "success" });
     onSaved();
   };
-
-  useEffect(() => {
-    registerClose(requestClose);
-  });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -602,9 +593,8 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     setSaving(null);
 
     if (!result.ok) {
-      setError({ field: result.field, message: result.error });
-      setStep(stepOf(result.field ?? ""));
-      if (mobile) setTab("form");
+      showError(result.field, result.error);
+      toast({ title: "Orçamento não salvo", description: result.error, tone: "warning" });
       return;
     }
 
@@ -780,7 +770,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
           as ações na ponta. O total e a contagem de itens ficam ao lado do nome, porque aqui eles são o que a
           pessoa confere enquanto monta. */}
       <header className={styles.head}>
-        <IconButton label="Voltar aos orçamentos" variant="ghost" size="sm" onClick={onClose}>
+        <IconButton label="Voltar aos orçamentos" variant="ghost" size="sm" disabled={saving !== null} onClick={() => void requestClose()}>
           <ArrowLeftIcon />
         </IconButton>
         <nav className={styles.crumbs} aria-label="Onde o orçamento mora" id={titleId}>
@@ -1053,11 +1043,19 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                 <>
                   <div className={styles.pair}>
                     <Read label="Desconto">
-                      {values.discountOn && values.discountValue
-                        ? values.discountKind === "percent"
-                          ? `${values.discountValue}%`
-                          : formatMoney(Number(values.discountValue))
-                        : "Sem desconto"}
+                      {!values.discountOn ? (
+                        "Sem desconto"
+                      ) : values.discountValue ? (
+                        values.discountKind === "percent" ? (
+                          `${values.discountValue}%`
+                        ) : (
+                          formatMoney(Number(values.discountValue))
+                        )
+                      ) : (
+                        <Text as="span" variant="footnote" tone="danger">
+                          Falta informar
+                        </Text>
+                      )}
                     </Read>
                     <Read label="Total">{formatMoney(totals.total)}</Read>
                   </div>
