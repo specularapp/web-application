@@ -3,7 +3,7 @@ import { promises as dns } from "node:dns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { siteConfig } from "@/lib/metadata";
 import type { Database } from "@/types/database";
-import type { ResumeLink, SaveAccountInput, SaveResumeInput } from "./schemas";
+import type { ResumeLink, SaveAccountInput, SaveResumeInput, UserImageKind } from "./schemas";
 
 /**
  * As configurações contra o banco: a conta de quem entra (nome e foto), o currículo dela, o domínio do
@@ -24,6 +24,8 @@ export type Account = {
   fullName: string;
   email: string | null;
   avatarUrl: string | null;
+  /** A foto larga atrás do rosto, no topo da página da conta; nula enquanto a pessoa não subir uma. */
+  coverUrl: string | null;
 };
 
 /** O currículo, como a página edita e a pública desenha. */
@@ -39,13 +41,14 @@ export type Resume = {
   resumePublic: boolean;
 };
 
-const profileColumns = "id, full_name, email, avatar_url, headline, bio, location, skills, links, resume_slug, resume_public";
+const profileColumns = "id, full_name, email, avatar_url, cover_url, headline, bio, location, skills, links, resume_slug, resume_public";
 
 type ProfileRow = {
   id: string;
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
   headline: string | null;
   bio: string | null;
   location: string | null;
@@ -74,7 +77,7 @@ async function profileOf(client: SettingsClient, userId: string): Promise<Profil
 export async function getAccount(client: SettingsClient, userId: string): Promise<Account | null> {
   const row = await profileOf(client, userId);
   if (!row) return null;
-  return { id: row.id, fullName: row.full_name ?? "", email: row.email, avatarUrl: row.avatar_url };
+  return { id: row.id, fullName: row.full_name ?? "", email: row.email, avatarUrl: row.avatar_url, coverUrl: row.cover_url };
 }
 
 export async function saveAccount(client: SettingsClient, userId: string, input: SaveAccountInput): Promise<ServiceResult<Account>> {
@@ -98,36 +101,67 @@ function storagePathOf(url: string | null) {
 
 const avatarExtensions: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 
-/** Assina o endereço de subida da foto: a pasta é o id da pessoa, que é de onde a policy tira a permissão. */
+const userImageLabels: Record<UserImageKind, string> = { avatar: "foto", cover: "capa" };
+
+/** Assina o endereço de subida da foto ou da capa: a pasta é o id da pessoa, que é de onde a policy tira a permissão. */
 export async function createAvatarUpload(
   client: SettingsClient,
   userId: string,
   contentType: string,
+  kind: UserImageKind = "avatar",
 ): Promise<ServiceResult<{ path: string; token: string }>> {
-  const path = `${userId}/avatar-${crypto.randomUUID()}.${avatarExtensions[contentType] ?? "png"}`;
+  const path = `${userId}/${kind}-${crypto.randomUUID()}.${avatarExtensions[contentType] ?? "png"}`;
   const { data, error } = await client.storage.from(AVATAR_BUCKET).createSignedUploadUrl(path);
-  if (error || !data) return { ok: false, error: "Não foi possível preparar o envio da foto." };
+  if (error || !data) return { ok: false, error: `Não foi possível preparar o envio da ${userImageLabels[kind]}.` };
   return { ok: true, data: { path: data.path, token: data.token } };
 }
 
-/** Grava o endereço da foto no perfil e na sessão, e apaga a anterior. */
-export async function attachAvatar(client: SettingsClient, userId: string, path: string): Promise<ServiceResult<string>> {
+/* A coluna de cada imagem, escrita por extenso para o tipo gerado do banco conferir a escrita. */
+function userImagePatch(kind: UserImageKind, url: string | null) {
+  return kind === "avatar" ? { avatar_url: url } : { cover_url: url };
+}
+
+function userImageUrlOf(row: ProfileRow | null, kind: UserImageKind) {
+  return (kind === "avatar" ? row?.avatar_url : row?.cover_url) ?? null;
+}
+
+/** Grava o endereço da imagem no perfil (e, para a foto, na sessão) e apaga a anterior. */
+export async function attachAvatar(
+  client: SettingsClient,
+  userId: string,
+  path: string,
+  kind: UserImageKind = "avatar",
+): Promise<ServiceResult<string>> {
   if (!path.startsWith(`${userId}/`)) return { ok: false, error: SAVE_FAILED };
 
   const row = await profileOf(client, userId);
-  const previous = storagePathOf(row?.avatar_url ?? null);
+  const previous = storagePathOf(userImageUrlOf(row, kind));
 
   const {
     data: { publicUrl },
   } = client.storage.from(AVATAR_BUCKET).getPublicUrl(path);
 
-  const { error } = await client.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
+  const { error } = await client.from("profiles").update(userImagePatch(kind, publicUrl)).eq("id", userId);
   if (error) return { ok: false, error: SAVE_FAILED };
 
-  await client.auth.updateUser({ data: { avatar_url: publicUrl } });
+  if (kind === "avatar") await client.auth.updateUser({ data: { avatar_url: publicUrl } });
   if (previous && previous !== path) await client.storage.from(AVATAR_BUCKET).remove([previous]);
 
   return { ok: true, data: publicUrl };
+}
+
+/** Tira a foto ou a capa do perfil e apaga o arquivo: é o × da tela, e não uma troca. */
+export async function clearUserImage(client: SettingsClient, userId: string, kind: UserImageKind): Promise<ServiceResult<undefined>> {
+  const row = await profileOf(client, userId);
+  const previous = storagePathOf(userImageUrlOf(row, kind));
+
+  const { error } = await client.from("profiles").update(userImagePatch(kind, null)).eq("id", userId);
+  if (error) return { ok: false, error: SAVE_FAILED };
+
+  if (kind === "avatar") await client.auth.updateUser({ data: { avatar_url: null } });
+  if (previous) await client.storage.from(AVATAR_BUCKET).remove([previous]);
+
+  return { ok: true, data: undefined };
 }
 
 export async function getResume(client: SettingsClient, userId: string): Promise<Resume | null> {

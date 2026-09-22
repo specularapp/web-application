@@ -24,6 +24,7 @@ import { FieldAffix } from "@/components/ui/field-shell";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { TagPicker } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
@@ -39,7 +40,7 @@ import { loadClientAction, saveClientAction } from "../actions";
 import { clientTagCatalog } from "../tags";
 import type { ClientListItem } from "../list-options";
 import { clientLimits, MAX_TAGS, type ClientFormInput } from "../schemas";
-import type { Client } from "../summary";
+import type { Client, ClientKind } from "../summary";
 import styles from "./client-form-dialog.module.css";
 import { siteUrl, siteValue } from "@/lib/utils/site";
 
@@ -53,14 +54,16 @@ function isFull(editor: Client | ClientListItem): editor is Client {
 
 export type ClientFormDialogProps = {
   editor: ClientEditor;
+  defaultKind?: ClientKind;
   onClose: () => void;
   /** Depois de salvar com sucesso, além de fechar. */
   onSaved: () => void;
 };
 
 /* O formulário guarda texto cru; a ficha guarda tipos. A conversão mora aqui, num lugar só. */
-function valuesOf(client?: Client) {
+function valuesOf(client?: Client, defaultKind: ClientKind = "customer") {
   return {
+    kind: client?.kind ?? defaultKind,
     name: client?.name ?? "",
     company: client?.company ?? "",
     role: client?.role ?? "",
@@ -161,7 +164,7 @@ function ImageField({
 // padrão da casa e em pares onde cabem. O estado é local e o envio é a action, que valida com zod de novo
 // no servidor; erro de campo volta para o campo, e sucesso avisa e fecha. A foto e a logo entram na prévia
 // na hora; o envio do arquivo chega com o storage. Ativo e favorito ficam no menu do chevron duplo do topo.
-export function ClientFormDialog({ editor, onClose, onSaved }: ClientFormDialogProps) {
+export function ClientFormDialog({ editor, defaultKind = "customer", onClose, onSaved }: ClientFormDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   // O que está desenhado dentro da gaveta: segue o editor enquanto ele existe e fica quando ele zera, para
   // o conteúdo não sumir antes de a gaveta terminar de sair (a `Dialog` só desmonta os filhos no fim da
@@ -173,8 +176,8 @@ export function ClientFormDialog({ editor, onClose, onSaved }: ClientFormDialogP
     // Sem escurecimento no desktop, como a gaveta de criar equipe: a página segue viva atrás. No celular
     // o escurecimento entra, senão o toque na barra flutuante, que fica acima da bandeja, fecharia a janela
     // como toque fora.
-    <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? "Novo cliente" : "Editar cliente"} size="md" placement="end" surface="glass" scrim={mobile} focusOnOpen={false}>
-      {shown === "new" && <ClientForm onClose={onClose} onSaved={onSaved} />}
+    <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? (defaultKind === "supplier" ? "Novo fornecedor" : "Novo cliente") : "Editar contato"} size="md" placement="end" surface="glass" scrim={mobile} focusOnOpen={false}>
+      {shown === "new" && <ClientForm defaultKind={defaultKind} onClose={onClose} onSaved={onSaved} />}
       {shown !== null && shown !== "new" && (isFull(shown) ? <ClientForm client={shown} onClose={onClose} onSaved={onSaved} /> : <ClientLoader item={shown} onClose={onClose} onSaved={onSaved} />)}
     </Dialog>
   );
@@ -217,9 +220,9 @@ function ClientLoader({ item, onClose, onSaved }: { item: ClientListItem; onClos
 
 /* O formulário nasce de novo a cada abertura, porque a janela só monta o conteúdo aberta: o estado começa
    limpo sem precisar zerar nada. */
-function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: () => void; onSaved: () => void }) {
+function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { client?: Client; defaultKind?: ClientKind; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
-  const [values, setValues] = useState<Values>(() => valuesOf(client));
+  const [values, setValues] = useState<Values>(() => valuesOf(client, defaultKind));
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const editing = Boolean(client);
@@ -285,6 +288,7 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
 
     const input: ClientFormInput = {
       id: client?.id,
+      kind: values.kind,
       name: values.name,
       company: values.company,
       role: values.role,
@@ -313,13 +317,13 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
     setSaving(false);
 
     if (images) {
-      toast({ title: "Cliente salvo, imagem não", description: images, tone: "warning" });
+      toast({ title: `${values.kind === "supplier" ? "Fornecedor" : "Contato"} salvo, imagem não`, description: images, tone: "warning" });
       onSaved();
       return;
     }
 
     toast({
-      title: editing ? "Cliente atualizado" : "Cliente criado",
+      title: editing ? "Contato atualizado" : values.kind === "supplier" ? "Fornecedor criado" : "Cliente criado",
       description: `${values.name.trim()} já está na base.`,
       tone: "success",
     });
@@ -334,20 +338,20 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
     <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
       <header className={styles.head}>
         <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-          {editing ? "Editar cliente" : "Novo cliente"}
+          {editing ? "Editar contato" : values.kind === "supplier" ? "Novo fornecedor" : "Novo cliente"}
         </Text>
         <div className={styles.headActions}>
           {/* Ativo e favorito são situação, e não dado da ficha: moram no menu de opções da própria
               janela, no chevron duplo das listas, como interruptores, para não tomar linha do formulário. */}
           <DropdownMenu
-            label="Situação do cliente"
-            triggerLabel="Situação do cliente"
+            label="Situação do contato"
+            triggerLabel="Situação do contato"
             sections={[
               {
                 id: "flags",
                 label: "Situação",
                 items: [
-                  { kind: "toggle", id: "active", label: "Cliente ativo", icon: CheckCircleIcon, checked: values.active, onChange: (active) => set("active", active) },
+                  { kind: "toggle", id: "active", label: "Contato ativo", icon: CheckCircleIcon, checked: values.active, onChange: (active) => set("active", active) },
                   { kind: "toggle", id: "favorite", label: "Favorito", icon: StarIcon, checked: values.favorite, onChange: (favorite) => set("favorite", favorite) },
                 ],
               },
@@ -361,6 +365,20 @@ function ClientForm({ client, onClose, onSaved }: { client?: Client; onClose: ()
 
       <div className={styles.body}>
         <Section icon={IdentificationCardIcon} title="Identidade">
+          <Field label="Relação com a empresa" required error={errorOf("kind")}>
+            <Select<ClientKind>
+              label="Tipo de contato"
+              size="sm"
+              value={values.kind}
+              options={[
+                { value: "customer", label: "Cliente", caption: "Compra produtos ou serviços" },
+                { value: "supplier", label: "Fornecedor", caption: "Origina despesas e pagamentos" },
+                { value: "both", label: "Cliente e fornecedor", caption: "Atua nos dois lados" },
+              ]}
+              disabled={saving}
+              onChange={(kind) => set("kind", kind)}
+            />
+          </Field>
           <div className={styles.images}>
             <ImageField
               label="Foto"

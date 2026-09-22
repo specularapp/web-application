@@ -18,9 +18,15 @@ export type SidebarAlert = {
   title: string;
   /** Linha de apoio pronta, como "9:00 a 9:30 no Zoom" ou "Vence em 2 dias". */
   detail: string;
+  /** Onde ou com quem acontece, sem obrigar o título a carregar todo o contexto. */
+  context?: string;
+  /** Informação importante própria do aviso, como o valor de uma cobrança. */
+  value?: string;
   /** Quando acontece, em ISO, para escolher o mais urgente. */
   startsAt: string;
   people: AlertPerson[];
+  /** Quantos outros avisos existem além deste; impede o cartão de sugerir que a agenda termina aqui. */
+  remaining?: number;
   action: { label: string; href: Route | `http${string}` };
 };
 
@@ -52,8 +58,10 @@ export function describeAlert(kind: AlertKind, when: Timed, now: Date) {
   return `Vence em ${days} dias`;
 }
 
-/** O aviso mais urgente: o primeiro que ainda vai acontecer; sem nenhum, o que passou há menos tempo. */
+/** O aviso mais urgente: pendência vencida vem antes da próxima data, porque continuar atrasada não a torna
+ * menos importante. Entre vencidas, ganha a mais antiga; sem atraso, a próxima data. */
 export function pickAlert(alerts: SidebarAlert[], now = new Date()) {
   const sorted = [...alerts].sort((a, b) => parseISO(a.startsAt).getTime() - parseISO(b.startsAt).getTime());
-  return sorted.find((alert) => parseISO(alert.startsAt).getTime() >= now.getTime()) ?? sorted.at(-1);
+  const overdue = sorted.filter((alert) => parseISO(alert.startsAt).getTime() < now.getTime());
+  return overdue[0] ?? sorted[0];
 }

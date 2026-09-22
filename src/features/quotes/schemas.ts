@@ -21,7 +21,7 @@ export const quoteLimits = {
 } as const;
 
 const int = z.number().int();
-const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+const isoDay = z.iso.date("Data inválida");
 
 const lineSchema = z.object({
   id: z.string().trim().min(1),

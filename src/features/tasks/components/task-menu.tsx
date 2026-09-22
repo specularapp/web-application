@@ -7,7 +7,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { callAction } from "@/lib/action";
 import { duplicateTaskAction } from "../actions";
 import { statusOf } from "../labels";
-import { taskStageMeta, type TaskStage } from "../stages";
+import { stageGlyphs, stageHue, type TaskStage } from "../stages";
 import type { Task } from "../summary";
 
 export type TaskMenuProps = {
@@ -33,7 +33,7 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
 
   /* A etapa de fechamento **deste** quadro: um projeto pode nomear as suas, e concluir é mandar para a que
      o catálogo marca como fim. Sem ela, a opção não aparece em vez de apontar para uma coluna que não existe. */
-  const closing = stages?.find((id) => taskStageMeta[id].kind === "done");
+  const closing = stages?.find((stage) => stage.kind === "done");
 
   const duplicate = async () => {
     const result = await callAction(duplicateTaskAction(task.id));
@@ -67,13 +67,13 @@ export function TaskMenu({ task, onOpen, stages, onMove, onDelete }: TaskMenuPro
             id: "move",
             label: "Mover para",
             items: stages.map((id) => {
-              const meta = taskStageMeta[id];
-              const Glyph = meta.icon;
+              const meta = id;
+              const Glyph = stageGlyphs[meta.glyph];
               return {
-                id: `move-${id}`,
-                label: meta.label,
-                media: <Glyph weight="bold" style={{ color: meta.hue } as CSSProperties} />,
-                selected: task.stage === id,
+                id: `move-${id.id}`,
+                label: meta.name,
+                media: <Glyph weight="bold" style={{ color: stageHue(meta) } as CSSProperties} />,
+                selected: task.stage.id === id.id,
                 onSelect: () => onMove(id),
               };
             }),

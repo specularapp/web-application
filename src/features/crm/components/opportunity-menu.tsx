@@ -1,9 +1,12 @@
 "use client";
 
+import { useCrmStages, useFunnelStages } from "./stage-context";
+
 import {
   CopySimpleIcon,
   EyeIcon,
   HashIcon,
+  PencilSimpleIcon,
   ProhibitIcon,
   ReceiptIcon,
   TrashIcon,
@@ -16,7 +19,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { callAction } from "@/lib/action";
 import { duplicateOpportunityAction } from "../actions";
 import { statusOf } from "../labels";
-import { crmStageMeta, type CrmStage } from "../stages";
+import { type CrmStage } from "../stages";
 import type { Opportunity } from "../summary";
 
 export type OpportunityMenuProps = {
@@ -29,19 +32,22 @@ export type OpportunityMenuProps = {
   onMove?: (stage: CrmStage) => void;
   /** Pede a exclusão; quem confirma é a janela da casa, com a pergunta e o aviso. */
   onDelete?: () => void;
+  /** Abre o editor completo, já preenchido. */
+  onEdit?: () => void;
 };
 
 // As opções de uma oportunidade, no padrão do menu da tarefa, do cliente e do orçamento: abrir a ficha,
 // copiar o identificador, mover de etapa, ver ou gerar o orçamento, duplicar, e os dois desfechos antes do
-// excluir. Não há "Editar": a ficha da oportunidade **é** o editor, então abrir e editar seriam a mesma
-// linha escrita duas vezes.
+// excluir. A edição abre o formulário completo já preenchido; a ficha continua sendo a leitura rápida.
 //
 // Ganhar e perder são **ações de menu**, e não só etapas de coluna: fechar uma venda é a coisa mais decisiva
 // que se faz com ela, e pedir que a pessoa arraste o cartão até a última coluna para isso seria esconder o
 // que o funil existe para fazer. Cada uma só aparece enquanto ainda não é o caso.
-export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete }: OpportunityMenuProps) {
+export function OpportunityMenu({ opportunity, onOpen, stages: providedStages, onMove, onDelete, onEdit }: OpportunityMenuProps) {
   const { toast } = useToast();
   const status = statusOf(opportunity);
+  const crmStageMeta = useCrmStages();
+  const stages = useFunnelStages(opportunity.funnel?.slug, providedStages);
 
   const duplicate = async () => {
     const result = await callAction(duplicateOpportunityAction(opportunity.id));
@@ -84,13 +90,15 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
         ]
       : [];
 
+  const wonStage = stages?.find((id) => crmStageMeta[id]?.kind === "won");
+  const lostStage = stages?.find((id) => crmStageMeta[id]?.kind === "lost");
   const closing = [
-    ...(status === "won" || !stages?.includes("won")
+    ...(status === "won" || !wonStage
       ? []
-      : [{ id: "won", label: "Marcar como ganha", icon: TrophyIcon, onSelect: () => onMove?.("won") }]),
-    ...(status === "lost" || !stages?.includes("lost")
+      : [{ id: "won", label: "Marcar como ganha", icon: TrophyIcon, onSelect: () => wonStage && onMove?.(wonStage) }]),
+    ...(status === "lost" || !lostStage
       ? []
-      : [{ id: "lost", label: "Marcar como perdida", icon: ProhibitIcon, onSelect: () => onMove?.("lost") }]),
+      : [{ id: "lost", label: "Marcar como perdida", icon: ProhibitIcon, onSelect: () => lostStage && onMove?.(lostStage) }]),
   ];
 
   const sections: DropdownSection[] = [
@@ -98,6 +106,7 @@ export function OpportunityMenu({ opportunity, onOpen, stages, onMove, onDelete 
       id: "actions",
       items: [
         ...(onOpen ? [{ id: "open", label: "Abrir oportunidade", icon: EyeIcon, onSelect: onOpen }] : []),
+        ...(onEdit ? [{ id: "edit", label: "Editar oportunidade", icon: PencilSimpleIcon, onSelect: onEdit }] : []),
         { id: "copy", label: "Copiar identificador", icon: HashIcon, onSelect: () => void copyReference() },
       ],
     },

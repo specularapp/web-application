@@ -47,8 +47,9 @@ const eventLabels: Record<ChargeEvent["kind"], string> = {
 // de pagar com as instruções e o link do cliente para copiar e enviar; as observações; e a linha do tempo. No
 // celular as ações moram na barra flutuante.
 export function ChargeDialog({ charge, onClose, ...rest }: ChargeDialogProps) {
+  const label = charge ? `${chargeDirections[charge.direction].label} ${charge.reference}` : "Lançamento";
   return (
-    <Dialog open={Boolean(charge)} onClose={onClose} label={charge ? `Cobrança ${charge.reference}` : "Cobrança"} size="lg" focusOnOpen={false}>
+    <Dialog open={Boolean(charge)} onClose={onClose} label={label} size="lg" focusOnOpen={false}>
       {charge && <ChargeDetail key={charge.id} charge={charge} onClose={onClose} {...rest} />}
     </Dialog>
   );
@@ -87,7 +88,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
       ? {
           primary: active && onSend ? { label: charge.sentAt ? "Reenviar" : "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, onClick: onSend } : undefined,
           extras: onCopyLink ? [{ label: "Copiar link do cliente", icon: <LinkIcon weight="bold" />, onClick: onCopyLink }] : [],
-          cancel: { label: "Fechar cobrança", onClick: onClose },
+          cancel: { label: `Fechar ${side.label.toLocaleLowerCase("pt-BR")}`, onClick: onClose },
         }
       : null,
   );
@@ -95,16 +96,16 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
   return (
     <div className={styles.dialog}>
       <header className={styles.top}>
-        <nav className={styles.route} aria-label="Onde a cobrança mora">
-          <Link href="/cobrancas" className={styles.crumb}>
-            Cobranças
+        <nav className={styles.route} aria-label={`Onde a ${side.label.toLocaleLowerCase("pt-BR")} mora`}>
+          <Link href={outgoing ? "/despesas" : "/cobrancas"} className={styles.crumb}>
+            {outgoing ? "Despesas" : "Cobranças"}
           </Link>
           {payer.clientId && (
             <>
               <span className={styles.slash} aria-hidden="true">
                 /
               </span>
-              <Link href={`/clientes/${payer.clientId}` as Route} className={styles.crumb}>
+              <Link href={`${`/clientes/${payer.clientId}`}${outgoing ? "?grupo=fornecedores" : ""}` as Route} className={styles.crumb}>
                 {payer.company ?? payer.name}
               </Link>
             </>
@@ -161,10 +162,10 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
           </div>
         </section>
 
-        <section className={styles.facts} aria-label="Números da cobrança">
+        <section className={styles.facts} aria-label={`Números da ${side.label.toLocaleLowerCase("pt-BR")}`}>
           <Fact label="Total" value={formatMoney(charge.amount)} caption={charge.installments.length > 1 ? `${charge.installments.length} parcelas` : "Parcela única"} />
           <Fact label={side.settledLabel === "Paga" ? "Pago" : "Recebido"} value={formatMoney(received)} caption={`${charge.installments.filter((installment) => installment.paidAt).length} de ${charge.installments.length} baixadas`} tone={outgoing ? "danger" : "success"} />
-          <Fact label="Em aberto" value={formatMoney(open)} caption={charge.cancelledAt ? "Cancelada" : open === 0 ? "Nada a receber" : `${charge.installments.filter((installment) => !installment.paidAt).length} por pagar`} tone={chargeStatusOf(charge) === "overdue" ? "danger" : undefined} />
+          <Fact label="Em aberto" value={formatMoney(open)} caption={charge.cancelledAt ? "Cancelada" : open === 0 ? (outgoing ? "Nada a pagar" : "Nada a receber") : `${charge.installments.filter((installment) => !installment.paidAt).length} por pagar`} tone={chargeStatusOf(charge) === "overdue" ? "danger" : undefined} />
           <Fact label="Próxima parcela" value={next ? shortDate(next.dueDate) : "Nenhuma"} caption={next ? dueLabel(next.dueDate) : "Tudo em dia"} tone={next ? dueTone(next.dueDate) : undefined} />
         </section>
         <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : outgoing ? "accent" : "success"} aria-label={`${outgoing ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
@@ -189,7 +190,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
                     </Text>
                     <Text as="span" variant="caption1" tone="secondary">
                       {installment.paidAt ? `Paga em ${longDate(installment.paidAt.slice(0, 10))}${installment.paidMethod ? `, ${chargeMethods[installment.paidMethod].label}` : ""}` : `Vence em ${longDate(installment.dueDate)}`}
-                      {installment.reported && !installment.paidAt ? ". O cliente avisou que pagou" : ""}
+                      {!outgoing && installment.reported && !installment.paidAt ? ". O cliente avisou que pagou" : ""}
                     </Text>
                   </span>
                   <span className={styles.installmentEnd}>
@@ -231,7 +232,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
         <div className={styles.columns}>
           <section className={styles.section} aria-label="Como pagar">
             <Text as="h3" variant="subheadline" weight="semibold">
-              Como o cliente paga
+              {outgoing ? "Como foi pago" : "Como o cliente paga"}
             </Text>
             <div className={styles.payment} {...squircle("md")}>
               <span className={styles.paymentHead}>
@@ -246,11 +247,11 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
                 )}
               </span>
               <Text variant="footnote" tone="secondary" className={styles.paymentInfo}>
-                {charge.paymentInfo || "Sem instruções escritas. O cliente vê só a forma."}
+                {charge.paymentInfo || (outgoing ? "Sem instruções registradas." : "Sem instruções escritas. O cliente vê só a forma.")}
               </Text>
-              <Text variant="caption1" tone="tertiary">
+              {!outgoing && <Text variant="caption1" tone="tertiary">
                 {charge.sentAt ? `Enviada por e-mail em ${momentLabel(charge.sentAt)}.` : "Ainda não foi enviada ao cliente."} {charge.viewedAt ? `Aberta em ${momentLabel(charge.viewedAt)}.` : ""}
-              </Text>
+              </Text>}
             </div>
             {charge.notes && (
               <Text variant="footnote" tone="secondary">
@@ -269,7 +270,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
                   <span className={styles.eventDot} data-kind={entry.kind} aria-hidden="true" />
                   <span className={styles.eventCopy}>
                     <Text as="span" variant="footnote">
-                      <strong>{entry.actor ?? "O sistema"}</strong> {eventLabels[entry.kind]}
+                      <strong>{entry.actor ?? "O sistema"}</strong> {outgoing && entry.kind === "created" ? "criou a despesa" : outgoing && entry.kind === "cancelled" ? "cancelou a despesa" : eventLabels[entry.kind]}
                       {entry.detail ? `: ${entry.detail}` : ""}
                     </Text>
                     <Text as="span" variant="caption1" tone="tertiary">

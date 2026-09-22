@@ -2,10 +2,11 @@
   color-scheme: light dark;
 
   --font-body: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Uma família só (decisão de 2026-09-04): código e display apontam para a Inter. Os tokens ficam,
-     porque quem os usa continua dizendo o papel do texto, e trocar a fonte de um papel volta a ser um
-     lugar só. */
-  --font-code: var(--font-body);
+  /* Uma família só para texto (decisão de 2026-09-04): display aponta para a Inter, e os tokens ficam,
+     porque quem os usa continua dizendo o papel do texto. **Código é a exceção, desde 2026-09-22**: ali a
+     monoespaçada não é estilo, é função, porque é o alinhamento das colunas que faz a indentação de um
+     trecho de código ser legível, e com a Inter cada linha começava num lugar. */
+  --font-code: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-body);
 
   --text-caption-2: 0.6875rem;
@@ -203,20 +204,19 @@
   --color-scrim: light-dark(rgb(0 0 0 / 0.4), rgb(0 0 0 / 0.6));
   --color-scrim-soft: light-dark(rgb(0 0 0 / 0.3), rgb(0 0 0 / 0.5));
 
-  /* Vidro da casa, na receita do painel do login e da barra flutuante do menu: o fundo some por
-     inteiro e quem desenha a caixa é o borrão do que passa atrás. O `color-mix` a 0% fica escrito
-     assim de propósito, para o valor continuar dizendo de qual cor ele nasce. */
-  --glass-bg: color-mix(in oklab, var(--color-bg) 0%, transparent);
+  /* Vidro leve da casa: mantém o contexto, mas já traz corpo suficiente nos dois temas. */
+  --glass-bg: color-mix(in oklab, var(--color-bg) 78%, transparent);
   --glass-blur: blur(12px);
-  /* Camadas com lista e texto por cima (troca de time, busca, notificações, conta, gaveta): borrão
-     maior e um fio de fundo, para o que passa atrás não competir com o que está escrito. O login e a
-     barra flutuante ficam na receita de cima, que tem pouco conteúdo e pode ser mais transparente. */
-  --glass-layer-bg: color-mix(in oklab, var(--color-bg) 20%, transparent);
+  /* Camadas com leitura e escolha: o fundo é encorpado para o conteúdo de trás não competir. */
+  --glass-layer-bg: color-mix(in oklab, var(--color-bg) 82%, transparent);
   --glass-layer-blur: blur(16px);
-  /* Bandeja do celular: o conteúdo da página passa mais perto do texto, e a lista precisava de mais
-     corpo para ler. Vidro continua, só com o fundo a 72% em vez de 20% (era 40% até 2026-09-07, e o
-     menu de opções do cliente sobre o painel ainda ficava difícil de ler). */
-  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 72%, transparent);
+  /* Bandeja no celular: mais perto do conteúdo de trás, portanto recebe ainda mais corpo. */
+  --glass-sheet-bg: color-mix(in oklab, var(--color-bg) 90%, transparent);
+  /* O fundo de uma janela aberta (2026-09-21, a pedido: "está muito blur e ficando feio"). É outro papel
+     que o do vidro de uma superfície: ali o borrão é o material da peça, e aqui é só o que tira a página
+     de foco, atrás de um véu que já escurece. Com os 12px do vidro, a tela inteira virava uma mancha de
+     cor, e o que ficava atrás da janela deixava de ser reconhecível como a página de onde se veio. */
+  --glass-scrim-blur: blur(4px);
 
   /* Tinta e vidro do controle de arrastar da gamificação: os genéricos da casa, para o bloco assentar no
      fundo de cada tema. Um degradê próprio nas cores do adesivo holográfico existiu por umas horas em

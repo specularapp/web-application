@@ -90,11 +90,12 @@ async function load(context: OrganizationContext | null): Promise<ShellData> {
     getCrmOpenCounts(supabase, organizationId),
     getAiUsage(supabase, organizationId),
   ]);
+  const alert = pickAlert(alerts);
 
   return {
     ...base,
     notifications,
-    alert: pickAlert(alerts),
+    alert: alert ? { ...alert, remaining: Math.max(0, alerts.length - 1) } : undefined,
     tasks: buildTaskTree(taskTree, taskCounts),
     funnels: buildCrmTree(crmTree, crmCounts),
     ai,

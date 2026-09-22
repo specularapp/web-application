@@ -35,6 +35,7 @@ import {
   EMAIL_PARAM,
   FAVORITE_PARAM,
   GRID_PER_PAGE_DEFAULT,
+  GROUP_PARAM,
   MOBILE_PER_PAGE,
   PAGE_PARAM,
   PAGE_SIZE_PARAM,
@@ -158,6 +159,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       setLive(merged);
       setSelected([]);
       const params = new URLSearchParams();
+      if (merged.group !== defaultQuery.group) params.set(GROUP_PARAM, merged.group);
       if (merged.search) params.set(QUERY_PARAM, merged.search);
       if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
       if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
@@ -252,6 +254,9 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   };
   const selectedClients = items.filter((client) => selected.includes(client.id));
   const count = selectedClients.length;
+  const suppliers = live.group === "fornecedores";
+  const singular = suppliers ? "fornecedor" : "cliente";
+  const plural = suppliers ? "fornecedores" : "clientes";
 
   // Excluir de uma vez: a action valida no servidor e devolve a contagem; a tela avisa, limpa a marcação
   // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
@@ -347,10 +352,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   // No celular a paginação mora na barra flutuante do menu, junto do botão que abre a tela cheia, em vez de
   // uma segunda barra no pé da lista: é o mesmo lugar de salvar e sair de uma janela, e a lista rola até o
   // fim sem nada por cima. Passando de uma página; com uma só, a barra volta a ser busca e sino.
-  useFloatingPagerRegistration(mobile && pages > 1 ? { page: live.page, pageCount: pages, onPageChange: changePage, label: "Páginas de clientes" } : null);
+  useFloatingPagerRegistration(mobile && pages > 1 ? { page: live.page, pageCount: pages, onPageChange: changePage, label: `Páginas de ${plural}` } : null);
 
   const pagination =
-    pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label="Páginas de clientes" /> : undefined;
+    pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={total} onPageChange={changePage} label={`Páginas de ${plural}`} /> : undefined;
 
   return (
     <div className={styles.board}>
@@ -358,8 +363,8 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         search={{
           value: search,
           onChange: onSearch,
-          placeholder: "Buscar clientes",
-          label: "Buscar cliente",
+          placeholder: `Buscar ${plural}`,
+          label: `Buscar ${singular}`,
         }}
         filters={filterSections}
         activeFilters={active.map((filter) => ({
@@ -396,11 +401,11 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
           <>
             <span className={styles.wide}>
               <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
-                Novo cliente
+                Novo {singular}
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Novo cliente" size="sm" radius="md" onClick={() => openEditor("new")}>
+              <IconButton label={`Novo ${singular}`} size="sm" radius="md" onClick={() => openEditor("new")}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -408,9 +413,19 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         }
       />
 
+      <div className={styles.groups} role="tablist" aria-label="Tipo de contato">
+        <button type="button" role="tab" aria-selected={!suppliers} className={styles.group} onClick={() => go({ group: "clientes", page: 1 })}>
+          Clientes
+        </button>
+        <button type="button" role="tab" aria-selected={suppliers} className={styles.group} onClick={() => go({ group: "fornecedores", page: 1 })}>
+          Fornecedores
+        </button>
+      </div>
+
       {asTable ? (
         <ClientsTable
           clients={items}
+          group={live.group}
           selected={selected}
           onSelectedChange={setSelected}
           onOpen={setOpen}
@@ -421,11 +436,13 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       ) : items.length === 0 ? (
         <EmptyState
           icon={AddressBookIcon}
-          title={filtering ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}
+          title={filtering ? `Nenhum ${singular} encontrado` : `Nenhum ${singular} ainda`}
           description={
             filtering
               ? "Nada bateu com o que você procurou. Tente outro nome, empresa, e-mail ou telefone, ou limpe a busca."
-              : "Cadastre o primeiro cliente e o histórico de orçamentos, contratos e cobranças dele passa a viver aqui."
+              : suppliers
+                ? "Cadastre o primeiro fornecedor para ligar despesas, pagamentos e o histórico dessa relação."
+                : "Cadastre o primeiro cliente e o histórico de orçamentos, contratos e cobranças dele passa a viver aqui."
           }
         >
           {filtering && (
@@ -434,7 +451,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
             </Button>
           )}
           <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
-            Novo cliente
+            Novo {singular}
           </Button>
         </EmptyState>
       ) : (
@@ -477,9 +494,11 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       />
       <ClientFormDialog
         editor={editor}
+        defaultKind={suppliers ? "supplier" : "customer"}
         onClose={() => openEditor(null)}
         onSaved={() => {
           openEditor(null);
+          startTransition(() => router.refresh());
         }}
       />
     </div>

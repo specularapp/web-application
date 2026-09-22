@@ -34,8 +34,9 @@ export default async function ChargesPage({ searchParams }: PageProps<"/cobranca
     },
     defaultChargesPageSize(view, gridSize),
   );
+  query.direction = "incoming";
 
   const [data, ai] = await Promise.all([loadChargesScreenData(), getAiUsageData()]);
 
-  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} />;
+  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} direction="incoming" />;
 }

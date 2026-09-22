@@ -7,7 +7,7 @@ export type CatalogKind = "product" | "service";
 export type CatalogUnit = "project" | "hour" | "month" | "unit";
 
 /** Matiz da paleta do sistema que tinge a arte gerada, o azulejo dela e a etiqueta de preço. */
-export type CatalogHue = "red" | "orange" | "yellow" | "green" | "mint" | "teal" | "cyan" | "blue" | "indigo" | "purple" | "pink" | "brown";
+export type CatalogHue = "red" | "orange" | "yellow" | "green" | "mint" | "teal" | "cyan" | "blue" | "indigo" | "purple" | "pink" | "brown" | "gray";
 
 /** Um orçamento em que o item entrou, como aparece na ficha dele. */
 export type CatalogQuote = {

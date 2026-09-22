@@ -7,7 +7,7 @@
  */
 import { folderIdSchema, moveProjectSchema, saveFolderSchema } from "@/features/projects/schemas";
 import { deleteProjectFolder, listProjectFolders, moveProject, saveProjectFolder } from "@/features/projects/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "projects-read");
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const body = await readPayload(request, saveFolderSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveProjectFolder(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await saveProjectFolder(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["projects"]);
 }
 
 export async function PATCH(request: Request) {
@@ -33,7 +33,7 @@ export async function PATCH(request: Request) {
   const body = await readPayload(request, moveProjectSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await moveProject(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await moveProject(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["projects"]);
 }
 
 export async function DELETE(request: Request) {
@@ -43,5 +43,5 @@ export async function DELETE(request: Request) {
   const body = await readPayload(request, folderIdSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await deleteProjectFolder(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await deleteProjectFolder(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["projects"]);
 }

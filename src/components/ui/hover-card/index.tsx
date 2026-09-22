@@ -152,8 +152,7 @@ const Trigger = styled.span`
   }
 `;
 
-/* A camada de vidro da casa, a mesma dos menus: fundo a 20% com borrão, fio fino, sombra e o gênio. O canto
-   é `xl`, bem abaixo da metade da altura. */
+/* A mesma camada de vidro encorpado dos menus: preserva o contexto sem sacrificar contraste. */
 const Card = styled.div`
   --genie-y: calc(var(--space-2) * -1);
 

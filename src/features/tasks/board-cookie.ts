@@ -1,5 +1,5 @@
 import { cookieString } from "@/lib/cookies";
-import type { TaskStage } from "./stages";
+import type { TaskStageId } from "./stages";
 
 /**
  * O que a pessoa decidiu sobre cada etapa do quadro: recolhida ou aberta. Vive em cookie, como o jeito de ver
@@ -17,7 +17,7 @@ import type { TaskStage } from "./stages";
 export const TASKS_STAGES_COOKIE = "sp-tarefas-etapas";
 
 /** O que foi decidido em cada etapa: `true` recolhida, `false` aberta, ausente é o padrão da etapa. */
-export type StageOverrides = Partial<Record<TaskStage, boolean>>;
+export type StageOverrides = Record<TaskStageId, boolean>;
 
 /** Grava como `etapa:1` para recolhida e `etapa:0` para aberta, separadas por vírgula. */
 export function saveStageOverrides(overrides: StageOverrides) {

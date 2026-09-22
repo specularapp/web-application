@@ -1,4 +1,4 @@
-import { crmStageValues, defaultCrmStages, type CrmStage } from "./stages";
+import { crmStageValues, defaultCrmStages, type CrmStage, type CrmStageDefinition } from "./stages";
 import type { Opportunity } from "./summary";
 
 /**
@@ -13,6 +13,7 @@ import type { Opportunity } from "./summary";
 /** Uma pasta: só agrupa, e pode ter pasta dentro. */
 export type CrmFolder = {
   kind: "folder";
+  hue?: string;
   id: string;
   name: string;
   children: CrmTreeNode[];
@@ -41,6 +42,7 @@ export type CrmFunnel = {
   reference: string | null;
   /** As etapas do quadro deste funil, na ordem em que as colunas aparecem. */
   stages: CrmStage[];
+  stageDefinitions?: CrmStageDefinition[];
   /** O glifo do azulejo dele na árvore, que é o que distingue um funil do outro de relance. */
   glyph: FunnelGlyph;
   /** Token de cor do azulejo, como no `NavGroup`. */
@@ -58,7 +60,7 @@ export const isCrmFolder = (node: CrmTreeNode): node is CrmFolder => node.kind =
  * filhos.
  */
 export type CrmTreeItem =
-  | { kind: "folder"; id: string; name: string; open: number; children: CrmTreeItem[] }
+  | { kind: "folder"; hue?: string; id: string; name: string; open: number; children: CrmTreeItem[] }
   | {
       kind: "funnel";
       id: string;
@@ -69,6 +71,7 @@ export type CrmTreeItem =
       hue: string;
       /** As etapas do funil, para o leque do menu arrumá-las sem ir à página. */
       stages: CrmStage[];
+  stageDefinitions?: CrmStageDefinition[];
       /** O balde "Sem funil": não se edita nem se apaga. */
       bucket?: boolean;
     };
@@ -96,6 +99,7 @@ export function buildCrmTree(nodes: CrmTreeNode[], counts: CrmOpenCounts): CrmTr
         kind: "folder",
         id: node.id,
         name: node.name,
+        hue: node.hue,
         open: children.reduce((sum, child) => sum + child.open, 0),
         children,
       };
@@ -110,6 +114,7 @@ export function buildCrmTree(nodes: CrmTreeNode[], counts: CrmOpenCounts): CrmTr
       glyph: node.glyph,
       hue: node.hue,
       stages: node.stages,
+      stageDefinitions: node.stageDefinitions,
       bucket: node.reference === null || undefined,
     };
   });
@@ -143,8 +148,8 @@ export function pathToFunnel(items: CrmTreeItem[], slug: string, trail: string[]
  * Ele cruza funis com caminhos diferentes, então uma lista fixa esconderia o que está numa etapa que só um
  * deles usa. Sem oportunidade nenhuma, valem as etapas padrão, para o quadro não abrir sem coluna.
  */
-export function crmStagesInUse(opportunities: Opportunity[]): CrmStage[] {
-  const used = new Set(opportunities.map((opportunity) => opportunity.stage));
-  const present = crmStageValues.filter((stage) => used.has(stage));
+export function crmStagesInUse(opportunities: Opportunity[], funnels: CrmFunnel[] = []): CrmStage[] {
+  const used = new Set([...funnels.flatMap((funnel) => funnel.stages), ...opportunities.map((opportunity) => opportunity.stage)]);
+  const present = [...crmStageValues.filter((stage) => used.has(stage)), ...[...used].filter((stage) => !crmStageValues.some((value) => value === stage))];
   return present.length > 0 ? present : defaultCrmStages;
 }

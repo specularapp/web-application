@@ -1,5 +1,7 @@
 "use client";
 
+import { callAction } from "@/lib/action";
+
 import { ArrowSquareOutIcon, CopySimpleIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -66,7 +68,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl, ai }: { r
     if (saving) return;
     setSaving(true);
     setError(null);
-    const result = await saveResumeAction({
+    const result = await callAction(saveResumeAction({
       headline: values.headline,
       bio: values.bio,
       location: values.location,
@@ -74,7 +76,7 @@ export function ResumeEditor({ resume: initial, publicUrl: initialUrl, ai }: { r
       links: values.links.filter((link) => link.label.trim() || link.url.trim()),
       resumeSlug: values.resumeSlug,
       resumePublic: values.resumePublic,
-    });
+    }));
     setSaving(false);
     if (!result.ok) {
       setError({ field: result.field, message: result.error });

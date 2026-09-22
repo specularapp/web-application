@@ -1,5 +1,5 @@
 /**
- * Os doze matizes da paleta do sistema em hex, no valor do tema claro, e o quarteto de cor da aura de cada
+ * Os treze matizes da paleta do sistema em hex, no valor do tema claro, e o quarteto de cor da aura de cada
  * um. A origem é `styles/tokens.css`; aqui eles viram valor cru para quem desenha fora do CSS: a imagem que
  * o WhatsApp mostra ao lado do link (satori, em `opengraph-image.tsx`) e o PDF do orçamento (react-pdf).
  * Nenhum dos dois resolve `light-dark()`, `color-mix()` ou `oklch()`, e os dois desenham a mesma folha que
@@ -18,6 +18,9 @@ export const sysHues = {
   purple: "#af52de",
   pink: "#ff2d55",
   brown: "#a2845e",
+  /* O neutro, que entrou com as etapas de tarefa editáveis (2026-09-21): é a cor de "ainda não entrou na
+     fila", e sem ela uma etapa de espera nasceria azul, que já quer dizer outra coisa. */
+  gray: "#8e8e93",
 } as const;
 
 export type SysHue = keyof typeof sysHues;
@@ -41,6 +44,9 @@ export const auraCorners: Record<SysHue, readonly [string, string, string, strin
   purple: ["#af52de", "#4d76ff", "#e03785", "#9f8400"],
   pink: ["#ff2d55", "#dd42cc", "#ed5d00", "#00b871"],
   brown: ["#a2845e", "#ae7b74", "#868f63", "#5d93a6"],
+  /* Girar o matiz de um cinza dá cinza: a aura dele varia só em claridade, que é o que sobra quando não há
+     croma para girar. */
+  gray: ["#8e8e93", "#9a9aa0", "#828288", "#a6a6ac"],
 };
 
 /**

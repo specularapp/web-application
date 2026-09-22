@@ -59,6 +59,7 @@ export function ClientBadges({ client }: { client: Client }) {
 // abre, e passa o perfil pronto à janela.
 export function ClientProfile({ client }: ClientProfileProps) {
   const seed = client.email ?? client.name;
+  const supplier = client.kind === "supplier";
 
   return (
     <Profile
@@ -69,7 +70,11 @@ export function ClientProfile({ client }: ClientProfileProps) {
       menu={<ClientMenu client={client} />}
       handle={client.email ?? undefined}
       subtitle={[client.company, client.role].filter(Boolean).join(", ") || undefined}
-      stats={[
+      stats={supplier ? [
+        { label: "Despesas", value: String(client.stats.expenses) },
+        { label: "Pago", value: compactMoney(client.stats.spent) },
+        { label: "A pagar", value: compactMoney(client.stats.payable) },
+      ] : [
         { label: "Orçamentos", value: String(client.stats.quotes) },
         { label: "Projetos", value: String(client.stats.projects) },
         { label: "Faturado", value: compactMoney(client.stats.billed) },

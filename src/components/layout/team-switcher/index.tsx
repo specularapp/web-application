@@ -57,18 +57,16 @@ const Popover = styled.div`
   --panel-line: 0.0375rem;
 
   position: fixed;
-  z-index: var(--z-dropdown);
+  z-index: var(--z-popover);
   display: flex;
   flex-direction: column;
   width: min(${PANEL_WIDTH}px, calc(100vw - ${EDGE * 2}px));
   overflow: hidden;
-  background-color: var(--glass-layer-bg);
+  background-color: var(--color-bg-tertiary);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
   corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: var(--glass-layer-blur);
-  backdrop-filter: var(--glass-layer-blur);
   transform-origin: top left;
 
   ${layerMotion};

@@ -12,6 +12,9 @@ import {
 } from "react";
 import { cx } from "@/lib/utils/cx";
 import { Label } from "../label";
+import { Input } from "../input";
+import { Select } from "../select";
+import { DatePicker } from "../date-picker";
 import { Tooltip } from "../tooltip";
 import { VisuallyHidden } from "../visually-hidden";
 import styles from "./field.module.css";
@@ -65,23 +68,24 @@ export function Field({
 
   const showError = Boolean(error) && (revealError ?? touched);
   const describedBy = showError ? errorId : undefined;
+  const supportsAdornment = [Input, Select, DatePicker].some((component) => children.type === component);
 
   const control = isValidElement<ControlProps>(children)
     ? cloneElement(children, {
         id,
         ...(required && { required }),
-        "aria-describedby": describedBy,
+        "aria-describedby": [children.props["aria-describedby"], describedBy].filter(Boolean).join(" ") || undefined,
         "aria-invalid": showError || undefined,
         /* Com erro, o campo troca o adorno da ponta pelo "?" que mostra a mensagem; sem erro, o que o
            controle já trazia fica (acerto de 2026-09-09: antes o campo mandava nada e apagava o
            adorno de quem o montava, como o informativo das parcelas do orçamento). */
-        iconEnd: showError ? (
+        ...(showError && supportsAdornment ? { iconEnd: (
           <Tooltip content={error} align="end" open>
             <button type="button" className={styles.errorTrigger} aria-label="Ver o erro deste campo">
               <QuestionIcon />
             </button>
           </Tooltip>
-        ) : children.props.iconEnd,
+        ) } : {}),
       })
     : children;
 
@@ -96,11 +100,11 @@ export function Field({
         {label}
       </Label>
       {control}
-      {showError && (
+      {showError && (supportsAdornment ? (
         <VisuallyHidden id={errorId} role="alert">
           {error}
         </VisuallyHidden>
-      )}
+      ) : <span id={errorId} role="alert" className={styles.error}>{error}</span>)}
     </div>
   );
 }

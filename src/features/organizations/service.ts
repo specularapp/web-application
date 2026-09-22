@@ -532,7 +532,7 @@ export async function getTeamSummary(client: TeamClient, organizationId: string)
     listTeamMembers(client, organizationId),
     client.from("organization_invites").select("id, name, email, role, created_at").eq("organization_id", organizationId).is("accepted_at", null),
     client.from("projects").select("id, reference, name, status, progress, owner_id").eq("organization_id", organizationId),
-    client.from("tasks").select("owner_id, stage").eq("organization_id", organizationId).neq("stage", "done"),
+    client.from("tasks").select("owner_id, task_stages!inner(kind)").eq("organization_id", organizationId).neq("task_stages.kind", "done"),
     client.from("charges").select("owner_id, charge_installments(amount, paid_at)").eq("organization_id", organizationId),
   ]);
 

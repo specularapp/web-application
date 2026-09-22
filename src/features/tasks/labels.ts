@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { BadgeTone } from "@/components/ui/badge";
-import { taskStageMeta, type TaskStage } from "./stages";
+import type { TaskStage } from "./stages";
 import type { Task, TaskPerson, TaskPriority, TaskStatus } from "./summary";
 
 /** Quantos caracteres a fila de nomes ocupa antes de virar reticência mais a contagem do resto. */
@@ -42,9 +42,9 @@ export const statusTones: Record<TaskStatus, BadgeTone> = { upcoming: "success",
  * sem ela, e a tarefa apareceria sem situação. Como o `kind` mora junto da etapa, etapa nova já nasce com a
  * própria leitura, e quem lê aqui não precisa saber de qual projeto a tarefa é.
  */
-export const stageStatus = (stage: TaskStage): TaskStatus => taskStageMeta[stage].kind;
+export const stageStatus = (stage: TaskStage): TaskStatus => stage.kind;
 
-export const statusOf = (task: Task) => stageStatus(task.stage);
+export const statusOf = (task: Task) => task.stage.kind;
 
 /**
  * A estimativa de esforço em horas e minutos, como a pessoa fala: "45 min", "4 h", "2 h 30 min". Nasceu

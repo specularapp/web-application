@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { stageValues } from "@/features/tasks/stages";
+import { projectGlyphs } from "@/features/tasks/tree";
 import { MAX_TAGS } from "@/lib/tags";
+import { projectHueValues } from "./summary";
 import { projectTagValues } from "./tags";
 import type { ProjectStatus, ProjectTool } from "./summary";
 
@@ -78,7 +79,7 @@ export { MAX_TAGS };
  */
 export const COVER_MAX_CHARS = 500;
 
-const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data");
+const isoDay = z.iso.date("Informe uma data válida");
 
 /**
  * As pastas de projeto (2026-09-16, a pedido). Elas já existiam no banco e já eram lidas pelo menu de
@@ -93,6 +94,10 @@ export const saveFolderSchema = z.object({
   name: z.string().trim().min(1, "Dê um nome à pasta").max(folderLimits.name, "Nome longo demais"),
   /** A pasta de cima, quando ela nasce dentro de outra. */
   parentId: z.uuid().nullable().default(null),
+  /* A cara da pasta (2026-09-22), como o funil de vendas já tinha: cinza e bandeja são o padrão, porque
+     pasta é caminho e cor forte por padrão competiria com os projetos dentro dela. */
+  hue: z.enum(projectHueValues).default("gray"),
+  glyph: z.enum(projectGlyphs).default("tray"),
 });
 
 export const folderIdSchema = z.uuid();
@@ -159,14 +164,14 @@ export const projectIdSchema = z.uuid();
    não tem o formulário em mãos, e mandar o resto em branco apagaria o que não foi editado. */
 export const projectStatusSchema = z.object({ id: z.uuid(), status: z.enum(projectStatusValues) });
 
-/** As etapas do quadro do projeto, na ordem das colunas: ao menos uma, sem repetir, e só do catálogo. */
-export const projectStagesSchema = z.object({
+/**
+ * A cara do projeto: a cor e o glifo. Listas fechadas, as mesmas dos enums do banco, porque cor inventada
+ * vira um azulejo sem cor e glifo inventado não desenha nada.
+ */
+export const projectAppearanceSchema = z.object({
   id: z.uuid(),
-  stages: z
-    .array(z.enum(stageValues))
-    .min(1, "O quadro precisa de ao menos uma etapa")
-    .max(stageValues.length)
-    .refine((list) => new Set(list).size === list.length, "Etapa repetida"),
+  hue: z.enum(projectHueValues),
+  glyph: z.enum(projectGlyphs),
 });
 
 /** Entra ou sai da vitrine pública, pelo interruptor da página do portfólio. */

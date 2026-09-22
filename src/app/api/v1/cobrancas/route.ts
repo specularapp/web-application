@@ -5,14 +5,14 @@
  */
 import { createChargeSchema } from "@/features/finance/schemas";
 import { createCharge, listCharges } from "@/features/finance/service";
-import { authorizeDomain, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "charges-read");
   if ("response" in auth) return auth.response;
 
   const charges = await listCharges(auth.session.supabase, auth.session.organizationId);
-  return Response.json({ charges });
+  return Response.json({ charges: charges.filter((charge) => charge.direction === "incoming") });
 }
 
 export async function POST(request: Request) {
@@ -21,7 +21,8 @@ export async function POST(request: Request) {
 
   const body = await readPayload(request, createChargeSchema);
   if ("response" in body) return body.response;
+  if (body.data.direction !== "incoming") return Response.json({ error: "Use o endpoint de despesas para saídas." }, { status: 400 });
 
   const result = await createCharge(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data);
-  return result.ok ? Response.json(result.charge) : Response.json({ error: result.error }, { status: 400 });
+  return fromMutation(result.ok ? { ok: true, data: result.charge } : result, auth.session.organizationId, ["finance"]);
 }

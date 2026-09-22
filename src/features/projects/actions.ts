@@ -8,7 +8,7 @@ import {
   projectFormSchema,
   projectIdSchema,
   projectPublicSchema,
-  projectStagesSchema,
+  projectAppearanceSchema,
   projectStatusSchema,
   saveFolderSchema,
 } from "./schemas";
@@ -20,7 +20,7 @@ import {
   saveProject,
   saveProjectFolder,
   setProjectPublic,
-  setProjectStages,
+  setProjectAppearance,
   setProjectStatus,
 } from "./service";
 import type { ProjectDetails } from "./summary";
@@ -147,15 +147,22 @@ export async function setProjectStatusAction(input: unknown): Promise<FolderResu
   return { ok: true };
 }
 
-/** As etapas do quadro do projeto, na ordem das colunas. */
-export async function setProjectStagesAction(input: unknown): Promise<FolderResult> {
-  const guard = await guardAction("project-stages");
+/**
+ * A cara do projeto: a cor e o glifo dele (2026-09-21, a pedido de "mudar a cor da página"). É escrita
+ * própria, e não a ficha inteira, porque quem troca a cor está no quadro de tarefas ou no menu, sem o
+ * formulário do projeto em mãos, e mandar o resto em branco apagaria o que não foi editado.
+ *
+ * A cor não é enfeite: ela pinta o azulejo do projeto no menu, a contagem ao lado dele, a marca gerada
+ * quando não há logo e a capa do cartão na lista. Trocar aqui muda o projeto em toda a casa.
+ */
+export async function setProjectAppearanceAction(input: unknown): Promise<FolderResult> {
+  const guard = await guardAction("project-appearance");
   if (!guard.ok) return { ok: false, error: guard.error };
 
-  const parsed = projectStagesSchema.safeParse(input);
+  const parsed = projectAppearanceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error).error };
 
-  const saved = await setProjectStages(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.stages);
+  const saved = await setProjectAppearance(guard.context.supabase, guard.context.organizationId, parsed.data);
   if (!saved.ok) return { ok: false, error: saved.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/tarefas"]);

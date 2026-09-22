@@ -101,7 +101,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
         const received = chargeSettled(charge);
         return (
           <Stack>
-            <Progress value={received} max={charge.amount} size="xs" tone={chargeStatusOf(charge) === "overdue" ? "danger" : "success"} aria-label={`Recebido ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
+            <Progress value={received} max={charge.amount} size="xs" tone={chargeStatusOf(charge) === "overdue" ? "danger" : charge.direction === "outgoing" ? "accent" : "success"} aria-label={`${charge.direction === "outgoing" ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
             <Text as="span" variant="caption1" tone="secondary" numeric>
               {formatMoney(received)} de {formatMoney(charge.amount)}
             </Text>
@@ -150,7 +150,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
 
   return (
     <DataTable<Charge>
-      label="Cobranças"
+      label={charges[0]?.direction === "outgoing" ? "Despesas" : "Cobranças"}
       columns={columns}
       rows={charges}
       rowKey={(charge) => charge.id}
@@ -163,7 +163,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
       range={range}
       empty={
         <Text variant="footnote" tone="secondary">
-          Nenhuma cobrança por aqui.
+          Nenhum lançamento por aqui.
         </Text>
       }
     />

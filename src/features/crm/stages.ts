@@ -9,23 +9,9 @@ import {
   UserPlusIcon,
 } from "@phosphor-icons/react/ssr";
 
-/**
- * O catálogo de etapas do funil de vendas: cada etapa é uma coluna possível, com nome, glifo, matiz e o
- * desfecho que ela representa. **Cada funil escolhe as suas** e em que ordem, como os projetos fazem com as
- * etapas das tarefas: o funil de indicação não qualifica ninguém, porque quem chega indicado já vem
- * qualificado, e o de licitação tem etapas que os outros não têm.
- *
- * O catálogo é global e o funil só seleciona, em vez de cada funil inventar nomes soltos: é o que mantém
- * `Opportunity.stage` sendo um id que vale em qualquer lugar, e é o que deixa o zod da URL ter uma lista
- * fechada para validar. Nomear uma etapa nova é acrescentar uma linha aqui.
- *
- * Do pacote `ssr` como o resto dos mapas leves da casa: este arquivo é lido também no servidor, e a entrada
- * padrão do Phosphor cria contexto ao carregar.
- */
-
 export const crmStageValues = ["lead", "contact", "qualified", "proposal", "negotiation", "won", "lost"] as const;
 
-export type CrmStage = (typeof crmStageValues)[number];
+export type CrmStage = string;
 
 /**
  * Em que pé a oportunidade está. Diferente das tarefas, aqui o fim tem **dois lados**: fechar vendendo e
@@ -65,3 +51,12 @@ export const crmStages: CrmStageMeta[] = crmStageValues.map((id) => crmStageMeta
  * precisa filtrar quem chega antes de investir tempo escrevendo proposta.
  */
 export const defaultCrmStages: CrmStage[] = ["lead", "contact", "proposal", "negotiation", "won", "lost"];
+
+export const crmHues = ["red", "orange", "yellow", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "pink", "brown", "gray"] as const;
+export type CrmHue = (typeof crmHues)[number];
+export type CrmStageDefinition = { id: string; label: string; hue: CrmHue };
+export const stageKind = (id: string): CrmStageKind => id === "won" || id.startsWith("won_") ? "won" : id === "lost" || id.startsWith("lost_") ? "lost" : "open";
+export const defaultStageDefinition = (id: string): CrmStageDefinition => ({ id, label: crmStageMeta[id]?.label ?? "Etapa", hue: (crmStageMeta[id]?.hue.match(/--sys-([a-z]+)/)?.[1] as CrmHue) ?? "blue" });
+export function stageMetadata(definitions: CrmStageDefinition[]): Record<string, CrmStageMeta> {
+  return { ...crmStageMeta, ...Object.fromEntries(definitions.map((stage) => [stage.id, { ...stage, kind: stageKind(stage.id), hue: `var(--sys-${stage.hue})`, icon: crmStageMeta[stage.id]?.icon ?? (stageKind(stage.id) === "won" ? TrophyIcon : stageKind(stage.id) === "lost" ? ProhibitIcon : ChatCircleTextIcon) }])) };
+}

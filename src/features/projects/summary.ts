@@ -119,7 +119,24 @@ export type ProjectTool =
 export type ProjectBudget = { min: number; max: number };
 
 /** Os doze matizes da paleta do sistema, os mesmos da arte do catálogo: é o que tinge a capa sem imagem. */
-export type ProjectHue = "red" | "orange" | "yellow" | "green" | "mint" | "teal" | "cyan" | "blue" | "indigo" | "purple" | "pink" | "brown";
+/** As cores que um projeto pode vestir, as mesmas do enum `palette_hue` do banco. */
+export const projectHueValues = [
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "mint",
+  "teal",
+  "cyan",
+  "blue",
+  "indigo",
+  "purple",
+  "pink",
+  "brown",
+  "gray",
+] as const;
+
+export type ProjectHue = (typeof projectHueValues)[number];
 
 /**
  * Um projeto como a listagem o mostra (2026-09-13, sobre uma referência de cartão de projeto do usuário):

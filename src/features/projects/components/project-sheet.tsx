@@ -30,7 +30,7 @@ import { Text } from "@/components/ui/text";
 import { Tooltip } from "@/components/ui/tooltip";
 import { quoteStatuses } from "@/features/quotes/labels";
 import { priorityLabels, priorityTones } from "@/features/tasks/labels";
-import { taskStageMeta } from "@/features/tasks/stages";
+import { stageIcon } from "@/features/tasks/stages";
 import { squircle } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { budgetLabel, dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../labels";
@@ -303,14 +303,14 @@ export function ProjectSheet({ project, details = null, onEdit, preview = false 
               ) : (
                 <ProfileList>
                   {details.tasks.slice(0, SHOWN_TASKS).map((task) => {
-                    const stage = taskStageMeta[task.stage];
+                    const stage = task.stage;
                     return (
                       <ProfileRow
                         key={task.id}
                         href={board}
-                        icon={stage.icon}
+                        icon={stageIcon(stage)}
                         title={task.title}
-                        caption={`${stage.label}, prazo ${dayLabel(task.dueDate)}`}
+                        caption={`${stage.name}, prazo ${dayLabel(task.dueDate)}`}
                         end={
                           <Badge tone={priorityTones[task.priority]} size="sm">
                             {priorityLabels[task.priority]}

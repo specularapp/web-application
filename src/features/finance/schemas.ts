@@ -21,7 +21,7 @@ export const chargeMethodValues = ["pix", "boleto", "transfer", "card"] as const
 /* Todo identificador de registro é o uuid que a tabela gera: fechar no formato aqui recusa o palpite antes
    de ele virar consulta. */
 const idSchema = z.uuid();
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data.");
+const dateSchema = z.iso.date("Informe uma data válida");
 
 export const chargeRecurrenceValues = ["none", "monthly", "quarterly", "yearly"] as const;
 
@@ -33,7 +33,7 @@ export const createChargeSchema = z.object({
   clientId: idSchema.nullable(),
   /* A contraparte digitada, para quando ela não é ninguém da base: o fornecedor da despesa, quase sempre, e
      o pagador solto de uma cobrança avulsa. Vazio é não ter contraparte, e aí o título responde por ela. */
-  partyName: z.string().trim().max(80, "O nome está longo demais."),
+  partyName: z.string().trim().max(80, "O nome está longo demais").refine((value) => value.length === 0 || value.length >= 2, "Informe ao menos dois caracteres para o fornecedor"),
   title: z.string().trim().min(2, "Dê um título à cobrança.").max(chargeLimits.title, "O título está longo demais."),
   description: z.string().trim().max(chargeLimits.description, "A descrição está longa demais."),
   amount: z.number().int().min(100, "O valor precisa ser de pelo menos R$ 1,00.").max(chargeLimits.amount, "Confira o valor."),
@@ -45,6 +45,13 @@ export const createChargeSchema = z.object({
   quoteId: idSchema.nullable(),
   /** Com que frequência ela se repete; a próxima nasce quando esta fecha. */
   recurrence: z.enum(chargeRecurrenceValues),
+}).superRefine((value, context) => {
+  if (value.direction === "outgoing" && !value.clientId && !value.partyName) {
+    context.addIssue({ code: "custom", path: ["partyName"], message: "Informe o fornecedor da despesa." });
+  }
+  if (value.direction === "outgoing" && value.quoteId) {
+    context.addIssue({ code: "custom", path: ["quoteId"], message: "Despesa não pode nascer de orçamento." });
+  }
 });
 
 export type CreateChargeInput = z.infer<typeof createChargeSchema>;

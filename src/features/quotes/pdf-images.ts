@@ -61,6 +61,7 @@ const avatarTiles: Record<SysHue, string> = {
   purple: "#e6caf7",
   pink: "#ffc6c7",
   brown: "#e1d6ca",
+  gray: "#dcdcde",
 };
 
 /* O DiceBear entrega o SVG só com `viewBox`, e sem largura o `sharp` o rasteriza no tamanho do próprio

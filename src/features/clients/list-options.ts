@@ -18,7 +18,7 @@ import type { Client } from "./summary";
 export type ClientListItem = Pick<
   Client,
   "id" | "reference" | "name" | "email" | "phone" | "avatarUrl" | "createdAt" | "company" | "city" | "active" | "favorite" | "stats"
->;
+> & Pick<Client, "kind">;
 
 /** Trinta por página na tabela (2026-09-08, como no catálogo): a página só passa quando está completa. */
 export const CLIENTS_PER_PAGE = 30;
@@ -49,6 +49,10 @@ export const EMAIL_PARAM = "email";
 export const PHONE_PARAM = "telefone";
 export const PAGE_PARAM = "pagina";
 export const PAGE_SIZE_PARAM = "porPagina";
+export const GROUP_PARAM = "grupo";
+
+export const clientGroupValues = ["clientes", "fornecedores"] as const;
+export type ClientsGroup = (typeof clientGroupValues)[number];
 
 export const favoriteValues = ["todos", "favoritos", "outros"] as const;
 export const statusValues = ["todos", "ativos", "inativos"] as const;
@@ -90,6 +94,7 @@ export const periodOptions: ListboxOption<ClientsPeriod>[] = periodValues.map((v
 
 /** O que a URL carrega: o que a pessoa filtrou e em que página está. */
 export type ClientsQuery = {
+  group: ClientsGroup;
   search: string;
   favorite: ClientsFavorite;
   status: ClientsStatus;
@@ -104,6 +109,7 @@ export type ClientsQuery = {
 };
 
 export const defaultQuery: ClientsQuery = {
+  group: "clientes",
   search: "",
   favorite: DEFAULT_FAVORITE,
   status: DEFAULT_STATUS,

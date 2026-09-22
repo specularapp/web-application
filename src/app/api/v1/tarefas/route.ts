@@ -6,7 +6,7 @@
 import { parseTasksQuery } from "@/features/tasks/list";
 import { taskFormSchema } from "@/features/tasks/schemas";
 import { listTasks, saveTask } from "@/features/tasks/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "tasks-read");
@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, taskFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveTask(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await saveTask(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["tasks"]);
 }

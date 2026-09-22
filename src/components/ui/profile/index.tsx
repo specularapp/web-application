@@ -8,6 +8,7 @@ import { Avatar, type AvatarProps } from "../avatar";
 import { Button } from "../button";
 import { IconButton } from "../icon-button";
 import { Progress } from "../progress";
+import { StoredImage } from "../stored-image";
 import { Text } from "../text";
 import styles from "./profile.module.css";
 
@@ -29,7 +30,13 @@ export type ProfileAction = {
 export type ProfileProps = {
   /** Nome do matiz da paleta do sistema que pinta a capa, o mesmo do rosto gerado (`avatarHue`). */
   hue: string;
+  /** A foto larga da capa, por cima do matiz; sem ela fica só o matiz. */
+  cover?: string | null;
+  /** O que fica na quina de baixo da capa: trocar e tirar a capa, na página da própria pessoa. */
+  coverAction?: ReactNode;
   avatar: Pick<AvatarProps, "name" | "src" | "seed">;
+  /** O botão pequeno na quina da foto: trocar a foto. */
+  photoAction?: ReactNode;
   title: string;
   /** Etiquetas ao lado do nome. */
   badges?: ReactNode;
@@ -57,15 +64,21 @@ const external = { target: "_blank", rel: "noreferrer" };
 // passando por cima da borda da capa, o nome com etiquetas e menu, a linha apagada e o que ela faz; os
 // números da relação em linha; os botões de contato; e as seções que quem chama montar com as peças
 // abaixo. Sem diretiva de cliente: é estático, e serve tanto ao servidor quanto a quem já é cliente.
-export function Profile({ hue, avatar, title, badges, menu, handle, subtitle, stats, actions, children }: ProfileProps) {
+export function Profile({ hue, cover, coverAction, avatar, photoAction, title, badges, menu, handle, subtitle, stats, actions, children }: ProfileProps) {
   const vars = { "--cover-hue": `var(--sys-${hue})` } as CSSProperties;
 
   return (
     <div className={styles.profile} style={vars}>
-      <div className={styles.cover} aria-hidden="true" />
+      <div className={styles.cover} aria-hidden={coverAction ? undefined : "true"}>
+        {cover && <StoredImage src={cover} alt="" fill sizes="(max-width: 64rem) 100vw, 56rem" className={styles.coverImage} />}
+        {coverAction && <span className={styles.coverAction}>{coverAction}</span>}
+      </div>
 
       <header className={styles.head}>
-        <Avatar {...avatar} size="lg" shape="squircle" className={styles.photo} />
+        <span className={styles.photo}>
+          <Avatar {...avatar} size="lg" shape="squircle" className={styles.photoFace} />
+          {photoAction && <span className={styles.photoAction}>{photoAction}</span>}
+        </span>
         <div className={styles.identity}>
           <div className={styles.naming}>
             <Text as="h2" variant="title2" weight="semibold" truncate>
@@ -239,5 +252,40 @@ export function ProfileProgress({ value, done = false }: { value: number; done?:
         {value}%
       </Text>
     </span>
+  );
+}
+
+/** A atividade recente de uma ficha, uma linha por feito. */
+export function ProfileEvents({ children }: { children: ReactNode }) {
+  return <ol className={styles.events}>{children}</ol>;
+}
+
+export type ProfileEventProps = {
+  avatar: Pick<AvatarProps, "name" | "src" | "seed">;
+  /** Quem fez, como a linha nomeia: o primeiro nome. */
+  actor: string;
+  /** O que fez, sem o nome: "entregou o site da Bravo". */
+  action: string;
+  /** Quando, já escrito para gente ler. */
+  stamp: string;
+};
+
+/* O rosto de quem fez, o que fez em uma linha e quando, embaixo. */
+export function ProfileEvent({ avatar, actor, action, stamp }: ProfileEventProps) {
+  return (
+    <li className={styles.event}>
+      <Avatar {...avatar} size="xs" />
+      <span className={styles.eventCopy}>
+        <Text as="span" variant="subheadline">
+          <Text as="span" variant="subheadline" weight="medium">
+            {actor}
+          </Text>{" "}
+          {action}
+        </Text>
+        <Text as="span" variant="footnote" tone="secondary">
+          {stamp}
+        </Text>
+      </span>
+    </li>
   );
 }

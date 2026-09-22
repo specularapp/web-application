@@ -1,0 +1,257 @@
+.dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+.head,
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.head {
+  border-bottom: 1px solid var(--color-border);
+}
+.head > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.head > button {
+  flex-shrink: 0;
+}
+.body {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  overflow-y: auto;
+  min-height: 0;
+}
+.row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.pair {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.row > *,
+.pair > * {
+  min-width: 0;
+}
+.actions,
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.rowActions {
+  justify-content: flex-end;
+}
+.error {
+  color: var(--color-danger);
+}
+.swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+.foot {
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+}
+@media (min-width: 48rem) {
+  .stagesPanel.stagesPanel[data-size="lg"] {
+    max-width: 46rem;
+  }
+  .head,
+  .foot,
+  .body {
+    padding: var(--space-6);
+  }
+  .pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 64rem) {
+  .row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
+    align-items: end;
+  }
+  .rowActions {
+    flex-wrap: nowrap;
+  }
+}
+@media (max-width: 47.9375rem) {
+  .foot {
+    display: none;
+  }
+  .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.stageTable {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  isolation: isolate;
+}
+.tableHead {
+  display: none;
+}
+.stageTable .row {
+  grid-template-columns: var(--touch-target) minmax(0, 1fr) var(--touch-target);
+  grid-template-areas: "drag name remove" ". fields .";
+  gap: var(--space-3) var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-radius: 0;
+  align-items: center;
+  position: relative;
+  background: var(--color-bg-secondary);
+}
+.stageTable .row + .row {
+  border-top: 1px solid var(--color-border);
+}
+.stageTable .row > :nth-child(2) {
+  grid-area: name;
+}
+.stageTable .row > .pair {
+  grid-area: fields;
+}
+.stageTable .rowActions {
+  grid-area: remove;
+}
+.dragHandle.dragHandle {
+  grid-area: drag;
+  cursor: grab;
+  touch-action: none;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  color: var(--color-label-tertiary);
+}
+.dragHandle:active {
+  cursor: grabbing;
+}
+.stageTable .row[data-dragging] {
+  z-index: 1;
+  box-shadow: var(--shadow-md);
+  outline: 1px solid var(--color-focus);
+}
+.empty {
+  padding: var(--space-4);
+}
+@media (min-width: 48rem) {
+  .tableHead,
+  .stageTable .row {
+    grid-template-columns:
+      var(--touch-target) minmax(0, 1.2fr) minmax(0, 2fr)
+      var(--touch-target);
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+  .tableHead {
+    display: grid;
+    align-items: center;
+    color: var(--color-label-secondary);
+    font-size: var(--text-footnote);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .stageTable .row {
+    grid-template-areas: "drag name fields remove";
+  }
+  .stageTable .row label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stageTable .row {
+    transition: none !important;
+  }
+}
+
+.stagesPanel .head,
+.stagesPanel .foot {
+  padding: var(--space-3) var(--space-4);
+}
+.stagesPanel .body {
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+}
+.stageTable {
+  border: 0;
+}
+.stageTable .row {
+  background: transparent;
+}
+.stageControl.stageControl {
+  border-color: transparent;
+  --listbox-trigger-border: transparent;
+}
+.stageControl.stageControl:hover,
+.stageControl.stageControl:focus-within {
+  border-color: var(--color-border);
+  --listbox-trigger-border: var(--color-border);
+}
+.stageTable .pair {
+  gap: var(--space-2);
+}
+@media (min-width: 48rem) {
+  .tableHead,
+  .stageTable .row {
+    grid-template-columns: var(--control-height-sm) minmax(0, 1.3fr) minmax(
+        0,
+        2fr
+      ) var(--control-height-sm);
+    gap: var(--space-2);
+    padding: var(--space-1) 0;
+  }
+  .tableHead {
+    padding-block: var(--space-2);
+  }
+  .dragHandle.dragHandle {
+    min-width: var(--control-height-sm);
+    min-height: var(--control-height-sm);
+  }
+}
+@media (pointer: coarse) {
+  .dragHandle.dragHandle {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+}
+@media (max-width: 47.9375rem) {
+  .stagesPanel .body {
+    padding-bottom: var(--floating-bar-inset);
+  }
+  .stageTable .row {
+    padding: var(--space-2) 0;
+    gap: var(--space-1);
+  }
+  .stageTable .row > .pair {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+  .stageTable .row label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { callAction } from "@/lib/action";
+
 import { BellIcon, BellSlashIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, type Icon } from "@phosphor-icons/react";
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -43,7 +45,7 @@ export function NotificationsSettings({ items: initial, ai }: { items: AppNotifi
     if (ids.length === 0) return;
     const previous = items;
     setItems((current) => current.map((item) => (ids.includes(item.id) ? { ...item, read: true } : item)));
-    const result = await markNotificationsReadBatchAction(ids);
+    const result = await callAction(markNotificationsReadBatchAction(ids));
     if (!result.ok) {
       setItems(previous);
       toast({ title: "Não deu para marcar", description: result.error, tone: "danger" });

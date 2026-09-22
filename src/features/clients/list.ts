@@ -7,6 +7,7 @@ import {
   favoriteValues,
   periodValues,
   statusValues,
+  clientGroupValues,
   type ClientsQuery,
 } from "./list-options";
 import { clientsViewValues, DEFAULT_VIEW, type ClientsView } from "./view-cookie";
@@ -30,6 +31,7 @@ const flag = z
   .catch(false);
 
 const querySchema = z.object({
+  group: z.enum(clientGroupValues).catch(defaultQuery.group),
   search: z.string().trim().max(80).catch(""),
   favorite: z.enum(favoriteValues).catch(defaultQuery.favorite),
   status: z.enum(statusValues).catch(defaultQuery.status),
@@ -57,6 +59,7 @@ export function defaultPageSize(view: ClientsView, gridSize: number) {
 
 export function parseClientsQuery(params: Record<string, string | undefined>, fallbackPageSize = CLIENTS_PER_PAGE): ClientsQuery {
   const { pageSize, ...rest } = querySchema.parse({
+    group: params.grupo,
     search: params.busca ?? "",
     favorite: params.favorito,
     status: params.situacao,

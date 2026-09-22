@@ -89,7 +89,7 @@ export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit, onDe
             <Badge tone={active ? "success" : "neutral"} size="sm">
               {active ? "Ativo" : "Inativo"}
             </Badge>
-            <Badge tone={item.hue} size="sm" title={`${price} ${unitLabels[item.unit]}`}>
+            <Badge tone={item.hue === "gray" ? "neutral" : item.hue} size="sm" title={`${price} ${unitLabels[item.unit]}`}>
               {price}
             </Badge>
             <CatalogMenu item={item} active={active} onActiveChange={onActiveChange} onView={onOpen} onEdit={onEdit} onDelete={onDelete} />

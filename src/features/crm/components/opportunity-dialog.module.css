@@ -22,7 +22,9 @@
     --text-subheadline: 0.875rem;
 
     height: auto;
-    max-height: calc(85dvh - env(safe-area-inset-bottom) - var(--space-3) - 0.25rem);
+    max-height: calc(
+      85dvh - env(safe-area-inset-bottom) - var(--space-3) - 0.25rem
+    );
   }
 }
 
@@ -83,8 +85,8 @@
     grid-template-rows: minmax(0, 1fr);
   }
 
-  .body[data-tab="details"] .side,
-  .body[data-tab="stage"] .main {
+  .dialog[data-tab="details"] .side,
+  .dialog[data-tab="stage"] .main {
     display: none;
   }
 }
@@ -122,7 +124,8 @@
 @media (max-width: 47.9375rem) {
   .main {
     gap: var(--space-4);
-    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
+    padding: var(--space-4) var(--space-4)
+      calc(var(--floating-bar-inset) + var(--space-6));
   }
 }
 
@@ -281,7 +284,8 @@
 @media (max-width: 47.9375rem) {
   .side {
     gap: var(--space-4);
-    padding: var(--space-4) var(--space-4) calc(var(--floating-bar-inset) + var(--space-6));
+    padding: var(--space-4) var(--space-4)
+      calc(var(--floating-bar-inset) + var(--space-6));
   }
 }
 
@@ -289,9 +293,6 @@
  * O caminho no funil: as etapas deste funil em pé, na ordem, com o que já passou marcado e a atual em
  * destaque. Cada degrau é um botão que leva a venda para lá, porque avançar é a ação mais comum da ficha e
  * pedir que a pessoa volte ao quadro para arrastar o cartão seria o caminho longo.
- *
- * O fio que liga um degrau ao outro é desenhado no próprio item, e não numa linha à parte: assim ele
- * acompanha a altura de cada degrau sem ninguém medir nada.
  */
 .path {
   display: grid;
@@ -310,7 +311,8 @@
 .pathItem:not(:last-child)::before {
   content: "";
   position: absolute;
-  inset-block: calc(var(--space-6) + var(--space-half)) calc(var(--space-half) * -1);
+  inset-block: calc(var(--space-6) + var(--space-half))
+    calc(var(--space-half) * -1);
   inset-inline-start: calc(var(--space-2) + 0.6875rem);
   width: 0.0375rem;
   background-color: var(--color-border);
@@ -396,4 +398,155 @@
 .personText {
   display: grid;
   min-width: 0;
+}
+
+.reference {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.naming {
+  flex: 1;
+}
+
+.inline {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.inlineValue {
+  display: block;
+  min-width: 0;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineValue[data-empty] {
+  color: var(--color-placeholder);
+}
+
+@media (hover: hover) {
+  .inlineValue:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+    corner-shape: squircle;
+  }
+}
+
+.inlineField {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  resize: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.empty {
+  min-width: 0;
+  color: var(--color-placeholder);
+}
+
+.factText {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.plainDate {
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+.personChoice,
+.peopleChoice {
+  display: inline-flex;
+  max-width: 100%;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.link {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.link > svg,
+.link > button {
+  flex-shrink: 0;
+}
+
+.linkText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+
+.path {
+  position: relative;
+  isolation: isolate;
+}
+
+.path::before {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--space-2) + 0.6875rem);
+  inset-inline-start: calc(var(--space-2) + 0.6875rem);
+  z-index: 0;
+  width: 0.0375rem;
+  transform: translateX(-50%);
+  background-color: var(--color-border);
+}
+
+.pathItem:not(:last-child)::before {
+  content: none;
+}
+
+.pathItem {
+  z-index: 1;
+}
+
+.pathGlyph {
+  position: relative;
+  z-index: 1;
+  background-color: var(--color-bg-tertiary);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.pathStep[data-done] .pathGlyph,
+.pathStep[data-current] .pathGlyph {
+  box-shadow: none;
+}
+
+.pathStep:disabled {
+  cursor: wait;
+}
+
+@media (max-width: 47.9375rem) {
+  .route {
+    flex-wrap: wrap;
+  }
+
+  .linkText {
+    font-size: var(--text-caption-1);
+  }
 }

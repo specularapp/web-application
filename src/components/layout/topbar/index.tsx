@@ -57,7 +57,7 @@ export function Topbar({ title, ai }: TopbarProps) {
         <nav className={styles.route} aria-label="Rota da página">
           <ol className={styles.crumbs}>
             {crumbs.map((crumb, index) => (
-              <li key={crumb.label} className={styles.crumb}>
+              <li key={`${index}:${crumb.label}`} className={styles.crumb}>
                 {index > 0 && (
                   <span className={styles.separator} aria-hidden="true">
                     /

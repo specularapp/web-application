@@ -1,3 +1,6 @@
+import type { BadgeTone } from "@/components/ui/badge";
+import type { TeamMemberProjectStatus } from "./summary";
+
 /**
  * Constantes leves do domínio de organizações, fora dos esquemas e dos componentes.
  *
@@ -8,3 +11,10 @@
 
 /** O plano a partir do qual criar mais de uma equipe está liberado. */
 export const CREATE_TEAM_PLAN = "alliance" as const;
+
+/** A situação de um projeto na ficha de quem é da equipe: etiqueta e tom, para o perfil do membro e a página da conta. */
+export const memberProjectStatuses: Record<TeamMemberProjectStatus, { label: string; tone: BadgeTone }> = {
+  ongoing: { label: "Em andamento", tone: "accent" },
+  done: { label: "Concluído", tone: "success" },
+  paused: { label: "Pausado", tone: "warning" },
+};

@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { countNodes, docNodeSchemaFor, type DocNode } from "@/lib/rich-doc";
 import { MAX_TAGS } from "@/lib/tags";
-import { stageValues } from "./stages";
+import { stageGlyphValues, stageKindValues } from "./stages";
 import { taskTagValues } from "./tags";
 
 /**
@@ -10,7 +11,11 @@ import { taskTagValues } from "./tags";
  */
 export const taskLimits = {
   title: 120,
-  description: 4000,
+  /** O teto do texto puro do documento, que é o que a coluna `description` guarda para a busca. */
+  description: 20000,
+  /** Quantos nós a descrição aceita: uma lista de trinta itens com imagens cabe folgada, e um documento
+   *  colado de fora não entra inteiro sem ninguém perceber. */
+  descriptionNodes: 2000,
   alert: 300,
   comment: 4000,
   subtask: 200,
@@ -21,22 +26,76 @@ export { MAX_TAGS };
 export const priorityValues = ["low", "normal", "high", "urgent"] as const;
 export const attachmentTypeValues = ["pdf", "image", "figma", "link", "file"] as const;
 
-const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+/* Os nós e as marcas que a descrição aceita: a mesma lista que o editor oferece e que o `RichTextView`
+   desenha. Nó fora dela é recusado no servidor, e não ignorado, porque o documento é o que a pessoa
+   escreveu. */
+const descriptionNodes = [
+  "doc",
+  "paragraph",
+  "heading",
+  "text",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "taskList",
+  "taskItem",
+  "blockquote",
+  "codeBlock",
+  "horizontalRule",
+  "hardBreak",
+  "image",
+] as const;
+
+const descriptionMarks = ["bold", "italic", "underline", "strike", "code", "link"] as const;
+
+const docSchema = docNodeSchemaFor(descriptionNodes, descriptionMarks);
+
+/** Todo endereço de imagem do documento aponta para um arquivo servido por HTTPS; o resto não entra. */
+function imagesAreSafe(node: DocNode): boolean {
+  if (node.type === "image") {
+    const src = node.attrs?.src;
+    return typeof src === "string" && src.startsWith("https://");
+  }
+  return (node.content ?? []).every(imagesAreSafe);
+}
+
+/**
+ * A descrição como documento (2026-09-22). Nula é a tarefa que ainda não tem descrição nenhuma; o texto puro
+ * dela, para a busca e para o cartão, é derivado no servidor e não vem da tela.
+ */
+export const taskDescriptionSchema = docSchema
+  .nullable()
+  .refine((node) => !node || node.type === "doc", "A descrição precisa começar pela raiz")
+  .refine((node) => !node || countNodes(node) <= taskLimits.descriptionNodes, "Descrição longa demais")
+  .refine((node) => !node || imagesAreSafe(node), "Imagem de endereço inválido");
+
+const isoDay = z.iso.date("Data inválida");
 const blank = z.literal("");
 
 /** O que a ficha de tarefa aceita, na criação e na edição: é o mesmo formulário. */
+/** O nome de uma tarefa que ninguém nomeou: ela existe, aparece no quadro e espera o título. */
+export const DEFAULT_TASK_TITLE = "Nova tarefa";
+
 export const taskFormSchema = z
   .object({
     /** Presente na edição; ausente na criação. */
     id: z.uuid().optional(),
     /** Nulo é o balde de quem não tem projeto: tarefa solta continua tendo lugar. */
     projectId: z.uuid().nullable(),
-    title: z.string().trim().min(2, "Dê um título à tarefa").max(taskLimits.title, "Título longo demais"),
-    description: z.string().trim().max(taskLimits.description, "Descrição longa demais"),
+    /* Título em branco vira o padrão, e não erro: a tarefa nasce antes de ser nomeada, e uma ficha aberta
+       que se recusa a gravar por causa do nome trava quem só queria anotar o resto. */
+    title: z
+      .string()
+      .trim()
+      .max(taskLimits.title, "Título longo demais")
+      .transform((value) => value || DEFAULT_TASK_TITLE),
+    /** O documento da descrição; o texto puro dele é derivado no servidor, para a busca e para o cartão. */
+    description: taskDescriptionSchema.default(null),
     dueDate: isoDay,
     startDate: z.union([blank, isoDay]),
     estimate: z.number().int().min(1, "A estimativa precisa ser positiva").max(100000).nullable(),
-    stage: z.enum(stageValues),
+    /** A etapa é a linha do catálogo da equipe, então o que vem é o id dela. */
+    stageId: z.uuid("Escolha uma etapa"),
     priority: z.enum(priorityValues),
     ownerId: z.uuid().nullable(),
     /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
@@ -55,7 +114,7 @@ export type TaskFormInput = z.infer<typeof taskFormSchema>;
 /** Arrastar o cartão de coluna: a tarefa, a etapa de destino e onde ela ficou na coluna. */
 export const taskMoveSchema = z.object({
   id: z.uuid(),
-  stage: z.enum(stageValues),
+  stageId: z.uuid(),
   position: z.number().int().min(0).max(100000),
 });
 
@@ -79,3 +138,92 @@ export const taskCommentSchema = z.object({
 });
 
 export type TaskCommentInput = z.infer<typeof taskCommentSchema>;
+
+/* As etapas da equipe (2026-09-21). O teto do nome bate com o `check` da coluna, e a cor e o glifo são
+   listas fechadas, as mesmas dos enums do banco: é o que impede uma cor inventada de virar um quadrado sem
+   cor na tela. */
+export const stageLimits = { name: 40 } as const;
+
+export const paletteHueValues = [
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "mint",
+  "teal",
+  "cyan",
+  "blue",
+  "indigo",
+  "purple",
+  "pink",
+  "brown",
+  "gray",
+] as const;
+
+export const saveStageSchema = z.object({
+  /** Presente ao editar; ausente ao criar. */
+  id: z.uuid().optional(),
+  name: z.string().trim().min(1, "Dê um nome à etapa").max(stageLimits.name, "Nome longo demais"),
+  hue: z.enum(paletteHueValues),
+  glyph: z.enum(stageGlyphValues),
+  kind: z.enum(stageKindValues),
+});
+
+export type SaveStageInput = z.infer<typeof saveStageSchema>;
+
+/** Apagar uma etapa: com tarefas dentro, é preciso dizer para onde elas vão. */
+export const deleteStageSchema = z.object({ id: z.uuid(), moveTo: z.uuid().nullable().default(null) });
+
+/** A ordem do catálogo da equipe, na ordem em que as etapas aparecem. */
+export const stageOrderSchema = z.object({ ids: z.array(z.uuid()).min(1).max(60) });
+
+/** As colunas de um quadro: as etapas que ele usa, na ordem, sem repetir. */
+export const projectStagesSchema = z.object({
+  id: z.uuid(),
+  stageIds: z
+    .array(z.uuid())
+    .min(1, "O quadro precisa de ao menos uma etapa")
+    .max(60)
+    .refine((list) => new Set(list).size === list.length, "Etapa repetida"),
+});
+
+/**
+ * A tarefa que nasce já aberta (2026-09-22, a pedido: "ao invés de abrir um modal independente, ele já abrir
+ * a visualização de uma tarefa mesmo"). Só o lugar dela; o resto se preenche na ficha, que grava sozinha.
+ */
+export const createTaskSchema = z.object({ projectId: z.uuid().nullable().default(null), stageId: z.uuid() });
+
+/** Salvar só a descrição, que é o que a ficha grava sozinha enquanto a pessoa escreve. */
+export const saveTaskDescriptionSchema = z.object({ id: z.uuid(), description: taskDescriptionSchema });
+
+/** A imagem que vai para dentro da descrição: o dono dela e o tipo do arquivo. */
+export const taskImageUploadSchema = z.object({
+  taskId: z.uuid(),
+  contentType: z.enum(["image/png", "image/jpeg", "image/webp", "image/avif"]),
+});
+
+/**
+ * As etapas da equipe arrumadas de uma vez (2026-09-22, no desenho que o funil de vendas já usa): a lista
+ * inteira, na ordem, com o que é novo sem id; e, à parte, as que saem, cada uma dizendo para onde vão as
+ * tarefas que estavam nela. Uma janela só e uma gravação só, em vez de três janelas conversando entre si.
+ */
+export const configureStagesSchema = z.object({
+  stages: z
+    .array(
+      z.object({
+        id: z.uuid().optional(),
+        name: z.string().trim().min(1, "Dê um nome à etapa").max(stageLimits.name, "Nome longo demais"),
+        hue: z.enum(paletteHueValues),
+        glyph: z.enum(stageGlyphValues),
+        kind: z.enum(stageKindValues),
+      }),
+    )
+    .min(1, "A equipe precisa de ao menos uma etapa")
+    .max(60),
+  /** As que saem, com o destino das tarefas de cada uma. */
+  removals: z.array(z.object({ id: z.uuid(), moveTo: z.uuid().nullable().default(null) })).max(60).default([]),
+  /** O quadro que está sendo arrumado, quando é o de um projeto: as colunas dele ficam sendo estas. */
+  projectId: z.uuid().nullable().default(null),
+});
+
+export type ConfigureStagesInput = z.infer<typeof configureStagesSchema>;

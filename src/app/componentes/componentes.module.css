@@ -179,6 +179,26 @@
   border-radius: var(--radius-lg);
 }
 
+.dialogDemo {
+  display: grid;
+  min-width: 0;
+}
+
+.dialogDemo > :first-child,
+.dialogDemoBody,
+.dialogDemoFooter {
+  padding: var(--space-5);
+}
+
+.dialogDemoBody {
+  background-color: var(--color-bg-grouped);
+  border-block: 1px solid var(--color-separator);
+}
+
+.dialogDemoFooter {
+  width: 100%;
+}
+
 /* A sidebar tem altura de tela: na vitrine ela entra numa caixa alta o bastante para caber o topo,
    a lista e o rodapé sem rolar, que é o que se quer conferir. */
 .sidebarPreview {

@@ -28,7 +28,15 @@ import { SCROLL_CONTAINER } from "@/lib/scroll";
  * perfil): só a primeira trava e só a última destrava, senão a de cima soltava a rolagem da de baixo.
  */
 
-const frozen: { element: HTMLElement; overflow: string }[] = [];
+type FrozenScroller = {
+  element: HTMLElement;
+  overflow: string;
+  paddingInlineEnd: string;
+  scrollLeft: number;
+  scrollTop: number;
+};
+
+const frozen: FrozenScroller[] = [];
 let depth = 0;
 
 /** Quem rola atrás: a coluna marcada quando existe, e o documento nas telas sem a concha (login, páginas públicas, vitrine). */
@@ -66,8 +74,20 @@ export function useScrollLock(active: boolean) {
     depth += 1;
     if (depth === 1) {
       for (const element of scrollers()) {
-        frozen.push({ element, overflow: element.style.overflow });
+        const widthBeforeLock = element.clientWidth;
+        frozen.push({
+          element,
+          overflow: element.style.overflow,
+          paddingInlineEnd: element.style.paddingInlineEnd,
+          scrollLeft: element.scrollLeft,
+          scrollTop: element.scrollTop,
+        });
         element.style.overflow = "hidden";
+        const gutter = Math.max(0, element.clientWidth - widthBeforeLock);
+        if (gutter > 0) {
+          const currentPadding = Number.parseFloat(getComputedStyle(element).paddingInlineEnd) || 0;
+          element.style.paddingInlineEnd = `${currentPadding + gutter}px`;
+        }
       }
       document.addEventListener("touchmove", guard, { passive: false });
       document.addEventListener("wheel", guard, { passive: false });
@@ -76,7 +96,12 @@ export function useScrollLock(active: boolean) {
     return () => {
       depth -= 1;
       if (depth > 0) return;
-      for (const { element, overflow } of frozen) element.style.overflow = overflow;
+      for (const { element, overflow, paddingInlineEnd, scrollLeft, scrollTop } of frozen) {
+        element.style.overflow = overflow;
+        element.style.paddingInlineEnd = paddingInlineEnd;
+        element.scrollLeft = scrollLeft;
+        element.scrollTop = scrollTop;
+      }
       frozen.length = 0;
       document.removeEventListener("touchmove", guard);
       document.removeEventListener("wheel", guard);

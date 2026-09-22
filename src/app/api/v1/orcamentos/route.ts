@@ -6,7 +6,7 @@
 import { parseQuotesQuery } from "@/features/quotes/list";
 import { quoteFormSchema } from "@/features/quotes/schemas";
 import { listQuotes, saveQuote } from "@/features/quotes/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "quotes-read");
@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, quoteFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveQuote(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data));
+  return fromMutation(await saveQuote(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data), auth.session.organizationId, ["quotes"]);
 }

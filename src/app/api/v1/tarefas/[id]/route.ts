@@ -5,7 +5,7 @@
  */
 import { taskMoveSchema } from "@/features/tasks/schemas";
 import { deleteTask, getTask, moveTask } from "@/features/tasks/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authorizeDomain(request, "task-read");
@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if ("response" in body) return body.response;
   if (body.data.id !== id) return Response.json({ error: "Tarefa divergente" }, { status: 400 });
 
-  return fromResult(await moveTask(auth.session.supabase, auth.session.organizationId, id, body.data.stage, body.data.position));
+  return fromMutation(await moveTask(auth.session.supabase, auth.session.organizationId, id, body.data.stageId, body.data.position), auth.session.organizationId, ["tasks"]);
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -35,5 +35,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if ("response" in auth) return auth.response;
 
   const { id } = await params;
-  return fromResult(await deleteTask(auth.session.supabase, auth.session.organizationId, id));
+  return fromMutation(await deleteTask(auth.session.supabase, auth.session.organizationId, id), auth.session.organizationId, ["tasks"]);
 }

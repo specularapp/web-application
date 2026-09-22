@@ -2,7 +2,7 @@
 
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
-import { useId, useState } from "react";
+import { useId, useRef, useState, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,18 @@ const methodOptions = [{ value: "none" as const, label: "Sem forma definida" }, 
 // data e a forma. Salva no servidor e a lista é refeita por ele.
 export function TransactionFormDialog({ open, onClose, onCreated }: TransactionFormDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
+  const savingRef = useRef(false);
+  const close = () => {
+    if (!savingRef.current) onClose();
+  };
   return (
-    <Dialog open={open} onClose={onClose} label="Nova movimentação" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
-      <TransactionForm onClose={onClose} onCreated={onCreated} />
+    <Dialog open={open} onClose={close} label="Nova movimentação" size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
+      <TransactionForm onClose={close} onCreated={onCreated} savingRef={savingRef} />
     </Dialog>
   );
 }
 
-function TransactionForm({ onClose, onCreated }: Omit<TransactionFormDialogProps, "open">) {
+function TransactionForm({ onClose, onCreated, savingRef }: Omit<TransactionFormDialogProps, "open"> & { savingRef: RefObject<boolean> }) {
   const { toast } = useToast();
   const titleId = useId();
   const [values, setValues] = useState<Values>(blank);
@@ -58,6 +62,8 @@ function TransactionForm({ onClose, onCreated }: Omit<TransactionFormDialogProps
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((current) => ({ ...current, [key]: value }));
 
   const save = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     const result = await callAction(
@@ -70,6 +76,7 @@ function TransactionForm({ onClose, onCreated }: Omit<TransactionFormDialogProps
         method: values.method === "none" ? null : values.method,
       }),
     );
+    savingRef.current = false;
     setSaving(false);
     if (!result.ok) {
       setError(result.error);

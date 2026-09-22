@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, differenceInMinutes, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { BadgeTone } from "@/components/ui/badge";
-import { crmStageMeta, type CrmStage } from "./stages";
+import { stageKind, type CrmStage } from "./stages";
 import type { CrmPerson, Opportunity, OpportunitySource, OpportunityStatus, OpportunityTemperature } from "./summary";
 
 /** Quantos caracteres a fila de nomes ocupa antes de virar reticência mais a contagem do resto. */
@@ -33,7 +33,7 @@ export const crmStatusTones: Record<OpportunityStatus, BadgeTone> = { open: "acc
  * A situação lida a partir da etapa, e não guardada no modelo: sai do `kind` que cada etapa do catálogo
  * declara, então etapa nova já nasce com a própria leitura e nenhum segundo mapa fica para trás.
  */
-export const crmStatus = (stage: CrmStage): OpportunityStatus => crmStageMeta[stage].kind;
+export const crmStatus = (stage: CrmStage): OpportunityStatus => stageKind(stage);
 
 export const statusOf = (opportunity: Opportunity) => crmStatus(opportunity.stage);
 
@@ -74,7 +74,7 @@ export const sourceHues: Record<OpportunitySource, string> = {
   site: "var(--sys-blue)",
   instagram: "var(--sys-pink)",
   google: "var(--sys-yellow)",
-  facebook: "var(--sys-indigo)",
+  facebook: "var(--sys-blue)",
   evento: "var(--sys-purple)",
   prospeccao: "var(--sys-teal)",
   telefone: "var(--sys-cyan)",
@@ -88,7 +88,7 @@ export const sourceHues: Record<OpportunitySource, string> = {
 export const STALE_DAYS = 10;
 
 /** Dias desde o último contato de verdade. */
-export const daysSinceTouch = (opportunity: Opportunity) => differenceInCalendarDays(new Date(), parseISO(opportunity.lastTouchAt));
+export const daysSinceTouch = (opportunity: Opportunity) => differenceInCalendarDays(new Date(), parseISO(opportunity.lastTouchAt || opportunity.enteredAt));
 
 /**
  * Venda parada: passou da folga sem ninguém falar com o cliente e ainda está em aberto. Ganha ou perdida não
@@ -98,6 +98,7 @@ export const isStale = (opportunity: Opportunity) => isOpen(opportunity) && days
 
 /** "há 12 dias", "ontem", "hoje": como a pessoa fala do último contato. */
 export function touchLabel(opportunity: Opportunity) {
+  if (!opportunity.lastTouchAt) return "Sem contato registrado";
   const days = daysSinceTouch(opportunity);
   if (days <= 0) return "Contato hoje";
   if (days === 1) return "Contato ontem";
@@ -110,6 +111,7 @@ export function touchLabel(opportunity: Opportunity) {
  * decisão; ganha ou perdida no passado fica neutra, porque a data já cumpriu o papel dela.
  */
 export function expectedOf(opportunity: Opportunity): { label: string; tone: BadgeTone } {
+  if (!opportunity.expectedAt) return { label: "Sem previsão", tone: "neutral" };
   const date = parseISO(opportunity.expectedAt);
   const days = differenceInCalendarDays(date, new Date());
   const late = days < 0 && isOpen(opportunity);
@@ -152,4 +154,4 @@ export const dateTimeLabel = (iso: string) => format(parseISO(iso), "dd/MM/yyyy'
 
 /** O endereço desta oportunidade na aplicação, que é o link que se manda para alguém abrir o mesmo cartão. */
 export const opportunityLink = (opportunity: Opportunity) =>
-  `/crm${opportunity.funnel ? `/${opportunity.funnel.slug}` : ""}?oportunidade=${opportunity.id}`;
+  `/crm${opportunity.funnel ? `/${opportunity.funnel.slug}` : ""}#${encodeURIComponent(opportunity.reference)}`;

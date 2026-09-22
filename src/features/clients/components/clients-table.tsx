@@ -16,12 +16,13 @@ import {
 } from "@/components/ui/data-table";
 import { Text } from "@/components/ui/text";
 import { applyPattern } from "@/lib/masks";
-import type { ClientListItem } from "../list-options";
+import type { ClientListItem, ClientsGroup } from "../list-options";
 import { ClientHoverCard } from "./client-hover-card";
 import { ClientMenu } from "./client-menu";
 
 export type ClientsTableProps = {
   clients: ClientListItem[];
+  group: ClientsGroup;
   selected: string[];
   onSelectedChange: (selected: string[]) => void;
   onOpen: (client: ClientListItem) => void;
@@ -38,11 +39,12 @@ export type ClientsTableProps = {
 // orçamentos, projetos, faturado, desde quando e o leque. Ordena só por faturado, orçamentos e desde, pelo
 // que está na página. A linha inteira abre a ficha; pelo teclado quem abre é o nome, e apontar o nome com o
 // mouse abre a ficha resumida em vidro. O que falta (e-mail, telefone, cidade) é a etiqueta "Não condiz".
-export function ClientsTable({ clients, selected, onSelectedChange, onOpen, onEdit, footer, range }: ClientsTableProps) {
+export function ClientsTable({ clients, group, selected, onSelectedChange, onOpen, onEdit, footer, range }: ClientsTableProps) {
+  const suppliers = group === "fornecedores";
   const columns: DataTableColumn<ClientListItem>[] = [
     {
       id: "name",
-      header: "Cliente",
+      header: suppliers ? "Fornecedor" : "Cliente",
       cell: (client) => (
         <ClientHoverCard client={client}>
           <DataTableTitle
@@ -109,35 +111,33 @@ export function ClientsTable({ clients, selected, onSelectedChange, onOpen, onEd
     },
     {
       id: "quotes",
-      header: "Orçamentos",
+      header: suppliers ? "Despesas" : "Orçamentos",
       align: "end",
       sortable: true,
-      sortValue: (client) => client.stats.quotes,
+      sortValue: (client) => suppliers ? client.stats.expenses : client.stats.quotes,
       hideBelow: "md",
       cell: (client) => (
         <Text as="span" variant="footnote" weight="medium">
-          {client.stats.quotes}
+          {suppliers ? client.stats.expenses : client.stats.quotes}
         </Text>
       ),
     },
     {
       id: "projects",
-      header: "Projetos",
+      header: suppliers ? "A pagar" : "Projetos",
       align: "end",
       hideBelow: "lg",
       cell: (client) => (
-        <Text as="span" variant="footnote" weight="medium">
-          {client.stats.projects}
-        </Text>
+        suppliers ? <DataTableMoney cents={client.stats.payable} /> : <Text as="span" variant="footnote" weight="medium">{client.stats.projects}</Text>
       ),
     },
     {
       id: "billed",
-      header: "Faturado",
+      header: suppliers ? "Pago" : "Faturado",
       align: "end",
       sortable: true,
-      sortValue: (client) => client.stats.billed,
-      cell: (client) => <DataTableMoney cents={client.stats.billed} />,
+      sortValue: (client) => suppliers ? client.stats.spent : client.stats.billed,
+      cell: (client) => <DataTableMoney cents={suppliers ? client.stats.spent : client.stats.billed} />,
     },
     {
       id: "createdAt",
@@ -151,7 +151,7 @@ export function ClientsTable({ clients, selected, onSelectedChange, onOpen, onEd
 
   return (
     <DataTable
-      label="Base de clientes"
+      label={suppliers ? "Base de fornecedores" : "Base de clientes"}
       columns={columns}
       rows={clients}
       rowKey={(client) => client.id}

@@ -7,7 +7,8 @@ import { getProjectTree } from "@/features/projects/service";
 import type { AppRecord } from "@/features/records/records";
 import { getAppRecords } from "@/features/records/queries";
 import type { TasksQuery } from "./list-options";
-import { listTasks } from "./service";
+import { listTaskStages, listTasks } from "./service";
+import type { TaskStage } from "./stages";
 import type { Task, TaskPerson } from "./summary";
 import { findProject, type TaskProject, type TaskTreeNode } from "./tree";
 
@@ -15,6 +16,9 @@ export type TasksScreenData = {
   tasks: Task[];
   team: TaskPerson[];
   tree: TaskTreeNode[];
+  /** O catálogo de etapas da equipe, na ordem dela: as colunas do quadro de todas e o que se pode ligar no
+   *  quadro de um projeto. */
+  stages: TaskStage[];
   /** O projeto do endereço, quando a página é a de um; nulo no quadro de todas. */
   project: TaskProject | null;
   records: AppRecord[];
@@ -34,7 +38,7 @@ export async function loadTasksScreenData(query: TasksQuery, slug?: string, next
      "deste projeto", que é o que `undefined` significa (todas). */
   const scope = project ? (project.reference === null ? null : project.id) : undefined;
 
-  const [tasks, members, records] = await Promise.all([
+  const [tasks, members, records, stages] = await Promise.all([
     cached(
       cacheKey(organizationId, "tasks:board", slug ?? "todas", query.search, query.priority, query.deadline, query.overdue),
       { organizationId, tags: [cacheTags.tasks], ttl: cacheTtl.list },
@@ -42,6 +46,7 @@ export async function loadTasksScreenData(query: TasksQuery, slug?: string, next
     ),
     listTeamMembers(supabase, organizationId),
     getAppRecords(next),
+    listTaskStages(supabase, organizationId),
   ]);
 
   return {
@@ -50,6 +55,7 @@ export async function loadTasksScreenData(query: TasksQuery, slug?: string, next
     tree,
     project,
     records,
+    stages,
   };
 }
 

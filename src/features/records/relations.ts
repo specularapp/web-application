@@ -2,8 +2,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BadgeTone } from "@/components/ui/badge";
 import { contractStatuses } from "@/features/contracts/labels";
+import { listStageDefinitions } from "@/features/crm/service";
 import { crmStatusTones } from "@/features/crm/labels";
-import { crmStageMeta } from "@/features/crm/stages";
+import { crmStageMeta, stageKind } from "@/features/crm/stages";
 import { chargeStatuses } from "@/features/finance/labels";
 import { projectStatuses } from "@/features/projects/labels";
 import { quoteStatuses } from "@/features/quotes/labels";
@@ -110,7 +111,7 @@ export async function getClientRelations(
 
   if (!contact) return null;
 
-  const [quotes, projects, contracts, charges, opportunities] = await Promise.all([
+  const [quotes, projects, contracts, charges, opportunities, definitions] = await Promise.all([
     client
       .from("quotes")
       .select("id, reference, title, status, issued_at, valid_until, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")
@@ -146,6 +147,7 @@ export async function getClientRelations(
       .eq("client_id", clientId)
       .order("entered_at", { ascending: false })
       .limit(PER_KIND),
+    listStageDefinitions(client, organizationId),
   ]);
 
   const root: RelationNode = {
@@ -193,8 +195,8 @@ export async function getClientRelations(
       reference: opportunity.reference,
       name: opportunity.title,
       caption: formatMoney(opportunity.value),
-      fields: fieldsOf(["Valor", formatMoney(opportunity.value)], ["Etapa", crmStageMeta[opportunity.stage].label]),
-      status: { label: crmStageMeta[opportunity.stage].label, tone: crmStatusTones[crmStageMeta[opportunity.stage].kind] },
+      fields: fieldsOf(["Valor", formatMoney(opportunity.value)], ["Etapa", (definitions.find((stage) => stage.id === opportunity.stage)?.label ?? crmStageMeta[opportunity.stage]?.label ?? "Etapa")]),
+      status: { label: (definitions.find((stage) => stage.id === opportunity.stage)?.label ?? crmStageMeta[opportunity.stage]?.label ?? "Etapa"), tone: crmStatusTones[stageKind(opportunity.stage)] },
       href: "/crm",
     });
     present.add(opportunity.id);

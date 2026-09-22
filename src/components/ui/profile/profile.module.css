@@ -33,10 +33,26 @@
    embaixo, com um brilho a mais na quina de cima à esquerda, como nas referências. No celular ela sobe
    por baixo da alça da bandeja (a janela puxa o conteúdo 1rem para cima quando é `flush`). */
 .cover {
-  height: 7.5rem;
+  position: relative;
+  height: var(--profile-cover-height, 7.5rem);
   background-image:
     radial-gradient(18rem 9rem at 12% 0%, color-mix(in oklab, var(--cover-hue) 55%, transparent), transparent 70%),
     linear-gradient(to bottom, color-mix(in oklab, var(--cover-hue) 38%, transparent), transparent);
+}
+
+/* A foto da capa, quando há uma, cobre o matiz de ponta a ponta e é cortada pelo centro. */
+.coverImage {
+  object-fit: cover;
+}
+
+/* Trocar e tirar a capa, na quina de baixo, longe da foto, que sai pela esquerda. */
+.coverAction {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-3);
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 .head {
@@ -47,14 +63,28 @@
   padding-inline: var(--inset);
 }
 
+/* A foto e, quando há, o botão de trocá-la na quina de baixo; a caixa é do tamanho da foto para o botão
+   ter onde se prender. */
+.photo {
+  position: relative;
+  width: fit-content;
+  margin-block-end: var(--space-2);
+}
+
 /* Foto grande passando por cima da capa, com um anel na cor do fundo para descolar dela. Três classes
    para vencer `.avatar[data-size]`, de onde saem o tamanho e o raio; o motor lê o raio do
    `border-radius`, então o squircle segue junto. */
-.profile .head .photo {
+.profile .head .photoFace {
   --avatar-size: 5.5rem;
   --avatar-radius: var(--radius-xl);
-  margin-block-end: var(--space-2);
   box-shadow: 0 0 0 4px var(--color-bg);
+}
+
+.photoAction {
+  position: absolute;
+  inset-block-end: calc(var(--space-1) * -1);
+  inset-inline-end: calc(var(--space-1) * -1);
+  display: inline-flex;
 }
 
 /* Nome e etiquetas de um lado e o menu de opções na outra ponta; o X da janela fica acima, à direita. */
@@ -393,4 +423,25 @@
     flex: 1 1 4rem;
     max-width: 6rem;
   }
+}
+
+/* Atividade recente: a bolinha de quem fez, o que fez em uma linha e quando, embaixo. */
+.events {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.event {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.eventCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
 }

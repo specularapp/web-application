@@ -50,10 +50,13 @@ export function listCharges(items: Charge[], query: ChargesQuery, today = todayI
   const totals = { receivable: 0, payable: 0, overdue: 0 };
   const statuses = new Map<string, ChargeStatus>();
   items.forEach((charge) => {
+    sides[charge.direction] += 1;
+  });
+  const scope = items.filter((charge) => query.direction === "todas" || charge.direction === query.direction);
+  scope.forEach((charge) => {
     const status = chargeStatusOf(charge, today);
     statuses.set(charge.id, status);
     counts[status] += 1;
-    sides[charge.direction] += 1;
     /* Cada lado soma no seu: o que falta receber e o que falta pagar são dois números, e não um saldo. */
     if (charge.direction === "incoming") totals.receivable += chargeOpen(charge);
     else totals.payable += chargeOpen(charge);
@@ -61,8 +64,7 @@ export function listCharges(items: Charge[], query: ChargesQuery, today = todayI
   });
 
   const needle = plain(query.search).trim();
-  const filtered = items
-    .filter((charge) => query.direction === "todas" || charge.direction === query.direction)
+  const filtered = scope
     .filter((charge) => query.status === "todas" || statuses.get(charge.id) === query.status)
     .filter((charge) => query.method === "todas" || charge.method === query.method)
     .filter((charge) => !needle || needle.split(/\s+/).every((part) => plain([charge.title, charge.reference, partyOf(charge).name, partyOf(charge).company ?? "", charge.description].join(" ")).includes(part)))

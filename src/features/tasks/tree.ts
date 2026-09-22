@@ -1,4 +1,5 @@
-import { defaultStages, stageValues, type TaskStage } from "./stages";
+import type { ProjectHue } from "@/features/projects/summary";
+import type { TaskStage } from "./stages";
 import type { Task } from "./summary";
 
 /**
@@ -15,6 +16,11 @@ export type TaskFolder = {
   kind: "folder";
   id: string;
   name: string;
+  /** Token de cor da pasta, como o do projeto: a linha o passa por variável e o glifo se tinge (2026-09-22). */
+  hue: string;
+  /** O nome do matiz como ele está no banco, para o seletor de cor editá-lo. */
+  paletteHue: string;
+  glyph: ProjectGlyph;
   children: TaskTreeNode[];
 };
 
@@ -40,12 +46,15 @@ export type TaskProject = {
    * lugar na arquitetura em vez de existir só na lista de todas.
    */
   reference: string | null;
-  /** As etapas do quadro deste projeto, na ordem em que as colunas aparecem. */
+  /** As etapas do quadro deste projeto, na ordem em que as colunas aparecem. Vazio é projeto que ainda não
+   *  escolheu nenhuma, e nesse caso o quadro mostra o catálogo inteiro da equipe. */
   stages: TaskStage[];
   /** O glifo do azulejo dele na árvore, que é o que distingue um projeto do outro de relance. */
   glyph: ProjectGlyph;
   /** Token de cor do azulejo, como no `NavGroup`: a linha o passa por variável e o azulejo se tinge. */
   hue: string;
+  /** O nome do matiz, como ele está no banco: é o que o seletor de cor do quadro edita. */
+  paletteHue: ProjectHue;
   /**
    * A cara do projeto no menu (2026-09-20, a pedido): a logo dele, a do cliente ou o rosto do cliente, na
    * ordem de `projectFace`. Nulo cai no glifo, que é o que a maioria das contas novas vê.
@@ -63,7 +72,7 @@ export const isTaskFolder = (node: TaskTreeNode): node is TaskFolder => node.kin
  * o projeto que fechou tudo mostra zero em vez de mostrar a própria história. Pasta soma os filhos.
  */
 export type TaskTreeItem =
-  | { kind: "folder"; id: string; name: string; open: number; children: TaskTreeItem[] }
+  | { kind: "folder"; id: string; name: string; open: number; hue: string; paletteHue: string; glyph: ProjectGlyph; children: TaskTreeItem[] }
   | {
       kind: "project";
       id: string;
@@ -72,6 +81,8 @@ export type TaskTreeItem =
       open: number;
       glyph: ProjectGlyph;
       hue: string;
+      /** O nome do matiz como está no banco, para o seletor de cor editá-lo. */
+      paletteHue: string;
       /** A cara do projeto, quando ele tem uma: é ela que o azulejo do menu veste no lugar do glifo. */
       imageUrl: string | null;
       /** As etapas do quadro, para o leque do menu arrumá-las sem ir à página. */
@@ -105,6 +116,9 @@ export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): Ta
         id: node.id,
         name: node.name,
         open: children.reduce((sum, child) => sum + child.open, 0),
+        hue: node.hue,
+        paletteHue: node.paletteHue,
+        glyph: node.glyph,
         children,
       };
     }
@@ -117,6 +131,7 @@ export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): Ta
       open: node.reference === null ? counts.loose : (counts.byProject[node.id] ?? 0),
       glyph: node.glyph,
       hue: node.hue,
+      paletteHue: node.paletteHue,
       imageUrl: node.imageUrl,
       stages: node.stages,
       bucket: node.reference === null || undefined,
@@ -148,20 +163,4 @@ export function pathToItem(items: TaskTreeItem[], slug: string, trail: string[] 
     }
   }
   return [];
-}
-
-/**
- * As etapas que o quadro de todas as tarefas mostra, na ordem do catálogo: as que **algum projeto escolheu**
- * mais as que alguma tarefa ocupa. Ele cruza projetos com fluxos diferentes, então uma lista fixa esconderia
- * o que está em Publicação ou em Bloqueada, e as etapas que ninguém configurou não viram coluna à toa.
- *
- * As etapas vêm do projeto, e não das tarefas (2026-09-20, a pedido de ver todas as etapas mesmo sem tarefa
- * criada): antes a coluna só existia depois de alguém pôr algo nela, então um quadro novo abria vazio e o
- * caminho que a equipe combinou não aparecia em lugar nenhum. As tarefas continuam entrando na conta para o
- * que está numa etapa que o projeto tirou do quadro depois não sumir da vista.
- */
-export function boardStages(tasks: Task[], nodes: TaskTreeNode[]): TaskStage[] {
-  const wanted = new Set<TaskStage>([...flattenProjects(nodes).flatMap((project) => project.stages), ...tasks.map((task) => task.stage)]);
-  const present = stageValues.filter((stage) => wanted.has(stage));
-  return present.length > 0 ? present : defaultStages;
 }

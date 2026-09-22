@@ -771,6 +771,7 @@ export type Database = {
           email: string | null
           favorite: boolean
           id: string
+          kind: Database["public"]["Enums"]["client_kind"]
           name: string
           organization_id: string
           phone: string | null
@@ -792,6 +793,7 @@ export type Database = {
           email?: string | null
           favorite?: boolean
           id?: string
+          kind?: Database["public"]["Enums"]["client_kind"]
           name: string
           organization_id: string
           phone?: string | null
@@ -813,6 +815,7 @@ export type Database = {
           email?: string | null
           favorite?: boolean
           id?: string
+          kind?: Database["public"]["Enums"]["client_kind"]
           name?: string
           organization_id?: string
           phone?: string | null
@@ -1123,6 +1126,7 @@ export type Database = {
       crm_folders: {
         Row: {
           created_at: string
+          hue: Database["public"]["Enums"]["palette_hue"]
           id: string
           name: string
           organization_id: string
@@ -1132,6 +1136,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           name: string
           organization_id: string
@@ -1141,6 +1146,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           name?: string
           organization_id?: string
@@ -1177,7 +1183,7 @@ export type Database = {
           position: number
           reference: string
           slug: string
-          stages: Database["public"]["Enums"]["crm_stage"][]
+          stages: string[]
           updated_at: string
         }
         Insert: {
@@ -1191,7 +1197,7 @@ export type Database = {
           position?: number
           reference?: string
           slug: string
-          stages?: Database["public"]["Enums"]["crm_stage"][]
+          stages?: string[]
           updated_at?: string
         }
         Update: {
@@ -1205,7 +1211,7 @@ export type Database = {
           position?: number
           reference?: string
           slug?: string
-          stages?: Database["public"]["Enums"]["crm_stage"][]
+          stages?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -1218,6 +1224,35 @@ export type Database = {
           },
           {
             foreignKeyName: "crm_funnels_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_stage_definitions: {
+        Row: {
+          hue: Database["public"]["Enums"]["palette_hue"]
+          id: string
+          label: string
+          organization_id: string
+        }
+        Insert: {
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id: string
+          label: string
+          organization_id: string
+        }
+        Update: {
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          label?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stage_definitions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1384,7 +1419,7 @@ export type Database = {
           quote_id: string | null
           reference: string
           source: Database["public"]["Enums"]["opportunity_source"]
-          stage: Database["public"]["Enums"]["crm_stage"]
+          stage: string
           stage_since: string
           state: string | null
           tags: string[]
@@ -1424,7 +1459,7 @@ export type Database = {
           quote_id?: string | null
           reference?: string
           source?: Database["public"]["Enums"]["opportunity_source"]
-          stage?: Database["public"]["Enums"]["crm_stage"]
+          stage?: string
           stage_since?: string
           state?: string | null
           tags?: string[]
@@ -1464,7 +1499,7 @@ export type Database = {
           quote_id?: string | null
           reference?: string
           source?: Database["public"]["Enums"]["opportunity_source"]
-          stage?: Database["public"]["Enums"]["crm_stage"]
+          stage?: string
           stage_since?: string
           state?: string | null
           tags?: string[]
@@ -1833,6 +1868,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_url: string | null
           created_at: string
           current_organization_id: string | null
           email: string | null
@@ -1849,6 +1885,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           current_organization_id?: string | null
           email?: string | null
@@ -1865,6 +1902,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           current_organization_id?: string | null
           email?: string | null
@@ -1936,6 +1974,8 @@ export type Database = {
       project_folders: {
         Row: {
           created_at: string
+          glyph: Database["public"]["Enums"]["project_glyph"]
+          hue: Database["public"]["Enums"]["palette_hue"]
           id: string
           name: string
           organization_id: string
@@ -1945,6 +1985,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          glyph?: Database["public"]["Enums"]["project_glyph"]
+          hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           name: string
           organization_id: string
@@ -1954,6 +1996,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          glyph?: Database["public"]["Enums"]["project_glyph"]
+          hue?: Database["public"]["Enums"]["palette_hue"]
           id?: string
           name?: string
           organization_id?: string
@@ -2017,6 +2061,52 @@ export type Database = {
           },
         ]
       }
+      project_stages: {
+        Row: {
+          created_at: string
+          organization_id: string
+          position: number
+          project_id: string
+          stage_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          position?: number
+          project_id: string
+          stage_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          position?: number
+          project_id?: string
+          stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stages_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "task_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget_max: number | null
@@ -2038,7 +2128,6 @@ export type Database = {
           progress: number
           reference: string
           slug: string
-          stages: Database["public"]["Enums"]["task_stage"][]
           started_at: string
           status: Database["public"]["Enums"]["project_status"]
           tags: string[]
@@ -2066,7 +2155,6 @@ export type Database = {
           progress?: number
           reference?: string
           slug: string
-          stages?: Database["public"]["Enums"]["task_stage"][]
           started_at?: string
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
@@ -2094,7 +2182,6 @@ export type Database = {
           progress?: number
           reference?: string
           slug?: string
-          stages?: Database["public"]["Enums"]["task_stage"][]
           started_at?: string
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
@@ -2658,11 +2745,56 @@ export type Database = {
           },
         ]
       }
+      task_stages: {
+        Row: {
+          created_at: string
+          glyph: Database["public"]["Enums"]["task_stage_glyph"]
+          hue: Database["public"]["Enums"]["palette_hue"]
+          id: string
+          kind: Database["public"]["Enums"]["task_stage_kind"]
+          name: string
+          organization_id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          glyph?: Database["public"]["Enums"]["task_stage_glyph"]
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          kind?: Database["public"]["Enums"]["task_stage_kind"]
+          name: string
+          organization_id: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          glyph?: Database["public"]["Enums"]["task_stage_glyph"]
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          kind?: Database["public"]["Enums"]["task_stage_kind"]
+          name?: string
+          organization_id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_stages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           alert: string | null
           created_at: string
           description: string
+          description_doc: Json | null
           due_date: string
           estimate_minutes: number | null
           id: string
@@ -2672,7 +2804,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["task_priority"]
           project_id: string | null
           reference: string
-          stage: Database["public"]["Enums"]["task_stage"]
+          stage_id: string
           start_date: string | null
           tags: string[]
           title: string
@@ -2682,6 +2814,7 @@ export type Database = {
           alert?: string | null
           created_at?: string
           description?: string
+          description_doc?: Json | null
           due_date: string
           estimate_minutes?: number | null
           id?: string
@@ -2691,7 +2824,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id?: string | null
           reference?: string
-          stage?: Database["public"]["Enums"]["task_stage"]
+          stage_id: string
           start_date?: string | null
           tags?: string[]
           title: string
@@ -2701,6 +2834,7 @@ export type Database = {
           alert?: string | null
           created_at?: string
           description?: string
+          description_doc?: Json | null
           due_date?: string
           estimate_minutes?: number | null
           id?: string
@@ -2710,7 +2844,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id?: string | null
           reference?: string
-          stage?: Database["public"]["Enums"]["task_stage"]
+          stage_id?: string
           start_date?: string | null
           tags?: string[]
           title?: string
@@ -2729,6 +2863,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "task_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -2831,10 +2972,30 @@ export type Database = {
       can_manage_logo: { Args: { p_name: string }; Returns: boolean }
       can_manage_org_file: { Args: { p_name: string }; Returns: boolean }
       can_write: { Args: { p_organization_id: string }; Returns: boolean }
+      change_charge_payment: {
+        Args: {
+          p_charge_id: string
+          p_installment_id?: string
+          p_method?: Database["public"]["Enums"]["payment_method"]
+          p_operation: string
+          p_organization_id: string
+          p_paid_on?: string
+        }
+        Returns: undefined
+      }
       charge_by_token: { Args: { p_token_hash: string }; Returns: Json }
       claim_daily_bonus: { Args: { p_points: number }; Returns: boolean }
       complete_onboarding: {
         Args: { p_organization_id: string }
+        Returns: undefined
+      }
+      configure_funnel_stages: {
+        Args: {
+          p_funnel_id: string
+          p_organization_id: string
+          p_replacements?: Json
+          p_stages: Json
+        }
         Returns: undefined
       }
       consume_ai_credit: {
@@ -2851,10 +3012,15 @@ export type Database = {
         }
         Returns: string
       }
+      crm_stage_kind: { Args: { p_stage: string }; Returns: string }
       current_org: { Args: never; Returns: string }
       current_plan: {
         Args: never
         Returns: Database["public"]["Enums"]["billing_plan"]
+      }
+      delete_task_stage: {
+        Args: { p_id: string; p_move_to?: string }
+        Returns: undefined
       }
       gamification_summary: {
         Args: never
@@ -2966,6 +3132,11 @@ export type Database = {
         }
         Returns: string
       }
+      reorder_project_stages: {
+        Args: { p_ids: string[]; p_project: string }
+        Returns: undefined
+      }
+      reorder_task_stages: { Args: { p_ids: string[] }; Returns: undefined }
       report_installment_paid: {
         Args: { p_installment_id: string; p_token_hash: string }
         Returns: boolean
@@ -2974,6 +3145,7 @@ export type Database = {
         Args: { p_approved: boolean; p_token_hash: string }
         Returns: boolean
       }
+      seed_task_stages: { Args: { p_organization: string }; Returns: undefined }
       set_current_org: {
         Args: { p_organization_id: string }
         Returns: undefined
@@ -3064,6 +3236,7 @@ export type Database = {
         | "reopened"
         | "cancelled"
       charge_recurrence: "none" | "monthly" | "quarterly" | "yearly"
+      client_kind: "customer" | "supplier" | "both"
       contract_event_kind:
         | "created"
         | "sent"
@@ -3143,6 +3316,7 @@ export type Database = {
         | "purple"
         | "pink"
         | "brown"
+        | "gray"
       payment_method: "pix" | "transfer" | "boleto" | "card"
       plan_feature_kind: "flag" | "limit"
       project_glyph:
@@ -3228,15 +3402,44 @@ export type Database = {
       task_attachment_type: "pdf" | "image" | "figma" | "link" | "file"
       task_event_kind: "comment" | "change"
       task_priority: "low" | "normal" | "high" | "urgent"
-      task_stage:
-        | "backlog"
-        | "todo"
-        | "doing"
-        | "blocked"
-        | "review"
-        | "approval"
-        | "publishing"
-        | "done"
+      task_stage_glyph:
+        | "tray"
+        | "circle-dashed"
+        | "circle-half"
+        | "prohibit"
+        | "eye"
+        | "thumbs-up"
+        | "rocket"
+        | "check-circle"
+        | "lightbulb"
+        | "pencil"
+        | "magnifier"
+        | "chat"
+        | "flag"
+        | "star"
+        | "clock"
+        | "hourglass"
+        | "package"
+        | "paint-brush"
+        | "code"
+        | "megaphone"
+        | "handshake"
+        | "bug"
+        | "crosshair"
+        | "file-text"
+        | "play"
+        | "pause"
+        | "archive"
+        | "sparkle"
+        | "users"
+        | "truck"
+        | "shield"
+        | "seal"
+        | "calendar"
+        | "send"
+        | "wrench"
+        | "palette"
+      task_stage_kind: "upcoming" | "ongoing" | "done"
       transaction_kind: "income" | "expense" | "scheduled"
       transaction_status: "confirmed" | "pending" | "cancelled"
       transaction_visual: "person" | "brand"
@@ -3391,6 +3594,7 @@ export const Constants = {
         "cancelled",
       ],
       charge_recurrence: ["none", "monthly", "quarterly", "yearly"],
+      client_kind: ["customer", "supplier", "both"],
       contract_event_kind: [
         "created",
         "sent",
@@ -3471,6 +3675,7 @@ export const Constants = {
         "purple",
         "pink",
         "brown",
+        "gray",
       ],
       payment_method: ["pix", "transfer", "boleto", "card"],
       plan_feature_kind: ["flag", "limit"],
@@ -3562,16 +3767,45 @@ export const Constants = {
       task_attachment_type: ["pdf", "image", "figma", "link", "file"],
       task_event_kind: ["comment", "change"],
       task_priority: ["low", "normal", "high", "urgent"],
-      task_stage: [
-        "backlog",
-        "todo",
-        "doing",
-        "blocked",
-        "review",
-        "approval",
-        "publishing",
-        "done",
+      task_stage_glyph: [
+        "tray",
+        "circle-dashed",
+        "circle-half",
+        "prohibit",
+        "eye",
+        "thumbs-up",
+        "rocket",
+        "check-circle",
+        "lightbulb",
+        "pencil",
+        "magnifier",
+        "chat",
+        "flag",
+        "star",
+        "clock",
+        "hourglass",
+        "package",
+        "paint-brush",
+        "code",
+        "megaphone",
+        "handshake",
+        "bug",
+        "crosshair",
+        "file-text",
+        "play",
+        "pause",
+        "archive",
+        "sparkle",
+        "users",
+        "truck",
+        "shield",
+        "seal",
+        "calendar",
+        "send",
+        "wrench",
+        "palette",
       ],
+      task_stage_kind: ["upcoming", "ongoing", "done"],
       transaction_kind: ["income", "expense", "scheduled"],
       transaction_status: ["confirmed", "pending", "cancelled"],
       transaction_visual: ["person", "brand"],

@@ -1,5 +1,8 @@
 "use server";
 
+import { configureFunnelStagesSchema } from "./schemas";
+import { configureFunnelStages } from "./service";
+
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
 import {
@@ -28,7 +31,7 @@ import {
 } from "./service";
 import type { Opportunity } from "./summary";
 
-export type OpportunitySaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
+export type OpportunitySaveResult = { ok: true; opportunity: Opportunity } | { ok: false; error: string; field?: string };
 export type OpportunityResult = { ok: true } | { ok: false; error: string };
 
 /** A ficha de uma oportunidade, buscada quando a janela abre. */
@@ -51,7 +54,7 @@ export async function saveOpportunityAction(input: unknown): Promise<Opportunity
   if (!saved.ok) return { ok: false, error: saved.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.crm], ["/crm"]);
-  return { ok: true, id: saved.data.id };
+  return { ok: true, opportunity: saved.data };
 }
 
 /**
@@ -196,6 +199,17 @@ export async function moveFunnelAction(input: unknown): Promise<OpportunityResul
   const moved = await moveFunnel(guard.context.supabase, guard.context.organizationId, parsed.data);
   if (!moved.ok) return { ok: false, error: moved.error };
 
+  await revalidateDomain(guard.context.organizationId, [cacheTags.crm], ["/crm"]);
+  return { ok: true };
+}
+
+export async function configureFunnelStagesAction(input: unknown): Promise<OpportunityResult> {
+  const guard = await guardAction("funnel-configure-stages");
+  if (!guard.ok) return { ok: false, error: guard.error };
+  const parsed = configureFunnelStagesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error).error };
+  const result = await configureFunnelStages(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!result.ok) return result;
   await revalidateDomain(guard.context.organizationId, [cacheTags.crm], ["/crm"]);
   return { ok: true };
 }

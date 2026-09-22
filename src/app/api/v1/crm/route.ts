@@ -6,7 +6,7 @@
 import { parseCrmQuery } from "@/features/crm/list";
 import { opportunityFormSchema } from "@/features/crm/schemas";
 import { getCrmTree, listOpportunities, saveOpportunity } from "@/features/crm/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "crm-read");
@@ -28,5 +28,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, opportunityFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveOpportunity(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await saveOpportunity(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["crm"]);
 }

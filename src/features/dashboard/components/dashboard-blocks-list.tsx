@@ -6,6 +6,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import styled from "@emotion/styled";
 import { DotsSixVerticalIcon } from "@phosphor-icons/react";
+import { useId } from "react";
 import { focusRing, hoverMotion } from "@/components/ui/styles";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
@@ -127,6 +128,7 @@ function SortableRow({ block, hidden, onToggle }: SortableRowProps) {
 // chegam quando a engrenagem é apertada. A `Dialog` não renderiza o conteúdo enquanto está fechada,
 // então basta o módulo estar de fora.
 export function DashboardBlocksList({ order, hidden, onReorder, onToggle }: DashboardBlocksListProps) {
+  const dragContextId = useId();
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   const blocksById = new Map(dashboardBlocks.map((block) => [block.id, block]));
@@ -141,7 +143,7 @@ export function DashboardBlocksList({ order, hidden, onReorder, onToggle }: Dash
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToParentElement]} onDragEnd={onDragEnd}>
+    <DndContext id={dragContextId} sensors={sensors} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToParentElement]} onDragEnd={onDragEnd}>
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
         <List aria-label="Blocos do painel, na ordem da grade">
           {ordered.map((block) => (

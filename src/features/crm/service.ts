@@ -4,12 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers } from "@/features/organizations/service";
 import { slugify } from "@/lib/utils/slug";
 import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
-import type { Database } from "@/types/database";
+import type { Database, Json } from "@/types/database";
 import type { CrmQuery } from "./list-options";
-import type { OpportunityFormInput } from "./schemas";
-import { defaultCrmStages, type CrmStage } from "./stages";
+import type { OpportunityFormInput, ConfigureFunnelStagesInput } from "./schemas";
+import { crmStageValues, defaultCrmStages, defaultStageDefinition, stageKind, type CrmStage, type CrmStageDefinition, type CrmHue } from "./stages";
 import type {
   CrmPerson,
+  CrmClientOption,
   Opportunity,
   OpportunityAttribution,
   OpportunitySource,
@@ -80,15 +81,15 @@ type Row = {
   opportunity_people: { user_id: string }[];
 };
 
-const NOBODY: CrmPerson = { name: "Sem responsável", avatarUrl: null };
+const NOBODY: CrmPerson = { id: "", name: "Sem responsável", avatarUrl: null };
 
 const minute = (value: string) => value.slice(0, 16);
 
-function toOpportunity(row: Row, people: Map<string, CrmPerson>): Opportunity {
+function toOpportunity(row: Row, people: Map<string, CrmPerson>, definitions: CrmStageDefinition[]): Opportunity {
   const owner = (row.owner_id && people.get(row.owner_id)) || NOBODY;
   const others = row.opportunity_people
     .map((entry) => people.get(entry.user_id))
-    .filter((person): person is CrmPerson => Boolean(person) && person!.name !== owner.name);
+    .filter((person): person is CrmPerson => Boolean(person) && person!.id !== owner.id);
 
   return {
     id: row.id,
@@ -115,12 +116,13 @@ function toOpportunity(row: Row, people: Map<string, CrmPerson>): Opportunity {
       ? { name: row.crm_funnels.name, reference: row.crm_funnels.reference, slug: row.crm_funnels.slug }
       : null,
     stage: row.stage,
+    stageLabel: definitions.find((entry) => entry.id === row.stage)?.label ?? defaultStageDefinition(row.stage).label,
     value: row.value,
     temperature: row.temperature,
     probability: row.probability,
     city: row.city ?? undefined,
     state: row.state ?? undefined,
-    expectedAt: row.expected_at ?? row.entered_at.slice(0, 10),
+    expectedAt: row.expected_at ?? "",
     enteredAt: minute(row.entered_at),
     closedAt: row.closed_at ? minute(row.closed_at) : undefined,
     stageSince: minute(row.stage_since),
@@ -131,7 +133,7 @@ function toOpportunity(row: Row, people: Map<string, CrmPerson>): Opportunity {
     tags: row.tags,
     source: row.source,
     attribution: Object.keys(row.attribution ?? {}).length > 0 ? row.attribution : undefined,
-    lastTouchAt: row.last_touch_at ?? row.entered_at.slice(0, 10),
+    lastTouchAt: row.last_touch_at ?? "",
     nextStep: row.next_step_label && row.next_step_at ? { label: row.next_step_label, at: row.next_step_at } : undefined,
     quote: row.quotes ? { id: row.quotes.id, reference: row.quotes.reference } : undefined,
     attachments: row.attachments,
@@ -142,7 +144,7 @@ function toOpportunity(row: Row, people: Map<string, CrmPerson>): Opportunity {
 async function peopleOf(client: CrmClient, organizationId: string) {
   const members = await listTeamMembers(client, organizationId);
   return new Map<string, CrmPerson>(
-    members.map((member) => [member.userId, { name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl }]),
+    members.map((member) => [member.userId, { id: member.userId, name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl }]),
   );
 }
 
@@ -171,12 +173,13 @@ export async function listOpportunities(
     builder = builder.lte("expected_at", format(limit, "yyyy-MM-dd"));
   }
 
-  const [{ data }, people] = await Promise.all([
+  const [{ data }, people, definitions] = await Promise.all([
     builder.order("stage_since", { ascending: false }).limit(BOARD_LIMIT),
     peopleOf(client, organizationId),
+    listStageDefinitions(client, organizationId),
   ]);
 
-  return ((data ?? []) as unknown as Row[]).map((row) => toOpportunity(row, people));
+  return ((data ?? []) as unknown as Row[]).map((row) => toOpportunity(row, people, definitions));
 }
 
 export async function getOpportunity(
@@ -184,13 +187,15 @@ export async function getOpportunity(
   organizationId: string,
   id: string,
 ): Promise<Opportunity | null> {
-  const [{ data }, people] = await Promise.all([
-    client.from("opportunities").select(columns).eq("organization_id", organizationId).eq("id", id).maybeSingle(),
+  if (!/^OPO-\d{4}-\d+$/i.test(id) && !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)) return null;
+  const [{ data }, people, definitions] = await Promise.all([
+    client.from("opportunities").select(columns).eq("organization_id", organizationId).eq(/^OPO-/i.test(id) ? "reference" : "id", id.toUpperCase().startsWith("OPO-") ? id.toUpperCase() : id).maybeSingle(),
     peopleOf(client, organizationId),
+    listStageDefinitions(client, organizationId),
   ]);
 
   if (!data) return null;
-  return toOpportunity(data as unknown as Row, people);
+  return toOpportunity(data as unknown as Row, people, definitions);
 }
 
 /** A equipe que o quadro mostra nos seletores de responsável. */
@@ -199,19 +204,42 @@ export async function listCrmPeople(client: CrmClient, organizationId: string): 
   return [...people.values()];
 }
 
+/** Clientes ativos que podem ser vinculados à venda; fornecedores puros não entram no funil comercial. */
+export async function listCrmClients(client: CrmClient, organizationId: string): Promise<CrmClientOption[]> {
+  const { data } = await client
+    .from("clients")
+    .select("id, name, company, email, phone, city, avatar_url")
+    .eq("organization_id", organizationId)
+    .eq("active", true)
+    .in("kind", ["customer", "both"])
+    .order("name")
+    .limit(500);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    company: row.company ?? undefined,
+    email: row.email ?? undefined,
+    phone: row.phone ?? undefined,
+    city: row.city ?? undefined,
+    avatarUrl: row.avatar_url,
+  }));
+}
+
 /**
  * A arquitetura do menu do CRM: as pastas com os funis nas folhas, mais o balde de quem ainda não foi para
  * funil nenhum. O balde é o funil de identificador nulo, e existe sempre, para lead solto ter lugar.
  */
 export async function getCrmTree(client: CrmClient, organizationId: string): Promise<CrmTreeNode[]> {
-  const [folders, funnels, loose] = await Promise.all([
-    client.from("crm_folders").select("id, parent_id, name, position").eq("organization_id", organizationId).order("position"),
+  const [folders, funnels, loose, definitions] = await Promise.all([
+    client.from("crm_folders").select("id, parent_id, name, position, hue").eq("organization_id", organizationId).order("position"),
     client
       .from("crm_funnels")
       .select("id, slug, name, reference, stages, glyph, hue, folder_id")
       .eq("organization_id", organizationId)
       .order("position"),
     client.from("opportunities").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).is("funnel_id", null),
+    listStageDefinitions(client, organizationId),
   ]);
 
   const leaves = new Map<string | null, CrmTreeNode[]>();
@@ -224,6 +252,7 @@ export async function getCrmTree(client: CrmClient, organizationId: string): Pro
       name: funnel.name,
       reference: funnel.reference,
       stages: funnel.stages as CrmStage[],
+      stageDefinitions: funnel.stages.map((id) => definitions.find((entry) => entry.id === id) ?? defaultStageDefinition(id)),
       glyph: funnel.glyph as FunnelGlyph,
       hue: `var(--sys-${funnel.hue})`,
     });
@@ -233,7 +262,7 @@ export async function getCrmTree(client: CrmClient, organizationId: string): Pro
   const children = (parentId: string | null): CrmTreeNode[] => [
     ...(folders.data ?? [])
       .filter((folder) => folder.parent_id === parentId)
-      .map((folder) => ({ kind: "folder" as const, id: folder.id, name: folder.name, children: children(folder.id) })),
+      .map((folder) => ({ kind: "folder" as const, id: folder.id, name: folder.name, hue: `var(--sys-${folder.hue})`, children: children(folder.id) })),
     ...(leaves.get(parentId) ?? []),
   ];
 
@@ -247,7 +276,8 @@ export async function getCrmTree(client: CrmClient, organizationId: string): Pro
       slug: "sem-funil",
       name: "Sem funil",
       reference: null,
-      stages: ["lead", "contact", "proposal", "negotiation", "won", "lost"],
+      stages: [...defaultCrmStages, ...definitions.map((entry) => entry.id)],
+      stageDefinitions: definitions,
       glyph: "tray",
       hue: "var(--sys-gray)",
     });
@@ -260,8 +290,30 @@ export async function saveOpportunity(
   client: CrmClient,
   organizationId: string,
   input: OpportunityFormInput,
-): Promise<ServiceResult<{ id: string }>> {
-  const closing = input.stage === "won" || input.stage === "lost";
+): Promise<ServiceResult<Opportunity>> {
+  const closing = stageKind(input.stage) !== "open";
+
+  const [members, selectedClient, funnel] = await Promise.all([
+    listTeamMembers(client, organizationId),
+    input.clientId
+      ? client.from("clients").select("id, name, company, email, phone, city, avatar_url").eq("organization_id", organizationId).eq("id", input.clientId).in("kind", ["customer", "both"]).maybeSingle()
+      : Promise.resolve({ data: null }),
+    input.funnelId
+      ? client.from("crm_funnels").select("id, stages").eq("organization_id", organizationId).eq("id", input.funnelId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  if (input.clientId && !selectedClient.data) return { ok: false, error: "O cliente escolhido não está disponível." };
+  if (input.funnelId && !funnel.data) return { ok: false, error: "O funil escolhido não está disponível." };
+  if (funnel.data && !(funnel.data.stages as string[]).includes(input.stage)) return { ok: false, error: "A etapa não pertence ao funil escolhido." };
+  const memberIds = new Set(members.map((member) => member.userId));
+  if (input.ownerId && !memberIds.has(input.ownerId)) return { ok: false, error: "O responsável não faz parte desta equipe." };
+  if (input.peopleIds.some((id) => !memberIds.has(id))) return { ok: false, error: "Um dos envolvidos não faz parte desta equipe." };
+  const linked = selectedClient.data;
+
+  const cleanObject = <T extends Record<string, unknown>>(object: T) =>
+    Object.fromEntries(Object.entries(object).filter(([, value]) => value !== "" && value !== undefined));
+  const attribution = cleanObject({ ...input.attribution, utm: cleanObject(input.attribution.utm) });
+  if (Object.keys(attribution.utm as object).length === 0) delete attribution.utm;
 
   const values = {
     organization_id: organizationId,
@@ -269,22 +321,27 @@ export async function saveOpportunity(
     title: input.title,
     description: input.description,
     client_id: input.clientId,
-    client_name: input.clientName,
-    client_company: input.clientCompany || null,
+    client_name: linked?.name ?? input.clientName,
+    client_company: (linked?.company ?? input.clientCompany) || null,
+    client_avatar_url: linked?.avatar_url ?? null,
     contact_name: input.contactName || null,
-    contact_email: input.contactEmail ? input.contactEmail.toLowerCase() : null,
-    contact_phone: input.contactPhone || null,
+    contact_email: (input.contactEmail || linked?.email)?.toLowerCase() || null,
+    contact_phone: input.contactPhone || linked?.phone || null,
     stage: input.stage,
     value: input.value,
     temperature: input.temperature,
     probability: input.probability,
-    city: input.city || null,
+    city: input.city || linked?.city || null,
     state: input.state || null,
     expected_at: input.expectedAt || null,
     owner_id: input.ownerId,
     tags: input.tags,
     source: input.source,
     partner_code: input.partnerCode || null,
+    attribution: attribution as Json,
+    last_touch_at: input.lastTouchAt || null,
+    first_response_minutes: input.firstResponseMinutes,
+    average_response_minutes: input.averageResponseMinutes,
     next_step_label: input.nextStepLabel || null,
     next_step_at: input.nextStepAt || null,
     closed_at: closing ? new Date().toISOString() : null,
@@ -293,10 +350,12 @@ export async function saveOpportunity(
   if (input.id) {
     const { data: before } = await client
       .from("opportunities")
-      .select("title, description, client_name, client_company, contact_name, contact_email, contact_phone, stage, value, temperature, probability, city, state, expected_at, owner_id, tags, source")
+      .select("title, description, client_name, client_company, contact_name, contact_email, contact_phone, stage, value, temperature, probability, city, state, expected_at, owner_id, tags, source, attribution, partner_code, last_touch_at, next_step_label, next_step_at, closed_at")
       .eq("organization_id", organizationId)
       .eq("id", input.id)
       .maybeSingle();
+
+    if (closing && before?.closed_at) values.closed_at = before.closed_at;
 
     const { data, error } = await client
       .from("opportunities")
@@ -313,7 +372,14 @@ export async function saveOpportunity(
       await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: data.id, action: "updated", summary: summarize(changes), changes });
     }
 
-    return { ok: true, data: { id: data.id } };
+    const peopleIds = [...new Set([...(input.ownerId ? [input.ownerId] : []), ...input.peopleIds])];
+    await client.from("opportunity_people").delete().eq("organization_id", organizationId).eq("opportunity_id", data.id);
+    if (peopleIds.length > 0) {
+      const peopleWrite = await client.from("opportunity_people").insert(peopleIds.map((userId) => ({ organization_id: organizationId, opportunity_id: data.id, user_id: userId })));
+      if (peopleWrite.error) return { ok: false, error: peopleWrite.error.message };
+    }
+    const opportunity = await getOpportunity(client, organizationId, data.id);
+    return opportunity ? { ok: true, data: opportunity } : { ok: false, error: SAVE_FAILED };
   }
 
   const { data, error } = await client.from("opportunities").insert(values).select("id").single();
@@ -321,7 +387,13 @@ export async function saveOpportunity(
 
   await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: data.id, action: "created", summary: `Abriu a oportunidade ${input.title}` });
 
-  return { ok: true, data: { id: data.id } };
+  const peopleIds = [...new Set([...(input.ownerId ? [input.ownerId] : []), ...input.peopleIds])];
+  if (peopleIds.length > 0) {
+    const peopleWrite = await client.from("opportunity_people").insert(peopleIds.map((userId) => ({ organization_id: organizationId, opportunity_id: data.id, user_id: userId })));
+    if (peopleWrite.error) return { ok: false, error: peopleWrite.error.message };
+  }
+  const opportunity = await getOpportunity(client, organizationId, data.id);
+  return opportunity ? { ok: true, data: opportunity } : { ok: false, error: SAVE_FAILED };
 }
 
 /* Os nomes que a pessoa lê no histórico da oportunidade. */
@@ -343,6 +415,11 @@ const opportunityHistoryLabels = {
   owner_id: "responsável",
   tags: "etiquetas",
   source: "origem",
+  attribution: "atribuição",
+  partner_code: "código do parceiro",
+  last_touch_at: "último contato",
+  next_step_label: "próximo passo",
+  next_step_at: "data do próximo passo",
 } as const;
 
 /** Mover o cartão de coluna: a única escrita que o quadro faz ao arrastar. */
@@ -352,7 +429,7 @@ export async function moveOpportunity(
   id: string,
   stage: CrmStage,
 ): Promise<ServiceResult<undefined>> {
-  const closing = stage === "won" || stage === "lost";
+  const closing = stageKind(stage) !== "open";
   const { error } = await client
     .from("opportunities")
     .update({ stage, closed_at: closing ? new Date().toISOString() : null, last_touch_at: format(new Date(), "yyyy-MM-dd") })
@@ -368,7 +445,7 @@ export async function moveOpportunity(
       recordType: "opportunity",
       recordId: id,
       action: "updated",
-      summary: stage === "won" ? "Marcou como ganha" : "Marcou como perdida",
+      summary: stageKind(stage) === "won" ? "Marcou como ganha" : "Marcou como perdida",
       changes: [{ field: "stage", label: "etapa", from: null, to: stage }],
     });
   }
@@ -444,12 +521,12 @@ export async function duplicateOpportunity(
     ? await client.from("crm_funnels").select("stages").eq("id", source.funnel_id).maybeSingle()
     : { data: null };
 
-  const stage = (funnel?.stages?.[0] as typeof source.stage | undefined) ?? "lead";
+  const stage = funnel?.stages?.find((entry) => stageKind(entry) === "open") ?? funnel?.stages?.[0] ?? "lead";
   const { title, ...fields } = source;
 
   const { data, error } = await client
     .from("opportunities")
-    .insert({ ...fields, organization_id: organizationId, title: `${title} (cópia)`, stage, closed_at: null })
+    .insert({ ...fields, organization_id: organizationId, title: `${title} (cópia)`, stage, closed_at: stageKind(stage) === "open" ? null : new Date().toISOString() })
     .select("id")
     .single();
 
@@ -465,12 +542,12 @@ export async function duplicateOpportunity(
 export async function saveCrmFolder(
   client: CrmClient,
   organizationId: string,
-  input: { id?: string; name: string; parentId: string | null },
+  input: { id?: string; name: string; parentId: string | null; hue?: CrmHue },
 ): Promise<ServiceResult<{ id: string }>> {
   if (input.id) {
     const { data, error } = await client
       .from("crm_folders")
-      .update({ name: input.name })
+      .update({ name: input.name, ...(input.hue && { hue: input.hue }) })
       .eq("id", input.id)
       .eq("organization_id", organizationId)
       .select("id")
@@ -486,7 +563,7 @@ export async function saveCrmFolder(
 
   const { data, error } = await client
     .from("crm_folders")
-    .insert({ organization_id: organizationId, name: input.name, parent_id: input.parentId, position: count ?? 0 })
+    .insert({ organization_id: organizationId, name: input.name, hue: input.hue ?? "blue", parent_id: input.parentId, position: count ?? 0 })
     .select("id")
     .single();
 
@@ -508,12 +585,12 @@ export async function deleteCrmFolder(client: CrmClient, organizationId: string,
 export async function saveFunnel(
   client: CrmClient,
   organizationId: string,
-  input: { id?: string; name: string; folderId: string | null },
+  input: { id?: string; name: string; folderId: string | null; glyph?: FunnelGlyph; hue?: CrmHue },
 ): Promise<ServiceResult<{ id: string; slug: string }>> {
   if (input.id) {
     const { data, error } = await client
       .from("crm_funnels")
-      .update({ name: input.name })
+      .update({ name: input.name, ...(input.hue && { hue: input.hue }), ...(input.glyph && { glyph: input.glyph }) })
       .eq("id", input.id)
       .eq("organization_id", organizationId)
       .select("id, slug")
@@ -532,6 +609,8 @@ export async function saveFunnel(
       name: input.name,
       slug: await uniqueFunnelSlug(client, organizationId, input.name),
       folder_id: input.folderId,
+      glyph: input.glyph ?? "funnel",
+      hue: input.hue ?? "blue",
       stages: defaultCrmStages,
       position: count ?? 0,
     })
@@ -562,16 +641,8 @@ export async function setFunnelStages(
   id: string,
   stages: CrmStage[],
 ): Promise<ServiceResult<undefined>> {
-  const { data, error } = await client
-    .from("crm_funnels")
-    .update({ stages })
-    .eq("id", id)
-    .eq("organization_id", organizationId)
-    .select("id")
-    .maybeSingle();
-
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
-  return { ok: true, data: undefined };
+  const definitions = await listStageDefinitions(client, organizationId);
+  return configureFunnelStages(client, organizationId, { id, stages: stages.map((stage) => definitions.find((entry) => entry.id === stage) ?? defaultStageDefinition(stage)), replacements: {} });
 }
 
 /** Move um funil para uma pasta, ou para a raiz quando ela é nula. */
@@ -579,4 +650,24 @@ export async function moveFunnel(client: CrmClient, organizationId: string, inpu
   const { error } = await client.from("crm_funnels").update({ folder_id: input.folderId }).eq("id", input.id).eq("organization_id", organizationId);
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
+}
+
+export async function listStageDefinitions(client: CrmClient, organizationId: string): Promise<CrmStageDefinition[]> {
+  const { data, error } = await client.from("crm_stage_definitions").select("id,label,hue").eq("organization_id", organizationId);
+  if (error) throw new Error("Não foi possível carregar as etapas");
+  return data ?? [];
+}
+export async function configureFunnelStages(client: CrmClient, organizationId: string, input: ConfigureFunnelStagesInput): Promise<ServiceResult<undefined>> {
+  const renamed = new Map<string, string>();
+  const stages = input.stages.map((stage) => {
+    const defaults = defaultStageDefinition(stage.id);
+    if (!crmStageValues.some((id) => id === stage.id) || (stage.label === defaults.label && stage.hue === defaults.hue)) return stage;
+    const id = stageKind(stage.id) + "_" + crypto.randomUUID();
+    renamed.set(stage.id, id);
+    return { ...stage, id };
+  });
+  const replacements = Object.fromEntries(Object.entries(input.replacements).map(([from, to]) => [from, renamed.get(to) ?? to]));
+  for (const [from, to] of renamed) replacements[from] = to;
+  const { error } = await client.rpc("configure_funnel_stages", { p_organization_id: organizationId, p_funnel_id: input.id, p_stages: stages, p_replacements: replacements });
+  return error ? { ok: false, error: error.message } : { ok: true, data: undefined };
 }

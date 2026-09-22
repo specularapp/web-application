@@ -32,7 +32,29 @@ export type RecordMediaProps = {
  * squircle, porque círculo não passa pelo sistema de cantos, pela regra da casa.
  */
 export function RecordMediaView({ kind, media, name, size = "md", total = true, single = false }: RecordMediaProps) {
-  if (media?.kind === "face") return <Avatar name={media.name} size={size === "lg" ? "md" : "sm"} shape={single ? "squircle" : undefined} />;
+  /* Quem tem foto mostra a foto; sem ela, o rosto desenhado a partir do nome, como antes. */
+  if (media?.kind === "face") {
+    return <Avatar name={media.name} src={media.src ?? undefined} size={size === "lg" ? "md" : "sm"} shape={single ? "squircle" : undefined} />;
+  }
+
+  /* Projeto e contrato viram uma folha de documento (2026-09-21, a pedido, sobre referências de ícone de
+     arquivo do usuário): eles são papel, e não gente nem arte, e o azulejo quadrado igual ao dos outros
+     domínios não dizia isso. A dobra na quina é o que faz a forma ser lida como documento. */
+  if (kind === "project" || kind === "contract") {
+    const sheet = recordKinds[kind];
+    const Mark = sheet.icon;
+    return (
+      <span className={styles.sheet} data-size={size} style={{ "--tile-hue": sheet.hue } as CSSProperties} aria-label={`${sheet.label}: ${name}`}>
+        {/* A folha é desenhada, e não montada com cantos e recortes de CSS: a dobra é um corte na quina mais
+            um triângulo por cima dela, e as duas coisas precisam do mesmo caminho para encaixar sem fresta. */}
+        <svg className={styles.paper} viewBox="0 0 40 48" aria-hidden="true">
+          <path className={styles.face} d="M0 6a6 6 0 0 1 6-6h17l17 17v25a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6z" />
+          <path className={styles.fold} d="M23 0l17 17H29a6 6 0 0 1-6-6z" />
+        </svg>
+        <Mark className={styles.mark} weight="bold" aria-hidden="true" />
+      </span>
+    );
+  }
 
   if (media?.kind === "art" && single) {
     const first = media.items[0];

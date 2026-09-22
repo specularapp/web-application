@@ -3,7 +3,7 @@ import { getAiUsageData } from "@/features/ai/queries";
 import { TasksScreen } from "@/features/tasks/components/tasks-screen";
 import { TASKS_STAGES_COOKIE, buildTasksBoard, parseStageOverrides, parseTasksQuery } from "@/features/tasks/list";
 import { loadTasksScreenData } from "@/features/tasks/queries";
-import { boardStages, flattenProjects } from "@/features/tasks/tree";
+import { flattenProjects } from "@/features/tasks/tree";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -25,16 +25,15 @@ export default async function TasksPage({ searchParams }: PageProps<"/tarefas">)
 
   const [data, ai] = await Promise.all([loadTasksScreenData(query), getAiUsageData()]);
 
-  // As colunas são as etapas que os projetos escolheram, e não uma lista fixa: este quadro cruza projetos
-  // com fluxos diferentes, e cada projeto tem as etapas dele, então uma lista fixa esconderia o que está numa
-  // etapa que só um dos projetos usa.
-  const board = buildTasksBoard(data.tasks, query, boardStages(data.tasks, data.tree));
+  // As colunas são o catálogo de etapas da equipe, na ordem dela (2026-09-21): este quadro cruza projetos
+  // com fluxos diferentes, e é o catálogo que reúne numa coluna só o que é a mesma etapa em todos eles.
+  const board = buildTasksBoard(data.tasks, query, data.stages);
 
-  /* Aqui a tarefa nasce sem projeto no endereço, então a criação oferece a escolha; o balde continua sendo
-     o padrão. O identificador nulo é o próprio balde, que não é destino de escolha. */
+  /* Aqui a tarefa nasce sem projeto, porque o endereço não diz qual é: a ficha oferece a escolha, e o balde
+     continua sendo o padrão. O identificador nulo é o próprio balde, que não é destino de escolha. */
   const projects = flattenProjects(data.tree)
     .filter((project) => project.reference !== null)
-    .map((project) => ({ id: project.id, name: project.name, imageUrl: project.imageUrl }));
+    .map((project) => ({ id: project.id, name: project.name, reference: project.reference ?? "", slug: project.slug }));
 
   return (
     <TasksScreen
@@ -46,6 +45,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/tarefas">)
       team={data.team}
       records={data.records}
       projects={projects}
+      stages={data.stages}
     />
   );
 }

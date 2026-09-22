@@ -30,7 +30,18 @@ export const opportunitySourceValues = [
 
 export type OpportunitySource = (typeof opportunitySourceValues)[number];
 
-export type CrmPerson = { name: string; avatarUrl: string | null };
+export type CrmPerson = { id: string; name: string; avatarUrl: string | null };
+
+/** Cadastro que pode ser ligado a uma oportunidade, sem levar a ficha inteira para o quadro. */
+export type CrmClientOption = {
+  id: string;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  avatarUrl: string | null;
+};
 
 /** Quem está do outro lado, já com o identificador do cadastro, que é por onde se chega à ficha dele. */
 export type OpportunityClient = {
@@ -114,6 +125,7 @@ export type Opportunity = {
   /** Nulo é o balde de quem ainda não foi para funil nenhum. */
   funnel: OpportunityFunnel | null;
   stage: CrmStage;
+  stageLabel?: string;
   /** Quanto vale, em centavos, como todo dinheiro do produto. */
   value: number;
   temperature: OpportunityTemperature;

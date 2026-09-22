@@ -6,7 +6,7 @@
 import { parseCatalogQuery } from "@/features/catalog/list";
 import { catalogFormSchema } from "@/features/catalog/schemas";
 import { listCatalog, saveCatalogItem } from "@/features/catalog/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "catalog-read");
@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, catalogFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveCatalogItem(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data));
+  return fromMutation(await saveCatalogItem(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data), auth.session.organizationId, ["catalog"]);
 }

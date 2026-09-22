@@ -34,6 +34,7 @@ export const artworkHues: Record<SysHue, string> = {
   purple: "bf5af2",
   pink: "ff375f",
   brown: "ac8e68",
+  gray: "8e8e93",
 };
 
 /** O matiz vem do caminho da URL, então só entra o que está na lista. */

@@ -6,6 +6,7 @@ import { TasksScreen } from "@/features/tasks/components/tasks-screen";
 import { TASKS_STAGES_COOKIE, buildTasksBoard, parseStageOverrides, parseTasksQuery } from "@/features/tasks/list";
 import { loadTasksScreenData } from "@/features/tasks/queries";
 import { findProject } from "@/features/tasks/tree";
+import type { ProjectHue } from "@/features/projects/summary";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -39,7 +40,10 @@ export default async function TaskProjectPage({ params, searchParams }: PageProp
   const [data, ai] = await Promise.all([loadTasksScreenData(query, projeto), getAiUsageData()]);
   if (!data.project) notFound();
 
-  const board = buildTasksBoard(data.tasks, query, data.project.stages);
+  /* As colunas são as do projeto; sem nenhuma escolhida, ele acompanha o catálogo da equipe, que é o que
+     faz um quadro recém-criado já nascer com caminho em vez de vazio. */
+  const columns = data.project.stages.length > 0 ? data.project.stages : data.stages;
+  const board = buildTasksBoard(data.tasks, query, columns);
 
   return (
     <TasksScreen
@@ -52,6 +56,9 @@ export default async function TaskProjectPage({ params, searchParams }: PageProp
       team={data.team}
       records={data.records}
       projectId={data.project.id}
+      stages={data.stages}
+      projectStages={data.project.stages}
+      project={{ id: data.project.id, name: data.project.name, hue: data.project.paletteHue as ProjectHue, glyph: data.project.glyph }}
     />
   );
 }

@@ -247,9 +247,9 @@ async function contextFor(
   if (wanted.has("tarefas")) {
     const { data } = await client
       .from("tasks")
-      .select("reference, title, stage, priority, due_date, projects(name)")
+      .select("reference, title, priority, due_date, projects(name), task_stages!inner(name, kind)")
       .eq("organization_id", organizationId)
-      .neq("stage", "done")
+      .neq("task_stages.kind", "done")
       .order("due_date")
       .limit(PER_SOURCE);
 
@@ -258,7 +258,7 @@ async function contextFor(
       blocks.push(
         `## Tarefas em aberto (${data.length})\n` +
           data
-            .map((row) => `- ${row.reference} ${row.title}${row.projects ? `, ${row.projects.name}` : ""}, ${row.stage}, prioridade ${row.priority}, prazo ${row.due_date}`)
+            .map((row) => `- ${row.reference} ${row.title}${row.projects ? `, ${row.projects.name}` : ""}, ${row.task_stages.name}, prioridade ${row.priority}, prazo ${row.due_date}`)
             .join("\n"),
       );
     }

@@ -4,7 +4,7 @@ import { slugify } from "@/lib/utils/slug";
 import { statusOf } from "./labels";
 import type { StageOverrides } from "./board-cookie";
 import { deadlineValues, defaultQuery, priorityFilterValues, sortColumn, type TasksBoardData, type TasksQuery } from "./list-options";
-import { stageValues, type TaskStage } from "./stages";
+import type { TaskStage } from "./stages";
 import type { Task } from "./summary";
 
 /**
@@ -56,8 +56,10 @@ export function parseStageOverrides(raw: string | undefined): StageOverrides {
   const overrides: StageOverrides = {};
   for (const entry of listed) {
     const [stage, flag] = entry.split(":");
-    if (!stageValues.includes(stage as TaskStage) || (flag !== "0" && flag !== "1")) continue;
-    overrides[stage as TaskStage] = flag === "1";
+    /* A etapa é o id da linha no banco: o que não tem cara de id fica fora, porque cookie é entrada de
+       usuário e uma chave inventada aqui viraria uma coluna que o quadro não tem. */
+    if (!stage || !z.uuid().safeParse(stage).success || (flag !== "0" && flag !== "1")) continue;
+    overrides[stage] = flag === "1";
   }
   return overrides;
 }
@@ -109,7 +111,7 @@ export function buildTasksBoard(tasks: Task[], query: TasksQuery, stages: TaskSt
   return {
     columns: stages.map((stage) => ({
       stage,
-      tasks: sortColumn(filtered.filter((task) => task.stage === stage)),
+      tasks: sortColumn(filtered.filter((task) => task.stage.id === stage.id)),
     })),
     matched: filtered.length,
     total: tasks.length,

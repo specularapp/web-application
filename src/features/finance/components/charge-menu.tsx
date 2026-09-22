@@ -3,6 +3,7 @@
 import { ArrowsClockwiseIcon, CheckCircleIcon, EyeIcon, LinkIcon, PaperPlaneTiltIcon, XCircleIcon } from "@phosphor-icons/react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { chargeStatusOf, nextInstallment, type Charge } from "../summary";
+import { chargeDirections } from "../labels";
 
 export type ChargeMenuActions = {
   /** Abre a ficha; na própria ficha não vai, porque ela já está aberta. */
@@ -26,12 +27,14 @@ export function ChargeMenu({ charge, onOpen, onSend, onCopyLink, onPayNext, onSt
   const status = chargeStatusOf(charge);
   const active = status !== "paid" && status !== "cancelled";
   const next = nextInstallment(charge);
+  const side = chargeDirections[charge.direction];
+  const noun = side.label.toLocaleLowerCase("pt-BR");
 
   const sections: DropdownSection[] = [
     {
       id: "actions",
       items: [
-        ...(onOpen ? [{ id: "open", label: "Abrir cobrança", icon: EyeIcon, onSelect: onOpen }] : []),
+        ...(onOpen ? [{ id: "open", label: `Abrir ${noun}`, icon: EyeIcon, onSelect: onOpen }] : []),
       ],
     },
     ...((active && onSend) || onCopyLink
@@ -45,12 +48,12 @@ export function ChargeMenu({ charge, onOpen, onSend, onCopyLink, onPayNext, onSt
         }]
       : []),
     ...(active && next && onPayNext
-      ? [{ id: "payment", label: "Recebimento", items: [{ id: "pay", label: `Confirmar parcela ${next.number}`, icon: CheckCircleIcon, onSelect: onPayNext }] }]
+      ? [{ id: "payment", label: charge.direction === "outgoing" ? "Pagamento" : "Recebimento", items: [{ id: "pay", label: `Confirmar parcela ${next.number}`, icon: CheckCircleIcon, onSelect: onPayNext }] }]
       : []),
     ...(charge.recurrence !== "none" && onStopRecurrence
       ? [{ id: "series", label: "Recorrência", items: [{ id: "stop", label: "Encerrar recorrência", icon: ArrowsClockwiseIcon, onSelect: onStopRecurrence }] }]
       : []),
-    ...(active && onCancel ? [{ id: "danger", items: [{ id: "cancel", label: "Cancelar cobrança", icon: XCircleIcon, tone: "danger" as const, onSelect: onCancel }] }] : []),
+    ...(active && onCancel ? [{ id: "danger", items: [{ id: "cancel", label: `Cancelar ${noun}`, icon: XCircleIcon, tone: "danger" as const, onSelect: onCancel }] }] : []),
   ];
 
   return <DropdownMenu label={`Opções de ${charge.reference}`} triggerLabel={`Mais opções de ${charge.title}`} sections={sections} />;

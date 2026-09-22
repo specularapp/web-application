@@ -6,7 +6,7 @@
 import { parseClientsQuery } from "@/features/clients/list";
 import { clientFormSchema } from "@/features/clients/schemas";
 import { listClients, saveClient } from "@/features/clients/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "clients-read");
@@ -26,5 +26,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, clientFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveClient(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data));
+  return fromMutation(await saveClient(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data), auth.session.organizationId, ["clients"]);
 }

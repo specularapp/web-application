@@ -1,3 +1,4 @@
+import { uploadDomains } from "@/features/uploads/cache";
 /**
  * A subida de imagem para o aplicativo. Mesma regra da web, pelo mesmo `service.ts`: aqui só muda a casca,
  * que autentica por Bearer em vez de sessão em cookie. A RLS continua decidindo o acesso, porque o cliente
@@ -9,7 +10,7 @@
  */
 import { attachUploadSchema, clearUploadSchema, contentTypesOf, createUploadSchema } from "@/features/uploads/schemas";
 import { attachImage, clearImage, createImageUpload } from "@/features/uploads/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, fromResult, readPayload } from "@/lib/api/domain";
 
 export async function POST(request: Request) {
   const auth = await authorizeDomain(request, "image-upload");
@@ -32,7 +33,7 @@ export async function PATCH(request: Request) {
   const body = await readPayload(request, attachUploadSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await attachImage(auth.session.supabase, { ...body.data, organizationId: auth.session.organizationId }));
+  return fromMutation(await attachImage(auth.session.supabase, { ...body.data, organizationId: auth.session.organizationId }), auth.session.organizationId, [uploadDomains[body.data.target].tag]);
 }
 
 export async function DELETE(request: Request) {
@@ -42,5 +43,5 @@ export async function DELETE(request: Request) {
   const body = await readPayload(request, clearUploadSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await clearImage(auth.session.supabase, { ...body.data, organizationId: auth.session.organizationId }));
+  return fromMutation(await clearImage(auth.session.supabase, { ...body.data, organizationId: auth.session.organizationId }), auth.session.organizationId, [uploadDomains[body.data.target].tag]);
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { callAction } from "@/lib/action";
+
 import { ArrowSquareOutIcon, CheckCircleIcon, ClockIcon, CopySimpleIcon, GlobeIcon, TrashIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -41,7 +43,7 @@ export function DomainSettings({ domain: initial, ai }: { domain: CustomDomain; 
     if (saving || !changed) return;
     setSaving(true);
     setError(null);
-    const result = await setCustomDomainAction({ domain: value });
+    const result = await callAction(setCustomDomainAction({ domain: value }));
     setSaving(false);
     if (!result.ok) {
       if ("plan" in result) {
@@ -58,7 +60,7 @@ export function DomainSettings({ domain: initial, ai }: { domain: CustomDomain; 
 
   const remove = async () => {
     setSaving(true);
-    const result = await setCustomDomainAction({ domain: "" });
+    const result = await callAction(setCustomDomainAction({ domain: "" }));
     setSaving(false);
     if (!result.ok) {
       toast({ title: "Não deu para remover", description: result.error, tone: "danger" });
@@ -71,7 +73,7 @@ export function DomainSettings({ domain: initial, ai }: { domain: CustomDomain; 
 
   const verify = async () => {
     setChecking(true);
-    const result = await verifyCustomDomainAction();
+    const result = await callAction(verifyCustomDomainAction());
     setChecking(false);
     if (!result.ok) {
       toast({ title: "Ainda não confere", description: result.error, tone: "warning" });

@@ -92,7 +92,7 @@ export type DropdownMenuProps = {
    * um rosto com o nome, texto solto) continuar parecendo o que é e ainda dar as opções.
    */
   triggerContent?: ReactNode;
-  /** A superfície do painel: sólida por padrão; vidro fica reservado a contextos que o peçam de propósito. */
+  /** Superfície do painel: vidro encorpado por padrão; sólido quando o contexto pedir opacidade total. */
   surface?: "glass" | "solid";
   /** Identidade ou contexto antes das opções, dentro da mesma superfície e comportamento do menu. */
   header?: ReactNode;
@@ -443,7 +443,7 @@ function isExternal(href: string) {
 // rota ou endereço externo), com seta de mais opções, selo do plano que libera e contagem no fim da
 // linha, e itens de interruptor. No celular vira a bandeja do Dialog, sem escurecimento. Setas, Home e
 // End andam pelos itens, Escape fecha e devolve o foco ao gatilho.
-export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "solid", header, searchable: searchableProp }: DropdownMenuProps) {
+export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm", trigger, triggerContent, surface = "glass", header, searchable: searchableProp }: DropdownMenuProps) {
   const gate = usePlanGate();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -716,7 +716,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
       )}
 
       {mobile ? (
-        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface={surface === "solid" ? "solid" : "glass"} scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface={surface} scrim={false} focusOnOpen={false}>
           <Sheet role="menu" aria-label={label} onKeyDown={onKeyDown}>
             {list}
           </Sheet>

@@ -1,5 +1,8 @@
 import type { QuoteStatus } from "@/features/quotes/summary";
 
+export const clientKindValues = ["customer", "supplier", "both"] as const;
+export type ClientKind = (typeof clientKindValues)[number];
+
 /** Um orçamento ligado ao cliente, como aparece na ficha dele. */
 export type ClientQuote = {
   id: string;
@@ -34,6 +37,8 @@ export type Client = {
   id: string;
   /** Identificador curto que a pessoa vê, no padrão de `lib/utils/reference.ts`: "CLI-2026-0026". */
   reference: string;
+  /** Em qual ponta da operação este contato atua. */
+  kind: ClientKind;
   name: string;
   email: string | null;
   /** Só dígitos, com DDD, como vai para o banco: quem mostra aplica a máscara. */
@@ -57,7 +62,7 @@ export type Client = {
   active: boolean;
   favorite: boolean;
   /** Os números da relação, em centavos onde é dinheiro. */
-  stats: { quotes: number; projects: number; billed: number; open: number };
+  stats: { quotes: number; projects: number; billed: number; open: number; expenses: number; spent: number; payable: number };
   /** Do mais recente para o mais antigo. */
   quotes: ClientQuote[];
   projects: ClientProject[];

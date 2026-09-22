@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_TAGS } from "@/lib/tags";
 import { clientTagValues } from "./tags";
+import { clientKindValues } from "./summary";
 
 /**
  * O teto de cada campo de texto, num lugar só: é daqui que sai tanto a validação do servidor quanto o
@@ -26,7 +27,8 @@ export { MAX_TAGS };
 export const clientFormSchema = z.object({
   /** Presente na edição; ausente na criação. */
   id: z.string().trim().min(1).optional(),
-  name: z.string().trim().min(2, "Informe o nome do cliente").max(clientLimits.name, "Nome longo demais"),
+  kind: z.enum(clientKindValues).default("customer"),
+  name: z.string().trim().min(2, "Informe o nome do contato").max(clientLimits.name, "Nome longo demais"),
   company: z.string().trim().max(clientLimits.company, "Nome da empresa longo demais"),
   role: z.string().trim().max(clientLimits.role, "Área longa demais"),
   email: z.union([z.literal(""), z.email("E-mail inválido").max(clientLimits.email)]),

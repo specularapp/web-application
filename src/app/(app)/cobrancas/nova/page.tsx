@@ -37,10 +37,11 @@ export default async function NewChargePage({ searchParams }: PageProps<"/cobran
     },
     defaultChargesPageSize(view, gridSize),
   );
+  query.direction = "incoming";
 
   const [data, ai] = await Promise.all([loadChargesScreenData(), getAiUsageData()]);
 
   const prefill = { clientId: first(params.cliente) || undefined };
 
-  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} creating prefill={prefill} />;
+  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} direction="incoming" creating prefill={prefill} />;
 }

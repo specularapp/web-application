@@ -65,7 +65,17 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { squircle } from "@/lib/corners";
 import { createMetadata } from "@/lib/metadata";
 import styles from "./componentes.module.css";
-import { CheckoutPreview, ListboxDemo, PaginationDemo, SelectActionsDemo, ToastDemo, ToastPreview } from "./demos";
+import {
+  CheckoutPreview,
+  DialogDemo,
+  DropdownMenuDemo,
+  ListboxDemo,
+  PaginationDemo,
+  RichTextDemo,
+  SelectActionsDemo,
+  ToastDemo,
+  ToastPreview,
+} from "./demos";
 
 export const metadata = createMetadata({
   title: "Componentes",
@@ -263,6 +273,21 @@ const groups: Group[] = [
             </Sample>
           </div>
         ),
+      },
+      {
+        name: "Dialog",
+        note: "Janela opaca e adaptativa ao tema. A chamada usa surface=glass de propósito para provar que o contrato antigo agora resolve para uma superfície sólida e legível.",
+        example: <DialogDemo />,
+      },
+      {
+        name: "RichText",
+        note: "O texto rico da casa: editor sem caixa nenhuma, com a bolha da seleção numa fila só, listas de marcar, e o bloco de código com realce e o copiar na quina.",
+        example: <RichTextDemo />,
+      },
+      {
+        name: "DropdownMenu",
+        note: "Menu de opções com seções, ação destrutiva e interruptor. A caixa usa a mesma superfície opaca no claro e no escuro, sem deixar o conteúdo de trás atravessar.",
+        example: <DropdownMenuDemo />,
       },
     ],
   },
@@ -1264,8 +1289,6 @@ const pending = [
   {
     area: "ui",
     names: [
-      "Dialog",
-      "DropdownMenu",
       "Radio",
       "Tabs",
       "Textarea",

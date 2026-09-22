@@ -65,7 +65,7 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
   const net = overview.received - overview.expenses;
   const shown = overview.transactions.filter((transaction) => kind === "all" || transaction.kind === kind);
 
-  const openCharge = (entry: UpcomingInstallment) => router.push(chargePath(entry.chargeId) as Route);
+  const openCharge = (entry: UpcomingInstallment) => router.push(chargePath(entry.chargeId, entry.direction) as Route);
 
   return (
     <div className={styles.board}>

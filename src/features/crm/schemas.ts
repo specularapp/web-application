@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MAX_TAGS } from "@/lib/tags";
-import { crmStageValues } from "./stages";
+import { crmStageValues, crmHues } from "./stages";
 import { opportunityTagValues } from "./tags";
 import { opportunitySourceValues } from "./summary";
 
@@ -20,13 +20,17 @@ export const opportunityLimits = {
   city: 80,
   partnerCode: 40,
   nextStep: 120,
+  attribution: 240,
+  sourceUrl: 1000,
 } as const;
 
 export { MAX_TAGS };
 
 export const temperatureValues = ["cold", "warm", "hot"] as const;
 
-const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+export const crmStageSchema = z.union([z.enum(crmStageValues), z.string().regex(/^(open|won|lost)_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)]);
+
+const isoDay = z.iso.date("Data inválida");
 const blank = z.literal("");
 
 /** O que a ficha de oportunidade aceita, na criação e na edição: é o mesmo formulário. */
@@ -34,7 +38,7 @@ export const opportunityFormSchema = z.object({
   /** Presente na edição; ausente na criação. */
   id: z.uuid().optional(),
   funnelId: z.uuid().nullable(),
-  title: z.string().trim().min(2, "Dê um título à oportunidade").max(opportunityLimits.title, "Título longo demais"),
+  title: z.string().trim().transform((title) => title || "Nova oportunidade").pipe(z.string().max(opportunityLimits.title, "Título longo demais")),
   description: z.string().trim().max(opportunityLimits.description, "Descrição longa demais"),
   /** Lead novo ainda não é cadastro: o vínculo é opcional e o nome é o que sempre existe. */
   clientId: z.uuid().nullable(),
@@ -43,7 +47,7 @@ export const opportunityFormSchema = z.object({
   contactName: z.union([blank, z.string().trim().max(opportunityLimits.contactName, "Nome longo demais")]),
   contactEmail: z.union([blank, z.email("E-mail inválido").max(opportunityLimits.email)]),
   contactPhone: z.union([blank, z.string().trim().max(opportunityLimits.phone, "Telefone longo demais")]),
-  stage: z.enum(crmStageValues),
+  stage: crmStageSchema,
   value: z.number().int().min(0, "O valor não pode ser negativo").max(999999999999),
   temperature: z.enum(temperatureValues),
   probability: z.number().int().min(0, "A chance vai de 0 a 100").max(100, "A chance vai de 0 a 100"),
@@ -58,6 +62,32 @@ export const opportunityFormSchema = z.object({
   partnerCode: z.union([blank, z.string().trim().max(opportunityLimits.partnerCode, "Código longo demais")]),
   nextStepLabel: z.union([blank, z.string().trim().max(opportunityLimits.nextStep, "Passo longo demais")]),
   nextStepAt: z.union([blank, isoDay]),
+  lastTouchAt: z.union([blank, isoDay]).default(""),
+  firstResponseMinutes: z.number().int().min(0).max(525600).nullable().default(null),
+  averageResponseMinutes: z.number().int().min(0).max(525600).nullable().default(null),
+  peopleIds: z.array(z.uuid()).max(50).default([]),
+  attribution: z.object({
+    campaign: z.string().trim().max(opportunityLimits.attribution).default(""),
+    adSet: z.string().trim().max(opportunityLimits.attribution).default(""),
+    ad: z.string().trim().max(opportunityLimits.attribution).default(""),
+    gclid: z.string().trim().max(opportunityLimits.attribution).default(""),
+    ctwaclid: z.string().trim().max(opportunityLimits.attribution).default(""),
+    fbclid: z.string().trim().max(opportunityLimits.attribution).default(""),
+    sourceId: z.string().trim().max(opportunityLimits.attribution).default(""),
+    metaLeadId: z.string().trim().max(opportunityLimits.attribution).default(""),
+    sourceUrl: z.union([blank, z.url("URL inválida").max(opportunityLimits.sourceUrl)]).default(""),
+    utm: z.object({
+      source: z.string().trim().max(opportunityLimits.attribution).default(""),
+      medium: z.string().trim().max(opportunityLimits.attribution).default(""),
+      campaign: z.string().trim().max(opportunityLimits.attribution).default(""),
+      content: z.string().trim().max(opportunityLimits.attribution).default(""),
+      term: z.string().trim().max(opportunityLimits.attribution).default(""),
+    }).default({ source: "", medium: "", campaign: "", content: "", term: "" }),
+  }).default({ campaign: "", adSet: "", ad: "", gclid: "", ctwaclid: "", fbclid: "", sourceId: "", metaLeadId: "", sourceUrl: "", utm: { source: "", medium: "", campaign: "", content: "", term: "" } }),
+}).superRefine((value, context) => {
+  if (Boolean(value.nextStepLabel) !== Boolean(value.nextStepAt)) {
+    context.addIssue({ code: "custom", path: [value.nextStepLabel ? "nextStepAt" : "nextStepLabel"], message: "Preencha o próximo passo e a data juntos" });
+  }
 });
 
 export type OpportunityFormInput = z.infer<typeof opportunityFormSchema>;
@@ -65,7 +95,7 @@ export type OpportunityFormInput = z.infer<typeof opportunityFormSchema>;
 /** Arrastar o cartão de coluna: a oportunidade e a etapa de destino, e nada além. */
 export const opportunityMoveSchema = z.object({
   id: z.uuid(),
-  stage: z.enum(crmStageValues),
+  stage: crmStageSchema,
 });
 
 export const opportunityIdSchema = z.uuid();
@@ -78,6 +108,7 @@ export const saveCrmFolderSchema = z.object({
   id: z.uuid().optional(),
   name: z.string().trim().min(1, "Dê um nome à pasta").max(crmFolderLimits.name, "Nome longo demais"),
   parentId: z.uuid().nullable().default(null),
+  hue: z.enum(crmHues).optional(),
 });
 
 export const crmFolderIdSchema = z.uuid();
@@ -88,6 +119,8 @@ export const saveFunnelSchema = z.object({
   id: z.uuid().optional(),
   name: z.string().trim().min(2, "Dê um nome ao funil").max(funnelLimits.name, "Nome longo demais"),
   folderId: z.uuid().nullable().default(null),
+  glyph: z.enum(["funnel", "storefront", "megaphone", "handshake", "target", "buildings", "tray"]).optional(),
+  hue: z.enum(crmHues).optional(),
 });
 
 export const funnelIdSchema = z.uuid();
@@ -96,11 +129,20 @@ export const funnelIdSchema = z.uuid();
 export const funnelStagesSchema = z.object({
   id: z.uuid(),
   stages: z
-    .array(z.enum(crmStageValues))
+    .array(crmStageSchema)
     .min(1, "O funil precisa de ao menos uma etapa")
-    .max(crmStageValues.length)
+    .max(40)
     .refine((list) => new Set(list).size === list.length, "Etapa repetida"),
 });
 
 /** Para onde o funil vai: uma pasta, ou a raiz quando é nulo. */
 export const moveFunnelSchema = z.object({ id: z.uuid(), folderId: z.uuid().nullable() });
+
+export const configureFunnelStagesSchema = z.object({
+  id: z.uuid(),
+  stages: z.array(z.object({ id: crmStageSchema, label: z.string().trim().min(1, "Nomeie a etapa").max(60), hue: z.enum(crmHues) })).min(1, "Mantenha ao menos uma etapa").max(40)
+    .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, "Etapa repetida")
+    .refine((entries) => new Set(entries.map((entry) => entry.label.toLocaleLowerCase("pt-BR"))).size === entries.length, "Use nomes diferentes nas etapas"),
+  replacements: z.record(crmStageSchema, crmStageSchema).default({}),
+});
+export type ConfigureFunnelStagesInput = z.infer<typeof configureFunnelStagesSchema>;

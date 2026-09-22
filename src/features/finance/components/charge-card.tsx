@@ -47,7 +47,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
 
   return (
     <article className={styles.card} data-status={chargeStatusOf(charge)}>
-      <div className={styles.inner} role="button" tabIndex={0} aria-label={`Abrir a cobrança ${charge.reference}`} onClick={onClick} onKeyDown={onKeyDown}>
+      <div className={styles.inner} role="button" tabIndex={0} aria-label={`Abrir a ${side.label.toLocaleLowerCase("pt-BR")} ${charge.reference}`} onClick={onClick} onKeyDown={onKeyDown}>
         <header className={styles.head}>
           {/* O lado antes da situação: "em aberto" quer dizer coisas opostas conforme o dinheiro entre ou
               saia, e é o glifo com a cor que resolve isso de relance. */}
@@ -76,7 +76,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
               {payer.company ?? payer.name}
             </Text>
             <Text as="span" variant="caption1" tone="secondary" truncate>
-              {payer.company ? payer.name : (payer.email ?? (payer.standalone ? "Cobrança avulsa" : "Sem e-mail"))}
+              {payer.company ? payer.name : (payer.email ?? (payer.standalone ? `${side.label} avulsa` : "Sem e-mail"))}
             </Text>
           </span>
         </div>
@@ -92,7 +92,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         </div>
 
         <div className={styles.progress}>
-          <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : "success"} aria-label={`Recebido ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
+          <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : charge.direction === "outgoing" ? "accent" : "success"} aria-label={`${charge.direction === "outgoing" ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
           <span className={styles.progressLine}>
             <Text as="span" variant="caption1" tone="secondary">
               {paidCount} de {charge.installments.length} {charge.installments.length === 1 ? "parcela" : "parcelas"}

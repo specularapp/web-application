@@ -19,7 +19,7 @@ import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { ArrowCounterClockwiseIcon, ListChecksIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -46,17 +46,21 @@ import {
   type TasksColumnSort,
   type TasksQuery,
 } from "../list-options";
-import { stageValues, taskStageMeta, type TaskStage } from "../stages";
+import type { TaskStage, TaskStageId } from "../stages";
 import type { AppRecord } from "@/features/records/records";
 import type { Task, TaskPerson } from "../summary";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
-import { deleteTaskAction } from "../actions";
-import { setProjectStagesAction } from "@/features/projects/actions";
+import { createTaskAction, deleteTaskAction, loadTaskAction } from "../actions";
+import { setProjectStagesAction } from "../actions";
+import type { ProjectHue } from "@/features/projects/summary";
+import type { ProjectGlyph } from "../tree";
+import { BoardLookDialog } from "./appearance-dialog";
+import { StagesDialog } from "./stages-dialog";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
-import { NewTaskDialog, type NewTaskProject } from "./new-task-dialog";
-import { TaskDialog } from "./task-dialog";
+
+import { TaskDialog, type TaskProjectOption } from "./task-dialog";
 import styles from "./tasks-board.module.css";
 import { callAction } from "@/lib/action";
 
@@ -73,8 +77,14 @@ export type TasksBoardProps = {
   records?: AppRecord[];
   /** O projeto deste quadro; nulo no balde de tarefas soltas, que é o que `/tarefas` mostra. */
   projectId?: string | null;
-  /** Para onde a tarefa pode nascer quando o quadro não é de um projeto. */
-  projects?: NewTaskProject[];
+  /** Para onde a tarefa pode ir quando o quadro não é de um projeto; vazio esconde o campo na ficha. */
+  projects?: TaskProjectOption[];
+  /** O catálogo de etapas da equipe: o que se pode ligar no quadro, editar, criar e apagar. */
+  stages: TaskStage[];
+  /** As etapas que este projeto escolheu; vazio é o projeto que acompanha o catálogo da equipe. */
+  projectStages?: TaskStage[];
+  /** O projeto deste quadro, para trocar a cor e o glifo dele aqui mesmo. */
+  project?: { id: string; name: string; hue: ProjectHue; glyph: ProjectGlyph } | null;
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -121,10 +131,10 @@ const screenReaderInstructions: ScreenReaderInstructions = {
 
 /* No celular o quadro não arrasta, e a concha do `DndContext` fica montada sem sensor nenhum: ela segue
    servindo o `DragOverlay` e os avisos de leitor de tela sem escutar o toque, que ali é da rolagem. */
-const noSensors: ReturnType<typeof useSensors> = [];
 
-/* Toda coluna abre na ordem padrão da casa, o prazo. A escolha é de coluna, então são cinco. */
-const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAULT_COLUMN_SORT])) as Record<TaskStage, TasksColumnSort>;
+/* Toda coluna abre na ordem padrão da casa, o prazo; o que a pessoa escolher fica aqui, por etapa. Sem lista
+   fechada de etapas, o mapa nasce vazio e quem não está nele usa o padrão. */
+type ColumnSorts = Record<TaskStageId, TasksColumnSort>;
 
 // O quadro de tarefas: a barra de busca e filtros em cima, como em toda tela da aplicação, e embaixo o
 // trilho com as cinco etapas. O filtro vive na URL e quem faz o trabalho é o servidor, então a página é
@@ -134,7 +144,8 @@ const initialSorts = Object.fromEntries(stageValues.map((stage) => [stage, DEFAU
 // A ficha da tarefa é **uma só para o quadro inteiro**, guardando quem está aberto, e não uma por cartão:
 // com vinte e quatro cartões seriam vinte e quatro janelas montadas, que é a mesma decisão da gaveta da base
 // de clientes.
-export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null, projects }: TasksBoardProps) {
+export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null, projects, stages, projectStages, project }: TasksBoardProps) {
+  const dragContextId = useId();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -149,36 +160,73 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     setLive(query);
   }
   const [overrides, setOverrides] = useState<StageOverrides>(saved);
-  const [sorts, setSorts] = useState<Record<TaskStage, TasksColumnSort>>(initialSorts);
+  const [sorts, setSorts] = useState<ColumnSorts>({});
   const [open, setOpen] = useState<Task | null>(null);
 
   /* A exclusão, no desenho das outras telas: o leque do cartão pede, a janela da casa pergunta, e só então a
      action grava. */
   const [deleting, setDeleting] = useState<Task | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
-  /* A etapa em que a tarefa nova vai nascer, e nulo quando não há criação aberta: o "+" de cada coluna manda
-     a dela, e a barra manda a primeira do quadro. */
-  const [creating, setCreating] = useState<TaskStage | null>(null);
+  /**
+   * Criar uma tarefa é pôr a tarefa no lugar e abrir a ficha dela (2026-09-22, a pedido: "ao invés de abrir
+   * um modal independente, ele já abrir a visualização de uma tarefa mesmo, e lá de dentro ele vai
+   * preenchendo"). O formulário à parte saiu: ele pedia oito campos antes de deixar a tarefa existir, e quem
+   * cria uma tarefa no meio de uma reunião quer o cartão no quadro agora e os detalhes depois.
+   *
+   * A tarefa nasce com o nome padrão e o prazo de hoje, e a ficha grava sozinha o que for preenchido.
+   */
+  const [creating, setCreating] = useState(false);
+
+  const createTask = async (stage: TaskStage) => {
+    if (creating) return;
+    setCreating(true);
+    const created = await callAction(createTaskAction({ projectId, stageId: stage.id }));
+
+    if (!created.ok) {
+      setCreating(false);
+      toast({ title: "Não deu para criar a tarefa", description: created.error, tone: "danger" });
+      return;
+    }
+
+    /* A ficha abre com a tarefa que o banco acabou de devolver, e não com uma montada aqui: é ela que tem o
+       identificador, a etapa resolvida e os campos que o gatilho preencheu. */
+    const task = await loadTaskAction(created.id);
+    setCreating(false);
+
+    if (!task) {
+      toast({ title: "A tarefa foi criada", description: "Atualize o quadro para abri-la.", tone: "warning" });
+      router.refresh();
+      return;
+    }
+
+    setOpen(task);
+    router.refresh();
+  };
   /* A etapa que vai sair do quadro, esperando a confirmação: as tarefas dela ficam no banco e voltam quando a
      etapa voltar, mas somem da vista, e isso merece a pergunta. */
+  /** A janela das etapas e a da cor, abertas pela barra. */
+  const [arranging, setArranging] = useState(false);
+  const [dressing, setDressing] = useState(false);
   const [removingStage, setRemovingStage] = useState<TaskStage | null>(null);
   const [removingStageBusy, setRemovingStageBusy] = useState(false);
-  const [hiddenStages, setHiddenStages] = useState<TaskStage[]>([]);
+  const [hiddenStages, setHiddenStages] = useState<TaskStageId[]>([]);
 
   const removeStage = async () => {
     if (!removingStage || !projectId) return;
     const target = removingStage;
-    setHiddenStages((current) => [...new Set([...current, target])]);
+    setHiddenStages((current) => [...new Set([...current, target.id])]);
     setRemovingStage(null);
     setRemovingStageBusy(true);
-    const result = await setProjectStagesAction({ id: projectId, stages: board.columns.map((column) => column.stage).filter((stage) => stage !== target) });
+    const result = await callAction(
+      setProjectStagesAction({ id: projectId, stageIds: board.columns.map((column) => column.stage.id).filter((id) => id !== target.id) }),
+    );
     setRemovingStageBusy(false);
     if (!result.ok) {
-      setHiddenStages((current) => current.filter((stage) => stage !== target));
+      setHiddenStages((current) => current.filter((id) => id !== target.id));
       toast({ title: "Não deu para tirar a etapa", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Etapa retirada", description: `${taskStageMeta[target].label} saiu do quadro. Ligue de novo pelo menu lateral quando quiser.`, tone: "success" });
+    toast({ title: "Etapa retirada", description: `${target.name} saiu do quadro. Ligue de novo em Etapas quando quiser.`, tone: "success" });
   };
   const [removing, setRemoving] = useState(false);
 
@@ -214,11 +262,11 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * na primeira busca. **Vale só na tela**, como o resto do que a ficha muda; quem ligar a tabela troca este
    * `setMoved` por uma Server Action com o mesmo par (tarefa, etapa).
    */
-  const [moved, setMoved] = useState<Record<string, TaskStage>>({});
+  const [moved, setMoved] = useState<Record<string, TaskStageId>>({});
   /** A tarefa na mão, para o cartão que flutua sob o ponteiro e para saber de onde ela saiu. */
   const [dragging, setDragging] = useState<{ task: Task; from: TaskStage } | null>(null);
   /** Em que coluna ela cairia agora, para a etapa acender e abrir o lugar dele. */
-  const [landing, setLanding] = useState<TaskStage | null>(null);
+  const [landing, setLanding] = useState<TaskStageId | null>(null);
   const typing = useRef<number | undefined>(undefined);
   /** O trilho, para a barra flutuante levar o quadro até a etapa escolhida e para saber qual está à vista. */
   const rail = useRef<HTMLDivElement>(null);
@@ -262,15 +310,15 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * decide no clique vale mais que o padrão e vai para o cookie, então abrir uma vazia sobrevive à recarga e
    * fechar uma cheia também.
    */
-  const isCollapsed = (stage: TaskStage, count: number) => overrides[stage] ?? count === 0;
+  const isCollapsed = (stage: TaskStageId, count: number) => overrides[stage] ?? count === 0;
 
-  const changeCollapsed = (stage: TaskStage, on: boolean) => {
+  const changeCollapsed = (stage: TaskStageId, on: boolean) => {
     const next = { ...overrides, [stage]: on };
     setOverrides(next);
     saveStageOverrides(next);
   };
 
-  const changeSort = (stage: TaskStage, sort: TasksColumnSort) => setSorts((current) => ({ ...current, [stage]: sort }));
+  const changeSort = (stage: TaskStageId, sort: TasksColumnSort) => setSorts((current) => ({ ...current, [stage]: sort }));
 
   /**
    * As colunas como elas estão na tela: as do servidor com os destinos do arraste aplicados. A tarefa entra
@@ -278,21 +326,21 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * é ela quem manda na pilha; arrastar muda a etapa, e não o lugar na fila.
    */
   const columns = useMemo(() => {
-    const visibleColumns = board.columns.filter((column) => !hiddenStages.includes(column.stage));
+    const visibleColumns = board.columns.filter((column) => !hiddenStages.includes(column.stage.id));
     if (Object.keys(moved).length === 0 && hidden.length === 0) return visibleColumns;
-    const known = new Set(visibleColumns.map((column) => column.stage));
-    const piles = new Map<TaskStage, Task[]>(visibleColumns.map((column) => [column.stage, []]));
+    const known = new Map(visibleColumns.map((column) => [column.stage.id, column.stage]));
+    const piles = new Map<TaskStageId, Task[]>(visibleColumns.map((column) => [column.stage.id, []]));
     for (const column of visibleColumns) {
       for (const task of column.tasks) {
         if (hidden.includes(task.id)) continue;
         const to = moved[task.id];
         /* Destino que este quadro não tem (o filtro mudou, o projeto é outro) fica de fora: a tarefa
            continua onde o servidor a pôs. */
-        const target = to && known.has(to) ? to : column.stage;
-        piles.get(target)?.push(target === task.stage ? task : { ...task, stage: target });
+        const target = (to && known.get(to)) || column.stage;
+        piles.get(target.id)?.push(target.id === task.stage.id ? task : { ...task, stage: target });
       }
     }
-    return visibleColumns.map((column) => ({ ...column, tasks: piles.get(column.stage) ?? [] }));
+    return visibleColumns.map((column) => ({ ...column, tasks: piles.get(column.stage.id) ?? [] }));
   }, [board.columns, moved, hidden, hiddenStages]);
 
   /**
@@ -345,8 +393,8 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
 
   /* Enquanto o cartão está no ar, a etapa sob ele acende; a de origem não, porque soltar ali não é mover. */
   const onDragOver = (event: { over: { id: string | number } | null }) => {
-    const over = event.over?.id as TaskStage | undefined;
-    setLanding(over && over !== dragging?.from ? over : null);
+    const over = event.over?.id;
+    setLanding(typeof over === "string" && over !== dragging?.from.id ? over : null);
   };
 
   /**
@@ -355,13 +403,15 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * senão a tarefa some no trilho fechado logo depois de a pessoa mandar ela para lá.
    */
   const moveTask = (task: Task, to: TaskStage, from: TaskStage) => {
-    if (to === from) return;
-    setMoved((current) => ({ ...current, [task.id]: to }));
-    if (overrides[to] === true || (overrides[to] === undefined && countOf(to) === 0)) changeCollapsed(to, false);
+    if (to.id === from.id) return;
+    setMoved((current) => ({ ...current, [task.id]: to.id }));
+    if (overrides[to.id] === true || (overrides[to.id] === undefined && countOf(to.id) === 0)) changeCollapsed(to.id, false);
   };
 
+  const stageOf = (id: string | number | undefined) => columns.find((column) => column.stage.id === id)?.stage;
+
   const onDragEnd = (event: DragEndEvent) => {
-    const to = event.over?.id as TaskStage | undefined;
+    const to = stageOf(event.over?.id);
     const task = dragging?.task;
     const from = dragging?.from;
     setDragging(null);
@@ -370,14 +420,14 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     moveTask(task, to, from);
   };
 
-  const countOf = (stage: TaskStage) => columns.find((column) => column.stage === stage)?.tasks.length ?? 0;
+  const countOf = (stage: TaskStageId) => columns.find((column) => column.stage.id === stage)?.tasks.length ?? 0;
 
   /* O que o leitor de tela ouve em cada passo do gesto, nas palavras da casa. */
   const announcements: Announcements = {
     onDragStart: ({ active }) => `Pegou ${nameOf(active.id)}. Use as setas para escolher a etapa.`,
-    onDragOver: ({ over }) => (over ? `Sobre a etapa ${taskStageMeta[over.id as TaskStage].label}.` : "Fora das etapas."),
+    onDragOver: ({ over }) => (over ? `Sobre a etapa ${stageOf(over.id)?.name ?? ""}.` : "Fora das etapas."),
     onDragEnd: ({ active, over }) =>
-      over ? `${nameOf(active.id)} foi para ${taskStageMeta[over.id as TaskStage].label}.` : `${nameOf(active.id)} ficou onde estava.`,
+      over ? `${nameOf(active.id)} foi para ${stageOf(over.id)?.name ?? ""}.` : `${nameOf(active.id)} ficou onde estava.`,
     onDragCancel: ({ active }) => `Arraste de ${nameOf(active.id)} cancelado.`,
   };
 
@@ -464,12 +514,12 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         action={
           <>
             <span className={styles.wide}>
-              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => setCreating(columns[0]?.stage ?? "todo")}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} loading={creating} onClick={() => void createTask(columns[0]?.stage ?? stages[0])}>
                 Nova tarefa
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Nova tarefa" size="sm" radius="md" onClick={() => setCreating(columns[0]?.stage ?? "todo")}>
+              <IconButton label="Nova tarefa" size="sm" radius="md" loading={creating} onClick={() => void createTask(columns[0]?.stage ?? stages[0])}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -496,7 +546,8 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         // pela quina mais perto, que é o que funciona com alvos altos e estreitos lado a lado, e o cartão que
         // flutua fica preso à janela pelo modificador.
         <DndContext
-          sensors={mobile ? noSensors : sensors}
+          id={dragContextId}
+          sensors={sensors}
           collisionDetection={closestCorners}
           accessibility={{ announcements, screenReaderInstructions }}
           onDragStart={onDragStart}
@@ -510,17 +561,18 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
           <div ref={rail} className={styles.rail} data-dragging={dragging ? "" : undefined}>
             {columns.map((column) => (
               <TaskColumn
-                key={column.stage}
-                stage={taskStageMeta[column.stage]}
-                tasks={sortColumn(column.tasks, sorts[column.stage])}
-                collapsed={isCollapsed(column.stage, column.tasks.length)}
-                onCollapsedChange={(on) => changeCollapsed(column.stage, on)}
-                sort={sorts[column.stage]}
-                onSortChange={(sort) => changeSort(column.stage, sort)}
+                key={column.stage.id}
+                stage={column.stage}
+                tasks={sortColumn(column.tasks, sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT)}
+                collapsed={isCollapsed(column.stage.id, column.tasks.length)}
+                onCollapsedChange={(on) => changeCollapsed(column.stage.id, on)}
+                sort={sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT}
+                onSortChange={(sort) => changeSort(column.stage.id, sort)}
                 onOpen={setOpen}
-                onAdd={() => setCreating(column.stage)}
+                onAdd={() => void createTask(column.stage)}
                 onRemoveStage={projectId && columns.length > 1 ? () => setRemovingStage(column.stage) : undefined}
-                landing={landing === column.stage}
+                onEditStage={() => setArranging(true)}
+                landing={landing === column.stage.id}
                 draggable={!mobile}
                 stages={board.columns.map((entry) => entry.stage)}
                 onMove={(task, to) => moveTask(task, to, column.stage)}
@@ -546,6 +598,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
           sem coluna onde cair. */}
       <TaskDialog
         task={open}
+        projects={projects ?? []}
         open={Boolean(open)}
         onClose={() => setOpen(null)}
         stages={board.columns.map((column) => column.stage)}
@@ -557,27 +610,25 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
           setOpen({ ...open, stage });
         }}
       />
-      {/* A criação nasce na etapa de onde o "+" foi tocado, e na primeira do quadro quando veio da barra. */}
-      <NewTaskDialog
-        open={creating !== null}
-        onClose={() => setCreating(null)}
-        stages={board.columns.map((column) => column.stage)}
-        stage={creating ?? board.columns[0]?.stage ?? "todo"}
-        projectId={projectId}
-        projects={projects}
-        team={team}
-        onCreated={() => setCreating(null)}
-      />
       <ConfirmDialog
         open={removingStage !== null}
         pending={removingStageBusy}
-        title={`Tirar ${removingStage ? taskStageMeta[removingStage].label : "a etapa"} do quadro?`}
+        title={`Tirar ${removingStage?.name ?? "a etapa"} do quadro?`}
         description="As tarefas que estão nela não somem: ficam guardadas e voltam a aparecer quando a etapa for ligada de novo nas etapas do quadro."
         confirmLabel="Tirar etapa"
         pendingLabel="Tirando"
         onClose={() => setRemovingStage(null)}
         onConfirm={() => void removeStage()}
       />
+      <StagesDialog
+        open={arranging}
+        name={project?.name ?? "Todas as tarefas"}
+        stages={projectStages && projectStages.length > 0 ? projectStages : stages}
+        projectId={projectId}
+        onClose={() => setArranging(false)}
+        onSaved={() => router.refresh()}
+      />
+      {project && <BoardLookDialog open={dressing} project={project} onClose={() => setDressing(false)} />}
       <ConfirmDialog
         open={deleting !== null}
         pending={removing}

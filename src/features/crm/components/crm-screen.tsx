@@ -2,7 +2,8 @@ import { Topbar } from "@/components/layout/topbar";
 import type { AiUsage } from "@/features/ai/summary";
 import type { CrmStageOverrides } from "../board-cookie";
 import type { CrmBoardData, CrmQuery } from "../list-options";
-import type { CrmPerson } from "../summary";
+import type { CrmClientOption, CrmPerson } from "../summary";
+import type { CrmFunnel } from "../tree";
 import { CrmBoard } from "./crm-board";
 import styles from "./crm-screen.module.css";
 
@@ -18,6 +19,8 @@ export type CrmScreenProps = {
   basePath: string;
   /** Quem pode assumir uma venda, para os seletores da ficha. */
   team?: CrmPerson[];
+  clients: CrmClientOption[];
+  funnels: CrmFunnel[];
   /** O funil deste quadro, quando a página é a de um funil de verdade (o balde não tem etapas próprias). */
   funnelId?: string;
 };
@@ -26,11 +29,11 @@ export type CrmScreenProps = {
 // prancha com a busca e o quadro, essa sim com o recuo da tela. Server Component: quem tem estado é a
 // prancha. Serve o quadro de todas as oportunidades e o de um funil, que é a mesma tela com outra lista,
 // outras etapas e outro nome no topo.
-export function CrmScreen({ board, query, collapsed, ai, title, basePath, team, funnelId }: CrmScreenProps) {
+export function CrmScreen({ board, query, collapsed, ai, title, basePath, team, clients, funnels, funnelId }: CrmScreenProps) {
   return (
     <div className={styles.screen}>
       <Topbar ai={ai} title={title} />
-      <CrmBoard board={board} query={query} collapsed={collapsed} basePath={basePath} team={team} funnelId={funnelId} />
+      <CrmBoard board={board} query={query} collapsed={collapsed} basePath={basePath} team={team} clients={clients} funnels={funnels} funnelId={funnelId} />
     </div>
   );
 }

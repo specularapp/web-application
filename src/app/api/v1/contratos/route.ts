@@ -6,7 +6,7 @@
 import { parseContractsQuery } from "@/features/contracts/list";
 import { createContractSchema } from "@/features/contracts/schemas";
 import { createContract, listContracts } from "@/features/contracts/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "contracts-read");
@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, createContractSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await createContract(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data));
+  return fromMutation(await createContract(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data), auth.session.organizationId, ["contracts"]);
 }

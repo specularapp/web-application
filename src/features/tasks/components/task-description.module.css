@@ -1,0 +1,31 @@
+/* A descrição tem dois estados no mesmo lugar, e a diferença entre eles é o cursor, não a moldura (acerto de
+   2026-09-22, a pedido): lendo, o texto é um botão sem cara de botão; editando, é o mesmo texto com o editor
+   por baixo, sem caixa, sem barra e sem recuo novo. */
+.opener {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: text;
+}
+
+.opener:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.editing {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* O sinal de gravação, na ponta e apagado: ele informa, e não pede nada. */
+.state {
+  justify-self: end;
+}

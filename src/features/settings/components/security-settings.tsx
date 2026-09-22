@@ -1,5 +1,7 @@
 "use client";
 
+import { callAction } from "@/lib/action";
+
 import { DeviceMobileIcon, KeyIcon, ShieldCheckIcon, TrashIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -47,7 +49,7 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
     if (!canSave) return;
     setSaving(true);
     setError(null);
-    const result = await changePasswordAction({ password });
+    const result = await callAction(changePasswordAction({ password }));
     setSaving(false);
     if (!result.ok) {
       if ("mfa" in result) {
@@ -66,7 +68,7 @@ export function SecuritySettings({ email, hasPassword, providers, authenticators
   const remove = async () => {
     if (!removing) return;
     setBusy(true);
-    const result = await removeAuthenticatorAction(removing.id);
+    const result = await callAction(removeAuthenticatorAction(removing.id));
     setBusy(false);
     setRemoving(null);
     if (!result.ok) {

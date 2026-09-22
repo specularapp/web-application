@@ -9,7 +9,6 @@ import { quoteStatuses } from "@/features/quotes/labels";
 import { quoteTotals } from "@/features/quotes/totals";
 import { projectStatuses } from "@/features/projects/labels";
 import { estimateLabel, priorityLabels, priorityTones, statusLabels, stageStatus } from "@/features/tasks/labels";
-import { taskStageMeta } from "@/features/tasks/stages";
 import { applyPattern } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import type { Database } from "@/types/database";
@@ -40,13 +39,13 @@ export async function listAppRecords(client: RecordsClient, organizationId: stri
   const [tasks, clients, quotes, projects, contracts, catalog, team] = await Promise.all([
     client
       .from("tasks")
-      .select("id, reference, title, description, stage, priority, due_date, estimate_minutes, owner_id, projects(name), subtasks(done)")
+      .select("id, reference, title, description, priority, due_date, estimate_minutes, owner_id, projects(name), subtasks(done), task_stages!inner(id, name, hue, glyph, kind)")
       .eq("organization_id", organizationId)
       .order("due_date")
       .limit(PER_KIND),
     client
       .from("clients")
-      .select("id, reference, name, company, email, phone, city, role, about, active")
+      .select("id, reference, name, company, email, phone, city, role, about, active, avatar_url, company_logo_url")
       .eq("organization_id", organizationId)
       .order("name")
       .limit(PER_KIND),
@@ -88,9 +87,9 @@ export async function listAppRecords(client: RecordsClient, organizationId: stri
     caption: task.projects?.name,
     href: "/tarefas",
     tags: [
-      { text: taskStageMeta[task.stage].label, tone: "neutral" as const },
+      { text: task.task_stages.name, tone: "neutral" as const },
       { text: priorityLabels[task.priority], tone: priorityTones[task.priority] },
-      { text: statusLabels[stageStatus(task.stage)], tone: "info" as const },
+      { text: statusLabels[stageStatus(task.task_stages)], tone: "info" as const },
     ],
     facts: facts(
       { glyph: "person", text: `Com ${nameOf(task.owner_id)}` },
@@ -111,7 +110,9 @@ export async function listAppRecords(client: RecordsClient, organizationId: stri
     name: entry.name,
     caption: entry.company ?? undefined,
     href: `/clientes/${entry.id}` as AppRecord["href"],
-    media: { kind: "face", name: entry.name },
+    /* A foto do cliente, e a logo da empresa dele como segunda escolha: é o mesmo rosto que a base de
+        clientes mostra, e não um desenho quando existe retrato. */
+    media: { kind: "face", name: entry.name, src: entry.avatar_url ?? entry.company_logo_url },
     tags: [{ text: entry.active ? "Ativo" : "Inativo", tone: entry.active ? ("success" as const) : ("neutral" as const) }],
     facts: facts(
       entry.company ? { glyph: "company", text: entry.company } : null,
@@ -216,7 +217,7 @@ export async function listAppRecords(client: RecordsClient, organizationId: stri
     name: member.name || member.email || "Equipe",
     caption: accessLabels[member.role] ?? "Membro",
     href: "/configuracoes/equipe",
-    media: { kind: "face", name: member.name || member.email || "Equipe" },
+    media: { kind: "face", name: member.name || member.email || "Equipe", src: member.avatarUrl },
     facts: facts(member.email ? { glyph: "at", text: member.email } : null),
   }));
 

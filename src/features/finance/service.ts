@@ -35,7 +35,7 @@ export type FinanceClient = SupabaseClient<Database>;
 export type ServiceResult<T> = { ok: true; data: T } | { ok: false; error: string };
 export type ChargeResult = { ok: true; charge: Charge } | { ok: false; error: string };
 export type SendChargeResult = { ok: true; charge: Charge; reminder: boolean } | { ok: false; error: string };
-export type PayResult = { ok: true; charge: Charge; installment: Installment } | { ok: false; error: string };
+export type PayResult = { ok: true; charge: Charge; installment: Installment; warning?: string } | { ok: false; error: string };
 export type ReportResult =
   | { ok: true; charge: Charge; installment: Installment; teamEmail: string; organizationId: string }
   | { ok: false; error: string };
@@ -202,13 +202,14 @@ export async function getCharge(client: FinanceClient, organizationId: string, i
 
 /** As bases de onde a janela de nova cobrança puxa: os clientes e os orçamentos aprovados ainda sem cobrança. */
 export type ChargeLookups = {
-  clients: { id: string; name: string; company?: string; email: string | null; avatarUrl: string | null }[];
+  customers: { id: string; name: string; company?: string; email: string | null; avatarUrl: string | null }[];
+  suppliers: { id: string; name: string; company?: string; email: string | null; avatarUrl: string | null }[];
   quotes: { id: string; number: string; title: string; clientId: string | null; amount: number; installments: number }[];
 };
 
 export async function getChargeLookups(client: FinanceClient, organizationId: string): Promise<ChargeLookups> {
   const [clients, quotes, taken] = await Promise.all([
-    client.from("clients").select("id, name, company, email, avatar_url").eq("organization_id", organizationId).eq("active", true).order("name"),
+    client.from("clients").select("id, kind, name, company, email, avatar_url").eq("organization_id", organizationId).eq("active", true).order("name"),
     client
       .from("quotes")
       .select("id, reference, title, client_id, installments, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")
@@ -219,14 +220,18 @@ export async function getChargeLookups(client: FinanceClient, organizationId: st
 
   const used = new Set((taken.data ?? []).map((row) => row.quote_id));
 
-  return {
-    clients: (clients.data ?? []).map((row) => ({
+  const contacts = (clients.data ?? []).map((row) => ({
       id: row.id,
+      kind: row.kind,
       name: row.name,
       company: row.company ?? undefined,
       email: row.email,
       avatarUrl: row.avatar_url,
-    })),
+    }));
+
+  return {
+    customers: contacts.filter((contact) => contact.kind === "customer" || contact.kind === "both"),
+    suppliers: contacts.filter((contact) => contact.kind === "supplier" || contact.kind === "both"),
     quotes: (quotes.data ?? [])
       .filter((quote) => !used.has(quote.id))
       .map((quote) => ({
@@ -271,13 +276,15 @@ export async function createCharge(
   const { data: contact } = input.clientId
     ? await client
         .from("clients")
-        .select("id, name, company, email, avatar_url")
+        .select("id, kind, name, company, email, avatar_url")
         .eq("organization_id", organizationId)
         .eq("id", input.clientId)
         .maybeSingle()
     : { data: null };
 
-  if (input.clientId && !contact) return { ok: false, error: "Esse cliente não está mais na base." };
+  if (input.clientId && !contact) return { ok: false, error: "Esse contato não está mais na base." };
+  if (contact && input.direction === "incoming" && contact.kind === "supplier") return { ok: false, error: "Escolha um contato cadastrado como cliente." };
+  if (contact && input.direction === "outgoing" && contact.kind === "customer") return { ok: false, error: "Escolha um contato cadastrado como fornecedor." };
 
   const id = crypto.randomUUID();
   const { hash } = shareCredentials("charge", id);
@@ -361,6 +368,7 @@ export async function sendCharge(
 ): Promise<SendChargeResult> {
   const charge = await getCharge(client, organizationId, id);
   if (!charge) return { ok: false, error: "Essa cobrança não existe mais." };
+  if (charge.direction === "outgoing") return { ok: false, error: "Despesas são internas e não têm link de cobrança." };
   if (charge.cancelledAt) return { ok: false, error: "Essa cobrança foi cancelada." };
   if (!charge.client) return { ok: false, error: "Cobrança avulsa não tem para quem mandar. Copie o link e envie por onde quiser." };
   if (!charge.client.email) return { ok: false, error: "O cliente não tem e-mail cadastrado." };
@@ -407,53 +415,20 @@ export async function payInstallment(
   if (!installment) return { ok: false, error: "Essa parcela não existe mais." };
   if (installment.paidAt) return { ok: false, error: "Essa parcela já foi baixada." };
 
-  const method = input.method ?? charge.method;
-  const paidOn = input.paidOn ?? todayIso();
-
   /* **O sinal sai da direção** (2026-09-20): baixar a parcela de uma despesa tira do caixa, e não põe. É o
      único ponto em que as duas direções divergem de fato; todo o resto (parcela, vencimento, situação,
      linha do tempo, recorrência) é a mesma regra para as duas. */
   const outgoing = charge.direction === "outgoing";
 
-  const { data: transaction, error: transactionError } = await client
-    .from("transactions")
-    .insert({
-      organization_id: organizationId,
-      kind: outgoing ? "expense" : "income",
-      status: "confirmed",
-      title: charge.client?.company ?? charge.client?.name ?? charge.title,
-      description: `${installmentLabel(installment.number, charge.installments.length)} de ${charge.title}`,
-      amount: installment.amount,
-      date: paidOn,
-      method_type: method,
-      method_label: methodLabels[method],
-      visual_type: "person",
-      visual_avatar_url: charge.client?.avatarUrl ?? charge.imageUrl,
-      charge_id: charge.id,
-      created_by: userId,
-    })
-    .select("id")
-    .single();
-
-  if (transactionError || !transaction) return { ok: false, error: transactionError?.message || `Não foi possível registrar a ${outgoing ? "saída" : "entrada"}.` };
-
-  const { error } = await client
-    .from("charge_installments")
-    .update({ paid_at: `${paidOn}T12:00:00Z`, paid_method: method, reported: false, transaction_id: transaction.id })
-    .eq("id", installment.id)
-    .eq("organization_id", organizationId);
-
-  if (error) {
-    await client.from("transactions").delete().eq("id", transaction.id);
-    return { ok: false, error: error.message };
-  }
-
-  await client.from("charge_events").insert({
-    organization_id: organizationId,
-    charge_id: charge.id,
-    kind: "paid",
-    detail: `Parcela ${installment.number}`,
+  const { error } = await client.rpc("change_charge_payment", {
+    p_organization_id: organizationId,
+    p_charge_id: charge.id,
+    p_operation: "pay",
+    p_installment_id: installment.id,
+    p_method: input.method ?? charge.method,
+    p_paid_on: input.paidOn ?? todayIso(),
   });
+  if (error) return { ok: false, error: error.message };
 
   const updated = await getCharge(client, organizationId, charge.id);
   if (!updated) return { ok: false, error: "Não foi possível baixar a parcela." };
@@ -465,10 +440,11 @@ export async function payInstallment(
   /* Quitada a última parcela, a próxima do ciclo nasce. É aqui, e não num relógio: a casa ainda não tem um,
      e amarrar a repetição ao fechamento tem uma vantagem própria: nunca se acumulam doze cobranças abertas
      de uma assinatura que a pessoa parou de pagar. */
-  await spawnNextRecurrence(client, organizationId, userId, updated);
+  const warning = await spawnNextRecurrence(client, organizationId, userId, updated)
+    .catch(() => "Pagamento registrado, mas não foi possível criar a próxima recorrência");
 
   const saved = updated.installments.find((entry) => entry.id === installment.id)!;
-  return { ok: true, charge: updated, installment: saved };
+  return { ok: true, charge: updated, installment: saved, warning };
 }
 
 /**
@@ -487,6 +463,7 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
   const { error } = await client.from("charges").insert({
     id,
     organization_id: organizationId,
+    direction: charge.direction,
     title: charge.title,
     description: charge.description,
     client_id: charge.client?.id ?? null,
@@ -506,12 +483,12 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
   });
 
   /* Já existia a próxima desta: o índice único barrou, e não há nada a corrigir. */
-  if (error) return;
+  if (error) return error.code === "23505" ? undefined : "Pagamento registrado, mas não foi possível criar a próxima recorrência";
 
   const first = charge.installments[0];
   const base = first ? parseISO(first.dueDate) : new Date();
 
-  await client.from("charge_installments").insert(
+  const { error: installmentsError } = await client.from("charge_installments").insert(
     charge.installments.map((installment, index) => ({
       organization_id: organizationId,
       charge_id: id,
@@ -520,6 +497,11 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
       due_date: isoDate(addMonths(base, months + index)),
     })),
   );
+
+  if (installmentsError) {
+    await client.from("charges").delete().eq("id", id).eq("organization_id", organizationId);
+    return "Pagamento registrado, mas não foi possível criar as parcelas da próxima recorrência";
+  }
 
   await client.from("charge_events").insert({
     organization_id: organizationId,
@@ -543,24 +525,14 @@ export async function reopenInstallment(
   if (!installment) return { ok: false, error: "Essa parcela não existe mais." };
   if (!installment.paidAt) return { ok: false, error: "Essa parcela ainda está em aberto." };
 
-  if (installment.transactionId) {
-    await client.from("transactions").delete().eq("id", installment.transactionId).eq("organization_id", organizationId);
-  }
-
-  const { error } = await client
-    .from("charge_installments")
-    .update({ paid_at: null, paid_method: null, transaction_id: null })
-    .eq("id", installmentId)
-    .eq("organization_id", organizationId);
+  const { error } = await client.rpc("change_charge_payment", {
+    p_organization_id: organizationId,
+    p_charge_id: id,
+    p_operation: "reopen",
+    p_installment_id: installmentId,
+  });
 
   if (error) return { ok: false, error: error.message };
-
-  await client.from("charge_events").insert({
-    organization_id: organizationId,
-    charge_id: id,
-    kind: "reopened",
-    detail: `Parcela ${installment.number}`,
-  });
 
   const updated = await getCharge(client, organizationId, id);
   if (!updated) return { ok: false, error: "Não foi possível reabrir a parcela." };
@@ -580,16 +552,15 @@ export async function cancelCharge(
     return { ok: false, error: "Essa cobrança já teve parcela paga e não pode ser cancelada." };
   }
 
-  const { error } = await client
-    .from("charges")
-    .update({ cancelled_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("organization_id", organizationId);
+  const { error } = await client.rpc("change_charge_payment", {
+    p_organization_id: organizationId,
+    p_charge_id: id,
+    p_operation: "cancel",
+  });
 
   if (error) return { ok: false, error: error.message };
 
-  await client.from("charge_events").insert({ organization_id: organizationId, charge_id: id, kind: "cancelled", actor });
-  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "archived", summary: "Cancelou a cobrança" });
+  await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "archived", summary: `${actor} cancelou a cobrança` });
 
   const cancelled = await getCharge(client, organizationId, id);
   return cancelled ? { ok: true, charge: cancelled } : { ok: false, error: "Não foi possível cancelar." };

@@ -72,7 +72,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
     <Dialog
       open={Boolean(client)}
       onClose={onClose}
-      label={client ? `Ficha de ${client.name}` : "Ficha do cliente"}
+      label={client ? `Ficha de ${client.name}` : "Ficha do contato"}
       size="lg"
       placement="end"
       surface="page"
@@ -89,11 +89,11 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
                 {client.name}
               </Text>
               <Text variant="caption1" tone="secondary" className={styles.since}>
-                Cliente desde {longDate(client.createdAt)}
+                {client.kind === "supplier" ? "Fornecedor" : "Cliente"} desde {longDate(client.createdAt)}
               </Text>
             </div>
             <div className={styles.headActions}>
-              <IconButton label="Editar cliente" variant="ghost" size="sm" onClick={onEdit}>
+              <IconButton label="Editar contato" variant="ghost" size="sm" onClick={onEdit}>
                 <PencilSimpleIcon />
               </IconButton>
               {full && <ClientMenu client={full} onEdit={onEdit} onDeleted={onClose} />}
@@ -167,12 +167,16 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
                 embaixo: é a faixa de fatos da referência, na paleta da casa. */}
             {full && (
               <dl className={styles.tiles}>
-                <Tile label="Orçamentos" value={String(full.stats.quotes)} />
-                {/* Projetos sai no celular: três azulejos fecham a linha, e quatro deixavam um solto; a
-                    contagem continua na seção de projetos logo abaixo. */}
-                <Tile label="Projetos" value={String(full.stats.projects)} className={styles.tileWide} />
-                <Tile label="Faturado" value={compactMoney(full.stats.billed)} />
-                <Tile label="Em aberto" value={compactMoney(full.stats.open)} />
+                {full.kind === "supplier" ? <>
+                  <Tile label="Despesas" value={String(full.stats.expenses)} />
+                  <Tile label="Pago" value={compactMoney(full.stats.spent)} />
+                  <Tile label="A pagar" value={compactMoney(full.stats.payable)} />
+                </> : <>
+                  <Tile label="Orçamentos" value={String(full.stats.quotes)} />
+                  <Tile label="Projetos" value={String(full.stats.projects)} className={styles.tileWide} />
+                  <Tile label="Faturado" value={compactMoney(full.stats.billed)} />
+                  <Tile label="Em aberto" value={compactMoney(full.stats.open)} />
+                </>}
               </dl>
             )}
 
@@ -182,7 +186,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
               </div>
             ) : (
               <div className={styles.loading}>
-                <Spinner size="md" label="Carregando a ficha do cliente" />
+                <Spinner size="md" label="Carregando a ficha do contato" />
               </div>
             )}
           </div>

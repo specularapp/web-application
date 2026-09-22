@@ -8,6 +8,7 @@ import styles from "./badge.module.css";
 export type BadgeRole = "neutral" | "brand" | "accent" | "success" | "warning" | "danger" | "info";
 
 export type BadgeHue =
+  | "gray"
   | "red"
   | "orange"
   | "yellow"

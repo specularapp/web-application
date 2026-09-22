@@ -1,5 +1,7 @@
 "use client";
 
+import { CrmAppearanceDialog, type CrmAppearance } from "@/features/crm/components/crm-appearance-dialog";
+
 import {
   CheckIcon,
   CaretLeftIcon,
@@ -187,8 +189,8 @@ export function SidebarPanel({
     return undefined;
   };
 
-  const createFunnel = async (name: string) => {
-    const result = await saveFunnelAction({ name, folderId: null });
+  const createFunnel = async (value: CrmAppearance) => {
+    const result = await saveFunnelAction({ ...value, folderId: null });
     if (!result.ok) return result.error;
     toast({ title: "Funil criado", description: "Ele nasceu com as etapas padrão. Arrume pelo chevron da linha.", tone: "success" });
     router.push(`/crm/${result.slug}` as Route);
@@ -413,14 +415,16 @@ export function SidebarPanel({
                   />
                 </>
               )}
-              {creating && (
+              {creating && folder?.tree === "funis" ? (
+                <CrmAppearanceDialog title={creating === "folder" ? "Nova pasta" : "Novo funil"} folder={creating === "folder"} onClose={() => setCreating(null)} onSave={creating === "funnel" ? createFunnel : async (value) => { const result = await saveCrmFolderAction({ ...value, parentId: null }); return result.ok ? undefined : result.error; }} />
+              ) : creating && (
                 <NameDialog
                   open
                   onClose={() => setCreating(null)}
                   title={creating === "folder" ? "Nova pasta" : "Novo funil"}
                   description={creating === "folder" ? "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta." : "Ele nasce com as etapas padrão, que você arruma depois."}
                   placeholder={creating === "folder" ? "Clientes, Interno, 2026" : "Indicações, Licitações, Loja"}
-                  onSubmit={creating === "folder" ? createFolder : createFunnel}
+                  onSubmit={createFolder}
                 />
               )}
             </div>

@@ -25,7 +25,7 @@ import { callAction } from "@/lib/action";
 
 export type ClientMenuProps = {
   /** Só o que o leque usa: a ficha inteira serve, mas o cartão da listagem não precisa carregá-la. */
-  client: Pick<Client, "id" | "name" | "phone" | "active" | "favorite"> & { avatarUrl?: string | null; email?: string | null };
+  client: Pick<Client, "id" | "kind" | "name" | "phone" | "active" | "favorite"> & { avatarUrl?: string | null; email?: string | null };
   /** Abre a ficha no lugar, sem navegar: a listagem abre a gaveta, o painel deixa o endereço fazer. */
   onView?: () => void;
   /** Abre a edição no lugar, sem navegar, pelo mesmo motivo. */
@@ -35,10 +35,10 @@ export type ClientMenuProps = {
 };
 
 /** Gerar documento a partir do cadastro é do plano Pro (`client_documents` em `plan_entitlements`). */
-const DOCUMENTS_PLAN = "pro";
+const DOCUMENTS_PLAN = "pro" as const;
 
 /** O mapa de relação também (`relation_map`), e a ação confere de novo no servidor. */
-const MAP_PLAN = "pro";
+const MAP_PLAN = "pro" as const;
 
 /* As duas janelas chegam só quando alguém as abre. O mapa carrega o React Flow inteiro, e o leque aparece em
    seis telas, o painel entre elas: trazer o motor de fluxo na carga do painel seria pagar o desenho do mapa
@@ -64,6 +64,8 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
   const [map, setMap] = useState<"never" | "open" | "closed">("never");
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const supplierOnly = client.kind === "supplier";
+  const noun = supplierOnly ? "fornecedor" : "cliente";
 
   /* O interruptor vira na hora e a gravação vem atrás: é um sim ou não, e esperar o servidor para a chave
      mexer faria o leque parecer travado. Se o servidor recusa, a chave volta e o aviso diz por quê. */
@@ -91,7 +93,7 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
       return;
     }
 
-    toast({ title: "Cliente excluído", description: `${client.name} saiu da base.`, tone: "success" });
+    toast({ title: `${supplierOnly ? "Fornecedor" : "Cliente"} excluído`, description: `${client.name} saiu da base.`, tone: "success" });
     onDeleted?.();
   };
 
@@ -107,7 +109,7 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
           : { id: "edit", label: "Editar", icon: PencilSimpleIcon, href: `/clientes/${client.id}` as Route },
       ],
     },
-    {
+    ...(!supplierOnly ? [{
       id: "documents",
       label: "Criar documento",
       items: [
@@ -135,8 +137,15 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
           submenu: true,
           plan: DOCUMENTS_PLAN,
         },
+        ...(client.kind === "both"
+          ? [{ id: "expense", label: "Gerar despesa", icon: HandCoinsIcon, href: `/despesas/nova?fornecedor=${client.id}` as Route, submenu: true }]
+          : []),
       ],
-    },
+    }] : [{
+      id: "documents",
+      label: "Financeiro",
+      items: [{ id: "expense", label: "Gerar despesa", icon: HandCoinsIcon, href: `/despesas/nova?fornecedor=${client.id}` as Route, submenu: true }],
+    }]),
     ...(client.phone
       ? [{ id: "contact", label: "Contato", items: [{ id: "whatsapp", label: "Chamar no WhatsApp", icon: WhatsappLogoIcon, href: `https://wa.me/55${client.phone}` as const, submenu: true }] }]
       : []),
@@ -173,8 +182,8 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
       <ConfirmDialog
         open={confirming}
         pending={deleting}
-        title="Excluir este cliente?"
-        description={`${client.name} sai da base com os orçamentos e projetos ligados. Isso não pode ser desfeito.`}
+        title={`Excluir este ${noun}?`}
+        description={`${client.name} sai da base com os registros financeiros ligados. Isso não pode ser desfeito.`}
         faces={[{ id: client.id, name: client.name, avatarUrl: client.avatarUrl ?? null, seed: client.email ?? undefined }]}
         onClose={() => setConfirming(false)}
         onConfirm={remove}

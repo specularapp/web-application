@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 /**
  * Uma ação secundária da barra, só em glifo: é o que o editor de orçamento pendura ao lado de salvar depois
@@ -72,7 +72,7 @@ type ContextValue = {
   runExtra: (index: number) => void;
   runCancel: () => void;
   goToPage: (page: number) => void;
-  register: (actions: FloatingActions | null, depth?: number) => void;
+  register: (actions: FloatingActions | null, depth: number, owner: string) => void;
   registerPager: (pager: FloatingPager | null) => void;
 };
 
@@ -137,16 +137,21 @@ export function FloatingActionsProvider({ children }: { children: ReactNode }) {
    * registrar de novo. É o que faz fechar a bandeja de anexo devolver a barra à ficha da tarefa no mesmo
    * instante.
    */
-  const byDepth = useRef(new Map<number, FloatingActions>());
+  const registrations = useRef(new Map<string, { depth: number; actions: FloatingActions }>());
 
-  const register = useCallback((actions: FloatingActions | null, from = 0) => {
-    const map = byDepth.current;
-    if (actions) map.set(from, actions);
-    else map.delete(from);
+  const register = useCallback((actions: FloatingActions | null, depth: number, owner: string) => {
+    const map = registrations.current;
+    if (actions) map.set(owner, { depth, actions });
+    else map.delete(owner);
 
-    /* Quem responde é sempre a camada mais alta que tem algo pendurado. */
-    const top = map.size === 0 ? null : Math.max(...map.keys());
-    const winner = top === null ? null : (map.get(top) ?? null);
+    let top = -1;
+    let winner: FloatingActions | null = null;
+    for (const registration of map.values()) {
+      if (registration.depth >= top) {
+        top = registration.depth;
+        winner = registration.actions;
+      }
+    }
     handlers.current = winner;
     const next = shapeOf(winner);
     setShape((current) => (sameShape(current, next) ? current : next));
@@ -203,15 +208,16 @@ export function useFloatingActions() {
  * em volta do conteúdo dela, e o provider só aceita quem está na mesma altura ou acima da que já mandava.
  */
 export function useFloatingActionsRegistration(actions: FloatingActions | null) {
+  const owner = useId();
   const context = useContext(FloatingActionsContext);
   const depth = useContext(FloatingDepthContext);
   const register = context?.register;
 
   useEffect(() => {
-    register?.(actions, depth);
+    register?.(actions, depth, owner);
   });
 
-  useEffect(() => () => register?.(null, depth), [register, depth]);
+  useEffect(() => () => register?.(null, depth, owner), [register, depth, owner]);
 }
 
 const FloatingDepthContext = createContext(0);

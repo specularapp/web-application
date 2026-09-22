@@ -8,6 +8,7 @@ import {
   FileTextIcon,
   FlagIcon,
   FolderIcon,
+  FolderOpenIcon,
   HashIcon,
   ImageIcon,
   KanbanIcon,
@@ -17,6 +18,7 @@ import {
   PlusIcon,
   StopIcon,
   TagIcon,
+  TrayIcon,
   TimerIcon,
   UserCircleIcon,
   UsersIcon,
@@ -54,23 +56,30 @@ import { RecordHoverCard } from "@/features/records/components/record-hover-card
 import { RecordMediaView } from "@/features/records/components/record-media";
 import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord } from "@/features/records/records";
+import { useToast } from "@/components/providers/toast-provider";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { slugify } from "@/lib/utils/slug";
 import { cx } from "@/lib/utils/cx";
+import { saveTaskAction } from "../actions";
 import { acceptAny, acceptDocuments, acceptImages, attachmentOf } from "../files";
 import { DAY_MINUTES, dueOf, estimateLabel, peopleLabel, priorityHues, priorityLabels, priorityTones } from "../labels";
 import { linkKindValues, taskLinkKinds } from "../links";
-import { defaultStages, taskStageMeta, type TaskStage } from "../stages";
+import { stageGlyphs, stageHue, type TaskStage } from "../stages";
 import { tagHue, taskTagCatalog } from "../tags";
 import type { Task, TaskAttachment, TaskAudio, TaskEvent, TaskLink, TaskMention, TaskPerson, TaskPriority } from "../summary";
 import { AttachmentCard } from "./attachment-card";
 import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "./chat-audio";
 import { Subtasks } from "./subtasks";
 import { AttachmentDialog, LinkDialog } from "./task-add-dialogs";
+import { TaskDescription } from "./task-description";
 import { TaskMenu } from "./task-menu";
 import sheet from "./task-sheet.module.css";
 import frame from "./task-dialog.module.css";
+
+/** Um projeto que a tarefa pode ter, como o leque da ficha o oferece. */
+export type TaskProjectOption = { id: string; name: string; reference: string; slug: string };
 
 export type TaskDialogProps = {
   /** A tarefa aberta; nula mantém a janela montada e fechada, para a saída animar. */
@@ -83,6 +92,8 @@ export type TaskDialogProps = {
   team?: TaskPerson[];
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
+  /** Os projetos para onde a tarefa pode ir; vazio esconde o campo, que é o caso do quadro de um projeto. */
+  projects?: TaskProjectOption[];
   /**
    * Avisa o quadro de que a etapa mudou aqui dentro (2026-09-11): sem isto a troca ficava só no rascunho da
    * ficha e a tarefa voltava para a coluna de origem ao fechar, o que no celular é o **único** caminho de
@@ -93,6 +104,9 @@ export type TaskDialogProps = {
 
 /** Quantos rostos a fila de envolvidos mostra antes de resumir o resto em "+N". */
 const SHOWN_FACES = 4;
+
+/** Quanto a ficha espera parar de mexer antes de gravar. A mesma pausa do editor de contrato. */
+const SAVE_PAUSE = 900;
 
 /** Teto do comentário, o mesmo que um campo de texto da casa aceita sem virar documento. */
 const COMMENT_MAX = 600;
@@ -507,7 +521,7 @@ const taskTabs = [
   { id: "activity", label: "Atividade" },
 ] as const satisfies readonly { id: TaskTab; label: string }[];
 
-export function TaskDialog({ task, open, onClose, stages, team, records = [], onStageChange }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, stages, team, records = [], projects = [], onStageChange }: TaskDialogProps) {
   /**
    * Qual metade a janela mostra enquanto as duas não cabem lado a lado. Mora **aqui**, e não no miolo, porque
    * o seletor que a troca flutua acima da bandeja, fora dela, e é a `Dialog` quem desenha esse lugar: dentro
@@ -539,9 +553,10 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], on
           key={task.id}
           task={task}
           onClose={onClose}
-          stages={stages ?? defaultStages}
+          stages={stages ?? [task.stage]}
           team={team ?? task.people}
           records={records}
+          projects={projects}
           onStageChange={onStageChange}
           tab={tab}
           onTabChange={setTab}
@@ -557,6 +572,7 @@ function TaskDetail({
   stages,
   team,
   records,
+  projects,
   onStageChange,
   tab,
   onTabChange,
@@ -566,11 +582,13 @@ function TaskDetail({
   stages: TaskStage[];
   team: TaskPerson[];
   records: AppRecord[];
+  projects: TaskProjectOption[];
   onStageChange?: (stage: TaskStage) => void;
   /** Qual metade está à vista; mora na janela, porque quem a troca flutua fora da bandeja. */
   tab: TaskTab;
   onTabChange: (tab: TaskTab) => void;
 }) {
+  const { toast } = useToast();
   const [draft, setDraft] = useState(task);
   const [events, setEvents] = useState<TaskEvent[]>(task.activity);
   const [comment, setComment] = useState("");
@@ -596,9 +614,59 @@ function TaskDetail({
 
   const patch = (change: Partial<Task>) => setDraft((current) => ({ ...current, ...change }));
 
+  /**
+   * A ficha grava sozinha (2026-09-22, junto de a tarefa passar a nascer já aberta). Antes ela era um
+   * rascunho que vivia só na tela: tudo o que se mexia aqui voltava ao fechar, e com a criação virando "abre
+   * a ficha e preenche" isso deixaria a tarefa nova vazia para sempre.
+   *
+   * Uma escrita só, com pausa depois da última mexida, e comparando o que foi mandado da última vez: assim
+   * trocar de responsável, escrever no título e marcar uma etiqueta em sequência viram uma ida ao servidor, e
+   * abrir a ficha sem mexer em nada não vira nenhuma.
+   */
+  const savedPayload = useRef<string | null>(null);
+  const saveTimer = useRef<number | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => () => window.clearTimeout(saveTimer.current), []);
+
+  useEffect(() => {
+    const payload = {
+      id: draft.id,
+      projectId: draft.project?.id ?? null,
+      title: draft.title,
+      description: draft.descriptionDoc,
+      dueDate: draft.dueDate,
+      startDate: draft.startDate ?? "",
+      estimate: draft.estimate ?? null,
+      stageId: draft.stage.id,
+      priority: draft.priority,
+      ownerId: draft.owner.id ?? null,
+      tags: draft.tags,
+      alert: draft.alert ?? "",
+    };
+    const key = JSON.stringify(payload);
+
+    /* A primeira passada é a tarefa como ela veio do servidor: nada a gravar. */
+    if (savedPayload.current === null) {
+      savedPayload.current = key;
+      return;
+    }
+    if (savedPayload.current === key) return;
+
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      savedPayload.current = key;
+      setSaving(true);
+      void callAction(saveTaskAction(payload)).then((result) => {
+        setSaving(false);
+        if (!result.ok) toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
+      });
+    }, SAVE_PAUSE);
+  }, [draft, toast]);
+
   const due = dueOf(draft);
-  const stage = taskStageMeta[draft.stage];
-  const StageGlyph = stage.icon;
+  const stage = draft.stage;
+  const StageGlyph = stageGlyphs[stage.glyph];
   const faces = draft.people.slice(0, SHOWN_FACES);
   const restFaces = draft.people.length - faces.length;
   const { names, rest } = peopleLabel(draft.people, 40);
@@ -653,13 +721,13 @@ function TaskDetail({
       id: "stage",
       label: "Etapa",
       items: stages.map((id) => {
-        const meta = taskStageMeta[id];
-        const Glyph = meta.icon;
+        const meta = id;
+        const Glyph = stageGlyphs[meta.glyph];
         return {
-          id: `stage-${id}`,
-          label: meta.label,
-          media: <Glyph weight="bold" style={{ color: meta.hue } as CSSProperties} />,
-          selected: draft.stage === id,
+          id: `stage-${id.id}`,
+          label: meta.name,
+          media: <Glyph weight="bold" style={{ color: stageHue(meta) } as CSSProperties} />,
+          selected: draft.stage.id === id.id,
           onSelect: () => {
             patch({ stage: id });
             onStageChange?.(id);
@@ -694,6 +762,30 @@ function TaskDetail({
         selected: draft.priority === priority,
         onSelect: () => patch({ priority }),
       })),
+    },
+  ];
+
+  /* O projeto a que a tarefa pertence: os do quadro mais "Sem projeto", que é o balde das soltas. */
+  const projectSections: DropdownSection[] = [
+    {
+      id: "project",
+      label: "Projeto",
+      items: [
+        {
+          id: "project-none",
+          label: "Sem projeto",
+          icon: TrayIcon,
+          selected: !draft.project,
+          onSelect: () => patch({ project: undefined }),
+        },
+        ...projects.map((project) => ({
+          id: `project-${project.id}`,
+          label: project.name,
+          icon: FolderOpenIcon,
+          selected: draft.project?.id === project.id,
+          onSelect: () => patch({ project: { id: project.id, name: project.name, reference: project.reference, slug: project.slug } }),
+        })),
+      ],
     },
   ];
 
@@ -910,7 +1002,8 @@ function TaskDetail({
               label: stage.kind === "done" ? "Reabrir" : "Concluir",
               icon: <CheckCircleIcon weight="bold" />,
               onClick: () => {
-                const next: TaskStage = stage.kind === "done" ? "doing" : "done";
+                const next = stages.find((entry) => stage.kind === "done" ? entry.kind !== "done" : entry.kind === "done");
+                if (!next) return;
                 patch({ stage: next });
                 onStageChange?.(next);
               },
@@ -988,11 +1081,11 @@ function TaskDetail({
             <Property icon={KanbanIcon} label="Etapa">
               <DropdownMenu
                 label="Etapa da tarefa"
-                triggerLabel={`Etapa: ${stage.label}. Escolher outra`}
+                triggerLabel={`Etapa: ${stage.name}. Escolher outra`}
                 sections={stageSections}
                 triggerContent={
-                  <Badge size="md" hue={stage.hue} icon={<StageGlyph />}>
-                    {stage.label}
+                  <Badge size="md" hue={stageHue(stage)} icon={<StageGlyph />}>
+                    {stage.name}
                   </Badge>
                 }
               />
@@ -1019,6 +1112,27 @@ function TaskDetail({
                 }
               />
             </Property>
+
+            {/* O projeto é escolhido aqui desde 2026-09-22: com a tarefa nascendo já aberta, o quadro de
+                todas cria tarefa solta, e sem este campo ela ficaria no balde para sempre. */}
+            {projects.length > 0 && (
+              <Property icon={FolderOpenIcon} label="Projeto">
+                <DropdownMenu
+                  label="Projeto da tarefa"
+                  triggerLabel={`Projeto: ${draft.project?.name ?? "Sem projeto"}. Escolher outro`}
+                  sections={projectSections}
+                  triggerContent={
+                    draft.project ? (
+                      <Text as="span" variant="subheadline" weight="medium" truncate>
+                        {draft.project.name}
+                      </Text>
+                    ) : (
+                      <Empty />
+                    )
+                  }
+                />
+              </Property>
+            )}
 
             <Property icon={CalendarBlankIcon} label="Prazo">
               {/* A data por extenso continua sendo o valor, e o calendário abre no clique dela. A etiqueta
@@ -1127,13 +1241,14 @@ function TaskDetail({
                 Descrição
               </Text>
             </div>
-            <InlineText
-              value={draft.description}
-              onChange={(description) => patch({ description })}
-              label="Descrição da tarefa"
-              as="p"
-              variant="callout"
-              tone="secondary"
+            {/* A descrição é documento desde 2026-09-22: títulos, listas, caixas de marcar, citação, código
+                e imagens. É a única parte da ficha que grava sozinha no banco, porque texto longo não se
+                escreve apertando salvar a cada parágrafo. */}
+            <TaskDescription
+              taskId={draft.id}
+              value={draft.descriptionDoc}
+              saving={saving}
+              onChange={(descriptionDoc) => patch({ descriptionDoc })}
             />
           </section>
 

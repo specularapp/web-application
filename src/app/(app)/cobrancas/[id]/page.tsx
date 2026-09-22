@@ -43,9 +43,10 @@ export default async function ChargePage({ params, searchParams }: PageProps<"/c
     },
     defaultChargesPageSize(view, gridSize),
   );
+  query.direction = "incoming";
 
   const [charge, data, ai] = await Promise.all([getChargeById(id), loadChargesScreenData(), getAiUsageData()]);
-  if (!charge) notFound();
+  if (!charge || charge.direction !== "incoming") notFound();
 
-  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} viewing={charge} />;
+  return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} direction="incoming" viewing={charge} />;
 }

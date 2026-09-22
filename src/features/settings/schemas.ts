@@ -17,9 +17,16 @@ export type SaveAccountInput = z.infer<typeof saveAccountSchema>;
 
 export const avatarContentTypeSchema = z.enum(["image/png", "image/jpeg", "image/webp"]);
 
-export const avatarUploadSchema = z.object({ contentType: avatarContentTypeSchema });
+/** As duas imagens da pessoa: o rosto e a capa larga atrás dele. Sobem para o mesmo balde, na pasta dela. */
+export const userImageKindSchema = z.enum(["avatar", "cover"]);
 
-export const avatarAttachSchema = z.object({ path: z.string().trim().min(1).max(500) });
+export type UserImageKind = z.infer<typeof userImageKindSchema>;
+
+export const avatarUploadSchema = z.object({ contentType: avatarContentTypeSchema, kind: userImageKindSchema.default("avatar") });
+
+export const avatarAttachSchema = z.object({ path: z.string().trim().min(1).max(500), kind: userImageKindSchema.default("avatar") });
+
+export const userImageClearSchema = z.object({ kind: userImageKindSchema });
 
 export const changePasswordSchema = z.object({ password: passwordSchema });
 
@@ -54,6 +61,13 @@ export const saveResumeSchema = z.object({
 });
 
 export type SaveResumeInput = z.infer<typeof saveResumeSchema>;
+
+/** O que a API do perfil aceita de uma vez: a conta, o currículo, ou os dois. */
+export const saveProfileSchema = z
+  .object({ account: saveAccountSchema.optional(), resume: saveResumeSchema.optional() })
+  .refine((value) => value.account || value.resume, "Nada para salvar");
+
+export type SaveProfileInput = z.infer<typeof saveProfileSchema>;
 
 /** Um nome de domínio, sem protocolo nem caminho: `portfolio.estudio.com.br`. */
 export const customDomainSchema = z.object({

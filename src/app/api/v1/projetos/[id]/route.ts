@@ -4,7 +4,7 @@
  * carrega o JWT de quem pediu.
  */
 import { deleteProject, getProjectDetails } from "@/features/projects/service";
-import { authorizeDomain, fromResult } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation } from "@/lib/api/domain";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authorizeDomain(request, "project-read");
@@ -22,5 +22,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if ("response" in auth) return auth.response;
 
   const { id } = await params;
-  return fromResult(await deleteProject(auth.session.supabase, auth.session.organizationId, id));
+  return fromMutation(await deleteProject(auth.session.supabase, auth.session.organizationId, id), auth.session.organizationId, ["projects"]);
 }

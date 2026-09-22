@@ -6,19 +6,15 @@ import {
   CalendarBlankIcon,
   CalendarCheckIcon,
   CheckIcon,
-  ClockCountdownIcon,
-  ClockCounterClockwiseIcon,
-  ClockIcon,
   CopySimpleIcon,
   CurrencyCircleDollarIcon,
   CursorClickIcon,
   EnvelopeSimpleIcon,
-  FunnelSimpleIcon,
   GlobeSimpleIcon,
   HashIcon,
   HourglassIcon,
-  IdentificationCardIcon,
   ImageSquareIcon,
+  KanbanIcon,
   LinkSimpleIcon,
   MapPinIcon,
   MegaphoneIcon,
@@ -30,22 +26,48 @@ import {
   ThermometerIcon,
   UserCircleIcon,
   UserIcon,
+  UsersIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  type DropdownSection,
+} from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { ProfileFact, ProfileFacts, ProfileList, ProfileRow, ProfileSection, ProfileTags } from "@/components/ui/profile";
+import {
+  ProfileFact,
+  ProfileFacts,
+  ProfileList,
+  ProfileRow,
+  ProfileSection,
+  ProfileTags,
+} from "@/components/ui/profile";
 import { Progress } from "@/components/ui/progress";
 import { SheetSwitcher } from "@/components/ui/sheet-switcher";
+import { tagSections } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
+import { callAction } from "@/lib/action";
 import { squircle } from "@/lib/corners";
+import { onlyDigits } from "@/lib/masks";
 import { compactMoney, formatMoney } from "@/lib/utils/format";
+import { saveOpportunityAction } from "../actions";
+import { opportunityFormValues } from "../form-values";
 import {
   crmStatusLabels,
   crmStatusTones,
@@ -56,143 +78,509 @@ import {
   sourceLabels,
   stageMinutes,
   statusOf,
-  stepDate,
   temperatureLabels,
   temperatureTones,
   touchLabel,
 } from "../labels";
-import { crmStageMeta, type CrmStage } from "../stages";
-import type { CrmPerson, Opportunity } from "../summary";
+import {
+  MAX_TAGS,
+  opportunityLimits,
+  temperatureValues,
+  type OpportunityFormInput,
+} from "../schemas";
+import type { CrmStage } from "../stages";
+import {
+  opportunitySourceValues,
+  type CrmClientOption,
+  type CrmPerson,
+  type Opportunity,
+} from "../summary";
+import { opportunityTagCatalog } from "../tags";
+import type { CrmFunnel } from "../tree";
 import { OpportunityMenu } from "./opportunity-menu";
+import { SourceMark } from "./source-mark";
+import { useCrmStages } from "./stage-context";
 import styles from "./opportunity-dialog.module.css";
 
 export type OpportunityDialogProps = {
-  /** A oportunidade aberta; nulo mantém a janela montada e fechada, para a saída animar. */
   opportunity: Opportunity | null;
   open: boolean;
   onClose: () => void;
-  /** As etapas do funil onde ela está: são elas que o caminho desenha e que o "Mover para" oferece. */
   stages: CrmStage[];
-  team?: CrmPerson[];
-  onStageChange?: (stage: CrmStage) => void;
+  team: CrmPerson[];
+  clients: CrmClientOption[];
+  funnels: CrmFunnel[];
+  onSaved: (opportunity: Opportunity) => void;
 };
 
-/** Qual metade da janela está à vista no celular, onde as duas não cabem lado a lado. */
 type OpportunityTab = "details" | "stage";
 
-const opportunityTabs = [
+const tabs = [
   { id: "details", label: "Informações" },
   { id: "stage", label: "Caminho" },
-] as const satisfies readonly { id: OpportunityTab; label: string }[];
+] as const;
+const NONE = "__none";
+const SAVE_PAUSE = 900;
+const toDate = (value: string) =>
+  value ? new Date(`${value}T12:00:00`) : undefined;
+const toDay = (value?: Date) =>
+  value
+    ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+    : "";
 
-// A ficha da oportunidade (2026-09-15): é aqui que o funil se separa do quadro de tarefas. A tarefa aberta
-// pergunta "o que falta fazer"; a venda aberta pergunta **"quanto vale, qual a chance e qual é o próximo
-// passo"**, então a ficha abre pelo dinheiro em vez de abrir pela lista de trabalho.
-//
-// A moldura é a de trabalho da casa, a `Dialog` `xl` centrada, a mesma do editor de orçamento, da ficha da
-// tarefa e da janela do projeto. À esquerda a informação: quem está do outro lado, os três números da venda,
-// o próximo passo, o que foi combinado e os detalhes. À direita o **caminho no funil**, que é a lista das
-// etapas deste funil com a atual marcada, e onde se anda de etapa com um clique, mais a equipe.
-//
-// No celular a janela segue a ficha da tarefa e a do projeto: a bandeja mostra uma metade por vez, trocadas
-// pelo seletor que flutua acima dela, e toda abertura começa em Informações, porque a janela é uma só para o
-// quadro inteiro.
-export function OpportunityDialog({ opportunity, open, onClose, stages, team, onStageChange }: OpportunityDialogProps) {
+function Empty({ children = "Vazio" }: { children?: ReactNode }) {
+  return (
+    <Text
+      as="span"
+      variant="subheadline"
+      className={styles.empty}
+      truncate
+    >
+      {children}
+    </Text>
+  );
+}
+
+function FactText({ children }: { children: string }) {
+  return (
+    <Text
+      as="span"
+      variant="subheadline"
+      className={styles.factText}
+      title={children}
+      truncate
+    >
+      {children}
+    </Text>
+  );
+}
+
+function InlineText({
+  value,
+  display,
+  onChange,
+  label,
+  as = "span",
+  variant = "subheadline",
+  weight,
+  tone,
+  placeholder = "Vazio",
+  maxLength = 2000,
+}: {
+  value: string;
+  display?: string;
+  onChange: (value: string) => void;
+  label: string;
+  as?: "h2" | "p" | "span";
+  variant?: "title2" | "title3" | "callout" | "subheadline";
+  weight?: "medium" | "semibold";
+  tone?: "secondary";
+  placeholder?: string;
+  maxLength?: number;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [seen, setSeen] = useState(value);
+  const field = useRef<HTMLTextAreaElement>(null);
+
+  if (seen !== value) {
+    setSeen(value);
+    setDraft(value);
+  }
+
+  const fit = (node: HTMLTextAreaElement) => {
+    node.style.height = "auto";
+    node.style.height = `${node.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    const node = field.current;
+    if (!editing || !node) return;
+    node.focus({ preventScroll: true });
+    node.setSelectionRange(node.value.length, node.value.length);
+    fit(node);
+  }, [editing]);
+
+  const save = () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (next !== value) onChange(next);
+    else setDraft(value);
+  };
+
+  return (
+    <Text
+      as={as}
+      variant={variant}
+      weight={weight}
+      tone={tone}
+      className={styles.inline}
+    >
+      {editing ? (
+        <textarea
+          ref={field}
+          className={styles.inlineField}
+          value={draft}
+          rows={1}
+          maxLength={maxLength}
+          aria-label={label}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            fit(event.target);
+          }}
+          onBlur={save}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setDraft(value);
+              setEditing(false);
+            }
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      ) : (
+        <span
+          role="button"
+          tabIndex={0}
+          className={styles.inlineValue}
+          data-empty={!value || undefined}
+          aria-label={`${label}. Editar`}
+          onClick={() => setEditing(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setEditing(true);
+            }
+          }}
+        >
+          {display || value || placeholder}
+        </span>
+      )}
+    </Text>
+  );
+}
+
+function IdentityChoice({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+}) {
+  return (
+    <span className={styles.personChoice}>
+      <Avatar name={name} src={avatarUrl ?? undefined} size="xs" />
+      <Text as="span" variant="subheadline" weight="medium" truncate>
+        {name}
+      </Text>
+    </span>
+  );
+}
+
+function Person({ person }: { person?: CrmPerson }) {
+  if (!person) return <Empty>Sem responsável</Empty>;
+  return <IdentityChoice name={person.name} avatarUrl={person.avatarUrl} />;
+}
+
+export function OpportunityDialog(props: OpportunityDialogProps) {
   const [tab, setTab] = useState<OpportunityTab>("details");
-  const [seen, setSeen] = useState(opportunity?.id);
-  if (opportunity && opportunity.id !== seen) {
-    setSeen(opportunity.id);
+  const [seen, setSeen] = useState(props.opportunity?.id);
+  const closingRef = useRef(false);
+  const flushRef = useRef<(() => Promise<boolean>) | null>(null);
+
+  if (props.opportunity?.id !== seen) {
+    setSeen(props.opportunity?.id);
     setTab("details");
   }
 
+  const close = async () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    const saved = (await flushRef.current?.()) ?? true;
+    closingRef.current = false;
+    if (saved) props.onClose();
+  };
+
   return (
     <Dialog
-      open={open}
-      onClose={onClose}
-      label={opportunity ? `Oportunidade ${opportunity.title}` : "Oportunidade"}
+      open={props.open}
+      onClose={() => void close()}
+      label={
+        props.opportunity
+          ? `Oportunidade ${props.opportunity.reference}`
+          : "Oportunidade"
+      }
       size="xl"
       focusOnOpen={false}
-      above={opportunity && <SheetSwitcher label="O que ver da oportunidade" options={opportunityTabs} value={tab} onChange={setTab} />}
+      above={
+        props.opportunity && (
+          <SheetSwitcher
+            label="O que ver da oportunidade"
+            options={tabs}
+            value={tab}
+            onChange={setTab}
+          />
+        )
+      }
     >
-      {opportunity && (
+      {props.opportunity && (
         <OpportunityDetail
-          key={opportunity.id}
-          opportunity={opportunity}
+          key={props.opportunity.id}
+          {...props}
+          opportunity={props.opportunity}
+          onClose={() => void close()}
           tab={tab}
-          stages={stages}
-          team={team}
-          onClose={onClose}
-          onStageChange={onStageChange}
+          flushRef={flushRef}
         />
       )}
     </Dialog>
   );
 }
 
-/**
- * O valor de um fato que pode não existir: o travessão no lugar dele, na tinta apagada. Vazio some seria o
- * padrão da casa numa ficha curta; aqui não, porque numa venda o campo em branco é o que falta preencher.
- *
- * `mono` para identificador de clique e de anúncio, que é código de máquina: em fonte proporcional, um
- * `Cj0KCQjw` é impossível de conferir contra o que está na plataforma.
- */
-function Value({ children, mono }: { children?: ReactNode; mono?: boolean }) {
-  if (children === undefined || children === null || children === "" || children === false) {
-    return (
-      <Text as="span" variant="subheadline" tone="tertiary">
-        —
-      </Text>
-    );
-  }
-
-  return (
-    <Text as="span" variant="subheadline" font={mono ? "code" : undefined} className={mono ? styles.mono : undefined}>
-      {children}
-    </Text>
-  );
-}
-
 function OpportunityDetail({
   opportunity,
-  tab,
   stages,
+  funnels,
+  clients,
   team,
   onClose,
-  onStageChange,
-}: {
+  onSaved,
+  tab,
+  flushRef,
+}: OpportunityDialogProps & {
   opportunity: Opportunity;
   tab: OpportunityTab;
-  stages: CrmStage[];
-  team?: CrmPerson[];
-  onClose: () => void;
-  onStageChange?: (stage: CrmStage) => void;
+  flushRef: RefObject<(() => Promise<boolean>) | null>;
 }) {
-  const status = statusOf(opportunity);
-  const stage = crmStageMeta[opportunity.stage];
-  const Glyph = stage.icon;
-  /* O previsto ponderado: o valor vezes a chance. É o número que o funil responde de verdade, porque somar o
-     valor cheio conta como certo o que ainda é conversa. */
-  const weighted = Math.round((opportunity.value * opportunity.probability) / 100);
-  const at = stages.indexOf(opportunity.stage);
-  /* A próxima etapa do caminho deste funil, pulando os dois desfechos: avançar é andar na venda, e fechar
-     ganhando ou perdendo é decisão à parte, que mora no leque. */
-  const ahead = stages.filter((id) => crmStageMeta[id].kind === "open");
-  const next = ahead[ahead.indexOf(opportunity.stage) + 1];
-  const people = opportunity.people.length > 0 ? opportunity.people : team ?? [opportunity.owner];
-  const link = opportunityLink(opportunity);
+  const initial = opportunityFormValues(opportunity, funnels);
+  const [values, setValues] = useState<OpportunityFormInput>(initial);
+  const valuesRef = useRef(values);
+  const savedPayload = useRef(JSON.stringify(initial));
+  const saveTimer = useRef<number | undefined>(undefined);
+  const saveChain = useRef<Promise<boolean>>(Promise.resolve(true));
+  const [saving, setSaving] = useState(false);
+  const meta = useCrmStages();
   const { toast } = useToast();
+
+  const persist = useCallback(
+    (next: OpportunityFormInput) => {
+      const key = JSON.stringify(next);
+      const run = async () => {
+        if (key === savedPayload.current) return true;
+        setSaving(true);
+        const result = await callAction(saveOpportunityAction(next));
+        setSaving(false);
+        if (!result.ok) {
+          toast({
+            title: "Não deu para salvar",
+            description: result.error,
+            tone: "danger",
+          });
+          return false;
+        }
+
+        savedPayload.current = key;
+        onSaved(result.opportunity);
+        if (JSON.stringify(valuesRef.current) === key) {
+          const normalized = opportunityFormValues(result.opportunity, funnels);
+          valuesRef.current = normalized;
+          setValues(normalized);
+          savedPayload.current = JSON.stringify(normalized);
+        }
+        return true;
+      };
+      saveChain.current = saveChain.current.then(run, run);
+      return saveChain.current;
+    },
+    [funnels, onSaved, toast],
+  );
+
+  useEffect(() => {
+    const key = JSON.stringify(values);
+    if (key === savedPayload.current) return;
+    if (Boolean(values.nextStepLabel) !== Boolean(values.nextStepAt)) return;
+
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(
+      () => void persist(values),
+      SAVE_PAUSE,
+    );
+    return () => window.clearTimeout(saveTimer.current);
+  }, [persist, values]);
+
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
+  useEffect(() => {
+    flushRef.current = async () => {
+      window.clearTimeout(saveTimer.current);
+      return persist(valuesRef.current);
+    };
+
+    return () => {
+      window.clearTimeout(saveTimer.current);
+      flushRef.current = null;
+    };
+  }, [flushRef, persist]);
+
+  const change = (patch: Partial<OpportunityFormInput>) =>
+    setValues((current) => {
+      const next = { ...current, ...patch };
+      valuesRef.current = next;
+      return next;
+    });
+  const changeAndSave = (patch: Partial<OpportunityFormInput>) => {
+    const next = { ...valuesRef.current, ...patch };
+    valuesRef.current = next;
+    setValues(next);
+    window.clearTimeout(saveTimer.current);
+    void persist(next);
+  };
+
+  const funnel = funnels.find((entry) => entry.id === values.funnelId);
+  const availableStages = funnel?.stages ?? stages;
+  const at = Math.max(0, availableStages.indexOf(values.stage));
+  const stage = meta[values.stage];
+  const StageGlyph = stage.icon;
+  const view = { ...opportunity, stage: values.stage };
+  const status = statusOf(view);
+  const weighted = Math.round((values.value * values.probability) / 100);
+  const next = availableStages
+    .slice(at + 1)
+    .find((id) => meta[id]?.kind === "open");
+  const selectedClient = clients.find((entry) => entry.id === values.clientId);
+  const owner = team.find((person) => person.id === values.ownerId);
+  const involved = team.filter((person) =>
+    values.peopleIds.includes(person.id),
+  );
+  const people = [owner, ...involved].filter(
+    (person, index, list): person is CrmPerson =>
+      Boolean(person) &&
+      list.findIndex((entry) => entry?.id === person?.id) === index,
+  );
+  const link = opportunityLink(opportunity);
+
+  const chooseClient = (id: string) => {
+    const client = clients.find((entry) => entry.id === id);
+    change(
+      client
+        ? {
+            clientId: client.id,
+            clientName: client.name,
+            clientCompany: client.company ?? "",
+            contactName: client.name,
+            contactEmail: client.email ?? "",
+            contactPhone: client.phone ?? "",
+            city: client.city ?? "",
+          }
+        : { clientId: null },
+    );
+  };
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${link}`);
-      toast({ title: "Link copiado", description: "Mande para quem precisa abrir esta oportunidade.", tone: "success" });
+      toast({
+        title: "Link copiado",
+        description: "O endereço abre esta oportunidade pelo código.",
+        tone: "success",
+      });
     } catch {
-      toast({ title: "Não deu para copiar", description: link, tone: "warning" });
+      toast({
+        title: "Não deu para copiar",
+        description: link,
+        tone: "warning",
+      });
     }
   };
 
+  const stageSections: DropdownSection[] = [
+    {
+      id: "stage",
+      label: "Etapa",
+      items: availableStages.map((id) => {
+        const item = meta[id];
+        const Glyph = item.icon;
+        return {
+          id: `stage-${id}`,
+          label: item.label,
+          media: (
+            <Glyph weight="bold" style={{ color: item.hue } as CSSProperties} />
+          ),
+          selected: values.stage === id,
+          onSelect: () => changeAndSave({ stage: id }),
+        };
+      }),
+    },
+  ];
+
+  const ownerSections: DropdownSection[] = [
+    {
+      id: "owner",
+      label: "Responsável",
+      items: [
+        {
+          id: "owner-none",
+          label: "Sem responsável",
+          icon: UserCircleIcon,
+          selected: !values.ownerId,
+          onSelect: () => change({ ownerId: null }),
+        },
+        ...team.map((person) => ({
+          id: `owner-${person.id}`,
+          label: person.name,
+          media: (
+            <Avatar
+              name={person.name}
+              src={person.avatarUrl ?? undefined}
+              size="xs"
+            />
+          ),
+          selected: values.ownerId === person.id,
+          onSelect: () => change({ ownerId: person.id }),
+        })),
+      ],
+    },
+  ];
+
+  const peopleSections: DropdownSection[] = [
+    {
+      id: "people",
+      label: "Envolvidos",
+      items: team.map((person) => ({
+        kind: "toggle" as const,
+        id: `person-${person.id}`,
+        label: person.name,
+        media: (
+          <Avatar
+            name={person.name}
+            src={person.avatarUrl ?? undefined}
+            size="xs"
+          />
+        ),
+        checked: values.peopleIds.includes(person.id),
+        onChange: (checked: boolean) =>
+          change({
+            peopleIds: checked
+              ? [...values.peopleIds, person.id]
+              : values.peopleIds.filter((id) => id !== person.id),
+          }),
+      })),
+    },
+  ];
+
   useFloatingActionsRegistration({
-    primary: next && onStageChange ? { label: `Avançar para ${crmStageMeta[next].label}`, icon: <ArrowRightIcon weight="bold" />, onClick: () => onStageChange(next) } : undefined,
+    primary: next
+      ? {
+          label: `Avançar para ${meta[next].label}`,
+          icon: <ArrowRightIcon weight="bold" />,
+          loading: saving,
+          onClick: () => changeAndSave({ stage: next }),
+        }
+      : undefined,
     cancel: { label: "Fechar oportunidade", onClick: onClose },
   });
 
@@ -200,264 +588,544 @@ function OpportunityDetail({
     <div className={styles.dialog} data-tab={tab}>
       <header className={styles.head}>
         <div className={styles.route}>
-          <FunnelSimpleIcon aria-hidden="true" />
+          <KanbanIcon aria-hidden="true" />
           <Text as="span" variant="caption1" tone="secondary" truncate>
-            {opportunity.funnel?.name ?? "Sem funil"}
+            {funnel?.name ?? opportunity.funnel?.name ?? "Sem funil"}
           </Text>
-          <span className={styles.dot} aria-hidden="true">
-            ·
-          </span>
-          <Text as="span" variant="caption1" tone="tertiary" numeric>
+          <ArrowRightIcon aria-hidden="true" />
+          <Badge
+            tone="neutral"
+            variant="soft"
+            size="sm"
+            className={styles.reference}
+          >
             {opportunity.reference}
-          </Text>
+          </Badge>
         </div>
         <div className={styles.headTools}>
-          <OpportunityMenu opportunity={opportunity} stages={stages} onMove={onStageChange} />
-          <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
+          <OpportunityMenu
+            opportunity={view}
+            stages={availableStages}
+            onMove={(id) => changeAndSave({ stage: id })}
+          />
+          <IconButton
+            label="Fechar"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+          >
             <XIcon />
           </IconButton>
         </div>
       </header>
 
       <div className={styles.body}>
-        {/* A metade da informação: quem, quanto, e o que fazer a seguir. */}
-        <section className={styles.main} aria-label="Informações da oportunidade">
+        <section
+          className={styles.main}
+          aria-label="Informações da oportunidade"
+        >
           <div className={styles.identity}>
-            <Avatar name={opportunity.client.name} src={opportunity.client.avatarUrl ?? undefined} size="lg" />
+            <Avatar
+              name={values.clientName}
+              src={
+                selectedClient?.avatarUrl ??
+                opportunity.client.avatarUrl ??
+                undefined
+              }
+              size="lg"
+            />
             <div className={styles.naming}>
-              <Text as="h2" variant="title2" weight="semibold" className={styles.title}>
-                {opportunity.title}
-              </Text>
+              <InlineText
+                value={values.title}
+                onChange={(title) =>
+                  change({ title: title || "Nova oportunidade" })
+                }
+                label="Título da oportunidade"
+                as="h2"
+                variant="title2"
+                weight="semibold"
+                placeholder="Nova oportunidade"
+                maxLength={opportunityLimits.title}
+              />
               <div className={styles.badges}>
-                <Badge tone={crmStatusTones[status]} size="md" icon={<Glyph />}>
-                  {stage.label}
-                </Badge>
-                <Badge tone={temperatureTones[opportunity.temperature]} size="md" icon={<ThermometerIcon />}>
-                  {temperatureLabels[opportunity.temperature]}
-                </Badge>
+                <DropdownMenu
+                  label="Etapa da oportunidade"
+                  triggerLabel={`Etapa: ${stage.label}. Escolher outra`}
+                  sections={stageSections}
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    <Badge
+                      tone={crmStatusTones[status]}
+                      size="md"
+                      icon={<StageGlyph />}
+                    >
+                      {stage.label}
+                    </Badge>
+                  }
+                />
+                <DropdownMenu
+                  label="Temperatura da oportunidade"
+                  triggerLabel={`Temperatura: ${temperatureLabels[values.temperature]}. Escolher outra`}
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    <Badge
+                      tone={temperatureTones[values.temperature]}
+                      size="md"
+                      icon={<ThermometerIcon />}
+                    >
+                      {temperatureLabels[values.temperature]}
+                    </Badge>
+                  }
+                  sections={[
+                    {
+                      id: "temperature",
+                      label: "Temperatura",
+                      items: temperatureValues.map((temperature) => ({
+                        id: `temperature-${temperature}`,
+                        label: temperatureLabels[temperature],
+                        icon: ThermometerIcon,
+                        selected: values.temperature === temperature,
+                        onSelect: () => change({ temperature }),
+                      })),
+                    },
+                  ]}
+                />
                 <Badge tone="neutral" size="md">
                   {crmStatusLabels[status]}
                 </Badge>
               </div>
-              <Text as="p" variant="footnote" tone="secondary" className={styles.who}>
-                {opportunity.client.name}
-                {opportunity.client.company ? `, ${opportunity.client.company}` : ""}
-              </Text>
+              <InlineText
+                value={values.clientName}
+                onChange={(clientName) =>
+                  change({
+                    clientId: null,
+                    clientName,
+                    contactName: clientName,
+                  })
+                }
+                label="Nome do cliente"
+                as="p"
+                variant="subheadline"
+                tone="secondary"
+                placeholder="Novo lead"
+                maxLength={opportunityLimits.clientName}
+              />
             </div>
           </div>
 
-          {/* Os três números da venda, que é o que a ficha existe para responder: quanto vale, qual a chance
-              e quanto disso é previsto de verdade. A barra fica embaixo dos três, no matiz da temperatura. */}
           <div className={styles.numbers}>
             <div className={styles.number} {...squircle("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Valor
               </Text>
-              <Text as="p" variant="title3" weight="semibold" numeric title={formatMoney(opportunity.value)}>
-                {compactMoney(opportunity.value)}
-              </Text>
+              <InlineText
+                value={formatMoney(values.value)}
+                display={compactMoney(values.value)}
+                onChange={(value) =>
+                  change({ value: Number(onlyDigits(value) || 0) })
+                }
+                label="Valor da oportunidade"
+                as="p"
+                variant="title3"
+                weight="semibold"
+              />
             </div>
             <div className={styles.number} {...squircle("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Chance
               </Text>
-              <Text as="p" variant="title3" weight="semibold" numeric>
-                {opportunity.probability}%
-              </Text>
+              <InlineText
+                value={String(values.probability)}
+                display={`${values.probability}%`}
+                onChange={(value) =>
+                  change({
+                    probability: Math.min(100, Number(onlyDigits(value) || 0)),
+                  })
+                }
+                label="Chance de fechar"
+                as="p"
+                variant="title3"
+                weight="semibold"
+                maxLength={3}
+              />
             </div>
             <div className={styles.number} {...squircle("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Previsto
               </Text>
-              <Text as="p" variant="title3" weight="semibold" numeric title={formatMoney(weighted)}>
+              <Text
+                as="p"
+                variant="title3"
+                weight="semibold"
+                numeric
+                title={formatMoney(weighted)}
+                truncate
+              >
                 {compactMoney(weighted)}
               </Text>
             </div>
           </div>
 
           <Progress
-            value={opportunity.probability}
+            value={values.probability}
             max={100}
-            /* Dez degraus, um por dez por cento, como a régua de uso da IA. */
             segments={10}
             size="sm"
-            tone={opportunity.temperature === "hot" ? "success" : "accent"}
-            aria-label={`Chance de fechar: ${opportunity.probability}%`}
+            tone={values.temperature === "hot" ? "success" : "accent"}
+            aria-label={`Chance de fechar: ${values.probability}%`}
           />
 
-          {/* O próximo passo em destaque, antes de tudo: é a única coisa da ficha que tira a venda do lugar,
-              e numa lista de fatos ele viraria mais uma linha. */}
-          {opportunity.nextStep && (
-            <div className={styles.step} {...squircle("lg")}>
-              <span className={styles.stepGlyph} aria-hidden="true">
-                <SignpostIcon weight="bold" />
-              </span>
-              <div className={styles.stepText}>
-                <Text as="p" variant="caption1" tone="secondary">
-                  Próximo passo
-                </Text>
-                <Text as="p" variant="subheadline" weight="medium">
-                  {opportunity.nextStep.label}
-                </Text>
-              </div>
-              <Badge tone="accent" size="sm" icon={<CalendarBlankIcon />}>
-                {stepDate(opportunity.nextStep.at)}
-              </Badge>
+          <div className={styles.step} {...squircle("lg")}>
+            <span className={styles.stepGlyph} aria-hidden="true">
+              <SignpostIcon weight="bold" />
+            </span>
+            <div className={styles.stepText}>
+              <Text as="p" variant="caption1" tone="secondary">
+                Próximo passo
+              </Text>
+              <InlineText
+                value={values.nextStepLabel}
+                onChange={(nextStepLabel) => change({ nextStepLabel })}
+                label="Próximo passo"
+                as="p"
+                variant="subheadline"
+                weight="medium"
+                placeholder="Adicionar próximo passo"
+                maxLength={opportunityLimits.nextStep}
+              />
             </div>
-          )}
+            <DatePicker
+              plain
+              value={toDate(values.nextStepAt)}
+              onChange={(date) => change({ nextStepAt: toDay(date) })}
+              display="d MMM."
+              placeholder="Data"
+              className={styles.plainDate}
+            />
+          </div>
 
-          <Text as="p" variant="subheadline" className={styles.description}>
-            {opportunity.description}
-          </Text>
+          <InlineText
+            value={values.description}
+            onChange={(description) => change({ description })}
+            label="Descrição da oportunidade"
+            as="p"
+            variant="subheadline"
+            placeholder="Adicionar descrição"
+            maxLength={opportunityLimits.description}
+          />
 
-          {/**
-           * Os campos vêm da ficha do CRM que o usuário usa hoje (2026-09-15, a pedido de ter "todas essas
-           * informações" para fazer a gestão), mas o **desenho é o da casa**: os fatos de perfil, rótulo com
-           * glifo à esquerda e valor à direita, os mesmos da ficha do cliente, do membro e do projeto. Copiar
-           * a grade de células com fio daquela ficha traria um segundo jeito de mostrar dado para dentro da
-           * aplicação, e é justamente o que o sistema de componentes existe para evitar.
-           *
-           * Campo vazio mostra o travessão em vez de sumir: numa venda de anúncio, o que falta preencher é o
-           * que o marketing precisa corrigir, e um campo que some não avisa nada.
-           */}
           <ProfileSection title="Informações">
             <ProfileFacts columns>
               <ProfileFact icon={UserIcon} label="Responsável">
-                {opportunity.owner.name}
+                <DropdownMenu
+                  label="Responsável pela oportunidade"
+                  triggerLabel={`Responsável: ${owner?.name ?? "Sem responsável"}. Escolher outro`}
+                  sections={ownerSections}
+                  trigger={{ disabled: saving }}
+                  triggerContent={<Person person={owner} />}
+                />
               </ProfileFact>
               <ProfileFact icon={AddressBookIcon} label="Cliente">
-                {opportunity.client.company ?? opportunity.client.name}
-              </ProfileFact>
-              <ProfileFact icon={UserCircleIcon} label="Contato">
-                <Value>{opportunity.contact?.name}</Value>
+                <DropdownMenu
+                  label="Cliente da oportunidade"
+                  triggerLabel={`Cliente: ${values.clientCompany || values.clientName}. Escolher outro`}
+                  searchable
+                  sections={[
+                    {
+                      id: "clients",
+                      label: "Cliente",
+                      items: [
+                        {
+                          id: "client-none",
+                          label: "Lead sem cadastro",
+                          icon: UserCircleIcon,
+                          selected: !values.clientId,
+                          onSelect: () => chooseClient(NONE),
+                        },
+                        ...clients.map((client) => ({
+                          id: `client-${client.id}`,
+                          label: client.name,
+                          description: client.company,
+                          media: (
+                            <Avatar
+                              name={client.name}
+                              src={client.avatarUrl ?? undefined}
+                              size="xs"
+                            />
+                          ),
+                          selected: values.clientId === client.id,
+                          onSelect: () => chooseClient(client.id),
+                        })),
+                      ],
+                    },
+                  ]}
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    <IdentityChoice
+                      name={values.clientName}
+                      avatarUrl={
+                        selectedClient
+                          ? selectedClient.avatarUrl
+                          : opportunity.client.avatarUrl
+                      }
+                    />
+                  }
+                />
               </ProfileFact>
               <ProfileFact icon={EnvelopeSimpleIcon} label="E-mail">
-                <Value>{opportunity.contact?.email}</Value>
+                <InlineText
+                  value={values.contactEmail}
+                  onChange={(contactEmail) => change({ contactEmail })}
+                  label="E-mail"
+                  maxLength={opportunityLimits.email}
+                />
               </ProfileFact>
               <ProfileFact icon={PhoneIcon} label="Telefone">
-                <Value>{opportunity.contact?.phone}</Value>
-              </ProfileFact>
-              <ProfileFact icon={HashIcon} label="Código">
-                {opportunity.reference}
-              </ProfileFact>
-              <ProfileFact icon={IdentificationCardIcon} label="Código PN">
-                <Value>{opportunity.partnerCode}</Value>
+                <InlineText
+                  value={values.contactPhone}
+                  onChange={(contactPhone) => change({ contactPhone })}
+                  label="Telefone"
+                  maxLength={opportunityLimits.phone}
+                />
               </ProfileFact>
               <ProfileFact icon={SignpostIcon} label="Origem">
-                <Badge size="sm" hue={sourceHues[opportunity.source]}>
-                  {sourceLabels[opportunity.source]}
-                </Badge>
+                <DropdownMenu
+                  label="Origem da oportunidade"
+                  triggerLabel={`Origem: ${sourceLabels[values.source]}. Escolher outra`}
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    <Badge
+                      size="sm"
+                      hue={sourceHues[values.source]}
+                      icon={<SourceMark source={values.source} />}
+                    >
+                      {sourceLabels[values.source]}
+                    </Badge>
+                  }
+                  sections={[
+                    {
+                      id: "source",
+                      label: "Origem",
+                      items: opportunitySourceValues.map((source) => ({
+                        id: `source-${source}`,
+                        label: sourceLabels[source],
+                        media: <SourceMark source={source} />,
+                        selected: values.source === source,
+                        onSelect: () => change({ source }),
+                      })),
+                    },
+                  ]}
+                />
               </ProfileFact>
-              <ProfileFact icon={FunnelSimpleIcon} label="Funil">
-                {opportunity.funnel?.name ?? "Sem funil"}
+              <ProfileFact icon={KanbanIcon} label="Funil">
+                <DropdownMenu
+                  label="Funil da oportunidade"
+                  triggerLabel={`Funil: ${funnel?.name ?? "Sem funil"}. Escolher outro`}
+                  searchable
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    <Text
+                      as="span"
+                      variant="subheadline"
+                      weight="medium"
+                      truncate
+                    >
+                      {funnel?.name ?? "Sem funil"}
+                    </Text>
+                  }
+                  sections={[
+                    {
+                      id: "funnel",
+                      label: "Funil",
+                      items: [
+                        {
+                          id: "funnel-none",
+                          label: "Sem funil",
+                          icon: KanbanIcon,
+                          selected: !values.funnelId,
+                          onSelect: () =>
+                            change({
+                              funnelId: null,
+                              stage: stages[0] ?? "lead",
+                            }),
+                        },
+                        ...funnels
+                          .filter((item) => item.reference)
+                          .map((item) => ({
+                            id: `funnel-${item.id}`,
+                            label: item.name,
+                            icon: KanbanIcon,
+                            selected: values.funnelId === item.id,
+                            onSelect: () =>
+                              change({
+                                funnelId: item.id,
+                                stage: item.stages[0] ?? "lead",
+                              }),
+                          })),
+                      ],
+                    },
+                  ]}
+                />
               </ProfileFact>
-              <ProfileFact icon={CurrencyCircleDollarIcon} label="Valor">
-                {formatMoney(opportunity.value)}
+              <ProfileFact icon={MapPinIcon} label="Cidade">
+                <InlineText
+                  value={values.city}
+                  onChange={(city) => change({ city })}
+                  label="Cidade"
+                  maxLength={opportunityLimits.city}
+                />
               </ProfileFact>
-              <ProfileFact icon={MapPinIcon} label="Cidade e estado">
-                <Value>{[opportunity.city, opportunity.state].filter(Boolean).join(", ")}</Value>
+              <ProfileFact icon={MapPinIcon} label="Estado">
+                <InlineText
+                  value={values.state}
+                  onChange={(state) => change({ state: state.toUpperCase() })}
+                  label="Estado"
+                  maxLength={2}
+                />
+              </ProfileFact>
+              <ProfileFact icon={CalendarBlankIcon} label="Previsão">
+                <DatePicker
+                  plain
+                  value={toDate(values.expectedAt)}
+                  onChange={(date) => change({ expectedAt: toDay(date) })}
+                  display="d 'de' MMM. 'de' yyyy"
+                  placeholder="Vazio"
+                  className={styles.plainDate}
+                />
+              </ProfileFact>
+              <ProfileFact icon={CalendarCheckIcon} label="Último contato">
+                <DatePicker
+                  plain
+                  value={toDate(values.lastTouchAt)}
+                  onChange={(date) => change({ lastTouchAt: toDay(date) })}
+                  display="d 'de' MMM. 'de' yyyy"
+                  placeholder="Vazio"
+                  className={styles.plainDate}
+                />
               </ProfileFact>
               <ProfileFact icon={HourglassIcon} label="Tempo na etapa">
-                {durationLabel(stageMinutes(opportunity))}
+                <FactText>
+                  {durationLabel(stageMinutes(opportunity))}
+                </FactText>
               </ProfileFact>
-              <ProfileFact icon={ClockIcon} label="1ª resposta">
-                <Value>{opportunity.firstResponseMinutes && durationLabel(opportunity.firstResponseMinutes)}</Value>
-              </ProfileFact>
-              <ProfileFact icon={ClockCountdownIcon} label="Resposta média">
-                <Value>{opportunity.averageResponseMinutes && durationLabel(opportunity.averageResponseMinutes)}</Value>
+              <ProfileFact icon={HashIcon} label="Código">
+                <FactText>{opportunity.reference}</FactText>
               </ProfileFact>
               <ProfileFact icon={CalendarBlankIcon} label="Entrada">
-                {dateTimeLabel(opportunity.enteredAt)}
+                <FactText>{dateTimeLabel(opportunity.enteredAt)}</FactText>
               </ProfileFact>
-              <ProfileFact icon={CalendarCheckIcon} label="Fechamento">
-                <Value>{opportunity.closedAt && dateTimeLabel(opportunity.closedAt)}</Value>
-              </ProfileFact>
-              <ProfileFact icon={ThermometerIcon} label="Último contato">
-                {touchLabel(opportunity)}
-              </ProfileFact>
+              {opportunity.closedAt && (
+                <ProfileFact icon={CalendarCheckIcon} label="Fechamento">
+                  <FactText>{dateTimeLabel(opportunity.closedAt)}</FactText>
+                </ProfileFact>
+              )}
             </ProfileFacts>
           </ProfileSection>
 
-          {/* O rastro da campanha em seção própria: é o que fecha a conta do marketing, dizendo qual anúncio
-              trouxe qual venda, e venda de indicação não tem nenhum destes campos. Misturado com quem a venda
-              é, ele empurraria o que importa todo dia para o fim da ficha. */}
           <ProfileSection title="Origem e campanha">
             <ProfileFacts columns>
-              <ProfileFact icon={MegaphoneIcon} label="Campanha">
-                <Value>{opportunity.attribution?.campaign}</Value>
-              </ProfileFact>
-              <ProfileFact icon={TargetIcon} label="Conjunto de anúncios">
-                <Value>{opportunity.attribution?.adSet}</Value>
-              </ProfileFact>
-              <ProfileFact icon={ImageSquareIcon} label="Anúncio">
-                <Value>{opportunity.attribution?.ad}</Value>
-              </ProfileFact>
-              <ProfileFact icon={CursorClickIcon} label="GCLID">
-                <Value mono>{opportunity.attribution?.gclid}</Value>
-              </ProfileFact>
-              <ProfileFact icon={CursorClickIcon} label="CTWACLID">
-                <Value mono>{opportunity.attribution?.ctwaclid}</Value>
-              </ProfileFact>
-              <ProfileFact icon={CursorClickIcon} label="FBCLID">
-                <Value mono>{opportunity.attribution?.fbclid}</Value>
-              </ProfileFact>
-              <ProfileFact icon={HashIcon} label="Source ID">
-                <Value mono>{opportunity.attribution?.sourceId}</Value>
-              </ProfileFact>
-              <ProfileFact icon={HashIcon} label="Meta lead ID">
-                <Value mono>{opportunity.attribution?.metaLeadId}</Value>
-              </ProfileFact>
-              <ProfileFact icon={LinkSimpleIcon} label="UTM source">
-                <Value>{opportunity.attribution?.utm?.source}</Value>
-              </ProfileFact>
-              <ProfileFact icon={LinkSimpleIcon} label="UTM medium">
-                <Value>{opportunity.attribution?.utm?.medium}</Value>
-              </ProfileFact>
-              <ProfileFact icon={LinkSimpleIcon} label="UTM campaign">
-                <Value>{opportunity.attribution?.utm?.campaign}</Value>
-              </ProfileFact>
-              <ProfileFact icon={LinkSimpleIcon} label="UTM content">
-                <Value>{opportunity.attribution?.utm?.content}</Value>
-              </ProfileFact>
-              <ProfileFact icon={LinkSimpleIcon} label="UTM term">
-                <Value>{opportunity.attribution?.utm?.term}</Value>
-              </ProfileFact>
-              <ProfileFact icon={GlobeSimpleIcon} label="URL de origem">
-                {opportunity.attribution?.sourceUrl ? (
-                  <a className={styles.external} href={opportunity.attribution.sourceUrl} target="_blank" rel="noreferrer">
-                    {opportunity.attribution.sourceUrl}
-                  </a>
-                ) : (
-                  <Value />
-                )}
-              </ProfileFact>
-              {/* O endereço desta venda na aplicação, com o botão que copia: é o que se manda para alguém
-                  abrir o mesmo cartão, e digitar à mão um endereço com parâmetro é pedir erro. */}
-              <ProfileFact icon={LinkSimpleIcon} label="Link deste card">
-                <span className={styles.link}>
-                  <span className={styles.linkText}>{link}</span>
-                  <IconButton label="Copiar o link deste card" variant="ghost" size="sm" onClick={() => void copyLink()}>
-                    <CopySimpleIcon />
-                  </IconButton>
-                </span>
-              </ProfileFact>
+              {(
+                [
+                  ["campaign", "Campanha", MegaphoneIcon],
+                  ["adSet", "Conjunto de anúncios", TargetIcon],
+                  ["ad", "Anúncio", ImageSquareIcon],
+                  ["gclid", "GCLID", CursorClickIcon],
+                  ["ctwaclid", "CTWACLID", CursorClickIcon],
+                  ["fbclid", "FBCLID", CursorClickIcon],
+                  ["sourceId", "Source ID", HashIcon],
+                  ["metaLeadId", "Meta lead ID", HashIcon],
+                  ["sourceUrl", "URL de origem", GlobeSimpleIcon],
+                ] as const
+              ).map(([key, label, Glyph]) => (
+                <ProfileFact key={key} icon={Glyph} label={label}>
+                  <InlineText
+                    value={values.attribution[key]}
+                    onChange={(value) =>
+                      change({
+                        attribution: { ...values.attribution, [key]: value },
+                      })
+                    }
+                    label={label}
+                    maxLength={
+                      key === "sourceUrl"
+                        ? opportunityLimits.sourceUrl
+                        : opportunityLimits.attribution
+                    }
+                  />
+                </ProfileFact>
+              ))}
+              {(
+                ["source", "medium", "campaign", "content", "term"] as const
+              ).map((key) => (
+                <ProfileFact
+                  key={key}
+                  icon={LinkSimpleIcon}
+                  label={`UTM ${key}`}
+                >
+                  <InlineText
+                    value={values.attribution.utm[key]}
+                    onChange={(value) =>
+                      change({
+                        attribution: {
+                          ...values.attribution,
+                          utm: { ...values.attribution.utm, [key]: value },
+                        },
+                      })
+                    }
+                    label={`UTM ${key}`}
+                    maxLength={opportunityLimits.attribution}
+                  />
+                </ProfileFact>
+              ))}
             </ProfileFacts>
           </ProfileSection>
 
-          {opportunity.tags.length > 0 && (
-            <ProfileSection title="Etiquetas">
-              <ProfileTags>
-                {opportunity.tags.map((tag) => (
-                  <Badge key={tag} size="md" variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
-              </ProfileTags>
-            </ProfileSection>
-          )}
+          <ProfileSection title="Link deste card">
+            <div className={styles.link} {...squircle("md")}>
+              <LinkSimpleIcon aria-hidden="true" />
+              <span className={styles.linkText}>{link}</span>
+              <IconButton
+                label="Copiar o link deste card"
+                variant="ghost"
+                size="sm"
+                onClick={() => void copyLink()}
+              >
+                <CopySimpleIcon />
+              </IconButton>
+            </div>
+          </ProfileSection>
 
-          {/* O orçamento que saiu daqui, quando já saiu: é o vínculo que liga a venda ao resto do sistema, e
-              o caminho de volta para o documento sem procurar na lista. */}
+          <ProfileSection title="Etiquetas">
+            <DropdownMenu
+              label="Etiquetas da oportunidade"
+              triggerLabel="Escolher etiquetas"
+              sections={tagSections(
+                opportunityTagCatalog,
+                values.tags,
+                (tags) => change({ tags }),
+                MAX_TAGS,
+              )}
+              trigger={{ disabled: saving }}
+              triggerContent={
+                values.tags.length === 0 ? (
+                  <Empty />
+                ) : (
+                  <ProfileTags>
+                    {values.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        size="md"
+                        hue={opportunityTagCatalog.hueOf(tag)}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </ProfileTags>
+                )
+              }
+            />
+          </ProfileSection>
+
           <ProfileSection title="Orçamento">
             {opportunity.quote ? (
               <ProfileList>
@@ -465,42 +1133,62 @@ function OpportunityDetail({
                   href={`/orcamentos/${opportunity.quote.id}` as Route}
                   icon={ReceiptIcon}
                   title={opportunity.quote.reference}
-                  caption={formatMoney(opportunity.value)}
+                  caption={formatMoney(values.value)}
                 />
               </ProfileList>
             ) : (
               <Text as="p" variant="footnote" tone="tertiary">
-                Nenhum orçamento saiu desta oportunidade ainda.
+                Nenhum orçamento saiu desta oportunidade ainda
               </Text>
             )}
           </ProfileSection>
         </section>
 
-        {/* A metade do caminho: onde a venda está no funil e quem cuida dela. */}
         <aside className={styles.side} aria-label="Caminho no funil">
-          <ProfileSection title="Caminho no funil" aside={<Text as="span" variant="caption1" tone="tertiary">{at + 1} de {stages.length}</Text>}>
+          <ProfileSection
+            title="Caminho no funil"
+            aside={
+              <Text as="span" variant="caption1" tone="tertiary">
+                {at + 1} de {availableStages.length}
+              </Text>
+            }
+          >
             <ol className={styles.path}>
-              {stages.map((id, index) => {
-                const meta = crmStageMeta[id];
-                const StepGlyph = meta.icon;
+              {availableStages.map((id, index) => {
+                const item = meta[id];
+                const Glyph = item.icon;
                 const done = index < at;
-                const current = id === opportunity.stage;
+                const current = id === values.stage;
                 return (
-                  <li key={id} className={styles.pathItem} style={{ "--stage-hue": meta.hue } as CSSProperties}>
+                  <li
+                    key={id}
+                    className={styles.pathItem}
+                    style={{ "--stage-hue": item.hue } as CSSProperties}
+                  >
                     <button
                       type="button"
                       className={styles.pathStep}
                       data-done={done || undefined}
                       data-current={current || undefined}
                       aria-current={current ? "step" : undefined}
-                      onClick={() => onStageChange?.(id)}
+                      disabled={saving}
+                      onClick={() => changeAndSave({ stage: id })}
                       {...squircle("md")}
                     >
                       <span className={styles.pathGlyph} aria-hidden="true">
-                        {done ? <CheckIcon weight="bold" /> : <StepGlyph weight="bold" />}
+                        {done ? (
+                          <CheckIcon weight="bold" />
+                        ) : (
+                          <Glyph weight="bold" />
+                        )}
                       </span>
-                      <Text as="span" variant="subheadline" weight={current ? "semibold" : "regular"} truncate>
-                        {meta.label}
+                      <Text
+                        as="span"
+                        variant="subheadline"
+                        weight={current ? "semibold" : "regular"}
+                        truncate
+                      >
+                        {item.label}
                       </Text>
                     </button>
                   </li>
@@ -510,33 +1198,81 @@ function OpportunityDetail({
           </ProfileSection>
 
           <ProfileSection title="Equipe">
-            <ProfileList>
-              {people.map((person) => (
-                <li key={person.name} className={styles.person}>
-                  <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="sm" />
-                  <div className={styles.personText}>
-                    <Text as="p" variant="subheadline" weight="medium" truncate>
-                      {person.name}
-                    </Text>
-                    <Text as="p" variant="caption1" tone="tertiary">
-                      {person.name === opportunity.owner.name ? "Responsável" : "Envolvido"}
-                    </Text>
-                  </div>
-                </li>
-              ))}
-            </ProfileList>
+            <ProfileFacts>
+              <ProfileFact icon={UserIcon} label="Responsável">
+                <DropdownMenu
+                  label="Responsável pela oportunidade"
+                  triggerLabel={`Responsável: ${owner?.name ?? "Sem responsável"}. Escolher outro`}
+                  sections={ownerSections}
+                  trigger={{ disabled: saving }}
+                  triggerContent={<Person person={owner} />}
+                />
+              </ProfileFact>
+              <ProfileFact icon={UsersIcon} label="Envolvidos">
+                <DropdownMenu
+                  label="Envolvidos na oportunidade"
+                  triggerLabel="Escolher envolvidos"
+                  sections={peopleSections}
+                  trigger={{ disabled: saving }}
+                  triggerContent={
+                    people.length === 0 ? (
+                      <Empty />
+                    ) : (
+                      <span className={styles.peopleChoice}>
+                        <AvatarGroup>
+                          {people.slice(0, 4).map((person) => (
+                            <Avatar
+                              key={person.id}
+                              name={person.name}
+                              src={person.avatarUrl ?? undefined}
+                              size="xs"
+                            />
+                          ))}
+                        </AvatarGroup>
+                        <Text
+                          as="span"
+                          variant="subheadline"
+                          weight="medium"
+                          truncate
+                        >
+                          {people
+                            .map((person) => person.name.split(" ")[0])
+                            .join(", ")}
+                        </Text>
+                      </span>
+                    )
+                  }
+                />
+              </ProfileFact>
+            </ProfileFacts>
           </ProfileSection>
 
           <ProfileSection title="Venda">
-            <ProfileFacts columns>
+            <ProfileFacts>
               <ProfileFact icon={CurrencyCircleDollarIcon} label="Valor cheio">
-                {formatMoney(opportunity.value)}
+                <FactText>{formatMoney(values.value)}</FactText>
               </ProfileFact>
-              <ProfileFact icon={ClockCounterClockwiseIcon} label="Histórico">
-                {opportunity.activity === 1 ? "1 registro" : `${opportunity.activity} registros`}
+              <ProfileFact icon={ThermometerIcon} label="Último contato">
+                <FactText>
+                  {touchLabel({
+                    ...opportunity,
+                    lastTouchAt: values.lastTouchAt,
+                  })}
+                </FactText>
               </ProfileFact>
               <ProfileFact icon={PaperclipIcon} label="Anexos">
-                {opportunity.attachments === 1 ? "1 arquivo" : `${opportunity.attachments} arquivos`}
+                <FactText>
+                  {opportunity.attachments === 1
+                    ? "1 arquivo"
+                    : `${opportunity.attachments} arquivos`}
+                </FactText>
+              </ProfileFact>
+              <ProfileFact icon={HashIcon} label="Histórico">
+                <FactText>
+                  {opportunity.activity === 1
+                    ? "1 registro"
+                    : `${opportunity.activity} registros`}
+                </FactText>
               </ProfileFact>
             </ProfileFacts>
           </ProfileSection>

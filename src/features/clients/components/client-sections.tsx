@@ -43,6 +43,8 @@ const hostOf = (url: string) => new URL(url).host;
 // chama.
 export function ClientSections({ client }: ClientSectionsProps) {
   const phone = client.phone ? applyPattern("phone", client.phone) : null;
+  const supplier = client.kind === "supplier";
+  const hasSupplierRole = client.kind !== "customer";
 
   return (
     <>
@@ -80,7 +82,7 @@ export function ClientSections({ client }: ClientSectionsProps) {
               </TextLink>
             </ProfileFact>
           )}
-          <ProfileFact icon={CalendarBlankIcon} label="Cliente desde">
+          <ProfileFact icon={CalendarBlankIcon} label={`${supplier ? "Fornecedor" : "Cliente"} desde`}>
             <Text as="span" variant="subheadline" weight="medium">
               {longDate(client.createdAt)}
             </Text>
@@ -105,6 +107,14 @@ export function ClientSections({ client }: ClientSectionsProps) {
         </ProfileSection>
       )}
 
+      {hasSupplierRole && (
+        <ProfileSection title="Despesas" aside={<TextLink href={`/despesas?busca=${encodeURIComponent(client.name)}` as Route} className={styles.more}>Ver despesas</TextLink>}>
+          <Text variant="footnote" tone="secondary">
+            {client.stats.expenses === 0 ? "Nenhuma despesa vinculada ainda" : `${client.stats.expenses} ${client.stats.expenses === 1 ? "despesa vinculada" : "despesas vinculadas"}, ${formatMoney(client.stats.payable)} a pagar`}
+          </Text>
+        </ProfileSection>
+      )}
+      {!supplier && <>
       <ProfileSection
         title="Orçamentos"
         aside={
@@ -187,6 +197,7 @@ export function ClientSections({ client }: ClientSectionsProps) {
           </ProfileList>
         )}
       </ProfileSection>
+      </>}
     </>
   );
 }

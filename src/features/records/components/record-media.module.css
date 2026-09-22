@@ -81,3 +81,52 @@
   width: calc(100% - var(--space-2));
   height: calc(100% - var(--space-2));
 }
+
+/* A folha de um documento: projeto e contrato (2026-09-21, a pedido, sobre referências de ícone de arquivo
+   do usuário). A forma vem de um SVG, e não de cantos de CSS, porque a dobra da quina é um corte mais um
+   triângulo e os dois precisam do mesmo caminho para encaixar sem fresta; por isso ela também não passa
+   pelo sistema de cantos da casa, que arredonda caixas e não recorta papel. O glifo do domínio fica no
+   centro, na cor cheia, e a folha no véu dela. */
+.sheet {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.sheet[data-size="lg"] {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.paper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* A folha no véu do matiz, com o mesmo peso das outras superfícies tingidas da casa. */
+.face {
+  fill: light-dark(color-mix(in oklab, var(--tile-hue) 16%, var(--color-bg)), color-mix(in oklab, var(--tile-hue) 26%, var(--color-bg)));
+}
+
+/* A dobra um degrau mais forte, que é o que dá relevo à quina. */
+.fold {
+  fill: light-dark(color-mix(in oklab, var(--tile-hue) 34%, var(--color-bg)), color-mix(in oklab, var(--tile-hue) 46%, var(--color-bg)));
+}
+
+.mark {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.25rem;
+  color: color-mix(in oklab, var(--tile-hue) 72%, var(--color-label));
+}
+
+.sheet[data-size="lg"] .mark {
+  width: 1.25rem;
+  height: 1.25rem;
+}

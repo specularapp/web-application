@@ -1,16 +1,29 @@
 "use client";
 
-import { TrashIcon } from "@phosphor-icons/react";
+import {
+  BellIcon,
+  CopyIcon,
+  DotsThreeIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CheckoutPanel } from "@/features/billing/components/checkout-panel";
+import { Dialog } from "@/components/ui/dialog";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Listbox, type ListboxPlacement } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { Inline } from "@/components/ui/stack";
+import { Inline, Stack } from "@/components/ui/stack";
+import { RichTextView } from "@/components/ui/rich-text";
+import { LazyRichTextEditor } from "@/components/ui/rich-text/lazy";
+import { Text } from "@/components/ui/text";
+import type { DocNode } from "@/lib/rich-doc";
 import { Toast } from "@/components/ui/toast";
 import { memberRoleOptions } from "@/features/onboarding/labels";
+import styles from "./componentes.module.css";
 
 const orderOptions = [
   { value: "recentes", label: "Mais recentes" },
@@ -57,6 +70,81 @@ export function SelectActionsDemo() {
           tone: "danger",
           icon: <TrashIcon weight="bold" aria-hidden="true" />,
           onSelect: () => toast({ title: "Ação da lista", description: "Aqui entraria a remoção", tone: "info" }),
+        },
+      ]}
+    />
+  );
+}
+
+export function DialogDemo() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Abrir modal
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} label="Confirmar envio do orçamento" size="sm" surface="glass">
+        <div className={styles.dialogDemo}>
+          <Stack gap={1}>
+            <Text as="h2" variant="title3">
+              Confirmar envio
+            </Text>
+            <Text variant="subheadline" tone="secondary">
+              Orçamento ORC-2026-0147
+            </Text>
+          </Stack>
+          <div className={styles.dialogDemoBody}>
+            <Text variant="body">
+              O cliente receberá por e-mail o link seguro para visualizar e aprovar a proposta.
+            </Text>
+          </div>
+          <Inline className={styles.dialogDemoFooter} gap={2} justify="end" wrap>
+            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={() => setOpen(false)}>
+              Enviar orçamento
+            </Button>
+          </Inline>
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+export function DropdownMenuDemo() {
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState(true);
+  const notify = (title: string) => toast({ title, description: "Ação demonstrada na vitrine", tone: "neutral" });
+
+  return (
+    <DropdownMenu
+      label="Opções do orçamento"
+      triggerLabel="Abrir opções do orçamento"
+      icon={<DotsThreeIcon weight="bold" aria-hidden="true" />}
+      sections={[
+        {
+          id: "actions",
+          label: "Ações",
+          items: [
+            { id: "edit", label: "Editar orçamento", icon: PencilSimpleIcon, onSelect: () => notify("Editar orçamento") },
+            { id: "copy", label: "Duplicar", icon: CopyIcon, onSelect: () => notify("Orçamento duplicado") },
+            {
+              id: "notifications",
+              kind: "toggle",
+              label: "Notificações",
+              icon: BellIcon,
+              checked: notifications,
+              onChange: setNotifications,
+            },
+          ],
+        },
+        {
+          id: "danger",
+          items: [
+            { id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger", onSelect: () => notify("Ação de exclusão") },
+          ],
         },
       ]}
     />
@@ -208,5 +296,57 @@ export function CheckoutPreview() {
       onBack={() => setVisible(false)}
       onDone={() => setVisible(false)}
     />
+  );
+}
+
+/**
+ * O texto rico da casa na vitrine (2026-09-22): o editor puro, sem caixa, com a bolha da seleção, e a
+ * leitura do mesmo documento embaixo. É aqui que ele se confere com o olho, porque o lugar dele no produto
+ * (a descrição da tarefa) fica atrás do login.
+ */
+export function RichTextDemo() {
+  const [doc, setDoc] = useState<DocNode>(() => ({
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Briefing da campanha" }] },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "Selecione este trecho para ver a bolha. " },
+          { type: "text", marks: [{ type: "bold" }], text: "Negrito" },
+          { type: "text", text: ", " },
+          { type: "text", marks: [{ type: "italic" }], text: "itálico" },
+          { type: "text", text: " e código no texto: " },
+          { type: "text", marks: [{ type: "code" }], text: "npm run dev" },
+        ],
+      },
+      {
+        type: "taskList",
+        content: [
+          { type: "taskItem", attrs: { checked: true }, content: [{ type: "paragraph", content: [{ type: "text", text: "Fechar o escopo com o cliente" }] }] },
+          { type: "taskItem", attrs: { checked: false }, content: [{ type: "paragraph", content: [{ type: "text", text: "Escrever a proposta" }] }] },
+        ],
+      },
+      {
+        type: "codeBlock",
+        attrs: { language: "typescript" },
+        content: [
+          {
+            type: "text",
+            text: 'export const metadata = {\n  openGraph: {\n    images: [\n      {\n        url: "https://exemplo.com/capa.png",\n        width: 1200,\n        height: 630,\n      },\n    ],\n  },\n};',
+          },
+        ],
+      },
+    ],
+  }));
+
+  return (
+    <Stack gap={4}>
+      <LazyRichTextEditor value={doc} onChange={setDoc} label="Descrição de exemplo" placeholder="Escreva algo" />
+      <Text variant="caption1" tone="tertiary">
+        A mesma árvore, desenhada pela leitura estática
+      </Text>
+      <RichTextView doc={doc} />
+    </Stack>
   );
 }

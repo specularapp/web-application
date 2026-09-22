@@ -27,6 +27,7 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 // e de favorito, e os fatos em rótulo com ícone: e-mail, telefone com máscara, cidade, orçamentos e
 // projetos, faturado e desde quando. O que falta não entra, em vez de virar linha vazia.
 export function ClientHoverCard({ client, children }: ClientHoverCardProps) {
+  const supplier = client.kind === "supplier";
   return (
     <HoverCard
       height={280}
@@ -59,11 +60,9 @@ export function ClientHoverCard({ client, children }: ClientHoverCardProps) {
             {client.email && <HoverCardFact icon={EnvelopeSimpleIcon}>{client.email}</HoverCardFact>}
             {client.phone && <HoverCardFact icon={PhoneIcon}>{applyPattern("phone", client.phone)}</HoverCardFact>}
             {client.city && <HoverCardFact icon={MapPinIcon}>{client.city}</HoverCardFact>}
-            <HoverCardFact icon={ReceiptIcon}>
-              {plural(client.stats.quotes, "orçamento", "orçamentos")}, {plural(client.stats.projects, "projeto", "projetos")}
-            </HoverCardFact>
-            <HoverCardFact icon={CoinsIcon}>{client.stats.billed > 0 ? `${formatMoney(client.stats.billed)} faturados` : "Nada faturado ainda"}</HoverCardFact>
-            <HoverCardFact icon={CalendarBlankIcon}>Cliente desde {shortDate(client.createdAt)}</HoverCardFact>
+            <HoverCardFact icon={ReceiptIcon}>{supplier ? plural(client.stats.expenses, "despesa", "despesas") : <>{plural(client.stats.quotes, "orçamento", "orçamentos")}, {plural(client.stats.projects, "projeto", "projetos")}</>}</HoverCardFact>
+            <HoverCardFact icon={CoinsIcon}>{supplier ? (client.stats.spent > 0 ? `${formatMoney(client.stats.spent)} pagos` : "Nenhum pagamento ainda") : (client.stats.billed > 0 ? `${formatMoney(client.stats.billed)} faturados` : "Nada faturado ainda")}</HoverCardFact>
+            <HoverCardFact icon={CalendarBlankIcon}>{supplier ? "Fornecedor" : "Cliente"} desde {shortDate(client.createdAt)}</HoverCardFact>
           </HoverCardFacts>
         </>
       }

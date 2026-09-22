@@ -1,10 +1,11 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { z } from "zod";
+import { crmStageSchema } from "./schemas";
 import { slugify } from "@/lib/utils/slug";
 import { isStale } from "./labels";
 import type { CrmStageOverrides } from "./board-cookie";
 import { defaultCrmQuery, horizonValues, sortCrmColumn, temperatureFilterValues, type CrmBoardData, type CrmQuery } from "./list-options";
-import { crmStageValues, type CrmStage } from "./stages";
+import { type CrmStage } from "./stages";
 import type { Opportunity } from "./summary";
 
 /**
@@ -53,7 +54,7 @@ export function parseCrmStageOverrides(raw: string | undefined): CrmStageOverrid
   const overrides: CrmStageOverrides = {};
   for (const entry of listed) {
     const [stage, on] = entry.split(":");
-    if (!crmStageValues.includes(stage as CrmStage) || (on !== "0" && on !== "1")) continue;
+    if (!crmStageSchema.safeParse(stage).success || (on !== "0" && on !== "1")) continue;
     overrides[stage as CrmStage] = on === "1";
   }
   return overrides;

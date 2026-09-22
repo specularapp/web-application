@@ -1,4 +1,5 @@
 import type { RecordMedia } from "@/features/records/records";
+import type { DocNode } from "@/lib/rich-doc";
 import type { TaskStage } from "./stages";
 
 /**
@@ -122,14 +123,23 @@ export type Task = {
   /** Identificador curto que a pessoa vê, no padrão de `lib/utils/reference.ts`: "TAR-2026-0031". */
   reference: string;
   title: string;
+  /**
+   * A descrição em texto puro: é o que o cartão, a busca e o índice da casa leem. Derivada do documento no
+   * servidor (2026-09-22), e não escrita à mão: procurar dentro de um jsonb aninhado não existe, e o cartão
+   * não deve carregar a árvore inteira para mostrar duas linhas.
+   */
   description: string;
+  /** A descrição como documento do editor, com títulos, listas de marcar, citações e imagens. */
+  descriptionDoc: DocNode | null;
   /** Prazo, no formato `yyyy-MM-dd`. */
   dueDate: string;
   /** Quando começou ou começa, no formato `yyyy-MM-dd`. */
   startDate?: string;
   /** Estimativa de esforço, em minutos. */
   estimate?: number;
-  /** Em que coluna do quadro ela está, e de onde a situação é lida. */
+  /** Em que coluna do quadro ela está, com o nome, a cor e o glifo que a equipe deu a ela, e de onde a
+   *  situação é lida. Vem inteira, e não só o id: o cartão, a ficha e o painel desenham a etapa sem ter de
+   *  carregar o catálogo da equipe junto. */
   stage: TaskStage;
   priority: TaskPriority;
   /** Quem responde pela tarefa. */
@@ -137,7 +147,7 @@ export type Task = {
   /** Quem está envolvido, cliente ou pessoa da equipe, na ordem de mostrar. */
   people: TaskPerson[];
   /** A que projeto pertence, quando pertence a um; o `slug` é o endereço do quadro dele. */
-  project?: { name: string; reference: string; slug: string };
+  project?: { id: string; name: string; reference: string; slug: string };
   /** Os registros da casa a que ela está ligada, na ordem de mostrar. */
   links: TaskLink[];
   tags: string[];

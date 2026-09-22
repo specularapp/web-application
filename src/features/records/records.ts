@@ -67,7 +67,10 @@ export type RecordFact = { glyph: RecordFactGlyph; text: string };
  * pinta o véu do matiz em cada bolinha e escreve o total ao lado das primeiras.
  */
 export type RecordMedia =
-  | { kind: "face"; name: string }
+  /* O rosto de alguém. `src` é a foto que a pessoa ou o cliente enviou; sem ela, o rosto é desenhado a
+     partir do nome, que é o que a maioria dos cadastros tem (2026-09-21, a pedido de "apareça as fotos dos
+     clientes"). */
+  | { kind: "face"; name: string; src?: string | null }
   | { kind: "art"; items: { url: string; hue: string }[]; total: number };
 
 export type AppRecord = {

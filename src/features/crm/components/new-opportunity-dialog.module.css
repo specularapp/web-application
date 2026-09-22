@@ -24,6 +24,15 @@
   overscroll-behavior: contain;
 }
 
+.section {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: color-mix(in oklab, var(--color-bg-secondary) 72%, transparent);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
 /* Dois campos por linha: etapa e prazo, prioridade e responsável. No celular eles empilham. */
 .pair {
   display: grid;

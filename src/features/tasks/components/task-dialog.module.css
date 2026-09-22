@@ -852,12 +852,14 @@
   corner-shape: squircle;
 }
 
-/* O que veio junto da mensagem, acima do texto: um por linha, com a superfície da bolha por baixo. */
+/* O que veio junto da mensagem, acima do texto: um por linha, com a superfície da bolha por baixo. O
+   respiro até o texto é maior que o de entre os cartões (2026-09-22, a pedido): eles são uma coisa e a
+   frase é outra, e com a mesma folga nos dois lugares o anexo lia como parte do texto. */
 .bubbleFiles {
   display: grid;
   gap: var(--space-1);
   min-width: 0;
-  margin-block-end: var(--space-1);
+  margin-block-end: var(--space-3);
 }
 
 .bubbleText {
@@ -874,6 +876,13 @@
   display: grid;
   gap: var(--space-1);
   min-width: 0;
+}
+
+/* A folga entre o que a mensagem anexa e o que ela diz. Só quando há texto depois: cartão sozinho não abre
+   espaço para nada. */
+.bubbleCards:not(:last-child),
+.bubbleFiles:not(:last-child) {
+  margin-block-end: var(--space-3);
 }
 
 /**

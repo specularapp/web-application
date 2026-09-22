@@ -15,14 +15,27 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
-import { Avatar, avatarHue } from "@/components/ui/avatar";
+import { avatarHue } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { Profile, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileRule, ProfileSection, ProfileTags, type ProfileAction } from "@/components/ui/profile";
+import {
+  Profile,
+  ProfileEvent,
+  ProfileEvents,
+  ProfileFact,
+  ProfileFacts,
+  ProfileList,
+  ProfileProgress,
+  ProfileRow,
+  ProfileRule,
+  ProfileSection,
+  ProfileTags,
+  type ProfileAction,
+} from "@/components/ui/profile";
 import { Text } from "@/components/ui/text";
 import { applyPattern } from "@/lib/masks";
 import { compactMoney } from "@/lib/utils/format";
-import type { TeamMember, TeamMemberAccess, TeamMemberProjectStatus } from "../summary";
-import styles from "./member-profile.module.css";
+import { memberProjectStatuses } from "../constants";
+import type { TeamMember, TeamMemberAccess } from "../summary";
 
 export type MemberProfileProps = { member: TeamMember };
 
@@ -30,12 +43,6 @@ const accessMeta: Record<TeamMemberAccess, { label: string; tone: BadgeTone; ico
   owner: { label: "Proprietário", tone: "yellow", icon: CrownIcon },
   admin: { label: "Administrador", tone: "info", icon: ShieldCheckIcon },
   member: { label: "Membro", tone: "neutral", icon: UserIcon },
-};
-
-const projectStatuses: Record<TeamMemberProjectStatus, { label: string; tone: BadgeTone }> = {
-  ongoing: { label: "Em andamento", tone: "accent" },
-  done: { label: "Concluído", tone: "success" },
-  paused: { label: "Pausado", tone: "warning" },
 };
 
 const points = new Intl.NumberFormat("pt-BR");
@@ -171,7 +178,7 @@ export function MemberProfile({ member }: MemberProfileProps) {
           ) : (
             <ProfileList>
               {member.projects.map((project) => {
-                const status = projectStatuses[project.status];
+                const status = memberProjectStatuses[project.status];
                 return (
                   <ProfileRow
                     key={project.id}
@@ -197,24 +204,17 @@ export function MemberProfile({ member }: MemberProfileProps) {
         <>
           <ProfileRule />
           <ProfileSection title="Atividade recente">
-            <ol className={styles.events}>
+            <ProfileEvents>
               {member.activity.map((event) => (
-                <li key={event.id} className={styles.event}>
-                  <Avatar name={member.name} src={member.avatarUrl ?? undefined} size="xs" />
-                  <span className={styles.eventCopy}>
-                    <Text as="span" variant="subheadline">
-                      <Text as="span" variant="subheadline" weight="medium">
-                        {member.name.split(" ")[0]}
-                      </Text>{" "}
-                      {event.action}
-                    </Text>
-                    <Text as="span" variant="footnote" tone="secondary">
-                      {shortStamp(event.at)}
-                    </Text>
-                  </span>
-                </li>
+                <ProfileEvent
+                  key={event.id}
+                  avatar={{ name: member.name, src: member.avatarUrl ?? undefined }}
+                  actor={member.name.split(" ")[0]}
+                  action={event.action}
+                  stamp={shortStamp(event.at)}
+                />
               ))}
-            </ol>
+            </ProfileEvents>
           </ProfileSection>
         </>
       )}

@@ -1,0 +1,523 @@
+/* O texto rico da casa: a mesma folha para quem lê e para quem edita, porque o que se vê enquanto escreve
+   precisa ser o que fica depois. A escala é a do corpo da aplicação, e não a de um documento: aqui o texto
+   mora dentro de uma ficha, ao lado de campos e etiquetas, e a hierarquia é curta de propósito, com três
+   níveis de título, que é o que cabe numa descrição de tarefa. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  font-size: var(--text-callout);
+  line-height: var(--leading-relaxed);
+  color: var(--color-label);
+  overflow-wrap: anywhere;
+}
+
+.body > :first-child {
+  margin-block-start: 0;
+}
+
+/* O texto em branco, quando não há nada escrito: a mesma cor do texto de exemplo de um campo. */
+.empty {
+  color: var(--color-label-tertiary);
+}
+
+.body p {
+  margin: 0;
+}
+
+/* Os títulos sobem do corpo sem virar outra tipografia: o mesmo peso e a mesma família, um degrau de
+   tamanho entre eles, e um respiro maior em cima para separar do bloco anterior. */
+.body h2,
+.body h3,
+.body h4 {
+  margin-block: var(--space-2) 0;
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.body h2 {
+  font-size: var(--text-title-3);
+}
+
+.body h3 {
+  font-size: var(--text-headline);
+}
+
+.body h4 {
+  font-size: var(--text-callout);
+  color: var(--color-label-secondary);
+}
+
+.body ul,
+.body ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-inline-start: var(--space-5);
+  margin: 0;
+}
+
+.body li {
+  margin: 0;
+}
+
+.body li::marker {
+  color: var(--color-label-tertiary);
+}
+
+/* A lista de tarefas não é uma lista com marcador: cada item traz a própria caixa, então o recuo sai e o
+   item vira uma grade de duas colunas, com a caixa alinhada pela primeira linha do texto. */
+.body ul[data-type="taskList"] {
+  gap: var(--space-2);
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.body li[data-type="taskItem"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+}
+
+/* A caixa de marcar é desenhada, e não a nativa: o reset da casa tira a aparência de todo input, então o
+   que aparece é o `span` ao lado dele, na mesma receita do `Checkbox` da casa (caixa clara com fio, e
+   marcada vai para a tinta do texto com o check em branco). O input fica por cima, invisível, porque é ele
+   que o teclado alcança e o leitor de tela anuncia. */
+.body li[data-type="taskItem"] > label,
+.body li[data-type="taskItem"] > span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: calc(var(--text-callout) * var(--leading-relaxed));
+  cursor: pointer;
+}
+
+.body li[data-type="taskItem"] > label > input,
+.body li[data-type="taskItem"] > span > input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.body li[data-type="taskItem"] > label > span,
+.body li[data-type="taskItem"] > span > span {
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 1.5px solid var(--color-label-tertiary);
+  border-radius: var(--radius-sm);
+  corner-shape: squircle;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* O check é desenhado com duas bordas de uma caixa girada, e não com um ícone: dentro do editor não há
+   componente nosso para pôr aqui, e o traço fica igual nos dois temas. */
+.body li[data-type="taskItem"] > label > span::after,
+.body li[data-type="taskItem"] > span > span::after {
+  display: block;
+  width: 0.3rem;
+  height: 0.55rem;
+  margin: 0.05rem auto 0;
+  border: solid var(--color-bg);
+  border-width: 0 2px 2px 0;
+  opacity: 0;
+  rotate: 45deg;
+  content: "";
+}
+
+.body li[data-type="taskItem"][data-checked="true"] > label > span,
+.body li[data-type="taskItem"][data-checked="true"] > span > span {
+  background-color: var(--color-label);
+  border-color: var(--color-label);
+}
+
+.body li[data-type="taskItem"][data-checked="true"] > label > span::after,
+.body li[data-type="taskItem"][data-checked="true"] > span > span::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .body li[data-type="taskItem"]:not([data-checked="true"]) > label:hover > span {
+    border-color: var(--color-label-secondary);
+  }
+}
+
+.body li[data-type="taskItem"] > label:focus-within > span {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.body li[data-type="taskItem"] > div {
+  min-width: 0;
+}
+
+/* Item feito sai de cena sem sumir: risco e tinta apagada, como a subtarefa marcada da ficha. */
+.body li[data-type="taskItem"][data-checked="true"] > div {
+  color: var(--color-label-tertiary);
+  text-decoration: line-through;
+}
+
+.body blockquote {
+  padding-inline-start: var(--space-4);
+  margin: 0;
+  color: var(--color-label-secondary);
+  border-inline-start: 2px solid var(--color-border);
+}
+
+.body code {
+  padding: 0.0625rem var(--space-1);
+  font-family: var(--font-code);
+  font-size: 0.9em;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-xs);
+}
+
+.body pre code {
+  padding: 0;
+  background: none;
+}
+
+.body hr {
+  width: 100%;
+  height: 0;
+  margin: var(--space-1) 0;
+  border: 0;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.body a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* A imagem toma a largura da coluna, que é a "imagem estendida" da referência, e nunca estoura a caixa. */
+.body figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.body figure img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.body figcaption {
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+/* ------------------------------------------ o editor ------------------------------------------ */
+
+/* A caixa do editor: o fio e o canto de um campo da casa, acendendo no foco como os outros, com a barra de
+   ferramentas presa no topo e o texto rolando por dentro quando passa da altura. */
+/* O editor **não tem caixa** (2026-09-22, a pedido: "é para ser puro, lembra?"): nem moldura, nem fundo,
+   nem recuo, nem altura própria. Ele ocupa o mesmo lugar do texto que estava sendo lido, e a única
+   diferença entre ler e escrever é o cursor. Quem formata é a bolha da seleção, que flutua por cima. */
+.editor {
+  display: grid;
+  min-width: 0;
+}
+
+/* O fio que separa um grupo de ferramentas do outro, dentro da bolha. */
+.divider {
+  width: 1px;
+  height: 1.25rem;
+  margin-inline: var(--space-half);
+  background-color: var(--color-separator);
+}
+
+.surface {
+  min-width: 0;
+}
+
+.surface :global(.ProseMirror) {
+  outline: none;
+}
+
+/* O texto de exemplo do primeiro parágrafo vazio, na receita do Placeholder do editor. */
+.surface :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  float: inline-start;
+  height: 0;
+  color: var(--color-label-tertiary);
+  pointer-events: none;
+  content: attr(data-placeholder);
+}
+
+/* A imagem escolhida no editor pode ser arrastada para outro lugar do texto, e por isso mostra que é uma
+   peça só quando está selecionada. */
+.surface :global(.ProseMirror-selectednode) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* A bolha que aparece sobre a seleção, no vidro das outras camadas flutuantes da casa. */
+/* A bolha é uma fila só e **nunca quebra linha** (2026-09-22, a pedido): o que não cabe em botão direto foi
+   para dentro de um leque, então ela tem seis alvos e cabe até numa tela de 320px. */
+/* A bolha é uma fila só e **nunca quebra linha** (2026-09-22, a pedido): o que não cabe em botão direto foi
+   para um leque, então ela tem seis alvos. Os filhos não encolhem e a largura é a do conteúdo: sem isso o
+   flex espremia o gatilho do leque a 42px e o nome do bloco caía embaixo do glifo, que foi o empilhamento
+   visto na tela. Onde nem assim couber, ela rola por dentro, sem barra à vista, em vez de dobrar de altura. */
+.bubble {
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  width: max-content;
+  max-width: calc(100vw - var(--space-6));
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  padding: var(--space-half);
+  background-color: var(--glass-layer-bg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  corner-shape: squircle;
+}
+
+@media (max-width: 47.9375rem) {
+  .surface {
+    max-height: 20rem;
+  }
+}
+
+.bubble > * {
+  flex-shrink: 0;
+}
+
+/* O gatilho do leque de blocos: o glifo do bloco em vigor, o nome e o chevron numa linha só, no lugar de um
+   botão de ícone. O nome some abaixo de 30rem, onde a fila precisa de cada pixel, e o glifo continua dizendo
+   em que bloco o cursor está. */
+.pick {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  /* A mesma altura dos botões ao lado: o gatilho é texto, e sem altura própria ele ficava com dezesseis
+     pixels no meio de uma fila de trinta e dois. */
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-1);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  color: var(--color-label);
+  white-space: nowrap;
+}
+
+.pick svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.pick svg:last-child {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-label-tertiary);
+}
+
+@media (max-width: 30rem) {
+  .pickName {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+/* ------------------------------------ o bloco de código ------------------------------------ */
+
+/* A folha do código (2026-09-22, sobre três referências do usuário): clara, de canto largo, com o fio fino
+   por fora e o copiar flutuando na quina de cima. Sem faixa de cabeçalho e sem o nome da linguagem escrito:
+   nas referências o bloco é só o código, e uma barra por cima roubava altura para dizer o que o próprio
+   código já diz. As cores do realce são as do editor de código que as referências imitam, com o par claro e
+   escuro declarado junto, para o bloco ler igual nos dois temas. */
+.code {
+  --code-surface: light-dark(#fcfcfd, #16181d);
+  --code-line: light-dark(#e8eaee, #24262c);
+  --code-keyword: light-dark(#a626a4, #c678dd);
+  --code-string: light-dark(#3f8f45, #98c379);
+  --code-number: light-dark(#986801, #d19a66);
+  --code-comment: light-dark(#a0a1a7, #7f848e);
+  --code-function: light-dark(#3f70e0, #61afef);
+  --code-variable: light-dark(#d8503f, #e06c75);
+  --code-type: light-dark(#a8740a, #e5c07b);
+
+  position: relative;
+  min-width: 0;
+  background-color: var(--code-surface);
+  border: 1px solid var(--code-line);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}
+
+/* O copiar na quina de cima, por cima do código e fora do fluxo dele. Ele aparece ao apontar ou ao chegar
+   pelo teclado; no toque, onde não há apontar, fica sempre à vista, porque ali não existe o gesto que o
+   revelaria. */
+/* Os controles do bloco na quina de cima: a linguagem e o copiar, **num invólucro só**, que é quem se
+   posiciona. Dois posicionamentos absolutos aninhados (o invólucro e o botão) era o que jogava o copiar para
+   fora da quina, que foi o ícone bugado que apareceu na tela. Eles aparecem ao apontar ou ao chegar pelo
+   teclado; no toque, onde não há apontar, ficam sempre à vista, porque ali não existe o gesto que os
+   revelaria. */
+.codeTools {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+  z-index: 1;
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  padding-inline-start: var(--space-2);
+  background-color: var(--code-surface);
+  border-radius: var(--radius-md);
+  corner-shape: squircle;
+}
+
+.codeLanguage {
+  font-size: var(--text-caption-2);
+  line-height: 1;
+  color: var(--color-label-tertiary);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .codeTools {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  .code:hover .codeTools,
+  .code:focus-within .codeTools {
+    opacity: 1;
+  }
+}
+
+.codeBody {
+  padding: var(--space-4);
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--font-code);
+  font-size: var(--text-footnote);
+  line-height: var(--leading-relaxed);
+  /* A indentação do que foi escrito é conteúdo: espaço à esquerda e quebra ficam como estão, e a linha
+     comprida rola por dentro em vez de dobrar. */
+  tab-size: 2;
+  white-space: pre;
+}
+
+/* Um tipo de trecho por cor, e as mesmas duas listas: a leitura usa o atributo, porque ela emite os pedaços
+   que o lowlight classificou; o editor usa a classe do highlight.js, porque lá o realce vem por decoração
+   do ProseMirror. */
+.codeBody [data-token="keyword"],
+.codeBody [data-token="built_in"],
+.codeBody [data-token="literal"],
+.body pre :global(.hljs-keyword),
+.body pre :global(.hljs-built_in),
+.body pre :global(.hljs-literal) {
+  color: var(--code-keyword);
+}
+
+.codeBody [data-token="string"],
+.codeBody [data-token="regexp"],
+.body pre :global(.hljs-string),
+.body pre :global(.hljs-regexp) {
+  color: var(--code-string);
+}
+
+.codeBody [data-token="number"],
+.body pre :global(.hljs-number) {
+  color: var(--code-number);
+}
+
+.codeBody [data-token="comment"],
+.codeBody [data-token="quote"],
+.body pre :global(.hljs-comment),
+.body pre :global(.hljs-quote) {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.codeBody [data-token="title"],
+.codeBody [data-token="function"],
+.codeBody [data-token="section"],
+.body pre :global(.hljs-title),
+.body pre :global(.hljs-function),
+.body pre :global(.hljs-section) {
+  color: var(--code-function);
+}
+
+.codeBody [data-token="attr"],
+.codeBody [data-token="attribute"],
+.codeBody [data-token="property"],
+.codeBody [data-token="variable"],
+.codeBody [data-token="params"],
+.codeBody [data-token="name"],
+.codeBody [data-token="tag"],
+.codeBody [data-token="selector-tag"],
+.body pre :global(.hljs-attr),
+.body pre :global(.hljs-attribute),
+.body pre :global(.hljs-property),
+.body pre :global(.hljs-variable),
+.body pre :global(.hljs-params),
+.body pre :global(.hljs-name),
+.body pre :global(.hljs-tag),
+.body pre :global(.hljs-selector-tag) {
+  color: var(--code-variable);
+}
+
+.codeBody [data-token="type"],
+.codeBody [data-token="class"],
+.codeBody [data-token="symbol"],
+.codeBody [data-token="meta"],
+.body pre :global(.hljs-type),
+.body pre :global(.hljs-class),
+.body pre :global(.hljs-symbol),
+.body pre :global(.hljs-meta) {
+  color: var(--code-type);
+}
+
+/* O `pre` solto, de um documento que ainda não passou pela casca (a leitura antiga e o que vier de fora).
+   Dentro do editor e da leitura de hoje quem manda é `.code`, que já traz estas variáveis. */
+.body pre {
+  --code-surface: light-dark(#fcfcfd, #16181d);
+  --code-line: light-dark(#e8eaee, #24262c);
+  --code-keyword: light-dark(#a626a4, #c678dd);
+  --code-string: light-dark(#3f8f45, #98c379);
+  --code-number: light-dark(#986801, #d19a66);
+  --code-comment: light-dark(#a0a1a7, #7f848e);
+  --code-function: light-dark(#3f70e0, #61afef);
+  --code-variable: light-dark(#d8503f, #e06c75);
+  --code-type: light-dark(#a8740a, #e5c07b);
+
+  padding: var(--space-4);
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--font-code);
+  font-size: var(--text-footnote);
+  line-height: var(--leading-relaxed);
+  tab-size: 2;
+  white-space: pre;
+  background-color: var(--code-surface);
+  border: 1px solid var(--code-line);
+  border-radius: var(--radius-lg);
+  corner-shape: squircle;
+}

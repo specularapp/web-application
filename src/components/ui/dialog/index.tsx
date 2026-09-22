@@ -2,7 +2,7 @@
 
 import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
-import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { FloatingLayer } from "@/components/layout/floating-actions";
@@ -12,6 +12,10 @@ import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
 
 export type DialogSize = "sm" | "md" | "lg" | "xl";
+
+const subscribeToMount = () => () => {};
+const clientMounted = () => true;
+const serverMounted = () => false;
 
 export type DialogPlacement = "center" | "end";
 
@@ -25,7 +29,7 @@ export type DialogProps = {
   size?: DialogSize;
   /** `end` cola a janela na lateral final da tela, em altura cheia, no lugar de centralizar. */
   placement?: DialogPlacement;
-  /** `glass` troca a superfície opaca pelo vidro: quase transparente, com o borrão desenhando a caixa.
+  /** `glass` preserva o contexto atrás com vidro encorpado e borrão; `solid` é totalmente opaco.
    *  `page` usa o fundo da própria página, e não o cinza elevado: para a gaveta lateral, que é extensão
    *  da tela e não uma caixa sobre ela (a pedido, 2026-09-08, porque no escuro o cinza destoava). */
   surface?: DialogSurface;
@@ -86,6 +90,8 @@ const Backdrop = styled.div`
   inset: 0;
   z-index: var(--z-modal);
   background-color: var(--color-scrim);
+  -webkit-backdrop-filter: var(--glass-scrim-blur);
+  backdrop-filter: var(--glass-scrim-blur);
   animation: ${fadeIn} var(--duration-base) var(--ease-standard) both;
 
   /* Véu leve: a bandeja do celular sempre separa a janela da página, mesmo quando a janela dispensa o
@@ -94,10 +100,12 @@ const Backdrop = styled.div`
     background-color: var(--color-scrim-soft);
   }
 
-  /* Sob vidro a escuridão vai para a sombra da própria janela, e o fundo fica só para pegar o clique:
-     pintada aqui, atrás do vidro, o borrão a puxava para dentro e a janela inteira escurecia junto. */
+  /* Sem escurecimento, a separação ainda vem do borrão, e aí ele é o único trabalho: sem véu por cima, os
+     4px do fundo comum não separariam nada, então aqui vale o vidro cheio da casa. */
   &[data-clear] {
     background-color: transparent;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
   }
 
   /* O fundo desbota no mesmo tempo da janela: sumindo antes dela, a janela ainda em movimento ficava solta
@@ -190,33 +198,19 @@ const Panel = styled.div`
     border-radius: var(--radius-2xl);
   }
 
-  &[data-surface="glass"] {
-    background-color: var(--glass-layer-bg);
-    -webkit-backdrop-filter: var(--glass-layer-blur);
-    backdrop-filter: var(--glass-layer-blur);
-  }
-
   /* O fundo da página: o fio continua marcando a borda, e é só ele que separa a gaveta do resto. */
   &[data-surface="page"] {
     background-color: var(--color-bg);
   }
 
-  &[data-mode="sheet"][data-surface="glass"] {
-    background-color: var(--glass-sheet-bg);
-  }
-
-  /* A escuridão de fora como sombra sem desfoque e com espalhamento maior que a tela: ela cobre tudo
-     em volta e nada atrás do vidro, que só borra o que está dentro dos próprios limites. */
-  &[data-veil="soft"] {
-    box-shadow:
-      var(--shadow-lg),
-      0 0 0 100vmax var(--color-scrim-soft);
-  }
-
-  &[data-veil="full"] {
-    box-shadow:
-      var(--shadow-lg),
-      0 0 0 100vmax var(--color-scrim);
+  /* A janela é **sólida**, e não de vidro (2026-09-21, a pedido: "estão ficando como se fosse algo por cima
+     deixando eles escuro"). Vidro é material de camada que flutua sobre a página à vista, como o menu; a
+     janela flutua sobre um véu escuro, e translúcida ela deixava esse véu atravessar e lia como um branco
+     sujo. O branco aqui é o da casa (--color-bg-grouped-secondary: #ffffff no claro), que é o mesmo do
+     cartão, e no escuro o cinza de superfície elevada. Sem backdrop-filter junto: com fundo opaco ele só
+     custaria uma camada de pintura que ninguém vê. */
+  &[data-surface="glass"] {
+    background-color: var(--color-bg-grouped-secondary);
   }
 
   /* Gaveta da lateral: altura cheia menos a folga de 8px que a moldura abre, e canto nos quatro
@@ -319,6 +313,7 @@ export function Dialog({
   className,
 }: DialogProps) {
   const sheet = useMediaQuery(MOBILE_QUERY);
+  const mounted = useSyncExternalStore(subscribeToMount, clientMounted, serverMounted);
   const { present, state, onAnimationEnd } = usePresence(open);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -418,7 +413,7 @@ export function Dialog({
   }, [open, layer]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !mounted) return;
 
     const onTop = () => isTopLayer(layer);
 
@@ -442,13 +437,17 @@ export function Dialog({
       const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
         (item) => item.offsetParent !== null,
       );
-      if (items.length === 0) return;
+      if (items.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
 
       const first = items[0];
       const last = items[items.length - 1];
       const active = document.activeElement;
 
-      if (event.shiftKey && (active === first || !panel.contains(active))) {
+      if (event.shiftKey && (active === panel || active === first || !panel.contains(active))) {
         event.preventDefault();
         last.focus();
         return;
@@ -466,9 +465,9 @@ export function Dialog({
       document.removeEventListener("keydown", onKeyDown);
       opener?.focus({ preventScroll: true });
     };
-  }, [open, focusOnOpen, layer]);
+  }, [open, mounted, focusOnOpen, layer]);
 
-  if (!present) return null;
+  if (!present || !mounted) return null;
 
   const mode = sheet ? "sheet" : "window";
   // O fundo existe sempre, porque toda janela bloqueia a página atrás (decisão de 2026-09-08: com uma
@@ -476,14 +475,9 @@ export function Dialog({
   // transparente na janela avulsa do desktop, que deixa a página à vista sem deixar tocar. É o fundo que
   // fecha ao toque fora, e só quando esta janela era a camada de cima no começo do toque.
   const veilDark = scrim || sheet;
-  // Janela de vidro carrega a própria escuridão na sombra; o fundo fica transparente e só pega o clique.
-  // O vidro só nas janelas leves (a pedido, 2026-09-08): gaveta lateral e janela grande borram uma área
-  // enorme da tela a cada quadro, e no celular e em máquina fraca isso pesava a página inteira. Quem
-  // pede vidro numa dessas recebe o sólido, sem precisar saber. A superfície da página passa sempre.
-  const heavy = placement === "end" || size === "lg" || size === "xl";
-  const glass = surface === "glass" && !heavy;
-  const resolvedSurface = glass ? "glass" : surface === "page" ? "page" : "solid";
-  const veilKind = veilDark && glass ? (scrim ? "full" : "soft") : undefined;
+  // A receita de vidro é a mesma nos dois temas e tem corpo suficiente para texto; o fundo borrado mantém
+  // o contexto sem competir com o conteúdo da janela.
+  const resolvedSurface = surface;
 
   return createPortal(
     <>
@@ -491,7 +485,7 @@ export function Dialog({
         <Backdrop
           data-state={state}
           data-soft={!scrim && sheet ? "" : undefined}
-          data-clear={glass || !veilDark ? "" : undefined}
+          data-clear={!veilDark ? "" : undefined}
           onClick={() => {
             if (!armed.current) return;
             onClose();
@@ -513,7 +507,6 @@ export function Dialog({
           data-placement={placement}
           data-size={size}
           data-surface={resolvedSurface}
-          data-veil={veilKind}
           data-state={state}
           className={className}
           onAnimationEnd={onAnimationEnd}

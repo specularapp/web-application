@@ -22,12 +22,13 @@ const LOAD_FAILED = "Não foi possível carregar os clientes.";
 
 /* O que o cartão desenha, e só isso: a ficha inteira por cartão encheria a carga com anotação e etiqueta
    que a grade nem mostra. */
-const listColumns = "id, reference, name, email, phone, avatar_url, company, city, active, favorite, created_at";
+const listColumns = "id, reference, kind, name, email, phone, avatar_url, company, city, active, favorite, created_at";
 const fullColumns = `${listColumns}, company_logo_url, role, website, about, tags`;
 
 type ListRow = {
   id: string;
   reference: string;
+  kind: Client["kind"];
   name: string;
   email: string | null;
   phone: string | null;
@@ -51,6 +52,7 @@ function toListItem(row: ListRow, stats: Client["stats"]): ClientListItem {
   return {
     id: row.id,
     reference: row.reference,
+    kind: row.kind,
     name: row.name,
     email: row.email,
     phone: row.phone,
@@ -64,7 +66,7 @@ function toListItem(row: ListRow, stats: Client["stats"]): ClientListItem {
   };
 }
 
-const emptyStats = (): Client["stats"] => ({ quotes: 0, projects: 0, billed: 0, open: 0 });
+const emptyStats = (): Client["stats"] => ({ quotes: 0, projects: 0, billed: 0, open: 0, expenses: 0, spent: 0, payable: 0 });
 
 /**
  * Os números da relação de cada cliente da página: quantos orçamentos, quantos projetos, quanto já foi
@@ -88,7 +90,7 @@ async function statsFor(client: ClientsClient, organizationId: string, ids: stri
       .in("client_id", ids),
     client
       .from("charges")
-      .select("client_id, amount, cancelled_at, charge_installments(amount, paid_at)")
+      .select("client_id, direction, amount, cancelled_at, charge_installments(amount, paid_at)")
       .eq("organization_id", organizationId)
       .in("client_id", ids),
   ]);
@@ -113,8 +115,14 @@ async function statsFor(client: ClientsClient, organizationId: string, ids: stri
 
     const installments = row.charge_installments ?? [];
     const paid = installments.reduce((sum, installment) => sum + (installment.paid_at ? installment.amount : 0), 0);
-    entry.billed += paid;
-    if (!row.cancelled_at) entry.open += row.amount - paid;
+    if (row.direction === "outgoing") {
+      entry.expenses += 1;
+      entry.spent += paid;
+      if (!row.cancelled_at) entry.payable += row.amount - paid;
+    } else {
+      entry.billed += paid;
+      if (!row.cancelled_at) entry.open += row.amount - paid;
+    }
   }
 
   return stats;
@@ -134,6 +142,10 @@ export async function listClients(
     .from("clients")
     .select(listColumns, { count: "exact" })
     .eq("organization_id", organizationId);
+
+  builder = query.group === "fornecedores"
+    ? builder.in("kind", ["supplier", "both"])
+    : builder.in("kind", ["customer", "both"]);
 
   if (query.search) {
     const term = query.search.replace(/[%,()]/g, " ").trim();
@@ -234,6 +246,7 @@ export async function getClient(client: ClientsClient, organizationId: string, i
   return {
     id: data.id,
     reference: data.reference,
+    kind: data.kind,
     name: data.name,
     email: data.email,
     phone: data.phone,
@@ -264,6 +277,7 @@ export async function getClientsSummary(
     .from("clients")
     .select(fullColumns, { count: "exact" })
     .eq("organization_id", organizationId)
+    .in("kind", ["customer", "both"])
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -288,6 +302,7 @@ export async function getClientsSummary(
 /* Os nomes que a pessoa lê no histórico. Só o que ela mesma edita: o que o sistema preenche não é mudança
    dela e só encheria a linha do tempo. */
 const historyLabels = {
+  kind: "tipo de relação",
   name: "nome",
   company: "empresa",
   role: "área",
@@ -311,6 +326,7 @@ export async function saveClient(
   const values = {
     organization_id: organizationId,
     name: input.name,
+    kind: input.kind,
     company: blankToNull(input.company),
     role: blankToNull(input.role),
     email: blankToNull(input.email.toLowerCase()),
@@ -328,7 +344,7 @@ export async function saveClient(
        que a pessoa edita. */
     const { data: before } = await client
       .from("clients")
-      .select("name, company, role, email, phone, website, city, about, tags, active, favorite")
+      .select("kind, name, company, role, email, phone, website, city, about, tags, active, favorite")
       .eq("organization_id", organizationId)
       .eq("id", input.id)
       .maybeSingle();

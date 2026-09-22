@@ -21,10 +21,10 @@ import { uploadImage } from "@/features/uploads/upload";
 import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
 import { createChargeAction } from "../actions";
-import { chargeDirections, chargeMethods, recurrenceLabels, shortDate } from "../labels";
+import { chargeMethods, recurrenceLabels, shortDate } from "../labels";
 import { chargeLimits, chargeMethodValues, chargeRecurrenceValues } from "../schemas";
 import type { ChargeLookups } from "../service";
-import { chargeDirectionValues, type Charge, type ChargeDirection, type ChargeMethod, type ChargeRecurrence } from "../summary";
+import { type Charge, type ChargeDirection, type ChargeMethod, type ChargeRecurrence } from "../summary";
 import { callAction } from "@/lib/action";
 import styles from "./new-charge-dialog.module.css";
 
@@ -43,7 +43,7 @@ type Values = { direction: ChargeDirection; partyName: string; quoteId: string |
 
 const blank = (clientId: string | null = null, direction: ChargeDirection = "incoming"): Values => ({ direction, partyName: "", quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none" });
 
-const installmentOptions = Array.from({ length: 12 }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
+const installmentOptions = Array.from({ length: chargeLimits.installments }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
 
 const methodOptions = chargeMethodValues.map((value) => ({ value, label: chargeMethods[value].label }));
 
@@ -106,24 +106,13 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((current) => ({ ...current, [key]: value }));
 
   const quoteOptions = [{ value: NO_QUOTE, label: "Sem orçamento", caption: "Cobrança avulsa" }, ...lookups.quotes.map((quote) => ({ value: quote.id, label: quote.number, caption: `${quote.title}, ${formatMoney(quote.amount)}` }))];
-  const clientOptions = lookups.clients.map((client) => ({
+  const outgoing = values.direction === "outgoing";
+  const clientOptions = (outgoing ? lookups.suppliers : lookups.customers).map((client) => ({
     value: client.id,
     label: client.company ?? client.name,
     caption: client.company ? client.name : (client.email ?? undefined),
     media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
   }));
-
-  const outgoing = values.direction === "outgoing";
-
-  /* Trocar de lado limpa o que era do outro: um orçamento e um cliente da base vieram de uma cobrança, e
-     numa despesa eles apontariam para a pessoa errada; o nome do fornecedor, ao contrário. */
-  const chooseDirection = (direction: ChargeDirection) => {
-    setValues((current) =>
-      direction === "outgoing"
-        ? { ...current, direction, quoteId: null, clientId: null }
-        : { ...current, direction, partyName: "" },
-    );
-  };
 
   /* Escolher o orçamento preenche o que ele sabe; trocar para "sem orçamento" só solta o vínculo. */
   const chooseQuote = (value: string) => {
@@ -176,17 +165,17 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
     if (imageFile) {
       try {
         const sent = await uploadImage("charge-image", result.charge.id, imageFile);
-        if (!sent.ok) toast({ title: "Cobrança criada, foto não", description: sent.error, tone: "warning" });
+        if (!sent.ok) toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada, foto não`, description: sent.error, tone: "warning" });
       } catch {
         /* A cobrança já existe; uma imagem que falhou não pode deixar o botão preso nem induzir uma segunda
            criação. A ficha abre normalmente e a pessoa recebe o aviso específico. */
-        toast({ title: "Cobrança criada, foto não", description: "Não foi possível preparar a imagem.", tone: "warning" });
+        toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada, foto não`, description: "Não foi possível preparar a imagem.", tone: "warning" });
       }
     }
 
     savingRef.current = false;
     setSaving(false);
-    toast({ title: "Cobrança criada", description: `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`, tone: "success" });
+    toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada`, description: outgoing ? `${result.charge.reference} já está no controle de contas a pagar.` : `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`, tone: "success" });
     onCreated(result.charge);
   };
 
@@ -195,7 +184,7 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
   };
 
   useFloatingActionsRegistration({
-    primary: { label: saving ? "Criando" : "Criar cobrança", icon: <CheckIcon weight="bold" />, loading: saving, onClick: () => void save() },
+    primary: { label: saving ? "Criando" : `Criar ${outgoing ? "despesa" : "cobrança"}`, icon: <CheckIcon weight="bold" />, loading: saving, onClick: () => void save() },
     cancel: { label: "Fechar", onClick: close },
   });
 
@@ -213,30 +202,6 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
       </header>
 
       <div className={styles.body}>
-        {/* O lado é a primeira decisão, e não um campo no meio do formulário: ele muda o nome da janela, de
-            quem é a outra ponta e o que a baixa faz no caixa. Segmento, porque são dois e a escolha é
-            excludente. */}
-        <div className={styles.sides} role="tablist" aria-label="O que está sendo lançado">
-          {chargeDirectionValues.map((value) => {
-            const meta = chargeDirections[value];
-            return (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={values.direction === value}
-                className={styles.side}
-                data-side={value}
-                disabled={saving}
-                onClick={() => chooseDirection(value)}
-              >
-                <meta.icon weight="bold" aria-hidden="true" />
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Despesa não nasce de orçamento: orçamento é o que a equipe cobra. */}
         {!outgoing && (
           <Field label="Orçamento aprovado">
@@ -244,36 +209,25 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
           </Field>
         )}
 
-        {/* Na cobrança a outra ponta sai da base de clientes; na despesa ela é um nome digitado, porque
-            fornecedor não é cliente e não tem por que entrar na base para uma assinatura ser paga. */}
-        {outgoing ? (
-          <Field label="Fornecedor" error={error?.field === "partyName" ? error.message : undefined}>
-            <Input
-              type="text"
-              size="sm"
-              value={values.partyName}
-              maxLength={80}
-              placeholder="Para quem a equipe paga"
-              invalid={error?.field === "partyName"}
-              onChange={(event) => set("partyName", event.target.value)}
-            />
-          </Field>
-        ) : (
-          <Field label="Quem paga" error={error?.field === "clientId" ? error.message : undefined}>
-            <Select<string>
-              label="Quem paga"
-              size="sm"
-              options={[{ value: NO_CLIENT, label: "Cobrança avulsa", caption: "Um serviço, um sistema, algo fora da base" }, ...clientOptions]}
-              value={values.clientId ?? NO_CLIENT}
-              searchable
-              searchPlaceholder="Buscar cliente"
-              invalid={error?.field === "clientId"}
-              onChange={(value) => set("clientId", value === NO_CLIENT ? null : value)}
-            />
+        <Field label={outgoing ? "Fornecedor" : "Quem paga"} error={error?.field === "clientId" ? error.message : undefined}>
+          <Select<string>
+            label={outgoing ? "Fornecedor" : "Quem paga"}
+            size="sm"
+            options={[{ value: NO_CLIENT, label: outgoing ? "Despesa avulsa" : "Cobrança avulsa", caption: outgoing ? "Fornecedor ainda não cadastrado" : "Contato fora da base" }, ...clientOptions]}
+            value={values.clientId ?? NO_CLIENT}
+            searchable
+            searchPlaceholder={outgoing ? "Buscar fornecedor" : "Buscar cliente"}
+            invalid={error?.field === "clientId"}
+            onChange={(value) => setValues((current) => ({ ...current, clientId: value === NO_CLIENT ? null : value, partyName: value === NO_CLIENT ? current.partyName : "" }))}
+          />
+        </Field>
+        {outgoing && !values.clientId && (
+          <Field label="Nome do fornecedor" error={error?.field === "partyName" ? error.message : undefined}>
+            <Input type="text" size="sm" value={values.partyName} maxLength={80} placeholder="Para quem a equipe paga" invalid={error?.field === "partyName"} onChange={(event) => set("partyName", event.target.value)} />
           </Field>
         )}
         <Field label="Título" required error={error?.field === "title" ? error.message : undefined}>
-          <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder="Do que é a cobrança" invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
+          <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder={outgoing ? "Do que é a despesa" : "Do que é a cobrança"} invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
         </Field>
         <Field label="Descrição">
           <Input type="text" size="sm" value={values.description} maxLength={chargeLimits.description} placeholder="Uma frase que aparece para o cliente" onChange={(event) => set("description", event.target.value)} />
@@ -363,7 +317,7 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
           </section>
         )}
 
-        {error && !error.field && (
+        {error && (
           <Text variant="footnote" tone="danger" role="alert">
             {error.message}
           </Text>
@@ -375,7 +329,7 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
           Cancelar
         </Button>
         <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>
-          {saving ? "Criando" : "Criar cobrança"}
+          {saving ? "Criando" : `Criar ${outgoing ? "despesa" : "cobrança"}`}
         </Button>
       </footer>
     </div>

@@ -6,7 +6,7 @@ import { normalizeWebsite } from "@/features/organizations/schemas";
 import { listTeamMembers } from "@/features/organizations/service";
 import { quoteTotals } from "@/features/quotes/totals";
 import type { QuoteStatus } from "@/features/quotes/summary";
-import { defaultStages, type TaskStage } from "@/features/tasks/stages";
+import type { TaskStage } from "@/features/tasks/stages";
 import type { TaskPriority } from "@/features/tasks/summary";
 import type { ProjectGlyph, TaskTreeNode } from "@/features/tasks/tree";
 import { slugify } from "@/lib/utils/slug";
@@ -34,7 +34,7 @@ export type ServiceResult<T> = { ok: true; data: T } | { ok: false; error: strin
 const SAVE_FAILED = "Não foi possível salvar o projeto. Tente de novo em instantes.";
 
 const columns = `
-  id, slug, reference, name, url, description, is_public, status, tags, tools, stages, glyph, hue,
+  id, slug, reference, name, url, description, is_public, status, tags, tools, glyph, hue,
   budget_min, budget_max, started_at, due_at, progress, cover_url, logo_url, owner_id, folder_id,
   clients(id, name, company, avatar_url, company_logo_url)
 `;
@@ -51,7 +51,6 @@ type Row = {
   status: ProjectStatus;
   tags: string[];
   tools: ProjectTool[];
-  stages: TaskStage[];
   glyph: ProjectGlyph;
   hue: ProjectHue;
   budget_min: number | null;
@@ -261,7 +260,7 @@ export async function getProjectDetails(
     client.from("project_members").select("user_id, role").eq("project_id", id),
     client
       .from("tasks")
-      .select("id, reference, title, stage, priority, due_date, owner_id")
+      .select("id, reference, title, priority, due_date, owner_id, task_stages!inner(id, name, hue, glyph, kind)")
       .eq("organization_id", organizationId)
       .eq("project_id", id)
       .order("due_date")
@@ -314,12 +313,12 @@ export async function getProjectDetails(
       id: task.id,
       reference: task.reference,
       title: task.title,
-      stage: task.stage as TaskStage,
+      stage: task.task_stages as TaskStage,
       priority: task.priority as TaskPriority,
       dueDate: task.due_date,
       owner: person(task.owner_id),
     })),
-    openTasks: taskRows.filter((task) => task.stage !== "done").length,
+    openTasks: taskRows.filter((task) => (task.task_stages as TaskStage).kind !== "done").length,
     totalTasks: taskRows.length,
     quotes: (quotes.data ?? []).map((quote) => ({
       id: quote.id,
@@ -479,7 +478,6 @@ export async function saveProject(
       ...values,
       slug: await uniqueSlug(client, organizationId, input.name),
       hue: projectHueFor(input.name),
-      stages: defaultStages,
     })
     .select("id")
     .single();
@@ -572,12 +570,12 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
   const [folders, projects] = await Promise.all([
     client
       .from("project_folders")
-      .select("id, parent_id, name, position")
+      .select("id, parent_id, name, position, hue, glyph")
       .eq("organization_id", organizationId)
       .order("position"),
     client
       .from("projects")
-      .select("id, slug, reference, name, stages, glyph, hue, folder_id, status, logo_url, clients(avatar_url, company_logo_url)")
+      .select("id, slug, reference, name, glyph, hue, folder_id, status, logo_url, clients(avatar_url, company_logo_url), project_stages(position, task_stages(id, name, hue, glyph, kind))")
       .eq("organization_id", organizationId)
       .in("status", ["active", "paused"])
       .order("started_at", { ascending: false }),
@@ -592,9 +590,13 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
       slug: project.slug,
       name: project.name,
       reference: project.reference,
-      stages: project.stages as TaskStage[],
+      stages: [...(project.project_stages ?? [])]
+        .sort((a, b) => a.position - b.position)
+        .map((entry) => entry.task_stages as TaskStage)
+        .filter((stage): stage is TaskStage => Boolean(stage)),
       glyph: project.glyph as ProjectGlyph,
       hue: `var(--sys-${project.hue})`,
+      paletteHue: project.hue,
       imageUrl: projectFace({
         logoUrl: project.logo_url,
         client: project.clients && { avatarUrl: project.clients.avatar_url, logoUrl: project.clients.company_logo_url },
@@ -606,7 +608,15 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
   const children = (parentId: string | null): TaskTreeNode[] => [
     ...(folders.data ?? [])
       .filter((folder) => folder.parent_id === parentId)
-      .map((folder) => ({ kind: "folder" as const, id: folder.id, name: folder.name, children: children(folder.id) })),
+      .map((folder) => ({
+        kind: "folder" as const,
+        id: folder.id,
+        name: folder.name,
+        hue: `var(--sys-${folder.hue})`,
+        paletteHue: folder.hue,
+        glyph: folder.glyph as ProjectGlyph,
+        children: children(folder.id),
+      })),
     ...(leaves.get(parentId) ?? []),
   ];
 
@@ -640,12 +650,14 @@ export async function listProjectFolders(client: ProjectsClient, organizationId:
 export async function saveProjectFolder(
   client: ProjectsClient,
   organizationId: string,
-  input: { id?: string; name: string; parentId: string | null },
+  input: { id?: string; name: string; parentId: string | null; hue?: ProjectHue; glyph?: ProjectGlyph },
 ): Promise<ServiceResult<{ id: string }>> {
+  const look = { hue: input.hue ?? "gray", glyph: input.glyph ?? "tray" } as const;
+
   if (input.id) {
     const { data, error } = await client
       .from("project_folders")
-      .update({ name: input.name, parent_id: input.parentId })
+      .update({ name: input.name, parent_id: input.parentId, ...look })
       .eq("id", input.id)
       .eq("organization_id", organizationId)
       .select("id")
@@ -662,7 +674,7 @@ export async function saveProjectFolder(
 
   const { data, error } = await client
     .from("project_folders")
-    .insert({ organization_id: organizationId, name: input.name, parent_id: input.parentId, position: count ?? 0 })
+    .insert({ organization_id: organizationId, name: input.name, parent_id: input.parentId, position: count ?? 0, ...look })
     .select("id")
     .single();
 
@@ -731,28 +743,6 @@ export async function setProjectStatus(
   return { ok: true, data: undefined };
 }
 
-/**
- * As etapas do quadro do projeto, na ordem das colunas. Uma tarefa numa etapa que saiu fica onde está e some
- * do quadro até a etapa voltar; o gatilho do banco cuida de as novas só nascerem em etapa que existe.
- */
-export async function setProjectStages(
-  client: ProjectsClient,
-  organizationId: string,
-  id: string,
-  stages: TaskStage[],
-): Promise<ServiceResult<undefined>> {
-  const { data, error } = await client
-    .from("projects")
-    .update({ stages })
-    .eq("id", id)
-    .eq("organization_id", organizationId)
-    .select("id")
-    .maybeSingle();
-
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
-  return { ok: true, data: undefined };
-}
-
 /** Entra ou sai da vitrine pública. Escrita própria, porque a página do portfólio não tem a ficha em mãos. */
 export async function setProjectPublic(
   client: ProjectsClient,
@@ -778,5 +768,26 @@ export async function setProjectPublic(
     changes: [{ field: "is_public", label: "público", from: isPublic ? "não" : "sim", to: isPublic ? "sim" : "não" }],
   });
 
+  return { ok: true, data: undefined };
+}
+
+/**
+ * A cor e o glifo do projeto. Escrita própria, porque quem troca a cor está no quadro de tarefas ou no menu,
+ * sem a ficha em mãos: mandar o resto em branco apagaria o que não foi editado.
+ */
+export async function setProjectAppearance(
+  client: ProjectsClient,
+  organizationId: string,
+  input: { id: string; hue: ProjectHue; glyph: ProjectGlyph },
+): Promise<ServiceResult<undefined>> {
+  const { data, error } = await client
+    .from("projects")
+    .update({ hue: input.hue, glyph: input.glyph })
+    .eq("id", input.id)
+    .eq("organization_id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
   return { ok: true, data: undefined };
 }

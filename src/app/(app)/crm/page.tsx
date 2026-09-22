@@ -27,7 +27,7 @@ export default async function CrmPage({ searchParams }: PageProps<"/crm">) {
 
   // As colunas são as **etapas em uso**, e não uma lista fixa: este quadro cruza funis com caminhos
   // diferentes, e cada funil tem as etapas dele.
-  const board = buildCrmBoard(data.opportunities, query, crmStagesInUse(data.opportunities));
+  const board = buildCrmBoard(data.opportunities, query, crmStagesInUse(data.opportunities, data.funnels));
 
-  return <CrmScreen board={board} query={query} collapsed={collapsed} ai={ai} basePath="/crm" team={data.team} />;
+  return <CrmScreen board={board} query={query} collapsed={collapsed} ai={ai} basePath="/crm" team={data.team} clients={data.clients} funnels={data.funnels} />;
 }

@@ -19,6 +19,152 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-16 (qua) | em andamento | Limpeza geral dos dados de exemplo e o banco de verdade: 16 migrações novas, ~30 tabelas com RLS, validação e gatilhos, `service.ts` e `queries.ts` em onze domínios, `api/v1` por domínio, todas as telas religadas, prévias apagadas; a rodada de velocidade (contagens agrupadas no banco, cache em Redis por tag, memorização por requisição, esqueleto por rota) e a de padronização (etiqueta como seleção em todo domínio, confirmação de exclusão única, excluir ligado nas quatro telas em que era item morto) |
 | 2026-09-17 (qui) | em andamento | Toda opção da aplicação funcionando: mapa de item morto por script, leque do cliente inteiro (histórico e mapa de relação em janela), orçamento (marcar, duplicar, excluir), tarefa (criar com responsável, duplicar, concluir), funil (criar, duplicar, orçamento), projeto (situação, mover para pasta), colunas tiram etapa do quadro; histórico gravado em todos os domínios; modal central de plano é o mesmo dos primeiros passos; cobrança avulsa com foto e recorrência; chevron da árvore do menu com renomear, etapas e excluir; editor de projeto em tela cheia com prévia; auditoria dos primitivos (camadas, toque, bandejas); onze páginas que devolviam nulo agora existem (conta, equipe, segurança, notificações, domínio, integrações, conquistas, portfólio e currículo, com as duas vitrines públicas); encerrar recorrência, mover funil, projeto público; primeira entrada de conta nova destravada (painel abre vazio com a configuração inicial por cima) e os seis pedidos do dia: colaboradores no projeto, teto de etiquetas no cartão, logo da marca na frente do rosto, foto do item na folha de orçamento, mapa de relação com campos e nós que se movem, e o acerto de velocidade dos quadros longos |
 | 2026-09-20 (dom) | dia inteiro, em andamento, em paralelo com o Codex no mesmo repositório | Pull com merge do trabalho de dois lados e o servidor aberto para a rede local; imagem reduzida e em WebP no envio e otimizada na tela (`lib/images`, `StoredImage`); etapas sempre no quadro de tarefas, marca do projeto redonda no menu, nova tarefa em quatro blocos com projeto, descrição, começo, estimativa e etiquetas; a prévia do editor de projeto virou a ficha inteira (`ProjectSheet`, extraída da janela) na largura toda; campo é rótulo e controle, sem observação, em toda a casa; a **despesa**, que é a cobrança virada para o outro lado (`charges.direction`), com o segmento a receber / a pagar; o aviso do menu com rosto ou etiqueta, nunca os dois, e o rosto sozinho em círculo; as páginas de configuração, conquistas, portfólio, currículo e plano refeitas sobre a moldura de toda tela (`Topbar` e `Card`) |
+| 2026-09-21 (seg) | sessão de tarefas, em paralelo com o Codex | Etapas do quadro viraram tabela da equipe: criar, renomear, escolher cor e glifo, dizer o que a etapa significa, ordenar, tirar do quadro e excluir dizendo para onde vão as tarefas; cor e glifo do projeto editáveis pelo próprio quadro; o cinza entrou na paleta; contadores do menu refeitos sobre a junção; fundo de janela mais leve (4px) e janela sólida em vez de vidro; vincular registro com a foto de verdade do cliente e projeto e contrato em folha de documento |
+
+## 2026-09-21
+
+Tempo: sessão de tarefas, com o Codex trabalhando em paralelo no CRM sobre o mesmo disco.
+
+Feito:
+
+- **As etapas do quadro viraram tabela da equipe** (a pedido: "quero que tenha como definir as etapas
+  personalizadas, editar, excluir adicionar"). Eram o enum `task_stage`, com oito nomes escritos no código;
+  agora são `task_stages` (nome, cor, glifo, o ponto do caminho e a ordem) mais `project_stages`, que diz
+  quais etapas cada quadro usa. O catálogo é da **equipe**, e não do projeto: é o que mantém o quadro de
+  todas as tarefas de pé, porque ele cruza projetos com fluxos diferentes e precisa reunir numa coluna só o
+  que é a mesma etapa. `tasks.stage` virou `stage_id`, e a tarefa passou a carregar a etapa inteira, então
+  cartão, ficha e painel desenham nome, cor e glifo sem carregar catálogo nenhum.
+- **Na tela**: o leque **Opções do quadro** na barra abre as três janelas novas (`stage-dialogs.tsx`) — a
+  etapa em si (nome, treze cores, 36 glifos e o que ela significa, com a pílula da coluna em prévia ao
+  vivo), as colunas deste quadro (ligar, desligar, ordenar, criar, editar, excluir) e a **cor do quadro**,
+  que é a cor e o glifo do projeto e pinta o azulejo dele no menu. O menu de cada coluna ganhou Editar
+  etapa, Tirar do quadro e Excluir etapa.
+- **Apagar etapa pergunta para onde vão as tarefas**: `delete_task_stage` move e apaga na mesma transação e
+  recusa sem destino quando há tarefa dentro. Equipe nova nasce com as oito de sempre, por gatilho em
+  `organizations`, porque a regra precisa valer para a web e para o aplicativo.
+- **O cinza entrou na paleta** (`palette_hue`, `sysHues`, `BadgeHue`): é a cor de "ainda não entrou na
+  fila", e sem ela uma etapa de espera nasceria azul, que já quer dizer outra coisa.
+- **Os contadores do menu foram refeitos**: "em aberto" virou junção com `task_stages` filtrando
+  `kind <> done`, porque índice parcial não enxerga a linha do outro lado. Sem isso o menu quebraria em
+  runtime no primeiro carregamento depois da migração.
+- **O fundo das janelas ficou mais leve** (a pedido: "está muito blur e ficando feio"): o borrão do fundo
+  saiu dos 12px do vidro para 4px, em token próprio (`--glass-scrim-blur`), porque ali ele não é material
+  de peça nenhuma, é só o que tira a página de foco atrás de um véu que já escurece. Sem véu, o borrão
+  continua cheio, porque ali ele é a única separação.
+- **A janela deixou de ser de vidro** (a pedido: "estão ficando como se fosse algo por cima deixando eles
+  escuro"): ela flutua sobre um véu escuro, e translúcida deixava esse véu atravessar, o que lia como um
+  branco sujo. Agora é o branco da casa, sólido. O vidro segue no menu, no toast, na dica e nos painéis,
+  que flutuam sobre a página à vista.
+- **Vincular registro** (a pedido): o cliente aparece com a **foto de verdade** quando ela existe, com a
+  logo da empresa como segunda escolha e o rosto desenhado só quando não há nenhuma das duas; e projeto e
+  contrato passaram a ser desenhados como **folha de documento**, com a dobra na quina, sobre referências de
+  ícone de arquivo do usuário.
+
+- **A descrição da tarefa virou documento** (a pedido: "igual um notion funciona, ali conseguimos colocar
+  titulos, checkbox, lista, imagens estendidas e tudo mais", com o pedido seguinte de "sem container sem
+  mudar nada, ela só entra em modo edição"). O texto rico virou peça da casa em `components/ui/rich-text`:
+  o editor (Tiptap, o mesmo motor do contrato), a leitura estática que desenha nó por nó, e os dois nós que
+  faltavam, a lista de marcar e a imagem, escritos com o núcleo do Tiptap em vez de dois pacotes a mais. O
+  tipo e o zod da árvore subiram para `lib/rich-doc.ts`, compartilhados com o contrato.
+  - **Clicar no texto edita**, sem moldura, sem barra e sem botão: o texto fica onde estava e só ganha
+    cursor. Quem formata é a bolha da seleção e os atalhos (`# `, `- `, `1. `, `> `, `[] `).
+  - **Imagem colada ou arrastada sobe e aparece**: ela vai para o balde `task-images` antes de entrar no
+    texto, porque um endereço `blob:` só existe naquela aba.
+  - **A caixa de marcar é desenhada à mão**: o reset da casa tira a aparência de todo input, então o que
+    aparece é um `span` na receita do `Checkbox`, com o input invisível por cima para o teclado e o leitor
+    de tela.
+  - **Quem lê não carrega o editor**: a ficha abre com a leitura estática e o Tiptap só chega no clique.
+  - No banco, `tasks.description_doc` guarda a árvore e `tasks.description` passou a ser o texto puro
+    derivado dela, que é o que a busca por trigrama varre e o que o cartão mostra.
+- **A tarefa nasce já aberta** (a pedido: "ao invés de abrir um modal independente, ele já abrir a
+  visualização de uma tarefa mesmo, e lá de dentro ele vai preenchendo"). O "+" do quadro cria a tarefa com
+  o nome padrão e o prazo de hoje e abre a ficha dela; o formulário de oito campos saiu. Título em branco
+  vira "Nova tarefa" no zod, e não erro.
+- **O bloco de código ficou como um editor de código** (a pedido: "colorida estilo vs code mesmo, com
+  indentação e tudo mais... com uma opção de copiar e colar lá em cima no hover", e depois três referências
+  do usuário para chegar no desenho): folha clara de canto largo com fio fino, o **copiar flutuando na quina
+  de cima**, sem faixa de cabeçalho e sem o nome da linguagem escrito, indentação e linha comprida
+  preservadas com rolagem por dentro, e realce por `lowlight` (highlight.js sem o DOM, pelo core, com dez
+  linguagens registradas à mão). O realce **chega depois**, por importação dinâmica: descrição sem código
+  não paga por gramática nenhuma. As cores são as do editor que as referências imitam, com o par claro e
+  escuro declarado junto, e a mesma lista serve a leitura (por atributo) e o editor (pela classe do
+  highlight.js, que vem da decoração do ProseMirror).
+- **A bolha da seleção é o painel de formatação inteiro** (a pedido: "quero que apareça a opção de
+  transformar em titulo e tudo mais"), numa **fila só que nunca quebra linha** (a pedido seguinte: "o mais
+  enxuta possível... para não quebrar linha nunca"). São seis alvos, e não quatorze: um leque de
+  **Transformar em** com o nome do bloco em vigor (texto, título, subtítulo, as três listas, citação,
+  código), negrito, itálico e link soltos, porque são os que se aperta sem pensar, e um leque na ponta com
+  sublinhado, tachado e código no texto. Abaixo de 30rem o nome do bloco sai e fica o glifo.
+- **A conversa da tarefa respira** (a pedido): o que a mensagem anexa passou a ter folga de verdade até o
+  texto dela. Eram os mesmos quatro pixels entre um cartão e outro e entre o bloco e a frase, e com isso o
+  anexo lia como parte do texto.
+- **A janela de etapas do funil virou primitivo da casa** (a pedido: "precisa pegar literalmente o component
+  de etapas do funil, e adaptar para etapas da tarefa, quero literalmente a mesma coisa visual"). Ela subiu
+  inteira, com o CSS junto, para `components/ui/stage-settings`: a janela, a tabela de uma linha por etapa,
+  o arrastar na vertical, a lista de destinos do que sai, o par de ações e a amostra de cor. O que muda de um
+  domínio para o outro ficou em props: as cores oferecidas, o nome da terceira coluna (o "Resultado" do
+  funil, o "Significa" da tarefa) e o que se move quando uma etapa sai. **Os dois domínios usam a mesma
+  peça**, e a regra de cada um ficou no invólucro dele: no funil o desfecho está no id da etapa e trocá-lo
+  cria um id novo; nas tarefas o que a etapa significa é uma coluna como as outras. A janela de aparência
+  (nome, ícone, cor) seguiu o mesmo caminho e serve pasta e folha nos dois lados. Com isso saíram o
+  `StagesDialog` de catálogo fixo, que era o que as tarefas tinham antes, e a minha cópia parecida da
+  tabela, escrita na rodada anterior.
+- **Etapa e cor se arrumam pelo menu, e não dentro da página** (a pedido): o leque do projeto na árvore tem
+  "Etapas do quadro" e "Cor do quadro", e o botão que fazia isso na barra das duas telas saiu, no quadro de
+  tarefas e no do funil. A árvore é onde se escolhe o quadro, e é onde se arruma o quadro.
+- **A pasta de tarefas ganhou cor e ícone** (a pedido, também do funil): `project_folders` tem `hue` e
+  `glyph`, cinza e bandeja por padrão, porque pasta é caminho e cor forte competiria com os projetos dentro
+  dela. A janela é a mesma da cor do quadro (`AppearanceDialog`), com nome, cor e ícone, e a pasta com glifo
+  próprio o mantém aberta ou fechada, senão a mesma pasta pareceria duas.
+- **O bloco de código passou a usar a lib inteira** (a pedido: "use uma lib para essa parte do código para
+  ficar bem completo"): o `common` do lowlight, com as trinta e sete linguagens do dia a dia do
+  highlight.js, no lugar das dez que estavam registradas à mão, mais **linguagem adivinhada** quando o bloco
+  não declara nenhuma, e um **seletor de linguagem** na quina, ao lado do copiar. A lista completa da lib
+  (cento e noventa) fica de fora: são dialetos que ninguém cola numa descrição de tarefa, e o conjunto viaja
+  junto do editor.
+- **O copiar estava fora da quina** (a pedido: "o icone flutuante de copiar está ficando bugado"), e a causa
+  era um posicionamento absoluto dentro de outro: o invólucro se posicionava e o botão, também absoluto,
+  saía dele. Agora só o invólucro se posiciona e os controles ficam em fluxo dentro dele. Medido depois: a
+  cinco pixels do topo e da direita, invisíveis em repouso e aparecendo ao apontar.
+- **A monoespaçada voltou para o código** (JetBrains Mono, por `next/font`): a casa apontava `--font-code`
+  para a Inter desde a decisão de família única de 2026-09-04, e num bloco de código isso não é estilo, é
+  função, porque é o alinhamento das colunas que faz a indentação ser legível. Com a proporcional, cada
+  linha do trecho começava num lugar. Vale também para a tecla do atalho e para o `code` no meio do texto.
+- **O bloco de código do editor ganhou a casca da leitura**, com o copiar na quina, por uma view de nó em
+  React: a descrição fica em edição enquanto a ficha está aberta, então era justamente o desenho que se vê
+  quase sempre que estava de fora. Uma view por bloco é barata aqui, ao contrário do item de lista, que numa
+  lista de trinta seriam trinta componentes montados.
+- **O texto rico entrou na vitrine** (`/componentes`, que em desenvolvimento é pública), com o editor e a
+  leitura do mesmo documento lado a lado. Foi ela que permitiu **ver com o olho** o que estava quebrado e
+  que os testes de tipo não pegam, e que era o que o usuário estava vendo na tela:
+  - **O realce saía todo branco**: as classes do highlight.js são globais, e dentro de um CSS Module elas
+    eram renomeadas pelo compilador, então nenhuma regra de cor casava. Resolvido com `:global(.hljs-*)`.
+  - **A bolha empilhava**: os estilos do gatilho tinham sido apagados numa reescrita anterior do arquivo, e
+    o flex espremia o botão a 42px, jogando o nome do bloco para baixo do glifo. Os filhos da bolha passaram
+    a não encolher, a largura virou a do conteúdo e o gatilho ganhou a altura dos botões ao lado. Medido
+    depois: a bolha é 250x42 numa linha só, com alvos de 36px.
+- **O editor não tem caixa** (a pedido: "tire esse container que está dentro do input todo da descrição, é
+  para ser puro"): sem moldura, sem fundo, sem recuo e sem altura própria. Com isso saíram a barra de
+  ferramentas, que ficou sem uso, o botão de imagem (ela entra colada ou arrastada) e o estado de campo
+  inválido, que não tem onde aparecer. O formulário de criar tarefa, que era o outro uso do editor com
+  caixa, foi apagado na mesma rodada: ele já estava órfão desde que a tarefa passou a nascer aberta.
+- **A ficha passou a gravar de verdade.** Ela era um rascunho que vivia só na tela, e tudo o que se mexia
+  ali voltava ao fechar; com a criação virando "abre e preenche", isso deixaria a tarefa nova vazia para
+  sempre. Agora é uma escrita só, com pausa depois da última mexida e comparação com o que já foi mandado.
+  A ficha também ganhou o campo **Projeto**, sem o qual a tarefa criada no quadro de todas ficaria no balde
+  para sempre.
+
+Pendências:
+
+- As telas de hoje não foram vistas com o olho: estão atrás do login, e o `.env.local` desta máquina aponta
+  para o Supabase de verdade.
+- O funil de vendas segue com o `StagesDialog` de catálogo fixo; quem mexe nele é a outra sessão.
+- Imagem apagada do texto deixa o arquivo no balde: falta a varredura que compara o documento salvo com o
+  que está no Storage e recolhe os órfãos.
+- A migração das etapas foi aplicada no projeto hospedado, e as tarefas existentes foram mapeadas pelo nome
+  da etapa antiga. Quadro de projeto que não escolheu coluna nenhuma passa a acompanhar o catálogo da
+  equipe.
+
 
 ## 2026-09-20
 
@@ -72,6 +218,18 @@ Feito:
   linha de apoio e as descrições de bloco; entraram a rota, o uso da IA no topo e o `loading.tsx` de cada
   rota. A página de plano, que tinha moldura própria, entrou na mesma.
 
+- **A conta virou a página da pessoa de verdade** (a pedido: "super completa e bem lapidada", sobre três
+  referências de perfil anexadas): a capa da pessoa por cima do matiz, com trocar e tirar em vidro; a câmera
+  na quina da foto; o nome com o papel e a etiqueta de currículo público; e-mail, título, cidade, equipe e
+  desde quando; habilidades em pílulas; os números da equipe; os botões de currículo público, portfólio e
+  conquistas; e, embaixo, as duas colunas das referências, a de editar (apresentação, habilidades, links e
+  redes como cartões na cor de cada rede, projetos) e a de ler (detalhes, endereço público, conquistas,
+  atividade). Tudo o que o cabeçalho mostra sai dos campos ao vivo. O `Profile` ganhou `cover`,
+  `coverAction`, `photoAction` e `ProfileEvents`; a capa mora em `profiles.cover_url` (migração
+  aplicada no projeto hospedado pelo `db:push` da outra sessão, junto com as dela; `db:types` regenerado) e sobe pelo mesmo caminho da foto, no balde `user-avatars`; a rede de um
+  link sai do endereço (`features/settings/links.ts`); e o aplicativo ganhou `api/v1/perfil` e
+  `api/v1/perfil/imagens`, que a conta e o currículo não tinham.
+
 Pendências:
 
 - Tabela nas cinco telas que ainda não têm (projetos, tarefas, CRM, contratos, automações), com a chave
@@ -82,6 +240,8 @@ Pendências:
 - A tela de login acumula 33 erros de CSP por estilo inline bloqueado, anteriores a hoje.
 - O contador de caracteres da descrição da automação precisa de outro lugar, se voltar.
 - As telas de hoje não foram vistas com o olho: estão atrás do login.
+- `/curriculo` repete o que a conta agora edita (título, cidade, sobre, habilidades, links, endereço
+  público): decidir se fica como editor focado ou sai do menu.
 
 
 ## 2026-09-17
@@ -976,3 +1136,39 @@ Pendências:
 
 - As janelas de acrescentar (vínculo, subtarefa, anexo) não foram conferidas pela sonda: os botões que as abrem moram no corpo rolável da ficha e o alcance por texto não chega neles. O contrato de camada da barra está conferido nos dois extremos (ficha aberta mostra "Concluir", ficha fechada devolve a paginação do quadro).
 - `/tarefas` só abre com sessão, e o `.env.local` desta máquina aponta para um Supabase de fachada: a conferência foi feita em `/previa/tarefas`, que monta o **mesmo** `TasksScreen` com os **mesmos** dados de `list-preview`. Sem query de projeto, as duas rotas são a mesma árvore.
+
+## 2026-09-20 revisão funcional da aplicação
+
+Tempo: sessão de auditoria e correções, sem apontamento preciso de duração.
+
+- Aplicada a migração pendente de tipo de cliente e fornecedor.
+- Corrigidos portal de modal no servidor, registro das ações flutuantes, estabilidade e hidratação dos quadros, validação e mensagens dos formulários.
+- Criada migração transacional para baixa, reabertura e cancelamento de parcelas, com proteção contra baixa simultânea duplicada.
+- Corrigidas respostas de sucesso sem dados nas APIs e invalidação de cache nas escritas de domínio e imagens.
+- Adicionados endpoints de movimentação financeira e baixa/reabertura de parcela reutilizando os serviços.
+- Criada sonda de integração com usuário e organização temporários: 102 de 102 verificações passaram, incluindo 43 páginas autenticadas, persistência, concorrência, cache e recusas de entrada e acesso.
+- Prova do schema passou em 30 de 30 verificações. Conferidas 23 telas principais nas larguras de desktop e celular.
+- Relatório completo em `relatorio-revisao-aplicacao.md`, com cobertura e limites explícitos. Integrações com efeitos externos, pagamentos reais, assinaturas e envios não foram executados.
+
+
+### Funis personalizáveis em 21 de setembro de 2026
+
+- Ícone e cor do funil, cor de pasta e editor de etapas com criação, edição, ordem e remoção.
+- Migração transacional das oportunidades de etapas removidas, com isolamento por equipe e persistência da movimentação do quadro.
+- 36 verificações de integração aprovadas e conferência dos controles na interface autenticada.
+- Compatibilidade com as alterações simultâneas de tarefas, typecheck, lint e build aprovados.
+- Detalhes e cobertura em `relatorio-funil-personalizavel.md`. Tempo desta etapa não cronometrado.
+
+- Refinamento dos modais do CRM: botão de etapas somente com ícone, editor ampliado para 64rem, campos e ações alinhados no desktop, layout empilhado no celular e modal de aparência ampliado com cor e ícone lado a lado.
+
+### 2026-09-21 | CRM com ficha editável e etapas em colunas
+
+Criação diretamente na ficha com título padrão, edição no próprio painel, link pelo código, remoção dos campos solicitados e caminho no funil com linha contínua. Editor de etapas ampliado e organizado em colunas, com arraste por alça e teclado. Integração: 43 verificações aprovadas. Conferência visual em desktop e 320 px. Relatório detalhado em relatorio-funil-personalizavel.md. Tempo não cronometrado.
+
+Ajuste adicional solicitado: editor de etapas mais estreito e compacto, sem texto explicativo, com controles discretos e menos espaçamento.
+
+A ficha de oportunidade recuperou a composição visual anterior e passou a editar no lugar, seguindo tarefas. O conteúdo permanece em modo de leitura e cada valor vira campo apenas ao clique, com salvamento automático após uma pausa e gravação pendente ao fechar. Conferido no desktop e em 320 px.
+
+O cliente selecionado passou a usar avatar e nome na ficha, no mesmo padrão visual do responsável. Textos editáveis e valores fixos agora permanecem em uma linha e cedem espaço com reticências. A linha do caminho no funil foi centralizada nos marcadores e estes ganharam fundo sólido, evitando que o traço atravesse os ícones.
+
+O seletor de origem da oportunidade ganhou uma identificação própria em cada opção e no valor selecionado. WhatsApp, Instagram e Facebook usam seus logotipos, Google usa a marca colorida e as demais origens usam ícones semânticos distintos.

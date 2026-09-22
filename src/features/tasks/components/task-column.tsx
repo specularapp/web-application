@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowsInLineHorizontalIcon, ArrowsOutLineHorizontalIcon, EyeSlashIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { memo, type CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -10,13 +10,13 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useEventCallback } from "@/hooks/use-event-callback";
 import { squircle } from "@/lib/corners";
 import { columnSortIcons, columnSortLabels, columnSortValues, type TasksColumnSort } from "../list-options";
-import type { TaskStage, TaskStageMeta } from "../stages";
+import { stageHue, stageGlyphs, type TaskStage } from "../stages";
 import type { Task } from "../summary";
 import { TaskCard } from "./task-card";
 import styles from "./task-column.module.css";
 
 export type TaskColumnProps = {
-  stage: TaskStageMeta;
+  stage: TaskStage;
   /** As tarefas da etapa, já filtradas e na ordem que a coluna escolheu. */
   tasks: Task[];
   collapsed: boolean;
@@ -47,6 +47,10 @@ export type TaskColumnProps = {
   onMove?: (task: Task, stage: TaskStage) => void;
   /** Tira esta etapa do quadro do projeto; ausente no quadro de todas as tarefas, que não tem dono. */
   onRemoveStage?: () => void;
+  /** Abre a etapa para edição: nome, cor, glifo e o ponto do caminho. */
+  onEditStage?: () => void;
+  /** Apaga a etapa do catálogo da equipe, o que é outra coisa que tirá-la deste quadro. */
+  onDeleteStage?: () => void;
 };
 
 // Uma coluna do quadro. O cabeçalho é o que esta rodada acertou (2026-09-10, a pedido, sobre uma referência
@@ -107,10 +111,12 @@ export function TaskColumn({
   onMove,
   onDelete,
   onRemoveStage,
+  onEditStage,
+  onDeleteStage,
 }: TaskColumnProps) {
-  const Glyph = stage.icon;
+  const Glyph = stageGlyphs[stage.glyph];
   const count = tasks.length;
-  const hue = { "--stage-hue": stage.hue } as CSSProperties;
+  const hue = { "--stage-hue": stageHue(stage) } as CSSProperties;
   /* A coluna inteira é o alvo de soltar, cabeçalho incluído: mirar a pilha de uma etapa vazia, que é uma
      frase de cinco linhas de altura, seria pedir precisão que ninguém tem com o cartão na mão. */
   const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stage: stage.id } });
@@ -124,8 +130,8 @@ export function TaskColumn({
 
   /* O menu do chevron duplo: a ordem de dentro da coluna, que vale na hora e não fecha o menu (a pessoa
      costuma experimentar mais de uma), e o que se faz com a etapa em si. Recolher fica no cookie; tirar do
-     quadro grava nas etapas do projeto. Não há "renomear": o nome da etapa é do catálogo, o mesmo em toda
-     a base, e é isso que deixa uma tarefa saber onde cair em qualquer quadro. */
+     quadro grava nas etapas do projeto; editar e excluir mexem no catálogo da equipe, que desde 2026-09-21
+     é tabela, e por isso valem para todos os quadros dela. */
   const sections: DropdownSection[] = [
     {
       id: "sort",
@@ -149,9 +155,23 @@ export function TaskColumn({
           icon: collapsed ? ArrowsOutLineHorizontalIcon : ArrowsInLineHorizontalIcon,
           onSelect: () => onCollapsedChange(!collapsed),
         },
+        ...(onEditStage ? [{ id: "edit", label: "Editar etapa", icon: PencilSimpleIcon, onSelect: onEditStage }] : []),
       ],
     },
-    ...(onRemoveStage ? [{ id: "remove", items: [{ id: "delete", label: "Tirar etapa do quadro", icon: TrashIcon, tone: "danger" as const, onSelect: onRemoveStage }] }] : []),
+    /* Tirar do quadro e apagar do catálogo são coisas diferentes, e por isso são dois itens: a primeira só
+       esconde a coluna deste projeto, com as tarefas esperando lá dentro; a segunda acaba com a etapa para a
+       equipe inteira, e por isso pergunta para onde vão as tarefas. */
+    ...(onRemoveStage || onDeleteStage
+      ? [
+          {
+            id: "remove",
+            items: [
+              ...(onRemoveStage ? [{ id: "hide", label: "Tirar do quadro", icon: EyeSlashIcon, onSelect: onRemoveStage }] : []),
+              ...(onDeleteStage ? [{ id: "delete", label: "Excluir etapa", icon: TrashIcon, tone: "danger" as const, onSelect: onDeleteStage }] : []),
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -162,7 +182,7 @@ export function TaskColumn({
       data-collapsed={collapsed || undefined}
       data-landing={landing || undefined}
       data-over={isOver || undefined}
-      aria-label={`${stage.label}, ${count} tarefas`}
+      aria-label={`${stage.name}, ${count} tarefas`}
     >
       <header className={styles.head}>
         {/* A etiqueta **é o botão** que abre e fecha a etapa (2026-09-10, a pedido): com a coluna vazia
@@ -180,7 +200,7 @@ export function TaskColumn({
             {...squircle("md", { clip: true })}
           >
             <Glyph aria-hidden="true" className={styles.glyph} weight="bold" />
-            <span className={styles.name}>{stage.label}</span>
+            <span className={styles.name}>{stage.name}</span>
             <span className={styles.count} aria-hidden="true" {...squircle("sm", { clip: true })}>
               {count}
             </span>
@@ -193,8 +213,8 @@ export function TaskColumn({
         {/* As ações só existem com a etapa aberta: recolhida, quem abre é o próprio cabeçalho. */}
         {!collapsed && (
           <div className={styles.tools}>
-            <DropdownMenu label={`Opções da etapa ${stage.label}`} triggerLabel={`Opções da etapa ${stage.label}`} sections={sections} size="sm" />
-            <IconButton label={`Nova tarefa em ${stage.label}`} variant="ghost" size="sm" onClick={onAdd}>
+            <DropdownMenu label={`Opções da etapa ${stage.name}`} triggerLabel={`Opções da etapa ${stage.name}`} sections={sections} size="sm" />
+            <IconButton label={`Nova tarefa em ${stage.name}`} variant="ghost" size="sm" onClick={onAdd}>
               <PlusIcon />
             </IconButton>
           </div>
@@ -218,7 +238,7 @@ export function TaskColumn({
               {landing && (
                 <li className={styles.landing} aria-hidden="true" {...squircle("xl")}>
                   <Text as="span" variant="caption1" weight="medium" tone="inherit">
-                    Soltar em {stage.label}
+                    Soltar em {stage.name}
                   </Text>
                 </li>
               )}
@@ -227,7 +247,7 @@ export function TaskColumn({
                   <DraggableCard
                     key={task.id}
                     task={task}
-                    stage={stage.id}
+                    stage={stage}
                     onOpen={open}
                     stages={stages}
                     onMove={onMove && move}

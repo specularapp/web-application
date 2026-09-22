@@ -2,8 +2,10 @@ import "server-only";
 import type { AppNotification } from "@/components/layout/notifications";
 import { listTotpFactors } from "@/features/auth/actions";
 import { getBillingState, type BillingState } from "@/features/billing/service";
+import { getPointsSummary, getWeeklyChallenge } from "@/features/gamification/service";
+import type { PointsSummary } from "@/features/gamification/summary";
 import { requireOrganization } from "@/features/organizations/context";
-import { getTeamState, getTeamSummary, type TeamMember, type TeamState } from "@/features/organizations/service";
+import { getTeamState, getTeamSummary, type Team, type TeamMember, type TeamState } from "@/features/organizations/service";
 import type { TeamMember as MemberSummary } from "@/features/organizations/summary";
 import { hasAi, hasResend, hasStripe } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
@@ -23,20 +25,35 @@ export type AccountSettings = {
   account: Account;
   resume: Resume | null;
   viewer: TeamMember;
+  /** A equipe em vigor, para a ficha dizer de qual casa a pessoa é; nula antes dos primeiros passos. */
+  team: Team | null;
   /** A pessoa no resumo da equipe; nula enquanto ela não estiver na lista de membros. */
   member: MemberSummary | null;
+  /** Os pontos e a sequência de dias, as mesmas leituras de Conquistas, sem registrar a entrada do dia. */
+  points: PointsSummary;
+  streak: { days: number; since: string };
 };
 
 export async function getAccountSettings(): Promise<AccountSettings | null> {
   const { supabase, user, organizationId } = await requireOrganization("/configuracoes");
-  const [account, resume, state, summary] = await Promise.all([
+  const [account, resume, state, summary, points, challenge] = await Promise.all([
     getAccount(supabase, user.id),
     getResume(supabase, user.id),
     getTeamState(supabase, user.id),
     getTeamSummary(supabase, organizationId),
+    getPointsSummary(supabase),
+    getWeeklyChallenge(supabase),
   ]);
   if (!account) return null;
-  return { account, resume, viewer: state.viewer, member: summary.members.find((member) => member.id === user.id) ?? null };
+  return {
+    account,
+    resume,
+    viewer: state.viewer,
+    team: state.team,
+    member: summary.members.find((member) => member.id === user.id) ?? null,
+    points,
+    streak: { days: challenge.streakDays, since: challenge.since },
+  };
 }
 
 export async function getTeamSettings(): Promise<TeamState> {

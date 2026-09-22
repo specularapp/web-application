@@ -14,8 +14,8 @@ import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
-  title: "Base de clientes",
-  description: "Gestão de clientes e histórico de relacionamento",
+  title: "Clientes e fornecedores",
+  description: "Gestão de clientes, fornecedores e histórico de relacionamento",
   path: "/clientes",
 });
 
@@ -28,6 +28,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clientes
   const query = parseClientsQuery(
     {
       busca: first(params.busca),
+      grupo: first(params.grupo),
       favorito: first(params.favorito),
       situacao: first(params.situacao),
       periodo: first(params.periodo),

@@ -1,18 +1,25 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   AddressBookIcon,
+  BellIcon,
   BriefcaseIcon,
+  CreditCardIcon,
   CurrencyCircleDollarIcon,
+  FileTextIcon,
   FlowArrowIcon,
   FunnelIcon,
   GearSixIcon,
+  GlobeIcon,
+  IdentificationCardIcon,
   ListChecksIcon,
+  PlugsConnectedIcon,
   ReceiptIcon,
-  SignatureIcon,
+  ShieldCheckIcon,
   SparkleIcon,
   SquaresFourIcon,
-  TagIcon,
+  StorefrontIcon,
   TrophyIcon,
+  UserCircleIcon,
   UserIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
@@ -101,15 +108,11 @@ export type NavHighlight = NavLink & { hue: string };
 // Calendário e relatório da referência ficam de fora até as páginas nascerem.
 export const navGroups: NavGroup[] = [
   {
-    title: "Área de trabalho",
+    title: "Trabalho",
     icon: SquaresFourIcon,
     hue: "var(--sys-blue)",
     entries: [
-      { label: "Espaço de trabalho", href: "/dashboard", icon: SquaresFourIcon },
-      /* Tarefas entrou logo abaixo do painel (2026-09-10): é a página que se abre junto com ele, todo dia, e
-         o glifo é o mesmo do bloco de tarefas do painel, para o bloco e a tela falarem a mesma língua.
-         Virou pasta no mesmo dia, a pedido: escolher Tarefas abre a arquitetura de pastas e projetos dentro
-         do menu, para a pessoa dizer para onde vai, e "Todas as tarefas" é o quadro de tudo. */
+      { label: "Painel", href: "/dashboard", icon: SquaresFourIcon },
       {
         label: "Tarefas",
         icon: ListChecksIcon,
@@ -117,12 +120,14 @@ export const navGroups: NavGroup[] = [
         tree: "tarefas",
         items: [{ label: "Todas as tarefas", href: "/tarefas", icon: ListChecksIcon }],
       },
-      /* Clientes e Produtos e serviços são páginas soltas, e não filhas de pasta (pedido de 2026-09-08): são
-         as duas bases que a pessoa abre o dia inteiro, e um degrau a mais para chegar nelas só atrasava. */
-      { label: "Clientes", href: "/clientes", icon: AddressBookIcon },
-      /* O funil virou pasta com árvore (2026-09-15, a pedido), na mesma arquitetura das tarefas: escolher
-         Funil de vendas abre as pastas e os funis dentro do menu, para a pessoa dizer para onde vai antes de
-         ver quadro nenhum, e "Todas as oportunidades" é o quadro de tudo. */
+      { label: "Projetos", href: "/projetos", icon: BriefcaseIcon },
+    ],
+  },
+  {
+    title: "Vendas",
+    icon: FunnelIcon,
+    hue: "var(--sys-orange)",
+    entries: [
       {
         label: "Funil de vendas",
         icon: FunnelIcon,
@@ -130,73 +135,65 @@ export const navGroups: NavGroup[] = [
         tree: "funis",
         items: [{ label: "Todas as oportunidades", href: "/crm", icon: FunnelIcon }],
       },
-      { label: "Produtos e serviços", href: "/catalogo", icon: TagIcon },
-      /* Orçar e acompanhar são a mesma tela (2026-09-09): a lista em tabela, com o editor abrindo por cima. A
-         pasta com "Acompanhar" e "Gerar orçamento" saiu. */
+      { label: "Clientes e fornecedores", href: "/clientes", icon: AddressBookIcon },
+      { label: "Produtos e serviços", href: "/catalogo", icon: StorefrontIcon },
       { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
+      { label: "Contratos", href: "/contratos", icon: FileTextIcon },
+    ],
+  },
+  {
+    title: "Gestão",
+    icon: CurrencyCircleDollarIcon,
+    hue: "var(--sys-green)",
+    entries: [
       {
         label: "Financeiro",
         icon: CurrencyCircleDollarIcon,
         hue: "var(--sys-green)",
         items: [
           { label: "Visão geral", href: "/financeiro", icon: CurrencyCircleDollarIcon },
-          { label: "Cobranças", href: "/cobrancas", icon: CurrencyCircleDollarIcon },
+          { label: "Cobranças", href: "/cobrancas", icon: CreditCardIcon },
+          { label: "Despesas", href: "/despesas", icon: ReceiptIcon },
         ],
       },
-      /* A pasta se chama pelas duas coisas que tem dentro (2026-09-15, a pedido): chamada só de "Projetos",
-         com contratos por dentro, ela mentia sobre metade do que guardava, e quem procurava contrato não abria
-         a pasta certa. **E cada página leva o glifo do que ela é**: os três itens usavam a pasta de projeto,
-         então contrato e projeto liam como a mesma coisa na lista. O contrato leva a assinatura, que é o que
-         ele é nesta aplicação, da criação ao aceite do cliente.
-         "Novo contrato" saiu da lista: menu é lugar, e não ação, e criar já mora no topo da própria página,
-         como saiu "Gerar orçamento" quando orçar e acompanhar viraram a mesma tela. A rota continua de pé. */
-      {
-        label: "Projetos e contratos",
-        icon: BriefcaseIcon,
-        hue: "var(--sys-indigo)",
-        items: [
-          { label: "Todos os projetos", href: "/projetos", icon: BriefcaseIcon },
-          { label: "Contratos", href: "/contratos", icon: SignatureIcon },
-        ],
-      },
-      { label: "Automação", href: "/automacoes", icon: FlowArrowIcon },
+      { label: "Automações", href: "/automacoes", icon: FlowArrowIcon },
+      { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },
     ],
   },
   {
-    title: "Organização",
-    icon: UsersThreeIcon,
-    hue: "var(--sys-brown)",
+    title: "Presença e equipe",
+    icon: UserIcon,
+    hue: "var(--sys-pink)",
     entries: [
       {
         label: "Perfil profissional",
         icon: UserIcon,
         hue: "var(--sys-pink)",
         items: [
-          { label: "Portfólio", href: "/portfolio", icon: UserIcon },
-          { label: "Currículo", href: "/curriculo", icon: UserIcon },
+          { label: "Portfólio", href: "/portfolio", icon: GlobeIcon },
+          { label: "Currículo", href: "/curriculo", icon: IdentificationCardIcon },
         ],
       },
       { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon },
+      { label: "Conquistas", href: "/conquistas", icon: TrophyIcon },
     ],
   },
   {
-    title: "Gestão",
+    title: "Configurações",
     icon: GearSixIcon,
-    hue: "var(--sys-purple)",
+    hue: "var(--sys-gray)",
     entries: [
-      { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },
-      { label: "Conquistas", href: "/conquistas", icon: TrophyIcon },
       {
         label: "Configurações",
         icon: GearSixIcon,
         hue: "var(--sys-gray)",
         items: [
-          { label: "Geral", href: "/configuracoes", icon: GearSixIcon },
-          { label: "Domínio", href: "/configuracoes/dominio", icon: GearSixIcon },
-          { label: "Integrações", href: "/configuracoes/integracoes", icon: GearSixIcon },
-          { label: "Notificações", href: "/configuracoes/notificacoes", icon: GearSixIcon },
-          { label: "Plano", href: "/configuracoes/plano", icon: GearSixIcon },
-          { label: "Segurança", href: "/configuracoes/seguranca", icon: GearSixIcon },
+          { label: "Conta", href: "/configuracoes", icon: UserCircleIcon },
+          { label: "Domínio", href: "/configuracoes/dominio", icon: GlobeIcon },
+          { label: "Integrações", href: "/configuracoes/integracoes", icon: PlugsConnectedIcon },
+          { label: "Notificações", href: "/configuracoes/notificacoes", icon: BellIcon },
+          { label: "Plano e assinatura", href: "/configuracoes/plano", icon: CreditCardIcon },
+          { label: "Segurança", href: "/configuracoes/seguranca", icon: ShieldCheckIcon },
         ],
       },
     ],
@@ -220,11 +217,11 @@ export function navLinks(): NavResult[] {
  *  porque dentro da pasta elas se chamam "Acompanhar" ou "Visão geral". Cada uma tem matiz fixo,
  *  para a pessoa achar pela cor antes de ler. */
 export const navHighlights: NavHighlight[] = [
-  { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
+  { label: "Tarefas", href: "/tarefas", icon: ListChecksIcon, hue: "var(--sys-cyan)" },
   { label: "Projetos", href: "/projetos", icon: BriefcaseIcon, hue: "var(--sys-indigo)" },
-  { label: "Clientes", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
   { label: "Oportunidades", href: "/crm", icon: FunnelIcon, hue: "var(--sys-cyan)" },
+  { label: "Clientes e fornecedores", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
+  { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
+  { label: "Contratos", href: "/contratos", icon: FileTextIcon, hue: "var(--sys-purple)" },
   { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)" },
-  { label: "Contratos", href: "/contratos", icon: SignatureIcon, hue: "var(--sys-purple)" },
-  { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon, hue: "var(--sys-pink)" },
 ];

@@ -14,9 +14,11 @@ import {
   notificationIdsSchema,
   saveAccountSchema,
   saveResumeSchema,
+  userImageClearSchema,
 } from "./schemas";
 import {
   attachAvatar,
+  clearUserImage,
   createAvatarUpload,
   getCustomDomain,
   saveAccount,
@@ -52,7 +54,7 @@ export async function createAvatarUploadAction(input: unknown): Promise<{ ok: tr
   const parsed = avatarUploadSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Envie uma imagem PNG, JPG ou WEBP." };
 
-  const prepared = await createAvatarUpload(guard.context.supabase, guard.context.user.id, parsed.data.contentType);
+  const prepared = await createAvatarUpload(guard.context.supabase, guard.context.user.id, parsed.data.contentType, parsed.data.kind);
   if (!prepared.ok) return { ok: false, error: prepared.error };
   return { ok: true, ...prepared.data };
 }
@@ -64,11 +66,26 @@ export async function attachAvatarAction(input: unknown): Promise<{ ok: true; ur
   const parsed = avatarAttachSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Envio inválido." };
 
-  const attached = await attachAvatar(guard.context.supabase, guard.context.user.id, parsed.data.path);
+  const attached = await attachAvatar(guard.context.supabase, guard.context.user.id, parsed.data.path, parsed.data.kind);
   if (!attached.ok) return { ok: false, error: attached.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.organization], ["/configuracoes"]);
   return { ok: true, url: attached.data };
+}
+
+/** Tira a foto ou a capa da pessoa. Derruba `organization`, porque o rosto mora na concha. */
+export async function clearUserImageAction(input: unknown): Promise<{ ok: true } | ActionError> {
+  const guard = await guardAction("avatar-clear");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = userImageClearSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Imagem inválida." };
+
+  const cleared = await clearUserImage(guard.context.supabase, guard.context.user.id, parsed.data.kind);
+  if (!cleared.ok) return { ok: false, error: cleared.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.organization], ["/configuracoes"]);
+  return { ok: true };
 }
 
 /**

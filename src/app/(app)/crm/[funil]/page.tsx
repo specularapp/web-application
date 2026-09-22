@@ -48,6 +48,8 @@ export default async function CrmFunnelPage({ params, searchParams }: PageProps<
       title={data.funnel.name}
       basePath={`/crm/${funil}`}
       team={data.team}
+      clients={data.clients}
+      funnels={data.funnels}
       funnelId={data.funnel.reference === null ? undefined : data.funnel.id}
     />
   );

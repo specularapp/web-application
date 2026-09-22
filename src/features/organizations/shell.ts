@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Route } from "next";
 import type { SidebarAlert } from "@/components/layout/alerts";
 import { describeAlert } from "@/components/layout/alerts";
+import { formatMoney } from "@/lib/utils/format";
 import type { Database } from "@/types/database";
 
 /**
@@ -40,9 +41,9 @@ export async function getSidebarAlerts(client: ShellClient, organizationId: stri
       .limit(3),
     client
       .from("tasks")
-      .select("id, title, due_date, projects(name)")
+      .select("id, title, due_date, projects(name), task_stages!inner(kind)")
       .eq("organization_id", organizationId)
-      .neq("stage", "done")
+      .neq("task_stages.kind", "done")
       .lte("due_date", limit)
       .order("due_date")
       .limit(3),
@@ -58,6 +59,7 @@ export async function getSidebarAlerts(client: ShellClient, organizationId: stri
       kind: "delivery",
       title: `Entrega de ${project.name}`,
       detail: describeAlert("delivery", { startsAt }, today),
+      context: project.clients ? `Cliente: ${project.clients.name}` : undefined,
       startsAt: startsAt.toISOString(),
       people: project.clients ? [{ name: project.clients.name, avatarUrl: project.clients.avatar_url }] : [],
       action: { label: "Abrir projeto", href: `/projetos/${project.id}` as Route },
@@ -72,6 +74,8 @@ export async function getSidebarAlerts(client: ShellClient, organizationId: stri
       kind: "invoice",
       title: installment.charges.title,
       detail: describeAlert("invoice", { startsAt }, today),
+      context: installment.charges.client_name ? `Cliente: ${installment.charges.client_name}` : undefined,
+      value: `Valor: ${formatMoney(installment.amount)}`,
       startsAt: startsAt.toISOString(),
       /* Cobrança avulsa não tem de quem: o aviso mostra só o título, em vez de um rosto sem nome. */
       people: installment.charges.client_name
@@ -88,6 +92,7 @@ export async function getSidebarAlerts(client: ShellClient, organizationId: stri
       kind: "task",
       title: task.title,
       detail: describeAlert("task", { startsAt }, today),
+      context: task.projects ? `Projeto: ${task.projects.name}` : undefined,
       startsAt: startsAt.toISOString(),
       people: [],
       action: { label: "Abrir tarefa", href: "/tarefas" },

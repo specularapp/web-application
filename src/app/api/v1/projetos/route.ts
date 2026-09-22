@@ -6,7 +6,7 @@
 import { parseProjectsQuery } from "@/features/projects/list";
 import { projectFormSchema } from "@/features/projects/schemas";
 import { listProjects, saveProject } from "@/features/projects/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "projects-read");
@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, projectFormSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await saveProject(auth.session.supabase, auth.session.organizationId, body.data));
+  return fromMutation(await saveProject(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["projects"]);
 }

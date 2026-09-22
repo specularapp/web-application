@@ -19,7 +19,7 @@ import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { formatMoney } from "@/lib/utils/format";
 import { cancelChargeAction, payInstallmentAction, reopenInstallmentAction, sendChargeAction, stopRecurrenceAction } from "../actions";
-import { chargeMethods, chargeStatuses, partyOf } from "../labels";
+import { chargeDirections, chargeMethods, chargeStatuses, partyOf } from "../labels";
 import {
   GRID_PER_PAGE_DEFAULT,
   METHOD_PARAM,
@@ -31,8 +31,6 @@ import {
   TABLE_PER_PAGE,
   activeChargesFilters,
   clearedFilters,
-  directionFilterLabels,
-  directionFilterValues,
   defaultQuery,
   gridPageSize,
   methodFilterLabels,
@@ -58,6 +56,7 @@ export type ChargesBoardProps = {
   query: ChargesQuery;
   view: ChargesView;
   lookups: ChargeLookups;
+  direction: ChargeDirection;
   viewing?: Charge | null;
   creating?: boolean;
   /** O que a URL manda preencher na janela de criar: hoje o cliente, vindo do leque da ficha dele. */
@@ -74,14 +73,17 @@ const viewOptions = [
   { value: "grade", label: "Ver em grade", icon: <SquaresFourIcon /> },
 ];
 
-const pathOf = (viewing: Charge | null, creating: boolean) => (creating ? "/cobrancas/nova" : viewing ? `/cobrancas/${viewing.id}` : "/cobrancas");
+const pathOf = (direction: ChargeDirection, viewing: Charge | null, creating: boolean) => {
+  const base = direction === "outgoing" ? "/despesas" : "/cobrancas";
+  return creating ? `${base}/nova` : viewing ? `${base}/${viewing.id}` : base;
+};
 
 // A prancha de cobranças (2026-09-15): a barra de busca e filtros em cima, a tabela ou a grade no meio e a
 // paginação embaixo, na estrutura das outras listas da casa, com a visão em cookie. O filtro vive na URL e
 // quem faz o trabalho é o servidor. A ficha (`/cobrancas/<id>`) e a gaveta de criar (`/cobrancas/nova`) têm
 // endereço, por `pushState`. As ações (enviar, confirmar parcela, reabrir, cancelar) são do servidor, que
 // devolve a cobrança já mudada para a ficha e refaz a lista.
-export function ChargesBoard({ page, query, view: saved, lookups, viewing: initialViewing, creating: initialCreating = false, prefill }: ChargesBoardProps) {
+export function ChargesBoard({ page, query, view: saved, lookups, direction, viewing: initialViewing, creating: initialCreating = false, prefill }: ChargesBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
@@ -97,6 +99,9 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   const [view, setView] = useState<ChargesView>(saved);
   const asTable = view === "tabela" && !mobile;
+  const side = chargeDirections[direction];
+  const noun = side.label.toLocaleLowerCase("pt-BR");
+  const plural = direction === "outgoing" ? "despesas" : "cobranças";
 
   const [viewing, setViewing] = useState<Charge | null>(initialViewing ?? null);
   const [creating, setCreating] = useState(initialCreating);
@@ -123,11 +128,12 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
   const show = (nextViewing: Charge | null, nextCreating: boolean) => {
     setViewing(nextViewing);
     setCreating(nextCreating);
-    window.history.pushState(null, "", `${pathOf(nextViewing, nextCreating)}${window.location.search}`);
+    window.history.pushState(null, "", `${pathOf(direction, nextViewing, nextCreating)}${window.location.search}`);
   };
 
   const created = (charge: Charge) => {
     show(charge, false);
+    startTransition(() => router.refresh());
   };
 
   const copyLink = async (charge: Charge) => {
@@ -146,6 +152,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
+    startTransition(() => router.refresh());
     toast({
       title: result.reminder ? "Lembrete enviado" : "Cobrança enviada",
       description: result.emailed ? `${partyOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
@@ -155,6 +162,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   const [busyInstallment, setBusyInstallment] = useState<string | null>(null);
   const pay = async (charge: Charge, installment: Installment) => {
+    if (busyInstallment) return;
     setBusyInstallment(installment.id);
     const result = await callAction(payInstallmentAction({ id: charge.id, installmentId: installment.id, method: null, paidOn: null }));
     setBusyInstallment(null);
@@ -162,11 +170,14 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       toast({ title: "Não deu para confirmar", description: result.error, tone: "danger" });
       return;
     }
+    if (result.warning) toast({ title: "Confira a recorrência", description: result.warning, tone: "warning" });
     if (viewing?.id === charge.id) setViewing(result.charge);
-    toast({ title: "Pagamento confirmado", description: `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${partyOf(charge).company ?? partyOf(charge).name}.`, tone: "success" });
+    startTransition(() => router.refresh());
+    toast({ title: direction === "outgoing" ? "Pagamento confirmado" : "Recebimento confirmado", description: direction === "outgoing" ? `${formatMoney(installment.amount)} saiu do caixa como pagamento a ${partyOf(charge).company ?? partyOf(charge).name}.` : `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${partyOf(charge).company ?? partyOf(charge).name}.`, tone: "success" });
   };
 
   const reopen = async (charge: Charge, installment: Installment) => {
+    if (busyInstallment) return;
     setBusyInstallment(installment.id);
     const result = await callAction(reopenInstallmentAction({ id: charge.id, installmentId: installment.id }));
     setBusyInstallment(null);
@@ -175,7 +186,8 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     if (viewing?.id === charge.id) setViewing(result.charge);
-    toast({ title: "Parcela reaberta", description: "A entrada saiu das movimentações.", tone: "neutral" });
+    startTransition(() => router.refresh());
+    toast({ title: "Parcela reaberta", description: direction === "outgoing" ? "A saída foi removida das movimentações." : "A entrada saiu das movimentações.", tone: "neutral" });
   };
 
   const [cancelling, setCancelling] = useState<Charge | null>(null);
@@ -189,6 +201,8 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     toast({ title: "Recorrência encerrada", description: `${charge.reference} continua em aberto; a próxima não nasce mais.`, tone: "success" });
+    if (viewing?.id === charge.id) setViewing(result.charge);
+    startTransition(() => router.refresh());
   };
 
   const cancel = async () => {
@@ -201,15 +215,16 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       return;
     }
     if (viewing?.id === cancelling.id) setViewing(result.charge);
+    startTransition(() => router.refresh());
     setCancelling(null);
-    toast({ title: "Cobrança cancelada", description: `${cancelling.reference} não pode mais ser paga pelo link.`, tone: "neutral" });
+    toast({ title: `${side.label} cancelada`, description: direction === "outgoing" ? `${cancelling.reference} saiu das contas a pagar.` : `${cancelling.reference} não pode mais ser paga pelo link.`, tone: "neutral" });
   };
 
   const actionsOf = (charge: Charge): ChargeMenuActions => {
     const next = nextInstallment(charge);
     return {
-      onSend: () => void send(charge),
-      onCopyLink: () => void copyLink(charge),
+      onSend: direction === "incoming" ? () => void send(charge) : undefined,
+      onCopyLink: direction === "incoming" ? () => void copyLink(charge) : undefined,
       onPayNext: next ? () => void pay(charge, next) : undefined,
       onStopRecurrence: charge.recurrence !== "none" ? () => void stopRecurrence(charge) : undefined,
       onCancel: () => setCancelling(charge),
@@ -227,10 +242,10 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
       if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
       if (merged.pageSize !== (asTable ? TABLE_PER_PAGE : GRID_PER_PAGE_DEFAULT)) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
       const search = params.toString();
-      const base = pathOf(viewing, creating);
+      const base = pathOf(direction, viewing, creating);
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [live, viewing, creating, router, asTable],
+    [live, viewing, creating, router, asTable, direction],
   );
 
   const changeView = (next: ChargesView) => {
@@ -288,7 +303,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
     go({ ...clearedFilters, search: "", page: 1 });
   };
 
-  useFloatingPagerRegistration(mobile && pages > 1 && !viewing && !creating ? { page: live.page, pageCount: pages, onPageChange: changePage, label: "Páginas de cobranças" } : null);
+  useFloatingPagerRegistration(mobile && pages > 1 && !viewing && !creating ? { page: live.page, pageCount: pages, onPageChange: changePage, label: `Páginas de ${plural}` } : null);
 
   const filterSections: DropdownSection[] = [
     {
@@ -321,15 +336,14 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
   /* A criação nasce no lado que a lista está mostrando: com "A pagar" à vista, o "+" abre uma despesa, e
      não uma cobrança que a pessoa teria de virar à mão. Em "Tudo" vale a cobrança, que é a maioria. */
-  const creatingSide: ChargeDirection = live.direction === "outgoing" ? "outgoing" : "incoming";
-  const createLabel = creatingSide === "outgoing" ? "Nova despesa" : "Nova cobrança";
+  const createLabel = direction === "outgoing" ? "Nova despesa" : "Nova cobrança";
 
-  const pagination = pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de cobranças" /> : undefined;
+  const pagination = pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label={`Páginas de ${plural}`} /> : undefined;
 
   return (
     <div className={styles.board}>
       <PageToolbar
-        search={{ value: search, onChange: onSearch, placeholder: "Buscar cobranças", label: "Buscar cobrança por título, número ou cliente" }}
+        search={{ value: search, onChange: onSearch, placeholder: `Buscar ${plural}`, label: `Buscar ${noun} por título, número ou ${direction === "outgoing" ? "fornecedor" : "cliente"}` }}
         filters={filterSections}
         activeFilters={active.map((filter) => ({ id: filter.id, label: filter.label, icon: filter.icon, onClear: () => go({ ...filter.clear, page: 1 }) }))}
         view={{ value: view, options: viewOptions, onChange: (next) => changeView(next === "grade" ? "grade" : "tabela"), label: "Jeito de ver a lista" }}
@@ -349,32 +363,10 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
         }
       />
 
-      {/* O lado vem antes de qualquer filtro, como segmento e não como leque: "estou olhando o que entra ou
-          o que sai" é a primeira pergunta da tela, e misturar os dois numa lista só faria a soma ao lado
-          mentir. A contagem em cada aba diz o tamanho da lista antes de ela ser aberta. */}
-      <div className={styles.sides} role="tablist" aria-label="O que mostrar">
-        {directionFilterValues.map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={live.direction === value}
-            className={styles.side}
-            onClick={() => go({ direction: value, page: 1 })}
-          >
-            {value !== "todas" && <span className={styles.sideDot} data-side={value} aria-hidden="true" />}
-            {directionFilterLabels[value]}
-            <Text as="span" variant="caption1" tone="tertiary" numeric>
-              {numberFormat.format(value === "todas" ? page.sides.incoming + page.sides.outgoing : page.sides[value])}
-            </Text>
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.totals} aria-label="Resumo das cobranças">
+      <div className={styles.totals} aria-label={`Resumo de ${plural}`}>
         {/* A receber e a pagar são dois números, e nunca um saldo: somá-los diria que a equipe tem mais
             dinheiro a caminho do que tem, que é o engano que a despesa existe para não deixar acontecer. */}
-        {live.direction !== "outgoing" && (
+        {direction === "incoming" && (
           <span className={styles.total}>
             <Text as="span" variant="caption1" tone="secondary">
               A receber
@@ -384,7 +376,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
             </Text>
           </span>
         )}
-        {live.direction !== "incoming" && (
+        {direction === "outgoing" && (
           <span className={styles.total} data-tone={page.totals.payable > 0 ? "danger" : undefined}>
             <Text as="span" variant="caption1" tone="secondary">
               A pagar
@@ -422,11 +414,11 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
             {page.items.length === 0 ? (
               <EmptyState
                 icon={CurrencyCircleDollarIcon}
-                title={filtering ? "Nenhuma cobrança encontrada" : "Nenhuma cobrança ainda"}
+                title={filtering ? `Nenhuma ${noun} encontrada` : `Nenhuma ${noun} ainda`}
                 description={
                   filtering
-                    ? "Nada bateu com o que você procurou. Tente outro número, cliente ou valor, ou limpe a busca."
-                    : "Crie a primeira cobrança a partir de um orçamento aprovado e acompanhe o recebimento por aqui."
+                    ? `Nada bateu com o que você procurou. Tente outro número, ${direction === "outgoing" ? "fornecedor" : "cliente"} ou valor, ou limpe a busca.`
+                    : direction === "outgoing" ? "Crie a primeira despesa e acompanhe vencimentos e pagamentos por aqui." : "Crie a primeira cobrança a partir de um orçamento aprovado e acompanhe o recebimento por aqui."
                 }
               >
                 {filtering && (
@@ -435,7 +427,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
                   </Button>
                 )}
                 <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => show(viewing, true)}>
-                  Nova cobrança
+                  {createLabel}
                 </Button>
               </EmptyState>
             ) : (
@@ -450,7 +442,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
           </div>
           <footer className={styles.foot}>
             <Text as="span" variant="caption1" tone="secondary">
-              {page.total === 0 ? "Sem cobranças" : `Mostrando ${numberFormat.format(from)} a ${numberFormat.format(to)} de ${numberFormat.format(page.total)}`}
+              {page.total === 0 ? `Sem ${plural}` : `Mostrando ${numberFormat.format(from)} a ${numberFormat.format(to)} de ${numberFormat.format(page.total)}`}
             </Text>
             {pagination}
           </footer>
@@ -459,9 +451,9 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 
       <ChargeDialog charge={viewing} onClose={() => show(null, false)} onSend={viewing ? () => void send(viewing) : undefined} onCopyLink={viewing ? () => void copyLink(viewing) : undefined} onCancel={viewing ? () => setCancelling(viewing) : undefined} onPay={viewing ? (installment) => void pay(viewing, installment) : undefined} onReopen={viewing ? (installment) => void reopen(viewing, installment) : undefined} busyInstallment={busyInstallment} />
 
-      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} direction={creatingSide} onClose={() => show(viewing, false)} onCreated={created} />
+      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} direction={direction} onClose={() => show(viewing, false)} onCreated={created} />
 
-      <Dialog open={cancelling !== null} onClose={() => !removing && setCancelling(null)} label="Cancelar cobrança" size="sm" focusOnOpen={false}>
+      <Dialog open={cancelling !== null} onClose={() => !removing && setCancelling(null)} label={`Cancelar ${noun}`} size="sm" focusOnOpen={false}>
         {cancelling && <ConfirmCancel charge={cancelling} busy={removing} onCancel={() => setCancelling(null)} onConfirm={() => void cancel()} />}
       </Dialog>
     </div>
@@ -469,21 +461,22 @@ export function ChargesBoard({ page, query, view: saved, lookups, viewing: initi
 }
 
 function ConfirmCancel({ charge, busy, onCancel, onConfirm }: { charge: Charge; busy: boolean; onCancel: () => void; onConfirm: () => void }) {
-  useFloatingActionsRegistration({ primary: { label: busy ? "Cancelando" : "Cancelar cobrança", icon: <XCircleIcon weight="bold" />, loading: busy, onClick: onConfirm }, cancel: { label: "Voltar", onClick: onCancel } });
+  const noun = chargeDirections[charge.direction].label.toLocaleLowerCase("pt-BR");
+  useFloatingActionsRegistration({ primary: { label: busy ? "Cancelando" : `Cancelar ${noun}`, icon: <XCircleIcon weight="bold" />, loading: busy, onClick: onConfirm }, cancel: { label: "Voltar", onClick: onCancel } });
   return (
     <div className={styles.confirm}>
       <Text as="h2" variant="headline" weight="semibold">
         Cancelar {charge.reference}?
       </Text>
       <Text variant="footnote" tone="secondary">
-        As parcelas em aberto deixam de valer e o link do cliente passa a mostrar a cobrança como cancelada. O que já foi pago continua no caixa.
+        {charge.direction === "outgoing" ? "As parcelas em aberto deixam de valer. O que já foi pago continua registrado no caixa." : "As parcelas em aberto deixam de valer e o link do cliente passa a mostrar a cobrança como cancelada. O que já foi pago continua no caixa."}
       </Text>
       <div className={styles.confirmActions}>
         <Button variant="outline" size="sm" radius="md" disabled={busy} onClick={onCancel}>
           Voltar
         </Button>
         <Button variant="danger" size="sm" radius="md" iconStart={<XCircleIcon />} loading={busy} onClick={onConfirm}>
-          {busy ? "Cancelando" : "Cancelar cobrança"}
+          {busy ? "Cancelando" : `Cancelar ${noun}`}
         </Button>
       </div>
     </div>

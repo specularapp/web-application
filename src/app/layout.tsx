@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -13,6 +13,12 @@ import { readThemeCookie, themeAttribute } from "@/lib/theme";
 import "@/styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+
+/* A monoespaçada entrou com o bloco de código do texto rico (2026-09-22): ali a fonte não é estilo, é
+   função, porque é o alinhamento das colunas que faz a indentação de um trecho de código ser legível, e com
+   a Inter cada linha começava num lugar. Vale também para a tecla do atalho e para o `code` no meio do
+   texto, que são os outros lugares que já pediam `--font-code`. Só o latino e com `swap`, como a de texto. */
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -73,7 +79,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={inter.variable}
+      className={`${inter.variable} ${mono.variable}`}
       data-theme={theme}
       data-scroll={authScreen ? "locked" : undefined}
     >

@@ -1,9 +1,9 @@
 "use server";
 
 import { getOrganizationContext, NO_TEAM, revalidateDomain, TOO_MANY } from "@/features/organizations/context";
-import { cacheTags, type DomainTag } from "@/lib/cache/tags";
+import { uploadDomains } from "./cache";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { attachUploadSchema, clearUploadSchema, createUploadSchema, contentTypesOf, type UploadTarget } from "./schemas";
+import { attachUploadSchema, clearUploadSchema, createUploadSchema, contentTypesOf } from "./schemas";
 import { attachImage, clearImage, createImageUpload, type ServiceResult } from "./service";
 
 /**
@@ -12,20 +12,6 @@ import { attachImage, clearImage, createImageUpload, type ServiceResult } from "
  */
 
 const INVALID = "Confira a imagem escolhida.";
-
-/**
- * De quem é a imagem, para o cache cair junto (2026-09-16, correção). Sem isto a imagem entrava no banco e a
- * tela seguia mostrando a antiga até o cache vencer: o endereço muda na linha, mas quem desenha a lista lê
- * do Redis. Era o "demora para aparecer" que o usuário relatou.
- */
-const domainOf: Record<UploadTarget, { tag: DomainTag; path: string }> = {
-  "client-avatar": { tag: cacheTags.clients, path: "/clientes" },
-  "client-logo": { tag: cacheTags.clients, path: "/clientes" },
-  "catalog-image": { tag: cacheTags.catalog, path: "/catalogo" },
-  "project-cover": { tag: cacheTags.projects, path: "/projetos" },
-  "project-logo": { tag: cacheTags.projects, path: "/projetos" },
-  "charge-image": { tag: cacheTags.finance, path: "/cobrancas" },
-};
 
 /* Assinar um endereço é barato, mas é escrita no Storage do outro lado: o limite existe para uma aba aberta
    não virar uma fila de arquivos órfãos. Mesma régua das outras ações da casa. */
@@ -63,7 +49,7 @@ export async function attachUploadAction(input: unknown): Promise<ServiceResult<
 
   const attached = await attachImage(supabase, { ...parsed.data, organizationId });
   if (attached.ok) {
-    const domain = domainOf[parsed.data.target];
+    const domain = uploadDomains[parsed.data.target];
     await revalidateDomain(organizationId, [domain.tag], [domain.path]);
   }
   return attached;
@@ -80,7 +66,7 @@ export async function clearUploadAction(input: unknown): Promise<ServiceResult<u
 
   const cleared = await clearImage(supabase, { ...parsed.data, organizationId });
   if (cleared.ok) {
-    const domain = domainOf[parsed.data.target];
+    const domain = uploadDomains[parsed.data.target];
     await revalidateDomain(organizationId, [domain.tag], [domain.path]);
   }
   return cleared;

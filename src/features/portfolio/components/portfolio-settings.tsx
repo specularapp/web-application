@@ -1,5 +1,7 @@
 "use client";
 
+import { callAction } from "@/lib/action";
+
 import { ArrowSquareOutIcon, BriefcaseIcon, CopySimpleIcon, PlusIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -31,7 +33,7 @@ export function PortfolioSettings({ publicUrl, shown: initialShown, projects: in
   const toggle = async (id: string, isPublic: boolean) => {
     const previous = projects;
     setProjects((current) => current.map((project) => (project.id === id ? { ...project, isPublic } : project)));
-    const result = await setProjectPublicAction({ id, isPublic });
+    const result = await callAction(setProjectPublicAction({ id, isPublic }));
     if (!result.ok) {
       setProjects(previous);
       toast({ title: "Não deu para mudar", description: result.error, tone: "danger" });

@@ -29,6 +29,7 @@ export default async function NewClientPage({ searchParams }: PageProps<"/client
   const query = parseClientsQuery(
     {
       busca: first(params.busca),
+      grupo: first(params.grupo),
       favorito: first(params.favorito),
       situacao: first(params.situacao),
       periodo: first(params.periodo),

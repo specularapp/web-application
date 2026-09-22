@@ -1,5 +1,6 @@
 import "server-only";
-import { organizationForApi } from "@/features/organizations/context";
+import { organizationForApi, revalidateDomain } from "@/features/organizations/context";
+import type { DomainTag } from "@/lib/cache/tags";
 import { authorizeRequest, invalidPayload, readJson } from "./v1";
 import type { ApiSession } from "./v1";
 import type { RateLimitScope } from "@/lib/security/rate-limit";
@@ -34,5 +35,10 @@ export async function readPayload<T>(request: Request, schema: { safeParse: (val
 
 /** A resposta de um `ServiceResult`: o dado com 200, o erro com 400 e a mensagem que o serviço escreveu. */
 export function fromResult<T>(result: { ok: true; data: T } | { ok: false; error: string }) {
-  return result.ok ? Response.json(result.data) : Response.json({ error: result.error }, { status: 400 });
+  return result.ok ? Response.json(result.data ?? { ok: true }) : Response.json({ error: result.error }, { status: 400 });
+}
+
+export async function fromMutation<T>(result: { ok: true; data: T } | { ok: false; error: string }, organizationId: string, tags: DomainTag[]) {
+  if (result.ok) await revalidateDomain(organizationId, tags, [], false);
+  return fromResult(result);
 }

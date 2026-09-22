@@ -1,68 +1,183 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
+  ArchiveIcon,
+  BugIcon,
+  CalendarBlankIcon,
+  ChatCircleTextIcon,
   CheckCircleIcon,
   CircleDashedIcon,
   CircleHalfIcon,
+  ClockIcon,
+  CodeIcon,
+  CrosshairIcon,
   EyeIcon,
+  FileTextIcon,
+  FlagIcon,
+  HandshakeIcon,
+  HourglassIcon,
+  LightbulbIcon,
+  MagnifyingGlassIcon,
+  MegaphoneIcon,
+  PackageIcon,
+  PaintBrushIcon,
+  PaperPlaneTiltIcon,
+  PaletteIcon,
+  PauseIcon,
+  PencilSimpleIcon,
+  PlayIcon,
   ProhibitIcon,
   RocketLaunchIcon,
+  SealCheckIcon,
+  ShieldCheckIcon,
+  SparkleIcon,
+  StarIcon,
   ThumbsUpIcon,
   TrayIcon,
+  TruckIcon,
+  UsersThreeIcon,
+  WrenchIcon,
 } from "@phosphor-icons/react/ssr";
+import type { SysHue } from "@/lib/palette";
 
 /**
- * O catálogo de etapas do quadro de tarefas: cada etapa é uma coluna possível, com nome, glifo, matiz e a
- * situação grossa que ela representa. **Cada projeto escolhe as suas** e em que ordem (2026-09-10, a pedido:
- * "dentro de cada uma terá etapas diferentes"), então o quadro do site institucional tem Publicação e o do
- * Estúdio Bravo tem Bloqueada, sem que uma tela precise saber das etapas da outra.
+ * As etapas do quadro de tarefas, que desde 2026-09-21 são **linhas do banco, e não um catálogo escrito
+ * aqui** (a pedido: "quero que tenha como definir as etapas personalizadas, editar, excluir adicionar").
+ * Cada equipe tem as suas, com nome, cor, glifo e o ponto do caminho em que a etapa está, e cada projeto
+ * escolhe quais delas viram coluna do quadro dele e em que ordem.
  *
- * O catálogo é **global e o projeto só seleciona**, em vez de cada projeto inventar as próprias etapas com
- * nomes soltos: é o que mantém `Task.stage` sendo um id que vale em qualquer lugar. Com etapa por projeto, o
- * bloco do painel e a ficha da tarefa teriam de conhecer o projeto para saber se a tarefa está concluída, e
- * o zod da URL não teria uma lista fechada para validar. Nomear uma etapa nova é acrescentar uma linha aqui;
- * nome livre por equipe é para quando isso virar tabela.
+ * O catálogo é da **equipe**, e não do projeto: é o que mantém o quadro de todas as tarefas de pé, porque
+ * ele cruza projetos com fluxos diferentes e precisa reunir numa coluna só o que é a mesma etapa. Com etapa
+ * por projeto, duas colunas "Em revisão" de projetos distintos seriam duas coisas sem parentesco.
  *
- * Do pacote `ssr` como o resto dos mapas leves da casa: este arquivo é lido também no servidor, e a entrada
- * padrão do Phosphor cria contexto ao carregar.
+ * O que sobra neste arquivo é o que não cabe no banco: a tradução do glifo, que é uma chave de um lado e um
+ * componente do outro. Do pacote `ssr`, como o resto dos mapas leves da casa: ele é lido também no servidor,
+ * e a entrada padrão do Phosphor cria contexto ao carregar.
  */
-
-export const stageValues = ["backlog", "todo", "doing", "blocked", "review", "approval", "publishing", "done"] as const;
-
-export type TaskStage = (typeof stageValues)[number];
 
 /** Em que ponto do caminho a etapa está, que é de onde a situação da tarefa é lida. */
 export type TaskStageKind = "upcoming" | "ongoing" | "done";
 
-/** Uma etapa como a coluna a desenha: o nome, o glifo do cabeçalho, o matiz da etiqueta e o ponto do caminho. */
-export type TaskStageMeta = {
-  id: TaskStage;
-  label: string;
-  icon: Icon;
-  /** Token de cor, como no `NavGroup`: a coluna o passa por variável e a etiqueta se tinge sozinha. */
-  hue: string;
+export const stageKindValues = ["upcoming", "ongoing", "done"] as const;
+
+export const stageKindLabels: Record<TaskStageKind, string> = {
+  upcoming: "A começar",
+  ongoing: "Em andamento",
+  done: "Concluída",
+};
+
+/** O que cada ponto do caminho significa para a tarefa, na hora de escolher ao criar uma etapa. */
+export const stageKindHints: Record<TaskStageKind, string> = {
+  upcoming: "A tarefa ainda não começou",
+  ongoing: "A tarefa está sendo feita",
+  done: "A tarefa está fechada e sai da contagem do menu",
+};
+
+/**
+ * Os glifos que uma etapa pode vestir. Lista fechada, igual à do enum do banco: glifo sem ícone no pacote
+ * não desenha nada, então acrescentar um é a linha aqui e o valor lá.
+ */
+export const stageGlyphValues = [
+  "tray",
+  "circle-dashed",
+  "circle-half",
+  "prohibit",
+  "eye",
+  "thumbs-up",
+  "rocket",
+  "check-circle",
+  "lightbulb",
+  "pencil",
+  "magnifier",
+  "chat",
+  "flag",
+  "star",
+  "clock",
+  "hourglass",
+  "package",
+  "paint-brush",
+  "code",
+  "megaphone",
+  "handshake",
+  "bug",
+  "crosshair",
+  "file-text",
+  "play",
+  "pause",
+  "archive",
+  "sparkle",
+  "users",
+  "truck",
+  "shield",
+  "seal",
+  "calendar",
+  "send",
+  "wrench",
+  "palette",
+] as const;
+
+export type TaskStageGlyph = (typeof stageGlyphValues)[number];
+
+/**
+ * A chave vira componente aqui, e só aqui. O glifo atravessa a fronteira do servidor por chave, e não como
+ * componente, pela mesma razão do azulejo do projeto na árvore: o que cruza essa fronteira precisa ser
+ * serializável.
+ */
+export const stageGlyphs: Record<TaskStageGlyph, Icon> = {
+  tray: TrayIcon,
+  "circle-dashed": CircleDashedIcon,
+  "circle-half": CircleHalfIcon,
+  prohibit: ProhibitIcon,
+  eye: EyeIcon,
+  "thumbs-up": ThumbsUpIcon,
+  rocket: RocketLaunchIcon,
+  "check-circle": CheckCircleIcon,
+  lightbulb: LightbulbIcon,
+  pencil: PencilSimpleIcon,
+  magnifier: MagnifyingGlassIcon,
+  chat: ChatCircleTextIcon,
+  flag: FlagIcon,
+  star: StarIcon,
+  clock: ClockIcon,
+  hourglass: HourglassIcon,
+  package: PackageIcon,
+  "paint-brush": PaintBrushIcon,
+  code: CodeIcon,
+  megaphone: MegaphoneIcon,
+  handshake: HandshakeIcon,
+  bug: BugIcon,
+  crosshair: CrosshairIcon,
+  "file-text": FileTextIcon,
+  play: PlayIcon,
+  pause: PauseIcon,
+  archive: ArchiveIcon,
+  sparkle: SparkleIcon,
+  users: UsersThreeIcon,
+  truck: TruckIcon,
+  shield: ShieldCheckIcon,
+  seal: SealCheckIcon,
+  calendar: CalendarBlankIcon,
+  send: PaperPlaneTiltIcon,
+  wrench: WrenchIcon,
+  palette: PaletteIcon,
+};
+
+/** O id de uma etapa, que é o da linha no banco. */
+export type TaskStageId = string;
+
+/** Uma etapa como a coluna, o cartão e a ficha a desenham. */
+export type TaskStage = {
+  id: TaskStageId;
+  name: string;
+  hue: SysHue;
+  glyph: TaskStageGlyph;
   kind: TaskStageKind;
 };
 
-/* O matiz esquenta conforme a tarefa anda: cinza no que nem entrou na fila, azul no que está por começar,
-   laranja no que está sendo feito, vermelho no que travou, roxo na conferência, índigo no aval de quem
-   decide, verde-água na publicação e verde no que fechou. É a mesma leitura de cor das etiquetas da casa,
-   então a coluna não inventa paleta nenhuma. */
-export const taskStageMeta: Record<TaskStage, TaskStageMeta> = {
-  backlog: { id: "backlog", label: "Backlog", icon: TrayIcon, hue: "var(--sys-gray)", kind: "upcoming" },
-  todo: { id: "todo", label: "A fazer", icon: CircleDashedIcon, hue: "var(--sys-blue)", kind: "upcoming" },
-  doing: { id: "doing", label: "Em andamento", icon: CircleHalfIcon, hue: "var(--sys-orange)", kind: "ongoing" },
-  blocked: { id: "blocked", label: "Bloqueada", icon: ProhibitIcon, hue: "var(--sys-red)", kind: "ongoing" },
-  review: { id: "review", label: "Em revisão", icon: EyeIcon, hue: "var(--sys-purple)", kind: "ongoing" },
-  approval: { id: "approval", label: "Aprovação", icon: ThumbsUpIcon, hue: "var(--sys-indigo)", kind: "ongoing" },
-  publishing: { id: "publishing", label: "Publicação", icon: RocketLaunchIcon, hue: "var(--sys-teal)", kind: "ongoing" },
-  done: { id: "done", label: "Concluída", icon: CheckCircleIcon, hue: "var(--sys-green)", kind: "done" },
-};
+/** O token de cor da etapa, que a coluna passa por variável e a etiqueta usa para se tingir. */
+export const stageHue = (stage: Pick<TaskStage, "hue">) => `var(--sys-${stage.hue})`;
 
-/** O catálogo inteiro na ordem do caminho, que é a ordem em que as colunas aparecem quando não há projeto. */
-export const taskStages: TaskStageMeta[] = stageValues.map((id) => taskStageMeta[id]);
+/** O componente do glifo da etapa; chave desconhecida cai no círculo tracejado, que é o glifo neutro. */
+export const stageIcon = (stage: Pick<TaskStage, "glyph">): Icon => stageGlyphs[stage.glyph] ?? CircleDashedIcon;
 
-/**
- * As etapas de um projeto que não diz outra coisa, e as do balde de tarefas sem projeto: as cinco de sempre,
- * sem as três que nasceram para fluxos específicos (bloqueio, aval e publicação).
- */
-export const defaultStages: TaskStage[] = ["backlog", "todo", "doing", "review", "done"];
+/** A etapa de um id, dentro de uma lista já carregada. */
+export const findStage = (stages: TaskStage[], id: TaskStageId) => stages.find((stage) => stage.id === id) ?? null;

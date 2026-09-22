@@ -5,7 +5,7 @@
  */
 import { createAutomationSchema } from "@/features/automations/schemas";
 import { createAutomation, listAutomations } from "@/features/automations/service";
-import { authorizeDomain, fromResult, readPayload } from "@/lib/api/domain";
+import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
   const auth = await authorizeDomain(request, "automations-read");
@@ -22,5 +22,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, createAutomationSchema);
   if ("response" in body) return body.response;
 
-  return fromResult(await createAutomation(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data));
+  return fromMutation(await createAutomation(auth.session.supabase, auth.session.organizationId, auth.session.userId, body.data), auth.session.organizationId, ["automations"]);
 }
