@@ -266,7 +266,9 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
       trackDraft({ ...task, ...patch });
       const change = patch.priority
         ? ({ op: "priority", priority: patch.priority } as const)
-        : patch.tags
+        : patch.dueDate
+          ? ({ op: "due", dueDate: patch.dueDate } as const)
+          : patch.tags
           ? ({ op: "tags", tags: patch.tags } as const)
           : ({ op: "people", userIds: (patch.people ?? []).flatMap((person) => (person.id && person.id !== task.owner.id ? [person.id] : [])) } as const);
       void changeTask(task.id, change).then((result) => {

@@ -3,8 +3,8 @@
 import { createContext, useContext } from "react";
 import type { Task, TaskPerson } from "../summary";
 
-/** O que o cartão troca sem abrir a ficha: prioridade, etiquetas e quem está envolvido. */
-export type CardPatch = Partial<Pick<Task, "priority" | "tags" | "people">>;
+/** O que o cartão troca sem abrir a ficha: prioridade, prazo, etiquetas e quem está envolvido. */
+export type CardPatch = Partial<Pick<Task, "priority" | "tags" | "people" | "dueDate">>;
 
 export type CardEdit = {
   /** Quem pode ser marcado como envolvido: a equipe do quadro. */

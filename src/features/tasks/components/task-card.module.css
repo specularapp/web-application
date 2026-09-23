@@ -302,3 +302,10 @@
     transform: none;
   }
 }
+
+/* O prazo como gatilho do calendário: a etiqueta continua sendo o desenho, e o invólucro só não deixa a
+   caixa do seletor esticar o pé do cartão. */
+.due {
+  display: inline-flex;
+  flex-shrink: 0;
+}

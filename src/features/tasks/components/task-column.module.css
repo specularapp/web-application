@@ -18,7 +18,11 @@
   align-self: flex-start;
   max-height: 100%;
   padding: var(--space-2);
-  background-color: color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 4%, transparent);
+  /* No escuro o véu sobe: 4% sobre o fundo quase preto some, e a coluna precisa do mesmo charme discreto. */
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 4%, transparent),
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 11%, transparent)
+  );
   border-radius: var(--radius-xl);
   transition: background-color var(--duration-base) var(--ease-standard);
 }

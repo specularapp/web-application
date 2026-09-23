@@ -2,9 +2,11 @@
 
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, LinkSimpleIcon, PaperclipIcon, TagIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
-import { memo, type KeyboardEvent, type MouseEvent } from "react";
+import { format, parseISO } from "date-fns";
+import { memo, type KeyboardEvent, type MouseEvent, type SyntheticEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { tagSections } from "@/components/ui/tag-picker";
 import { SuccessOverlay } from "@/components/ui/success-mark";
@@ -68,6 +70,9 @@ const SHOWN_TAGS = 2;
 
 /* Controles com ação própria dentro do cartão: clique que nasce neles não abre a ficha. */
 const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']";
+
+/* Segura o evento no invólucro de um controle do cartão: nem arraste, nem abrir a ficha. */
+const stop = (event: SyntheticEvent) => event.stopPropagation();
 
 const priorities: TaskPriority[] = ["low", "normal", "high", "urgent"];
 
@@ -150,6 +155,12 @@ export const TaskCard = memo(function TaskCard({
   ];
 
   const tagOptions = edit ? tagSections(taskTagCatalog, task.tags, (next) => edit.edit(task, { tags: next }), TASK_MAX_TAGS) : [];
+
+  const dueBadge = (
+    <Badge tone={due.tone} size="sm" icon={<CalendarBlankIcon />}>
+      {due.label}
+    </Badge>
+  );
 
   const priorityBadge = (
     <Badge tone={priorityTones[task.priority]} size="sm" icon={<FlagIcon />}>
@@ -372,9 +383,21 @@ export const TaskCard = memo(function TaskCard({
                 <VisuallyHidden>registros de atividade</VisuallyHidden>
               </span>
             )}
-            <Badge tone={due.tone} size="sm" icon={<CalendarBlankIcon />}>
-              {due.label}
-            </Badge>
+            {edit ? (
+              /* O prazo abre o calendário no próprio cartão. O invólucro segura o toque, senão ele começava o
+                 arraste do cartão e o clique no calendário, que sobe pela árvore do React, abria a ficha. */
+              <span role="presentation" className={styles.due} onClick={stop} onPointerDown={stop} onKeyDown={stop}>
+                <DatePicker
+                  plain
+                  value={parseISO(task.dueDate)}
+                  onChange={(date) => date && format(date, "yyyy-MM-dd") !== task.dueDate && edit.edit(task, { dueDate: format(date, "yyyy-MM-dd") })}
+                  triggerLabel={`Prazo: ${due.label}. Trocar`}
+                  triggerContent={dueBadge}
+                />
+              </span>
+            ) : (
+              dueBadge
+            )}
           </span>
         </div>
       </div>

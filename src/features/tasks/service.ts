@@ -994,6 +994,14 @@ export async function applyTaskChange(
       return done(error);
     }
 
+    case "due": {
+      const { data: dates } = await client.from("tasks").select("start_date").eq("organization_id", organizationId).eq("id", taskId).maybeSingle();
+      if (dates?.start_date && change.dueDate < dates.start_date) return { ok: false, error: "O prazo não pode vir antes do começo" };
+      const { error } = await client.from("tasks").update({ due_date: change.dueDate }).eq("organization_id", organizationId).eq("id", taskId);
+      if (!error) await note(`mudou o prazo para ${format(parseISO(change.dueDate), "d 'de' MMM.", { locale: ptBR })}`);
+      return done(error);
+    }
+
     case "tags": {
       const { error } = await client.from("tasks").update({ tags: [...new Set(change.tags)] }).eq("organization_id", organizationId).eq("id", taskId);
       if (!error) await note("atualizou as etiquetas");

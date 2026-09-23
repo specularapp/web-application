@@ -49,6 +49,13 @@ export type DatePickerProps = {
    * mais que os números (2026-09-10). O que vai para o formulário, no campo escondido, é sempre ISO.
    */
   display?: string;
+  /**
+   * O que o gatilho mostra no lugar da data escrita, com `plain` (2026-09-23, do prazo no cartão da tarefa):
+   * lá a data já tem desenho próprio, a etiqueta do prazo, e é ela que abre o calendário. Pede `triggerLabel`,
+   * porque o leitor de tela precisa de um nome que o desenho sozinho não dá.
+   */
+  triggerContent?: ReactNode;
+  triggerLabel?: string;
   className?: string;
   style?: CSSProperties;
   "aria-describedby"?: string;
@@ -248,6 +255,8 @@ export function DatePicker({
   max,
   iconEnd,
   plain = false,
+  triggerContent,
+  triggerLabel,
   display = "dd/MM/yyyy",
   className,
   style,
@@ -361,9 +370,10 @@ export function DatePicker({
         aria-required={required || undefined}
         aria-invalid={flagged || undefined}
         aria-describedby={aria["aria-describedby"]}
+        aria-label={triggerLabel}
         onClick={() => setOpen((state) => !state)}
       >
-        {date ? format(date, display, { locale: ptBR }) : placeholder}
+        {triggerContent ?? (date ? format(date, display, { locale: ptBR }) : placeholder)}
       </Trigger>
       {iconEnd && <FieldAdornment>{iconEnd}</FieldAdornment>}
       {!plain && (
