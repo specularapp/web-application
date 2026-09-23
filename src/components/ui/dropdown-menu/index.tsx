@@ -112,8 +112,9 @@ const ROW_HEIGHT = 40;
 const EDGE = 16;
 const GAP = 8;
 /* O teto do painel no computador (2026-09-10, a pedido): uma lista de vinte pessoas virava uma tira do
-   tamanho da tela. Acima disto a lista rola por dentro. */
-const PANEL_HEIGHT = 340;
+   tamanho da tela. Acima disto a lista rola por dentro. Subiu de 340 para 440 (2026-09-23, a pedido): cabem
+   mais opções à vista antes de rolar, e ainda longe da altura da tela. */
+const PANEL_HEIGHT = 440;
 
 type Resolved = { top: number; left: number; placement: "below" | "above" };
 

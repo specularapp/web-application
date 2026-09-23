@@ -179,7 +179,7 @@ export const TaskCard = memo(function TaskCard({
           <span className={styles.reference}>{task.reference}</span>
         </p>
 
-        <Text as="h3" variant="subheadline" weight="semibold" className={styles.title}>
+        <Text as="h3" variant="callout" weight="semibold" className={styles.title}>
           {task.title}
         </Text>
 
