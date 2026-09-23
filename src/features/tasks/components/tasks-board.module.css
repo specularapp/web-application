@@ -61,10 +61,11 @@
 @media (max-width: 47.9375rem) {
   .rail {
     gap: var(--space-3);
-    /* O trilho não reserva mais o pé (2026-09-23, a pedido): a coluna vai até o fim da tela, e a folga da
-       barra flutuante passou para dentro da rolagem dela, em `task-column.module.css`. Assim o fundo da etapa
-       desce por baixo da barra e o último cartão ainda para acima dela. */
-    padding-block-end: 0;
+    /* A pilha fecha logo abaixo da linha da barra flutuante (2026-09-23, a pedido): parar exatamente na
+       linha dela lia como colado, e ir até a borda da tela encostava no fundo. O trilho reserva a folga da
+       barra menos um degrau, então a coluna desce um pouco por baixo dela e ainda para antes da borda. A
+       altura continua sendo a do conteúdo; só a coluna cheia chega até aqui. */
+    padding-block-end: max(var(--space-2), calc(var(--floating-bar-inset) - var(--space-4) - var(--space-6)));
     scroll-snap-type: x mandatory;
   }
 

@@ -696,6 +696,7 @@ export function TaskDialog({ task, open, onClose, stages, team, viewer = anonymo
          no preto da casa, e os cartões de dentro, no cinza, é que se destacam. */
       surface="page"
       focusOnOpen={false}
+      className={frame.opening}
       above={task && <SheetSwitcher label="O que ver da tarefa" options={taskTabs} value={tab} onChange={setTab} />}
     >
       {task && shown && (
@@ -750,13 +751,17 @@ function TaskDetail({
   const { toast } = useToast();
   /* Com o recorte do cartão, o que ele não traz começa vazio, e entra quando a tarefa inteira chega: os
      anexos e a conversa do recorte são só marcadores de contagem, sem nada para desenhar. */
-  const [draft, setDraft] = useState<Task>(() => (task.loaded ? task : { ...task, links: [], attachments: [], activity: [] }));
+  const [initial] = useState<Task>(() => (task.loaded ? task : { ...task, links: [], attachments: [], activity: [] }));
+  const [draft, setDraft] = useState<Task>(initial);
   const [events, setEvents] = useState<TaskEvent[]>(task.loaded ? task.activity : []);
   const [loaded, setLoaded] = useState(Boolean(task.loaded));
   if (task.loaded && !loaded) {
     setLoaded(true);
     /* O que a pessoa já mexeu no recorte fica; o que o recorte não trazia vem da tarefa inteira. */
-    setDraft((current) => ({
+    /* Sem mexida nenhuma no recorte, a tarefa inteira entra como veio (2026-09-23, correção): o recorte do
+       cartão não é igual campo a campo à ficha do servidor, e juntar os dois deixava diferença onde ninguém
+       mexeu. Essa diferença disparava o salvar, que atualiza a página, e abrir a ficha parecia recarregar. */
+    setDraft((current) => (current === initial ? task : {
       ...current,
       description: task.description,
       descriptionDoc: task.descriptionDoc,

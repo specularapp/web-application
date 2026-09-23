@@ -203,7 +203,10 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
     const url = new URL(window.location.href);
     if (value) url.searchParams.set(TASK_PARAM, value);
     else url.searchParams.delete(TASK_PARAM);
-    window.history.replaceState(window.history.state, "", url);
+    /* `null`, e não o estado atual (2026-09-23, correção do recarregar ao abrir): o estado atual carrega a
+       marca interna do Next, e com ela o Next toma a troca como dele e não sincroniza o roteador, que segue
+       achando que está no endereço antigo. Com `null` ele copia o que precisa e só atualiza a URL. */
+    window.history.replaceState(null, "", url);
   };
 
   const showTask = (task: Task) => {

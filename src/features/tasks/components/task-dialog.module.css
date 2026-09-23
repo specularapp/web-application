@@ -1203,3 +1203,34 @@
 .loadingBubble[data-mine] {
   flex-direction: row-reverse;
 }
+
+/* A entrada da ficha (2026-09-23, a pedido de uma abertura suave): a janela é grande, e o salto em mola das
+   caixas pequenas nela lia como um tranco. Aqui ela sobe um fio e cresce de 98% enquanto aparece, numa curva
+   que desacelera até parar. Só no computador: no celular é bandeja, e a bandeja sobe do pé do jeito dela. */
+@keyframes ficha-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.opening[data-state="open"]:not([data-mode="sheet"]) {
+  animation: ficha-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opening[data-state="open"]:not([data-mode="sheet"]) {
+    animation: ficha-fade 160ms linear both;
+  }
+}
+
+@keyframes ficha-fade {
+  from {
+    opacity: 0;
+  }
+}
