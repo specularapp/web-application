@@ -1,14 +1,17 @@
 "use client";
 
 import { keyframes } from "@emotion/react";
+import { XIcon } from "@phosphor-icons/react";
 import styled from "@emotion/styled";
-import { useEffect, useRef, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
-import { FloatingLayer } from "@/components/layout/floating-actions";
+import { FloatingLayer, useFloatingCloseFallback } from "@/components/layout/floating-actions";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { usePresence } from "@/hooks/use-presence";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { IconButton } from "../icon-button";
+import { Text } from "../text";
 import { fadeIn, fadeOut, layerMotion } from "../styles";
 
 export type DialogSize = "sm" | "md" | "lg" | "xl";
@@ -19,7 +22,7 @@ const serverMounted = () => false;
 
 export type DialogPlacement = "center" | "end";
 
-export type DialogSurface = "solid" | "glass" | "page";
+export type DialogSurface = "solid" | "glass" | "page" | "workspace";
 
 export type DialogProps = {
   open: boolean;
@@ -29,9 +32,8 @@ export type DialogProps = {
   size?: DialogSize;
   /** `end` cola a janela na lateral final da tela, em altura cheia, no lugar de centralizar. */
   placement?: DialogPlacement;
-  /** `glass` preserva o contexto atrás com vidro encorpado e borrão; `solid` é totalmente opaco.
-   *  `page` usa o fundo da própria página, e não o cinza elevado: para a gaveta lateral, que é extensão
-   *  da tela e não uma caixa sobre ela (a pedido, 2026-09-08, porque no escuro o cinza destoava). */
+  /** `solid`, `glass` e `page` usam o fundo principal. `workspace` preserva o fundo elevado das fichas
+   *  extensas, como tarefa, oportunidade e projeto. */
   surface?: DialogSurface;
   /** Sem o fundo que escurece a página atrás continua à vista, mas segue bloqueada: toda janela é modal, e
    *  tocar fora dela só fecha. */
@@ -149,7 +151,7 @@ const Frame = styled.div`
   }
 `;
 
-/* Canto declarado direto, sem `data-squircle`: a janela guarda foco e conteúdo que sai do fluxo, e o
+/* Canto declarado direto, sem `data-rounded`: a janela guarda foco e conteúdo que sai do fluxo, e o
    recorte do fallback cortaria o anel de foco de quem está dentro. */
 const Panel = styled.div`
   /* A caixa centralizada nasce um degrau abaixo do lugar e sobe; é o "de onde" do gênio quando não há
@@ -165,10 +167,9 @@ const Panel = styled.div`
   overflow: hidden;
   /* A rolagem de dentro nunca encadeia para fora: chegando ao fim do conteúdo, o gesto para aqui. */
   overscroll-behavior: contain;
-  background-color: var(--color-bg-grouped-secondary);
+  background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   pointer-events: auto;
   transform-origin: center;
@@ -210,6 +211,10 @@ const Panel = styled.div`
      cartão, e no escuro o cinza de superfície elevada. Sem backdrop-filter junto: com fundo opaco ele só
      custaria uma camada de pintura que ninguém vê. */
   &[data-surface="glass"] {
+    background-color: var(--color-bg);
+  }
+
+  &[data-surface="workspace"] {
     background-color: var(--color-bg-grouped-secondary);
   }
 
@@ -317,12 +322,16 @@ export function Dialog({
   const { present, state, onAnimationEnd } = usePresence(open);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  // O valor mais recente de `open`, para o fim do arrasto saber, num quadro depois, se o fechamento
+  // pedido de fato aconteceu ou se quem chamou o ignorou (uma exclusão em andamento, por exemplo).
+  const openRef = useRef(open);
   const dragRef = useRef<{ pointer: number; startY: number; y: number; frame: number } | null>(null);
   const layer = useLayer(open);
   // Trava a coluna que rola de verdade, e não o documento: na concha da aplicação o documento nunca
   // rola, e mexer no `overflow` dele era o que fazia a página saltar para o topo no celular. Toda janela
   // trava, porque toda janela bloqueia a página atrás (decisão de 2026-09-08).
   useScrollLock(open);
+  useFloatingCloseFallback(open && sheet, onClose);
   // Verdadeiro quando esta janela era a camada de cima no instante em que o toque começou. É o que
   // separa uma camada da outra: com o menu de opções aberto por dentro do perfil, o toque que fecha o
   // menu nasce enquanto quem manda é o menu, então o clique que vem depois não fecha o perfil junto.
@@ -331,6 +340,18 @@ export function Dialog({
   useEffect(() => {
     closeRef.current = onClose;
   });
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  // A marca inline do arrasto fica onde o dedo largou de propósito, para compor com a animação de saída
+  // (ver `dragEnd`). Mas se a janela reabre com o mesmo nó, reaproveitado enquanto a saída ainda tocava,
+  // a marca velha volta a valer e o painel nasce deslocado. Zera aqui, antes da pintura, sempre que o
+  // estado volta a aberto.
+  useLayoutEffect(() => {
+    if (state === "open" && panelRef.current) panelRef.current.style.translate = "";
+  }, [state]);
 
   // Arrasto da alça da bandeja (pedido de 2026-09-08): segurar na barrinha e puxar para baixo fecha a
   // janela, o gesto que o iOS dá em toda bandeja.
@@ -388,6 +409,13 @@ export function Dialog({
       // ele: a bandeja continua descendo daqui em vez de saltar para o lugar antes de cair.
       settle(panel);
       closeRef.current();
+      // Um quadro depois, o React já processou o que `closeRef.current()` pediu. Se `open` continuar
+      // verdadeiro (o fechamento foi ignorado, como o `ConfirmDialog` faz com uma exclusão em andamento),
+      // a marca não tem mais função de composição nenhuma: sem isto a bandeja ficava presa deslocada até
+      // a ação terminar.
+      requestAnimationFrame(() => {
+        if (openRef.current && panel) panel.style.translate = "";
+      });
       return;
     }
 
@@ -528,4 +556,131 @@ export function Dialog({
     </>,
     document.body,
   );
+}
+
+/* -------------------------------------- o cabeçalho e o rodapé -------------------------------------- */
+
+/**
+ * O cabeçalho e o rodapé de uma janela, no primitivo (2026-09-21, na varredura das janelas): o título, a
+ * linha de apoio, as ações da ponta e o fechar em cima; o cancelar e o confirmar embaixo.
+ *
+ * Existiam copiados em cada janela, com o mesmo CSS palavra por palavra em arquivo após arquivo: a mesma
+ * `.head` com `space-between`, o mesmo recuo assimétrico de doze e vinte pixels, o mesmo fio embaixo, e a
+ * mesma `.foot` alinhada à direita que some no celular, porque lá as ações moram na barra flutuante. Um
+ * acerto de acabamento precisava ser feito trinta e nove vezes, e por isso nunca era feito em todas.
+ */
+const CHROME_LINE = "0.0375rem";
+
+const HeaderBar = styled.header`
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-block-end: var(--panel-line, ${CHROME_LINE}) solid var(--color-border);
+`;
+
+const HeaderCopy = styled.div`
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+`;
+
+const HeaderText = styled.div`
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+`;
+
+const HeaderEnd = styled.div`
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+`;
+
+export type DialogHeaderProps = {
+  title: string;
+  /** Uma linha de apoio abaixo do título. */
+  description?: ReactNode;
+  /** O que fica antes do título: uma foto, um glifo, um voltar. */
+  before?: ReactNode;
+  /** O que fica na outra ponta, antes do fechar: um menu, uma etiqueta. */
+  actions?: ReactNode;
+  /** Sem ele, o fechar não é desenhado: é o caso de quem fecha só pelo rodapé. */
+  onClose?: () => void;
+  closeLabel?: string;
+  closeDisabled?: boolean;
+  /** `record` é a escala da ficha de um registro, com o nome maior; `form` é a de um formulário. */
+  scale?: "form" | "record";
+  id?: string;
+};
+
+export function DialogHeader({
+  title,
+  description,
+  before,
+  actions,
+  onClose,
+  closeLabel = "Fechar",
+  closeDisabled,
+  scale = "form",
+  id,
+}: DialogHeaderProps) {
+  return (
+    <HeaderBar>
+      <HeaderCopy>
+        {before}
+        <HeaderText>
+          <Text as="h2" id={id} variant={scale === "record" ? "title3" : "headline"} weight="semibold" truncate>
+            {title}
+          </Text>
+          {description && (
+            <Text as="p" variant="footnote" tone="secondary" truncate>
+              {description}
+            </Text>
+          )}
+        </HeaderText>
+      </HeaderCopy>
+      {(actions || onClose) && (
+        <HeaderEnd>
+          {actions}
+          {onClose && (
+            <IconButton label={closeLabel} variant="ghost" size="sm" disabled={closeDisabled} onClick={onClose}>
+              <XIcon />
+            </IconButton>
+          )}
+        </HeaderEnd>
+      )}
+    </HeaderBar>
+  );
+}
+
+/* No celular o rodapé some por padrão: as ações da janela moram na barra flutuante, acima da bandeja, e um
+   rodapé fixo por baixo dela seria a mesma ação duas vezes. Quem não registra ação flutuante pede `always`. */
+const FooterBar = styled.footer`
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-block-start: var(--panel-line, ${CHROME_LINE}) solid var(--color-border);
+
+  &[data-mobile="hidden"] {
+    @media (max-width: 47.9375rem) {
+      display: none;
+    }
+  }
+`;
+
+export type DialogFooterProps = {
+  /** No celular, `hidden` esconde o rodapé e `always` o mantém. */
+  mobile?: "hidden" | "always";
+  children: ReactNode;
+};
+
+export function DialogFooter({ mobile = "hidden", children }: DialogFooterProps) {
+  return <FooterBar data-mobile={mobile}>{children}</FooterBar>;
 }

@@ -85,7 +85,6 @@ const Box = styled.span`
   background-color: var(--checkbox-background);
   border: 1.5px solid var(--checkbox-border);
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);

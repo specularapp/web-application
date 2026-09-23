@@ -4,7 +4,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { slugify } from "@/lib/utils/slug";
 import { RECORDS_PER_KIND, recordKindValues, recordKinds, type AppRecord, type RecordKind } from "../records";
 import { RecordMediaView } from "./record-media";
@@ -60,7 +60,7 @@ export function RecordPicker({ records, onPick, kinds, label = "Buscar na aplica
 
   return (
     <div className={styles.picker}>
-      <label className={styles.find} {...squircle("md")}>
+      <label className={styles.find} {...rounded("md")}>
         <MagnifyingGlassIcon aria-hidden="true" />
         <input
           ref={field}
@@ -129,7 +129,7 @@ export function RecordPicker({ records, onPick, kinds, label = "Buscar na aplica
                 <ul className={styles.list}>
                   {group.items.map((record) => (
                     <li key={record.key}>
-                      <button type="button" className={styles.row} onClick={() => onPick(record)} {...squircle("md")}>
+                      <button type="button" className={styles.row} onClick={() => onPick(record)} {...rounded("md")}>
                         {/* Quem tem rosto mostra o rosto; um orçamento mostra as artes dos serviços dele; o
                             resto fica no azulejo do domínio. Tudo na mídia de registro da casa. */}
                         <RecordMediaView kind={record.kind} media={record.media} name={record.name} />

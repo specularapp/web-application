@@ -56,7 +56,6 @@ const Bubble = styled.span`
   text-wrap: pretty;
   background-color: var(--color-label);
   border-radius: var(--bubble-radius);
-  corner-shape: squircle;
   pointer-events: none;
   transform-origin: var(--arrow-x) var(--origin-y);
   animation: ${enter} var(--duration-fast) var(--ease-standard);

@@ -10,8 +10,9 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { slugify } from "@/lib/utils/slug";
 import { Dialog } from "../dialog";
+import { Switch } from "../switch";
 import { matchIconWeight } from "../icons";
-import { disabledState, popIn } from "../styles";
+import { disabledState, popIn, verticalScrollFade } from "../styles";
 
 export type ListboxValue = string | number;
 
@@ -61,7 +62,21 @@ export type ListboxProps<T extends ListboxValue> = {
   visibleLimit?: number;
   /** O que a lista diz quando a busca não acha nada. */
   emptyLabel?: string;
+  /** A superfície do painel: sólida por padrão, vidro nas fichas de aparência e etapas. */
+  surface?: "solid" | "glass";
+  /**
+   * Como a escolha em vigor aparece: o check de sempre, ou um interruptor em cada linha, ligado só no item
+   * escolhido. Continua sendo escolha única: ligar um desliga o outro.
+   */
+  indicator?: "check" | "toggle";
 };
+
+/* O interruptor da linha só mostra a escolha: quem escolhe é o clique na linha inteira. */
+const Toggle = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  pointer-events: none;
+`;
 
 const Menu = styled.div`
   position: relative;
@@ -88,7 +103,6 @@ const Trigger = styled.button`
   background-color: var(--listbox-trigger-background, var(--color-fill-quaternary));
   border: 1px solid var(--listbox-trigger-border, transparent);
   border-radius: var(--listbox-trigger-radius, var(--radius-sm));
-  corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
 
   ${disabledState};
@@ -209,17 +223,25 @@ const List = styled.div`
   background-color: var(--listbox-panel-bg, var(--color-bg-tertiary));
   border: 1px solid var(--color-border);
   border-radius: var(--listbox-trigger-radius, var(--radius-md));
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
+  &[data-surface="glass"] {
+    background-color: var(--glass-layer-bg);
+    -webkit-backdrop-filter: var(--glass-layer-blur);
+    backdrop-filter: var(--glass-layer-blur);
+  }
+
   /* Dentro de um campo de formulário, o painel tem a largura do campo e nada mais (acerto de 2026-09-09):
      em max-content ele passava da moldura e lia como se tivesse quebrado o formulário. A medida chega em
      pixels de quem o abre, porque portado ele não tem mais o campo como pai para herdar largura. */
+  /* Campo estreito, como os da tabela de etapas, não aperta a lista (2026-09-22, a pedido): o painel acompanha
+     a largura do campo, mas tem piso, e o interruptor da linha ganha folga ao lado do nome. */
   &[data-full-width] {
     max-width: none;
+    min-width: min(15rem, calc(100vw - var(--space-8)));
   }
 
   &[data-placement="below"] {
@@ -247,6 +269,7 @@ const SheetBody = styled.div`
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
+  ${verticalScrollFade};
 
   html[data-floating-actions] & {
     padding-block-end: var(--floating-bar-inset);
@@ -302,6 +325,7 @@ const Scroll = styled.ul`
   overflow-y: auto;
   list-style: none;
   outline: none;
+  ${verticalScrollFade};
 
   /* Com foto e legenda cada linha é mais alta, então a lista mostra mais de uma tela de itens. */
   &[data-rich] {
@@ -336,7 +360,6 @@ const Option = styled.li`
   letter-spacing: var(--tracking-tight);
   white-space: nowrap;
   border-radius: max(var(--radius-xs), calc(var(--listbox-trigger-radius, var(--radius-md)) - var(--space-1)));
-  corner-shape: squircle;
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard);
 
@@ -496,6 +519,8 @@ export function Listbox<T extends ListboxValue>({
   searchPlaceholder = "Buscar",
   visibleLimit,
   emptyLabel = "Nada encontrado",
+  surface = "solid",
+  indicator = "check",
 }: ListboxProps<T>) {
   const [open, setOpen] = useState(false);
   // No celular a lista abre na bandeja da casa em vez de flutuar ao lado do gatilho.
@@ -580,7 +605,9 @@ export function Listbox<T extends ListboxValue>({
       }
     }
 
-    setResolved({ top, left: anchor.left, width: rect.width, placement });
+    /* O painel pode sair mais largo que o campo: encosta na borda da janela em vez de vazar por ela. */
+    const left = Math.max(VIEWPORT_MARGIN, Math.min(anchor.left, window.innerWidth - VIEWPORT_MARGIN - box.offsetWidth));
+    setResolved({ top, left, width: rect.width, placement });
     setMeasured(rect.width);
   }, [floating, anchor]);
 
@@ -715,7 +742,13 @@ export function Listbox<T extends ListboxValue>({
           ) : (
             option.label
           )}
-          {option.value === value && <CheckIcon weight="bold" aria-hidden="true" />}
+          {indicator === "toggle" ? (
+            <Toggle aria-hidden="true">
+              <Switch size="sm" checked={option.value === value} readOnly tabIndex={-1} />
+            </Toggle>
+          ) : (
+            option.value === value && <CheckIcon weight="bold" aria-hidden="true" />
+          )}
         </Option>
       ))}
 
@@ -794,7 +827,7 @@ export function Listbox<T extends ListboxValue>({
         )}
       </Trigger>
       {sheet && (
-        <Dialog open={open} onClose={() => close(false)} label={label} surface="solid" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => close(false)} label={label} surface={surface} scrim={false} focusOnOpen={false}>
           <SheetBody>{content}</SheetBody>
         </Dialog>
       )}
@@ -803,6 +836,7 @@ export function Listbox<T extends ListboxValue>({
           <List
             ref={panelRef}
             data-placement={side}
+            data-surface={surface}
             data-full-width={fullWidth || undefined}
             style={
               resolved ? ({ top: resolved.top, left: resolved.left, ...(fullWidth && { width: resolved.width }) } as CSSProperties) : { visibility: "hidden" }

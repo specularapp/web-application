@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
-import { squircle, type CornerRadius } from "@/lib/corners";
+import { rounded, type CornerRadius } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { matchIconWeight } from "../icons";
 import { VisuallyHidden } from "../visually-hidden";
@@ -49,7 +49,7 @@ const iconWeight = "bold";
 
 function cornerAttributes(shape: BadgeShape, size: BadgeSize, variant: BadgeVariant) {
   if (shape === "pill") return {};
-  return squircle(badgeCorner[size], { clip: variant !== "outline" });
+  return rounded(badgeCorner[size], { clip: variant !== "outline" });
 }
 
 export function Badge({

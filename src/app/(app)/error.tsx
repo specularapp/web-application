@@ -2,6 +2,7 @@
 
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import Image from "next/image";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Stack } from "@/components/ui/stack";
 import { Text } from "@/components/ui/text";
@@ -12,7 +13,15 @@ type AppErrorProps = {
   reset: () => void;
 };
 
+/* Em desenvolvimento a tela diz o que quebrou e manda o erro ao console, que o Next repassa ao registro do
+   servidor: sem isso, o erro pego aqui sumia sem deixar rastro. Em produção fica só o código de rastreio. */
+const development = process.env.NODE_ENV === "development";
+
 export default function AppError({ error, reset }: AppErrorProps) {
+  useEffect(() => {
+    if (development) console.error(error);
+  }, [error]);
+
   return (
     <main className={styles.page}>
       <Stack gap={4} align="center" className={styles.block}>
@@ -26,6 +35,11 @@ export default function AppError({ error, reset }: AppErrorProps) {
         <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowClockwiseIcon />} onClick={reset}>
           Tentar de novo
         </Button>
+        {development && (
+          <Text variant="caption1" tone="tertiary" font="code" align="center">
+            {error.message}
+          </Text>
+        )}
         {error.digest && (
           <Text variant="caption1" tone="tertiary" font="code" align="center">
             {error.digest}

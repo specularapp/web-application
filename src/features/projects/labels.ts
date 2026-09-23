@@ -75,14 +75,9 @@ export function budgetLabel({ min, max }: ProjectBudget) {
 /** A data curta da casa, com o ano sempre à vista: "8 mar. 2026". */
 export const shortDate = (iso: string) => format(parseISO(iso), "d MMM. yyyy", { locale: ptBR });
 
-/** Só o domínio do endereço, sem protocolo nem "www": é o que cabe na linha do cartão. */
-export function siteLabel(url: string) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+/* O domínio de um endereço mora em `lib/utils/site.ts`, com os outros dois sentidos do mesmo campo.
+   Segue exportado aqui para quem já o importava desta feature. */
+export { siteLabel } from "@/lib/utils/site";
 
 export type DueReading = { label: string; tone: BadgeTone };
 

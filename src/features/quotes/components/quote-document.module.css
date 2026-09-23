@@ -248,7 +248,6 @@
   padding: var(--space-4);
   background-color: color-mix(in oklab, var(--color-label) 4%, var(--color-bg));
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .person {

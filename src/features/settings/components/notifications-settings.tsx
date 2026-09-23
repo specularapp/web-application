@@ -6,6 +6,7 @@ import { BellIcon, BellSlashIcon, ChecksIcon, GearSixIcon, WarningCircleIcon, ty
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { useState, type CSSProperties } from "react";
+import { useTabList } from "@/hooks/use-tab-list";
 import { useToast } from "@/components/providers/toast-provider";
 import type { AppNotification, NotificationKind } from "@/components/layout/notifications";
 import { Avatar } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ export function NotificationsSettings({ items: initial, ai }: { items: AppNotifi
   const { toast } = useToast();
   const [items, setItems] = useState(initial);
   const [filter, setFilter] = useState<Filter>("all");
+  const filterTabs = useTabList(["all", "unread"] as const, filter, setFilter);
   const [marking, setMarking] = useState(false);
 
   const unread = items.filter((item) => !item.read);
@@ -72,11 +74,11 @@ export function NotificationsSettings({ items: initial, ai }: { items: AppNotifi
       <SettingsSection
         title={filter === "unread" ? "Não lidas" : "Todas"}
         aside={
-          <div className={styles.rowLine} role="tablist" aria-label="Filtro">
-            <Button size="sm" radius="md" variant={filter === "all" ? "secondary" : "ghost"} role="tab" aria-selected={filter === "all"} onClick={() => setFilter("all")}>
+          <div className={styles.rowLine} aria-label="Filtro" {...filterTabs.listProps}>
+            <Button size="sm" radius="md" variant={filter === "all" ? "secondary" : "ghost"} {...filterTabs.tabProps("all")} onClick={() => setFilter("all")}>
               Todas ({items.length})
             </Button>
-            <Button size="sm" radius="md" variant={filter === "unread" ? "secondary" : "ghost"} role="tab" aria-selected={filter === "unread"} onClick={() => setFilter("unread")}>
+            <Button size="sm" radius="md" variant={filter === "unread" ? "secondary" : "ghost"} {...filterTabs.tabProps("unread")} onClick={() => setFilter("unread")}>
               Não lidas ({unread.length})
             </Button>
           </div>

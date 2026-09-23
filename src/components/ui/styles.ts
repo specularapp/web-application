@@ -110,6 +110,34 @@ export const disabledState = css`
   }
 `;
 
+/** As duas pontas apagadas, para a roda de escolha: o item do meio é o escolhido e os vizinhos somem. */
+export const wheelFade = css`
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--space-2), #000 calc(100% - var(--space-2)), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--space-2), #000 calc(100% - var(--space-2)), transparent);
+`;
+
+const scrollFadeOut = keyframes`
+  from {
+    --scroll-fade: var(--space-6);
+  }
+  to {
+    --scroll-fade: 0px;
+  }
+`;
+
+/**
+ * O degradê de lista que rola, **só embaixo e só quando há o que rolar** (2026-09-22, a pedido): ele avisa
+ * que tem mais lista abaixo, então some em lista que cabe inteira e ao chegar no fim. Quem mede é a própria
+ * rolagem (`animation-timeline`): sem rolagem a linha do tempo fica inativa e a máscara não corta nada, e o
+ * navegador sem suporte fica sem degradê, que é o lado seguro.
+ */
+export const verticalScrollFade = css`
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
+  animation: ${scrollFadeOut} linear both;
+  animation-timeline: scroll(self);
+`;
+
 export const controlMetrics = (size: ControlSize) => css`
   min-height: var(--control-height-${size});
   padding-inline: var(--control-padding-${size});
@@ -147,4 +175,3 @@ export const controlGlyph = (size: ControlSize) => css`
   width: calc(var(--control-height-${size}) * ${glyphRatio});
   height: calc(var(--control-height-${size}) * ${glyphRatio});
 `;
-

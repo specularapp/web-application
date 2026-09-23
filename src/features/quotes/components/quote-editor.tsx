@@ -42,6 +42,7 @@ import { catalogUnits } from "@/features/catalog/schemas";
 import type { CatalogItem, CatalogUnit } from "@/features/catalog/summary";
 import type { ClientListItem } from "@/features/clients/list-options";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useTabList } from "@/hooks/use-tab-list";
 import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
@@ -332,6 +333,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const [saving, setSaving] = useState<"draft" | "send" | null>(null);
   const [step, setStep] = useState<Step>("info");
   const [tab, setTab] = useState<"form" | "preview">("form");
+  const editorTabs = useTabList(["form", "preview"] as const, tab, setTab);
   const editing = Boolean(quote);
   const titleId = useId();
   const form = useRef<HTMLFormElement>(null);
@@ -578,7 +580,15 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
       toast({ title: "Rascunho não salvo", description: "Nada foi perdido. Corrija o campo indicado e tente novamente.", tone: "warning" });
       return;
     }
-    toast({ title: editing ? "Orçamento salvo" : "Rascunho salvo", description: `${draft.number} está na lista.`, tone: "success" });
+    toast({
+      title: editing ? "Orçamento salvo" : "Rascunho salvo",
+      description: `${draft.number} está na lista.`,
+      tone: "success",
+      feedback: {
+        visual: <Avatar name={draft.client.name} src={draft.client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+        confetti: false,
+      },
+    });
     onSaved();
   };
 
@@ -602,6 +612,10 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
       title: result.status === "sent" ? "Orçamento enviado" : editing ? "Orçamento salvo" : "Rascunho salvo",
       description: result.status === "sent" ? `${draft.client.name} já pode abrir o documento pelo link.` : `${draft.number} está na lista.`,
       tone: "success",
+      feedback: {
+        visual: <Avatar name={draft.client.name} src={draft.client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+        confetti: result.status === "sent",
+      },
     });
     onSaved();
   };
@@ -625,7 +639,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     value: entry.id,
     label: entry.name,
     caption: entry.company ?? entry.email ?? undefined,
-    media: <Avatar name={entry.name} src={entry.avatarUrl ?? undefined} size="sm" shape="squircle" />,
+    media: <Avatar name={entry.name} src={entry.avatarUrl ?? undefined} size="sm" shape="rounded" />,
   }));
   const catalogOptions = [
     { value: FREE_ITEM, label: "Item avulso", caption: "Escrito à mão, fora do catálogo", media: <CatalogArtwork item={FREE_ITEM_ART} size="sm" /> },
@@ -795,11 +809,11 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
           {mobile ? (
             /* No celular o cabeçalho tem só as abas (pedido de 2026-09-10): salvar, enviar, copiar o link e
                sair são todos da barra flutuante, e repeti-los aqui era a mesma ação duas vezes na tela. */
-            <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
-              <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
+            <div className={styles.tabs} aria-label="Dados ou prévia" {...editorTabs.listProps}>
+              <button type="button" className={styles.tab} {...editorTabs.tabProps("form")} onClick={() => setTab("form")}>
                 Dados
               </button>
-              <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
+              <button type="button" className={styles.tab} {...editorTabs.tabProps("preview")} onClick={() => setTab("preview")}>
                 Prévia
               </button>
             </div>
@@ -862,7 +876,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
                       /* No desenho do gatilho do seletor (pedido de 2026-09-09): a foto à esquerda e, ao
                          lado, o nome com a empresa embaixo. */
                       <span className={styles.person}>
-                        <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+                        <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="sm" shape="rounded" />
                         <span className={styles.personCopy}>
                           <Text as="span" variant="footnote" weight="medium" truncate>
                             {client.name}

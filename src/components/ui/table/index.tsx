@@ -1,5 +1,5 @@
 import type { ComponentProps, ComponentPropsWithoutRef } from "react";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./table.module.css";
 
@@ -12,7 +12,7 @@ export function TableScroll({ label, className, ...props }: TableScrollProps) {
       aria-label={label}
       tabIndex={0}
       className={cx(styles.scroll, className)}
-      {...squircle("xs")}
+      {...rounded("xs")}
       {...props}
     />
   );

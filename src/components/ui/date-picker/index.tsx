@@ -142,16 +142,17 @@ const Popover = styled.div`
   z-index: var(--z-popover);
   width: min(20rem, calc(100vw - 2rem));
   padding: var(--space-3);
-  /* Calendário e seletores internos compartilham a mesma superfície opaca para manter contraste. */
-  --listbox-panel-bg: var(--color-bg-tertiary);
+  /* O vidro escuro das outras camadas da casa (2026-09-22, a pedido): o calendário não é mais o cinza sólido
+     que destoava dos menus. Os seletores de mês e ano, que abrem por cima dele, ficam no fundo cheio, para
+     o calendário de baixo não atravessar a lista. */
+  --listbox-panel-bg: var(--color-bg);
 
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--glass-layer-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
   transform-origin: var(--origin);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
@@ -372,7 +373,7 @@ export function DatePicker({
       )}
       {name && <input type="hidden" name={name} value={date ? format(date, "yyyy-MM-dd") : ""} readOnly />}
       {open && sheet && (
-        <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="solid" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => setOpen(false)} label="Escolher data" surface="glass" scrim={false} focusOnOpen={false}>
           <SheetBody ref={popoverRef} id={dialogId}>
             <Calendar>{calendar}</Calendar>
           </SheetBody>

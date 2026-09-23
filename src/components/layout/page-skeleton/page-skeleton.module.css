@@ -17,7 +17,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-4);
-  border-bottom: 1px solid var(--sys-separator);
+  border-bottom: 1px solid var(--color-border);
 }
 
 @media (width >= 48rem) {
@@ -80,8 +80,10 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-separator);
+  /* A mesma superfície do `Card` da casa, que pinta o miolo com `--color-bg` sobre a página: com o cinza
+     agrupado o esqueleto lia como um cartão de outra tela, e ao carregar a cor mudava embaixo do conteúdo. */
+  background: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
 }
 
 .cardHead {
@@ -123,8 +125,8 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--sys-surface);
-  border: 1px solid var(--sys-separator);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
 }
 
 /* Enquanto o esqueleto está na tela, quem usa leitor precisa saber que algo está vindo. */

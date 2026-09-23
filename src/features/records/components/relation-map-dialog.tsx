@@ -29,7 +29,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { usePlanGate } from "@/features/billing/components/plan-gate";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { loadClientRelationsAction, type RelationLoad } from "../actions";
 import type { RelationKind, RelationMap, RelationNode } from "../relations";
 import styles from "./relation-map-dialog.module.css";
@@ -82,7 +82,15 @@ export function RelationMapDialog({ open, onClose, clientId, name }: RelationMap
 }
 
 function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps, "open">) {
-  const [load, setLoad] = useState<RelationLoad | null>(null);
+  /** A queda de rede ou do servidor, à parte da resposta da action: `RelationLoad` é o contrato do
+   *  servidor, e "sem acesso" não é o que aconteceu aqui, então não se fabrica um `reason` para isso. */
+  const [attempt, setAttempt] = useState(0);
+  const requestKey = `${clientId}:${attempt}`;
+  const [request, setRequest] = useState<{
+    key: string;
+    load: RelationLoad | null;
+    failed: boolean;
+  }>({ key: requestKey, load: null, failed: false });
   const { zoomIn, zoomOut, fitView } = useReactFlow<MapNodeType, Edge>();
   const gate = usePlanGate();
 
@@ -91,14 +99,21 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
   useEffect(() => {
     let alive = true;
 
-    void loadClientRelationsAction({ clientId }).then((result) => {
-      if (alive) setLoad(result);
-    });
+    void loadClientRelationsAction({ clientId })
+      .then((result) => {
+        if (alive) setRequest({ key: requestKey, load: result, failed: false });
+      })
+      .catch(() => {
+        if (alive) setRequest({ key: requestKey, load: null, failed: true });
+      });
 
     return () => {
       alive = false;
     };
-  }, [clientId]);
+  }, [clientId, requestKey]);
+
+  const load = request.key === requestKey ? request.load : null;
+  const failed = request.key === requestKey && request.failed;
 
   const map: RelationMap | null = load?.ok ? load.map : null;
   const graph = useMemo(() => (map ? toFlow(map) : null), [map]);
@@ -132,7 +147,20 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
       </header>
 
       <div className={styles.canvas}>
-        {load === null ? (
+        {failed ? (
+          <div className={styles.center}>
+            <EmptyState
+              icon={TreeStructureIcon}
+              size="sm"
+              title="Não deu para carregar o mapa"
+              description="Não foi possível falar com o servidor. Confira a conexão e tente de novo."
+            >
+              <Button size="sm" radius="md" onClick={() => setAttempt((value) => value + 1)}>
+                Tentar de novo
+              </Button>
+            </EmptyState>
+          </div>
+        ) : load === null ? (
           <div className={styles.center}>
             <Spinner label="Montando o mapa" />
           </div>
@@ -278,9 +306,9 @@ const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
         {/* A imagem do registro quando ele tem uma (a logo da marca, a do projeto, a capa), e o glifo do
             domínio quando não tem: é o que deixa reconhecer o registro antes de ler o nome. */}
         {relation.imageUrl ? (
-          <StoredImage src={relation.imageUrl} alt="" width={36} height={36} className={styles.nodePhoto} {...squircle("md", { clip: true })} />
+          <StoredImage src={relation.imageUrl} alt="" width={36} height={36} className={styles.nodePhoto} {...rounded("md", { clip: true })} />
         ) : (
-          <span className={styles.nodeGlyph} aria-hidden="true" {...squircle("md")}>
+          <span className={styles.nodeGlyph} aria-hidden="true" {...rounded("md")}>
             <kind.icon weight="duotone" />
           </span>
         )}
@@ -328,7 +356,7 @@ const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
   );
 
   return (
-    <div className={styles.node} data-root={root || undefined} style={{ "--node-hue": kind.hue } as CSSProperties} {...squircle("lg")}>
+    <div className={styles.node} data-root={root || undefined} style={{ "--node-hue": kind.hue } as CSSProperties} {...rounded("lg")}>
       {!root && <Handle type="target" position={Position.Left} className={styles.handle} isConnectable={false} />}
 
       {relation.href ? (

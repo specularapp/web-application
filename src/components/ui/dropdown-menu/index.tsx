@@ -21,7 +21,7 @@ import type { ButtonProps } from "../button";
 import { Dialog } from "../dialog";
 import { IconButton } from "../icon-button";
 import { Spinner } from "../spinner";
-import { disabledState, focusRing, hoverMotion, layerMotion } from "../styles";
+import { disabledState, focusRing, hoverMotion, layerMotion, verticalScrollFade } from "../styles";
 import { Switch } from "../switch";
 import { Text } from "../text";
 
@@ -117,7 +117,7 @@ const PANEL_HEIGHT = 340;
 
 type Resolved = { top: number; left: number; placement: "below" | "above" };
 
-/* Canto declarado direto, sem `data-squircle`: a caixa guarda anel de foco de link e botão, e o recorte
+/* Canto declarado direto, sem `data-rounded`: a caixa guarda anel de foco de link e botão, e o recorte
    do fallback cortaria os dois. Mesma receita das camadas do menu. */
 const Popover = styled.div`
   --panel-line: 0.0375rem;
@@ -133,7 +133,6 @@ const Popover = styled.div`
   background-color: var(--glass-layer-bg);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-2xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
@@ -156,6 +155,7 @@ const Popover = styled.div`
     overflow-anchor: none;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
+    ${verticalScrollFade};
   }
 
   /* Abrindo para cima o gênio nasce de baixo; a posição em si já vem resolvida em pixels. */
@@ -182,6 +182,7 @@ const Sheet = styled.div`
   overflow-anchor: none;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  ${verticalScrollFade};
 
   /* Aberta por cima de uma janela com ações na barra flutuante, a lista leva a folga da barra embaixo,
      dentro do que rola: o último item fecha acima dela, em vez de ficar atrás sem dar para tocar. */
@@ -285,7 +286,6 @@ const rowStyles = css`
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   cursor: pointer;
 
   ${hoverMotion};
@@ -378,6 +378,14 @@ const Trailing = styled.span`
 const Trigger = styled.span`
   display: inline-flex;
   flex-shrink: 0;
+
+  /* Com conteúdo próprio, o gatilho cabe na coluna em vez de crescer até o conteúdo inteiro numa linha: uma
+     fila de etiquetas que quebra de linha empurrava a janela para o lado (2026-09-22). */
+  &[data-content] {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
 `;
 
 /**
@@ -640,12 +648,13 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
   const listed = sections.reduce((sum, section) => sum + section.items.length, 0);
   const searchable = searchableProp ?? listed > SEARCH_FROM;
   const needle = slugify(query, 80);
-  const shown =
-    searchable && needle
-      ? sections
-          .map((section) => ({ ...section, items: section.items.filter((item) => slugify(item.label, 80).includes(needle)) }))
-          .filter((section) => section.items.length > 0)
-      : sections;
+  /* Seção vazia nunca é desenhada, com ou sem busca (2026-09-22, na varredura): quem monta o leque decide as
+     seções antes de saber quantos itens cada uma terá, e uma lista vazia virava uma faixa em branco com o fio
+     no topo, como acontecia no leque da cobrança. Antes o descarte só valia com termo digitado. */
+  const shown = (searchable && needle
+    ? sections.map((section) => ({ ...section, items: section.items.filter((item) => slugify(item.label, 80).includes(needle)) }))
+    : sections
+  ).filter((section) => section.items.length > 0);
 
   const field = searchable && (
     <Search>
@@ -687,7 +696,7 @@ export function DropdownMenu({ label, triggerLabel, sections, icon, size = "sm",
   );
 
   return (
-    <Trigger>
+    <Trigger data-content={triggerContent ? "" : undefined}>
       {/* O gatilho é o botão de ícone da casa, ou um botão sem caixa com o conteúdo de quem chama. */}
       {triggerContent ? (
         <BareTrigger

@@ -42,7 +42,6 @@ const Themes = styled.div`
   padding: var(--space-1);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 `;
 
 const ThemeOption = styled.button`
@@ -55,7 +54,6 @@ const ThemeOption = styled.button`
   background-color: transparent;
   border: 0;
   border-radius: calc(var(--radius-md) - var(--space-1));
-  corner-shape: squircle;
   cursor: pointer;
   ${hoverMotion};
 

@@ -1,31 +1,15 @@
-/* A descrição tem dois estados no mesmo lugar, e a diferença entre eles é o cursor, não a moldura (acerto de
-   2026-09-22, a pedido): lendo, o texto é um botão sem cara de botão; editando, é o mesmo texto com o editor
-   por baixo, sem caixa, sem barra e sem recuo novo. */
-.opener {
-  display: block;
-  width: 100%;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-align: start;
-  background: none;
-  border: 0;
-  cursor: text;
-}
-
-.opener:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 4px;
-  border-radius: var(--radius-sm);
-}
-
+/* A descrição é o editor desde que a ficha abre: o mesmo texto no mesmo lugar, só com cursor. */
 .editing {
+  position: relative;
   display: grid;
-  gap: var(--space-1);
   min-width: 0;
 }
 
-/* O sinal de gravação, na ponta e apagado: ele informa, e não pede nada. */
+/* O sinal de gravação, no canto de cima e apagado, fora do fluxo: ele informa sem empurrar o texto, então
+   gravar não mexe em nada do que a pessoa está escrevendo. */
 .state {
-  justify-self: end;
+  position: absolute;
+  inset-block-end: calc(100% + var(--space-1));
+  inset-inline-end: 0;
+  pointer-events: none;
 }

@@ -3,7 +3,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/ssr";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { Avatar, type AvatarProps } from "../avatar";
 import { Button } from "../button";
 import { IconButton } from "../icon-button";
@@ -54,8 +54,8 @@ export type ProfileProps = {
 };
 
 /* Linhas e chips no raio `md` e `sm` da casa, recortados no fallback porque não têm borda. */
-const rowCorner = squircle("md", { clip: true });
-const chipCorner = squircle("sm", { clip: true });
+const rowCorner = rounded("md", { clip: true });
+const chipCorner = rounded("sm", { clip: true });
 
 /* Links que saem da aplicação abrem em outra aba; o botão passa os atributos ao `a` quando tem `href`. */
 const external = { target: "_blank", rel: "noreferrer" };
@@ -76,7 +76,7 @@ export function Profile({ hue, cover, coverAction, avatar, photoAction, title, b
 
       <header className={styles.head}>
         <span className={styles.photo}>
-          <Avatar {...avatar} size="lg" shape="squircle" className={styles.photoFace} />
+          <Avatar {...avatar} size="lg" shape="rounded" className={styles.photoFace} />
           {photoAction && <span className={styles.photoAction}>{photoAction}</span>}
         </span>
         <div className={styles.identity}>

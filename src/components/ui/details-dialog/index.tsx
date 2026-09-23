@@ -150,6 +150,10 @@ export function DetailsTrigger({
   const Tag = as as "div";
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
+    // Conteúdo portado (o menu de opções, a bandeja dele no celular) continua descendente na árvore do
+    // React, mas não no DOM: sem este guarda o clique que nasce em document.body sobe até aqui e abre a
+    // janela por cima ou por baixo do que acabou de fechar.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
     if (control && control !== event.currentTarget && !control.hasAttribute("data-open-details")) return;
     setOpen(true);

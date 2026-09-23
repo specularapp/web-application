@@ -107,7 +107,7 @@ function NameForm({
       </header>
 
       <div className={styles.body}>
-        <Field label={label} error={error ?? undefined} required>
+        <Field label={label} error={error ?? undefined} revealError={Boolean(error)} required>
           <Input
             type="text"
             value={name}

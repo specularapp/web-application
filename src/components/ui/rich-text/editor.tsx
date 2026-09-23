@@ -70,6 +70,11 @@ export type RichTextEditorProps = {
   onImageError?: (message: string) => void;
   /** Põe o cursor no fim do texto assim que o editor monta: é o que faz o clique no texto já deixar escrevendo. */
   focusOnMount?: boolean;
+  /**
+   * O que aparece enquanto o editor inicia, no lugar do giro de carregamento: quem mostra o mesmo texto em
+   * leitura aqui faz a troca para edição não piscar.
+   */
+  fallback?: ReactNode;
 };
 
 /** Um botão da barra ou da bolha, no mesmo desenho do editor de contrato. */
@@ -90,6 +95,7 @@ export function RichTextEditor({
   onUploadImage,
   onImageError,
   focusOnMount = false,
+  fallback,
 }: RichTextEditorProps) {
   const editorRef = useRef<Editor | null>(null);
   const canUpload = Boolean(onUploadImage);
@@ -172,7 +178,11 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor: instance }) => change(instance.getJSON() as unknown as DocNode),
-    autofocus: focusOnMount ? "end" : false,
+    /* O foco de abertura não rola a página: o `autofocus` do editor chama o `scrollIntoView` do navegador, e
+       dentro da bandeja do celular isso dava o salto de zoom que a pessoa via ao tocar na descrição. */
+    onCreate: ({ editor: instance }) => {
+      if (focusOnMount) instance.commands.focus("end", { scrollIntoView: false });
+    },
   });
 
   /* O editor precisa de si mesmo dentro dos manipuladores do ProseMirror, que nascem junto dele; a
@@ -206,6 +216,7 @@ export function RichTextEditor({
   });
 
   if (!editor || !state) {
+    if (fallback) return <>{fallback}</>;
     return (
       <div className={styles.editor} aria-busy="true">
         <div className={styles.surface}>

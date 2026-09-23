@@ -49,12 +49,14 @@
 .thumb {
   grid-area: 1 / 1;
   align-self: stretch;
-  background-color: var(--color-bg);
+  /* O fundo de cima das superfícies, e não o da página (2026-09-22, a pedido): no escuro o vidro da peça e o
+     `--color-bg` são os dois pretos, e a opção escolhida sumia. */
+  background-color: var(--color-bg-tertiary);
   /* Canto concêntrico: o raio da caixa menos o recuo que a separa dele (20 menos 2), e não um token escolhido
      à parte. Com o `--radius-md`, 12 contra 20, a curva de dentro abria folga na de fora e o deslizante lia
      como uma peça de outro lugar posta ali. Em 18 as duas curvas correm juntas, e o número é o mesmo
      `--icon-button-radius-sm` da casa, porque a altura aqui é a do controle pequeno e metade de 36 é 18. O
-     `data-squircle-radius` do TS carrega o mesmo número, senão o motor do fallback desenharia uma superelipse
+     `data-rounded-radius` do TS carrega o mesmo número, senão o motor do fallback desenharia uma superelipse
      e o CSS outra. */
   border-radius: var(--icon-button-radius-sm);
   box-shadow: var(--shadow-sm);
@@ -107,6 +109,25 @@
 .option:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* A peça só existe sob toque (a media query no alto do arquivo esconde tudo no desktop), então o alvo
+   tocável precisa dos 44px da regra, e não só a altura visual do controle pequeno. */
+/* No toque a peça fica mais baixa que o controle pequeno (2026-09-22, a pedido: mais suave dentro da
+   página), e o alvo continua com os 44px da regra: a área de toque se estende por uma faixa invisível acima
+   e abaixo da opção, e não pela altura desenhada. */
+@media (pointer: coarse) {
+  .option {
+    min-height: var(--space-8);
+    font-size: var(--text-caption-1);
+  }
+
+  .option::before {
+    position: absolute;
+    inset-block: calc((var(--touch-target) - var(--space-8)) / -2);
+    inset-inline: 0;
+    content: "";
+  }
 }
 
 @media (hover: hover) {

@@ -7,7 +7,7 @@ import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-men
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { aiHistory, type AiConversation } from "../conversation";
 import { aiRemaining, aiTone } from "../summary";
 import { useAiPanel } from "./ai-panel-context";
@@ -122,7 +122,7 @@ export function AiHistory({ onPick }: AiHistoryProps) {
                     key={conversation.id}
                     className={styles.row}
                     data-current={conversation.id === panel.currentId || undefined}
-                    {...squircle("md")}
+                    {...rounded("md")}
                   >
                     {renaming === conversation.id ? (
                       <Input
@@ -180,7 +180,7 @@ export function AiHistory({ onPick }: AiHistoryProps) {
           da página e da janela do uso, e o clique abre o resumo com a data em que o ciclo vira. */}
       {usage && (
         <footer className={styles.foot}>
-          <button type="button" className={styles.usage} onClick={() => setUsageOpen(true)} {...squircle("md")}>
+          <button type="button" className={styles.usage} onClick={() => setUsageOpen(true)} {...rounded("md")}>
             <span className={styles.usageLine}>
               <Text as="span" variant="caption2" tone="secondary">
                 Uso da IA

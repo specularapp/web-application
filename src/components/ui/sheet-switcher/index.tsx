@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { iconButtonCornerRadius, squircle, squirclePx } from "@/lib/corners";
+import { useTabList } from "@/hooks/use-tab-list";
+import { iconButtonCornerRadius, rounded, roundedPx } from "@/lib/corners";
 import styles from "./sheet-switcher.module.css";
 
 export type SheetSwitcherOption<T extends string> = { id: T; label: string };
@@ -33,21 +34,21 @@ const CORNER = iconButtonCornerRadius.sm;
 export function SheetSwitcher<T extends string>({ label, options, value, onChange }: SheetSwitcherProps<T>) {
   const at = Math.max(0, options.findIndex((option) => option.id === value));
   const vars = { "--count": options.length, "--at": at } as CSSProperties;
+  const tabs = useTabList(options.map((option) => option.id), value, onChange);
 
   return (
-    <div className={styles.switcher} role="tablist" aria-label={label} style={vars} {...squircle("lg")}>
-      <span className={styles.thumb} aria-hidden="true" {...squirclePx(CORNER)} />
+    <div className={styles.switcher} aria-label={label} style={vars} {...rounded("lg")} {...tabs.listProps}>
+      <span className={styles.thumb} aria-hidden="true" {...roundedPx(CORNER)} />
       {options.map((option, index) => (
         <button
           key={option.id}
           type="button"
-          role="tab"
-          aria-selected={option.id === value}
           className={styles.option}
+          {...tabs.tabProps(option.id)}
           data-on={option.id === value || undefined}
           style={{ gridColumn: index + 1 }}
           onClick={() => onChange(option.id)}
-          {...squirclePx(CORNER)}
+          {...roundedPx(CORNER)}
         >
           {option.label}
         </button>

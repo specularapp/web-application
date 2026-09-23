@@ -5,7 +5,7 @@ import { PlusIcon, XIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { MAX_TAGS, type TagCatalog } from "@/lib/tags";
 
 /* A fila das escolhidas mais o gatilho do leque, quebrando linha quando não cabe. */
@@ -155,7 +155,7 @@ export function TagPicker({
   return (
     <Shell id={id} aria-describedby={describedBy}>
       {value.map((tag) => (
-        <Chip key={tag} {...squircle("md")}>
+        <Chip key={tag} {...rounded("md")}>
           <TagDot hue={catalog.hueOf(tag)} />
           <Text as="span" variant="footnote" weight="medium" truncate>
             {tag}

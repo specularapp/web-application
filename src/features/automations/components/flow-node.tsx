@@ -4,7 +4,7 @@ import { CheckCircleIcon, HourglassMediumIcon, MinusCircleIcon, PlusIcon, XCircl
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { memo, type CSSProperties } from "react";
 import { Spinner } from "@/components/ui/spinner";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { categories, nodeCatalog } from "../catalog";
 import { automationLimits } from "../schemas";
@@ -47,11 +47,11 @@ export const FlowNode = memo(function FlowNode({ id, data, selected }: NodeProps
   const runGlyph = run && run !== "running" ? runGlyphs[run] : null;
 
   return (
-    <div className={styles.node} data-category={spec.category} data-selected={selected || undefined} data-run={run} style={{ "--node-hue": category.hue } as CSSProperties} {...squircle("xl")}>
+    <div className={styles.node} data-category={spec.category} data-selected={selected || undefined} data-run={run} style={{ "--node-hue": category.hue } as CSSProperties} {...rounded("xl")}>
       {spec.category !== "trigger" && <Handle type="target" position={Position.Left} className={cx(styles.handle, styles.handleIn)} />}
 
       <header className={styles.nodeHead}>
-        <span className={styles.nodeGlyph} aria-hidden="true" {...squircle("md")}>
+        <span className={styles.nodeGlyph} aria-hidden="true" {...rounded("md")}>
           <spec.icon weight="duotone" />
         </span>
         <span className={styles.nodeNaming}>

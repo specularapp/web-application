@@ -1,12 +1,13 @@
 "use client";
 
 import { BriefcaseIcon, CalendarBlankIcon, CheckIcon, ReceiptIcon } from "@phosphor-icons/react";
+import { siteLabel } from "@/lib/utils/site";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { contractKinds, contractStatuses, dateOf } from "../labels";
 import type { Contract } from "../summary";
@@ -21,15 +22,6 @@ export type ContractCardProps = ContractMenuActions & {
 
 /* Controles com ação própria dentro do cartão: clique que nasce neles não abre a ficha. */
 const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']";
-
-/** Só o domínio do endereço, sem protocolo nem "www": é o que cabe na linha da ficha pequena. */
-function siteLabel(url: string) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
 
 // O cartão do contrato (2026-09-14, sobre uma referência de grade de cartões do usuário, adaptada aos padrões
 // da casa): em cima o **tipo do trabalho** na etiqueta colorida da referência ("Landing page", "Branding"),
@@ -66,7 +58,7 @@ export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps
   };
 
   return (
-    <li className={styles.card} data-status={contract.status} {...squircle("xl", { clip: true })}>
+    <li className={styles.card} data-status={contract.status} {...rounded("xl", { clip: true })}>
       <div
         role="button"
         tabIndex={0}
@@ -75,7 +67,7 @@ export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         <header className={styles.head}>
           <Badge size="sm" hue={kind.hue}>
@@ -101,8 +93,8 @@ export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps
         {/* A ficha pequena do vínculo, como a da referência: o glifo num azulejo, o nome e, embaixo, o
             endereço do site do projeto ou o valor do orçamento. */}
         {link && (
-          <div className={styles.link} {...squircle("md")}>
-            <span className={styles.linkIcon} aria-hidden="true" {...squircle("sm")}>
+          <div className={styles.link} {...rounded("md")}>
+            <span className={styles.linkIcon} aria-hidden="true" {...rounded("sm")}>
               <link.icon weight="duotone" />
             </span>
             <span className={styles.linkCopy}>

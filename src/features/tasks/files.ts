@@ -20,12 +20,42 @@ export function attachmentTypeOf(file: File): TaskAttachmentType {
 }
 
 /**
- * Um arquivo escolhido virando anexo. O endereço é um `blob:` feito na hora, então ele abre e baixa de
- * verdade nesta sessão; **o que falta é o armazenamento**: quem ligar o bucket troca o `createObjectURL` pelo
- * envio e guarda o endereço que voltar.
+ * O arquivo de verdade por trás de cada endereço `blob:` feito na tela: a lista mostra o anexo na hora pelo
+ * endereço local, e quem grava precisa do conteúdo para subir ao balde. Guardado por endereço, e solto quando
+ * o envio termina.
  */
+const localFiles = new Map<string, Blob>();
+
+export function keepLocalFile(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  localFiles.set(url, blob);
+  return url;
+}
+
+export const localFileOf = (url: string) => localFiles.get(url) ?? null;
+
+export function releaseLocalFile(url: string) {
+  localFiles.delete(url);
+}
+
+/**
+ * A prévia de um arquivo escolhido, uma por arquivo. Guardada, e não refeita a cada montagem: no modo estrito
+ * o React monta, desmonta e monta de novo, e a prévia que era revogada na desmontagem de teste ficava
+ * apontando para um endereço morto, que é a imagem quebrada da janela de anexar (2026-09-22).
+ */
+const previews = new WeakMap<Blob, string>();
+
+export function previewOf(file: Blob) {
+  const known = previews.get(file);
+  if (known) return known;
+  const url = keepLocalFile(file);
+  previews.set(file, url);
+  return url;
+}
+
+/** Um arquivo escolhido virando anexo, com o endereço local que abre na hora e o conteúdo guardado para subir. */
 export function attachmentOf(file: File, id: string): TaskAttachment {
-  return { id, name: file.name, url: URL.createObjectURL(file), type: attachmentTypeOf(file), size: sizeLabel(file.size) };
+  return { id, name: file.name, url: previewOf(file), type: attachmentTypeOf(file), size: sizeLabel(file.size) };
 }
 
 /** O que o seletor do sistema aceita em cada caso, para "Imagem" não abrir a pasta inteira. */

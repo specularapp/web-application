@@ -80,6 +80,7 @@ export function ProjectDialog({ project, onClose, onEdit, onDelete }: ProjectDia
       onClose={onClose}
       label={project ? `Projeto ${project.name}` : "Projeto"}
       size="xl"
+      surface="workspace"
       focusOnOpen={false}
       above={project && <SheetSwitcher label="O que ver do projeto" options={projectTabs} value={tab} onChange={setTab} />}
     >

@@ -5,6 +5,7 @@
   --card-corner: var(--radius-xl);
   --card-line: 1px;
 
+  position: relative;
   display: grid;
   min-width: 0;
   padding: var(--card-line);
@@ -82,7 +83,8 @@
   gap: var(--space-1);
   align-items: center;
   min-width: 0;
-  margin: 0;
+  /* Um respiro até o título (2026-09-22, a pedido): colada nele, a rota pesava o topo do cartão. */
+  margin: 0 0 calc(var(--space-half) * -1);
   font-family: var(--font-body);
   font-size: var(--text-caption-1);
   letter-spacing: var(--tracking-tight);

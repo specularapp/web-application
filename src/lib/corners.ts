@@ -1,27 +1,27 @@
 export const cornerRadius = {
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 20,
-  xl: 24,
-  "2xl": 32,
-  "3xl": 40,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
+  "2xl": 14,
+  "3xl": 16,
 } as const;
 
 export type CornerRadius = keyof typeof cornerRadius;
 
 export const controlCornerRadius = {
-  sm: 20,
-  md: 24,
-  lg: 28,
+  sm: 6,
+  md: 8,
+  lg: 10,
 } as const;
 
 export type ControlCornerRadius = keyof typeof controlCornerRadius;
 
 export const iconButtonCornerRadius = {
-  sm: 18,
-  md: 22,
-  lg: 26,
+  sm: 6,
+  md: 8,
+  lg: 10,
 } as const;
 
 const spacing = {
@@ -35,25 +35,32 @@ const spacing = {
 
 export type Spacing = keyof typeof spacing;
 
-export type SquircleOptions = { clip?: boolean };
+export type RoundedOptions = { clip?: boolean };
 
-function attributes(px: number | undefined, options?: SquircleOptions) {
+const radiusEntries = Object.entries(cornerRadius) as [CornerRadius, number][];
+
+function closestRadius(px: number): CornerRadius {
+  return radiusEntries.reduce((closest, entry) =>
+    Math.abs(entry[1] - px) < Math.abs(cornerRadius[closest] - px) ? entry[0] : closest,
+  "xs" as CornerRadius);
+}
+
+function attributes(radius: CornerRadius | undefined, options?: RoundedOptions) {
   return {
-    "data-squircle": "",
-    ...(px !== undefined && { "data-squircle-radius": String(px) }),
-    ...(options?.clip && { "data-squircle-clip": "" }),
+    ...(radius !== undefined && { "data-corner-radius": radius }),
+    ...(options?.clip && { "data-corner-clip": "" }),
   };
 }
 
-export function squircle(radius: CornerRadius, options?: SquircleOptions) {
-  return attributes(cornerRadius[radius], options);
+export function rounded(radius: CornerRadius, options?: RoundedOptions) {
+  return attributes(radius, options);
 }
 
-export function squirclePx(px: number, options?: SquircleOptions) {
-  return attributes(px, options);
+export function roundedPx(px: number, options?: RoundedOptions) {
+  return attributes(closestRadius(px), options);
 }
 
-export function squircleAuto(options?: SquircleOptions) {
+export function roundedAuto(options?: RoundedOptions) {
   return attributes(undefined, options);
 }
 
@@ -62,34 +69,21 @@ export function concentric(outer: number, inset: Spacing) {
 }
 
 /**
- * O canto da casa desenhado como caminho, para a forma existir fora do CSS: é a máscara que recorta a foto
- * no PDF do orçamento, onde não há `corner-shape` nem `border-radius` com curva ajustável.
- *
- * `corner-shape: squircle` é a superelipse de expoente 4, |x|⁴ + |y|⁴ = 1 dentro do quadrado do raio, e não
- * o quarto de círculo do `round`. O caminho aproxima cada quina por segmentos retos, o que basta porque a
- * máscara é desenhada num tamanho maior e reduzida depois: o erro de um segmento cabe dentro de um pixel.
+ * Retângulo arredondado em SVG para o PDF usar o mesmo raio circular do CSS.
  */
-export function squirclePath(width: number, height: number, radius: number, steps = 16) {
+export function roundedRectPath(width: number, height: number, radius: number) {
   const r = Math.min(radius, width / 2, height / 2);
   const n = (value: number) => Number(value.toFixed(2));
-  /* O outro eixo da superelipse: em `u` de 0 a 1, um eixo anda reto e este descreve a curva. */
-  const curve = (u: number) => r * (1 - u ** 4) ** 0.25;
-  const arc = (point: (u: number) => [number, number]) =>
-    Array.from({ length: steps + 1 }, (_, index) => index / steps)
-      .map((u) => point(u))
-      .map(([x, y]) => `L ${n(x)} ${n(y)}`)
-      .join(" ");
-
   return [
     `M ${n(r)} 0`,
-    `L ${n(width - r)} 0`,
-    arc((u) => [width - r + r * u, r - curve(u)]),
-    `L ${n(width)} ${n(height - r)}`,
-    arc((u) => [width - r + curve(u), height - r + r * u]),
-    `L ${n(r)} ${n(height)}`,
-    arc((u) => [r - r * u, height - r + curve(u)]),
-    `L 0 ${n(r)}`,
-    arc((u) => [r - curve(u), r - r * u]),
+    `H ${n(width - r)}`,
+    `A ${n(r)} ${n(r)} 0 0 1 ${n(width)} ${n(r)}`,
+    `V ${n(height - r)}`,
+    `A ${n(r)} ${n(r)} 0 0 1 ${n(width - r)} ${n(height)}`,
+    `H ${n(r)}`,
+    `A ${n(r)} ${n(r)} 0 0 1 0 ${n(height - r)}`,
+    `V ${n(r)}`,
+    `A ${n(r)} ${n(r)} 0 0 1 ${n(r)} 0`,
     "Z",
   ].join(" ");
 }

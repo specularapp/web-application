@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, ElementType } from "react";
-import { squircleAuto } from "@/lib/corners";
+import { roundedAuto } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./surface.module.css";
 
@@ -17,7 +17,7 @@ export function Surface({ as: Tag = "div", tone = "raised", pad, className, ...p
       className={cx(styles.surface, className)}
       data-tone={tone}
       data-pad={pad}
-      {...squircleAuto()}
+      {...roundedAuto()}
       {...props}
     />
   );

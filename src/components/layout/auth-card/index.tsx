@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { GradientBlinds } from "@/components/ui/gradient-blinds";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { Logo } from "../logo";
 import styles from "./auth-card.module.css";
 
@@ -20,7 +20,7 @@ type AuthCardProps = {
 export function AuthCard({ hero, children }: AuthCardProps) {
   return (
     <div className={styles.shell}>
-      <aside className={styles.banner} {...squircle("3xl")}>
+      <aside className={styles.banner} {...rounded("3xl")}>
         <GradientBlinds
           colors={hero.colors}
           angle={12}
@@ -48,7 +48,7 @@ export function AuthCard({ hero, children }: AuthCardProps) {
         <header className={styles.brand}>
           <Logo variant="logotipo" height={32} />
         </header>
-        <main className={styles.panel} {...squircle("xl")}>
+        <main className={styles.panel} {...rounded("xl")}>
           {children}
         </main>
       </div>

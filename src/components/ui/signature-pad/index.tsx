@@ -32,7 +32,6 @@ const Canvas = styled.canvas`
   background-color: var(--color-bg);
   border: 0.0625rem dashed var(--color-label-tertiary);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 
   &[data-disabled] {
     cursor: not-allowed;

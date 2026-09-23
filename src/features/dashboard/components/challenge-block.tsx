@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import type { WeeklyChallenge } from "@/features/gamification/summary";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import styles from "./challenge-block.module.css";
 
 export type ChallengeBlockProps = { challenge: WeeklyChallenge };
@@ -38,7 +38,7 @@ export function ChallengeBlock({ challenge }: ChallengeBlockProps) {
 
   return (
     <div className={styles.block}>
-      <div className={styles.streak} {...squircle("sm", { clip: true })}>
+      <div className={styles.streak} {...rounded("sm", { clip: true })}>
         <Image src="/bg/fire-streak.png" alt="" width={331} height={455} sizes="48px" className={styles.flame} />
         <Text as="p" variant="subheadline" weight="semibold" className={styles.streakCount}>
           {streakFormat.format(challenge.streakDays)} {challenge.streakDays === 1 ? "dia" : "dias"}
@@ -70,7 +70,7 @@ export function ChallengeBlock({ challenge }: ChallengeBlockProps) {
           aria-label="Tempo online hoje"
         />
 
-        <ol className={styles.week} aria-label="Dias da semana com a meta batida" {...squircle("sm", { clip: true })}>
+        <ol className={styles.week} aria-label="Dias da semana com a meta batida" {...rounded("sm", { clip: true })}>
           {challenge.days.map((day) => {
             const date = parseISO(day.date);
             const upcoming = isAfter(date, today) && !isSameDay(date, today);

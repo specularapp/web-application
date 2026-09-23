@@ -3,7 +3,7 @@
 import { ArrowCounterClockwiseIcon, ListBulletsIcon, PlusIcon, ReceiptIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
@@ -92,16 +92,29 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
   /* Abrir um orçamento é **navegar** (2026-09-16): o editor virou tela, com endereço próprio, e não mais
      uma janela sobre a lista. Antes isto empurrava a URL com `pushState` e mantinha a janela por cima, o
      que obrigava a ouvir o botão de voltar do navegador na mão. */
-  const openEditor = (next: Quote | "new") => {
-    const params = new URLSearchParams(window.location.search);
-    const search = params.toString();
-    const path = next === "new" ? "/orcamentos/novo" : `/orcamentos/${next.id}`;
-    router.push((search ? `${path}?${search}` : path) as Route);
-  };
+  const openEditor = useCallback(
+    (next: Quote | "new") => {
+      const params = new URLSearchParams(window.location.search);
+      const search = params.toString();
+      const path = next === "new" ? "/orcamentos/novo" : `/orcamentos/${next.id}`;
+      router.push((search ? `${path}?${search}` : path) as Route);
+    },
+    [router],
+  );
+
+  /* `go` lê `live` por uma ref, e não pela variável do fechamento: a busca com espera agenda uma chamada
+     num `setTimeout` que só dispara depois, e se `live` mudasse nesse intervalo (por exemplo, a pessoa
+     escolheu um filtro no menu enquanto a espera corria) a chamada tardia reconstruía a URL a partir do
+     `live` velho, apagando o filtro escolhido. Com a ref, `go` fica estável e sempre lê o estado mais
+     recente, o que também dispensa recalcular tudo que depende dela a cada tecla. */
+  const liveRef = useRef(live);
+  useEffect(() => {
+    liveRef.current = live;
+  }, [live]);
 
   const go = useCallback(
     (next: Partial<QuotesQuery>) => {
-      const merged = { ...live, ...next };
+      const merged = { ...liveRef.current, ...next };
       setLive(merged);
       const params = new URLSearchParams();
       if (merged.search) params.set(QUERY_PARAM, merged.search);
@@ -115,7 +128,7 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
       const base = "/orcamentos";
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [live, router],
+    [router],
   );
 
   const changeView = (next: QuotesView) => {
@@ -170,19 +183,30 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
   // Trocar de página leva de volta ao começo da lista: no desktop quem rola é a área da grade, e no celular a
   // coluna de conteúdo da concha, então o alvo é o primeiro dos dois que de fato tenha o que rolar.
   const scrollArea = useRef<HTMLDivElement>(null);
-  const changePage = (next: number) => {
-    go({ page: next });
-    const area = scrollArea.current;
-    const column = (area && area.scrollHeight > area.clientHeight ? area : null) ?? document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    column.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
-  };
+  const changePage = useCallback(
+    (next: number) => {
+      go({ page: next });
+      const area = scrollArea.current;
+      const column = (area && area.scrollHeight > area.clientHeight ? area : null) ?? document.querySelector<HTMLElement>(`[${SCROLL_CONTAINER}]`) ?? document.documentElement;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      column.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    },
+    [go],
+  );
 
   const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
   const from = (live.page - 1) * live.pageSize + 1;
   const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeQuotesFilters(live);
   const filtering = Boolean(live.search) || active.length > 0;
+  /* Uma página deixa de existir quando o último item dela some (exclusão, ou filtro que encolheu a base): a
+     URL continua pedindo, por exemplo, a página 3 de uma lista que agora só tem 2. Sem isto o servidor
+     devolvia zero itens com `total` correto e a tela ficava presa ali, sem paginação, dizendo que não havia
+     orçamento nenhum. */
+  useEffect(() => {
+    if (live.page > pages) go({ page: pages });
+  }, [live.page, pages, go]);
+  const pastEnd = page.total > 0 && page.items.length === 0;
   /* Limpar leva a busca junto dos filtros: no vazio a pessoa quer a lista de volta inteira, e não metade. */
   const clearAll = () => {
     setSearch("");
@@ -223,8 +247,27 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
       : []),
   ];
 
-  const pagination =
-    pages > 1 && !mobile ? <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de orçamentos" /> : undefined;
+  /* `range`, `pagination` e `cards` memorizados: sem isto, cada tecla no campo de busca recriava esses
+     valores com identidade nova a cada render, e mesmo `QuotesTable` e `QuoteCard` memorizados refariam o
+     trabalho por dentro, porque suas propriedades pareceriam diferentes a cada vez. */
+  const range = useMemo(() => ({ page: live.page, pageSize: live.pageSize, total: page.total }), [live.page, live.pageSize, page.total]);
+
+  const pagination = useMemo(
+    () =>
+      pages > 1 && !mobile ? (
+        <Pagination page={live.page} pageSize={live.pageSize} total={page.total} onPageChange={changePage} label="Páginas de orçamentos" />
+      ) : undefined,
+    [pages, mobile, live.page, live.pageSize, page.total, changePage],
+  );
+
+  /* `QuoteCard` mora em `quote-card.tsx`, fora deste lote: não dá para embrulhá-lo em `React.memo` por
+     dentro. Memorizar a lista pronta tem o mesmo efeito, porque o React reaproveita elementos que chegam
+     com a mesma referência: enquanto `page.items` e `openEditor` não mudarem, o corpo de cada cartão não
+     roda de novo. */
+  const cards = useMemo(
+    () => page.items.map((quote) => <QuoteCard key={quote.id} quote={quote} onOpen={() => openEditor(quote)} />),
+    [page.items, openEditor],
+  );
 
   return (
     <div className={styles.board}>
@@ -265,42 +308,48 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
       />
 
       {asTable ? (
-        <QuotesTable quotes={page.items} onOpen={openEditor} range={{ page: live.page, pageSize: live.pageSize, total: page.total }} footer={pagination} />
+        <QuotesTable quotes={page.items} onOpen={openEditor} range={range} footer={pagination} />
       ) : page.items.length === 0 ? (
         <EmptyState
           icon={ReceiptIcon}
-          title={filtering ? "Nenhum orçamento encontrado" : "Nenhum orçamento ainda"}
+          title={pastEnd ? "Essa página não existe mais" : filtering ? "Nenhum orçamento encontrado" : "Nenhum orçamento ainda"}
           description={
-            filtering
-              ? "Nada bateu com o que você procurou. Tente outro número, título ou cliente, ou limpe a busca."
-              : "Gere o primeiro orçamento e mande ao cliente por link, sem anexo e sem PDF perdido no e-mail."
+            pastEnd
+              ? "Algo saiu da lista e a página ficou para trás. Levando você para a última."
+              : filtering
+                ? "Nada bateu com o que você procurou. Tente outro número, título ou cliente, ou limpe a busca."
+                : "Gere o primeiro orçamento e mande ao cliente por link, sem anexo e sem PDF perdido no e-mail."
           }
         >
-          {filtering && (
+          {!pastEnd && filtering && (
             <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowCounterClockwiseIcon />} onClick={clearAll}>
               Limpar busca
             </Button>
           )}
-          <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
-            Novo orçamento
-          </Button>
+          {!pastEnd && (
+            <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => openEditor("new")}>
+              Novo orçamento
+            </Button>
+          )}
         </EmptyState>
       ) : (
         <div ref={scrollArea} className={styles.scrollArea}>
           <ul ref={gridRef} className={styles.grid}>
-            {page.items.map((quote) => (
-              <QuoteCard key={quote.id} quote={quote} onOpen={() => openEditor(quote)} />
-            ))}
+            {cards}
           </ul>
         </div>
       )}
 
       {/* O pé da grade, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
-          página, a barra. Na tabela ele mora no pé da própria tabela. */}
-      {!asTable && page.items.length > 0 && (
+          página, a barra. Na tabela ele mora no pé da própria tabela.
+
+          A condição olha `page.total`, e não `page.items.length`: uma página que ficou para trás do fim
+          (o efeito acima já está levando de volta) tem itens vazios com total maior que zero, e o pé
+          precisa continuar visível, com a barra, para a pessoa não ficar presa numa tela sem paginação. */}
+      {!asTable && page.total > 0 && (
         <div className={styles.foot}>
           <Text as="span" variant="footnote" tone="secondary">
-            Mostrando {numberFormat.format(from)} a {numberFormat.format(to)} de {numberFormat.format(page.total)}
+            {pastEnd ? "Ajustando a página" : `Mostrando ${numberFormat.format(from)} a ${numberFormat.format(to)} de ${numberFormat.format(page.total)}`}
           </Text>
           {pagination}
         </div>

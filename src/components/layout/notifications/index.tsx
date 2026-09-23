@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { fadeIn, hoverMotion, layerMotion } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { useTabList } from "@/hooks/use-tab-list";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
 import { usePresence } from "@/hooks/use-presence";
@@ -62,6 +63,9 @@ const tabs: { id: NotificationKind | "todas"; label: string }[] = [
   { id: "sistema", label: "Sistema" },
 ];
 
+/* A ordem em que a seta do teclado percorre as categorias. */
+const tabValues = tabs.map((entry) => entry.id);
+
 const kindIcon: Record<NotificationKind, typeof BellIcon> = {
   acao: WarningCircleIcon,
   revisao: ChecksIcon,
@@ -74,7 +78,7 @@ const grow = keyframes`
   }
 `;
 
-/* Canto declarado direto, sem `data-squircle`: a caixa guarda anel de foco de botão e link, e o
+/* Canto declarado direto, sem `data-rounded`: a caixa guarda anel de foco de botão e link, e o
    recorte do fallback cortaria os dois. Mesma escolha do Listbox e da troca de time. */
 const Popover = styled.div`
   --panel-line: 0.0375rem;
@@ -90,7 +94,6 @@ const Popover = styled.div`
   background-color: var(--color-bg-tertiary);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-3xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   transform-origin: top left;
 
@@ -249,7 +252,6 @@ const Glyph = styled.span`
   color: var(--color-label-secondary);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 
   & svg {
     width: 1.125rem;
@@ -317,7 +319,6 @@ const EmptyIcon = styled.span`
   color: var(--color-label-secondary);
   border: var(--panel-line, 0.0375rem) solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 
   & svg {
     width: 1.25rem;
@@ -374,6 +375,7 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<NotificationKind | "todas">("todas");
+  const kindTabs = useTabList(tabValues, tab, setTab);
   const [own, setOwn] = useState(items);
   const [muted, setMuted] = useState(() => readCookie(MUTE_COOKIE) === "1");
   const { present, state, onAnimationEnd } = usePresence(open && !sheet);
@@ -401,14 +403,14 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
     if (!open || sheet) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || !isTopLayer(layer)) return;
       setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
     };
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, sheet]);
+  }, [open, sheet, layer]);
 
   const markOne = (id: string) => update(list.map((item) => (item.id === id ? { ...item, read: true } : item)));
 
@@ -446,15 +448,9 @@ export function Notifications({ items, onChange, size = "sm", radius = "auto" }:
         </Close>
       </Header>
 
-      <Tabs role="tablist" aria-label="Categorias de notificação">
+      <Tabs aria-label="Categorias de notificação" {...kindTabs.listProps}>
         {tabs.map((entry) => (
-          <Tab
-            key={entry.id}
-            type="button"
-            role="tab"
-            aria-selected={entry.id === tab}
-            onClick={() => setTab(entry.id)}
-          >
+          <Tab key={entry.id} type="button" {...kindTabs.tabProps(entry.id)} onClick={() => setTab(entry.id)}>
             {entry.label}
           </Tab>
         ))}

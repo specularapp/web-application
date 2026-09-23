@@ -14,10 +14,12 @@ import {
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -25,6 +27,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useTabList } from "@/hooks/use-tab-list";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
@@ -55,11 +59,19 @@ import {
 import type { Client } from "../summary";
 import { saveClientsGridSize, saveClientsView, type ClientsView } from "../view-cookie";
 import { ClientCard } from "./client-card";
-import { ClientDrawer } from "./client-drawer";
-import { ClientFormDialog, type ClientEditor } from "./client-form-dialog";
+import type { ClientEditor } from "./client-form-dialog";
 import { ClientsTable } from "./clients-table";
 
 import styles from "./clients-board.module.css";
+
+/* As duas filas de contato, na ordem em que a seta do teclado as percorre. */
+const CONTACT_GROUPS = ["clientes", "fornecedores"] as const;
+
+/* A ficha e o formulário entram por importação dinâmica, e só são montados depois da primeira abertura
+   (varredura de peso de 2026-09-21): juntos são mais de setecentas linhas com máscara, seletor de data e
+   etiquetas, e a listagem abria carregando os dois sem ninguém ter clicado em nada. */
+const ClientDrawer = dynamic(() => import("./client-drawer").then((module) => module.ClientDrawer));
+const ClientFormDialog = dynamic(() => import("./client-form-dialog").then((module) => module.ClientFormDialog));
 
 export type ClientsBoardProps = {
   page: ClientsListPage;
@@ -76,6 +88,10 @@ const TYPING_PAUSE = 320;
 const RESIZE_PAUSE = 200;
 
 const numberFormat = new Intl.NumberFormat("pt-BR");
+
+/* O endereço de cada estado da janela. Fora do componente porque só depende do que recebe, e é o que deixa
+   `go` valer para qualquer render sem virar dependência dele. */
+const editorPath = (next: ClientEditor) => (next === null ? "/clientes" : next === "new" ? "/clientes/novo" : `/clientes/${next.id}`);
 
 /* Os dois jeitos de ver a mesma lista, no seletor da barra. */
 const viewOptions = [
@@ -102,6 +118,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
     setSeen(query);
     setLive(query);
   }
+  // `go` lê o filtro em vigor daqui, e não da closure do render em que foi chamado: a espera da digitação e
+  // a medida da grade gravam a URL depois, e partindo do filtro velho desfariam a escolha feita no meio
+  // (ligar "Só favoritos" durante a espera do campo de busca apagava o favorito da URL).
+  const liveRef = useRef(live);
   // Quem está marcado, para excluir de uma vez. A seleção é desta página: trocar filtro ou página a limpa,
   // senão a pessoa excluiria alguém que já não está vendo.
   const [selected, setSelected] = useState<string[]>([]);
@@ -116,8 +136,33 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   const [open, setOpen] = useState<ClientListItem | null>(null);
   // A ficha em edição na janela. Nasce do que a URL pediu (`/clientes/novo` ou `/clientes/<id>`), e daí em
   // diante troca só a URL, sem sair da tela: `pushState` conversa com o roteador sem refazer nada no
-  // servidor, e o botão de voltar do navegador fecha a janela pelo `popstate`.
+  // servidor, e o botão de voltar do navegador fecha, ou reabre quem estava aberto, pelo `popstate`.
   const [editor, setEditor] = useState<ClientEditor>(editing ?? null);
+  // A janela que a rota pede volta a valer sempre que a rota troca de endereço, no mesmo desenho da prancha
+  // de contratos: sem isto, uma resposta nova do servidor não reabria nada, porque a prancha não remonta
+  // quando só o parâmetro da rota muda, e o `editing` só alimentava o estado inicial.
+  //
+  // A comparação é por endereço, e não pela ficha: um `router.refresh()` depois de salvar traz outra ficha no
+  // mesmo endereço e não pode reabrir a janela que acabou de fechar. E quando a janela já mostra o que a
+  // rota pede, nada é trocado: gravar a URL com a janela aberta (filtro, busca, paginação) leva a rota para
+  // o endereço dela, e refazer o estado ali dentro jogaria fora o que a pessoa já digitou no formulário.
+  const routeKey = editing === "new" ? "novo" : (editing?.id ?? "");
+  const editorKey = editor === "new" ? "novo" : (editor?.id ?? "");
+  const [seenRoute, setSeenRoute] = useState(routeKey);
+  if (seenRoute !== routeKey) {
+    setSeenRoute(routeKey);
+    if (routeKey !== editorKey) setEditor(editing ?? null);
+  }
+  /* Pelo mesmo motivo do filtro: uma gravação atrasada da URL precisa do endereço da janela que está aberta
+     agora, senão levaria a barra de endereço de volta para a lista com a janela na tela. */
+  const editorRef = useRef(editor);
+  useEffect(() => {
+    liveRef.current = live;
+    editorRef.current = editor;
+  }, [live, editor]);
+  /* As duas janelas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const drawerReady = useOpenedOnce(open !== null);
+  const editorReady = useOpenedOnce(editor !== null);
   // O jeito de ver vive em cookie, então o servidor já manda a página certa; o estado aqui é só para a
   // troca valer no clique. A tabela é coisa de desktop: no celular a grade vale sempre.
   const [view, setView] = useState<ClientsView>(saved);
@@ -127,17 +172,42 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   const gridSize = useRef<number>(GRID_PER_PAGE_DEFAULT);
   const typing = useRef<number | undefined>(undefined);
 
+  // O ouvinte é refeito a cada página de itens, porque é entre eles que o endereço do voltar é procurado,
+  // no mesmo desenho da prancha de projetos e de contratos: quem está na tela reabre na hora, e um id que
+  // não está nesta página vai pelo roteador, que é quem sabe buscar a ficha. Sem isso, o voltar deixava a
+  // barra de endereço numa ficha sem nenhuma janela aberta.
   useEffect(() => {
     const onPopState = () => {
-      const [, , segment] = window.location.pathname.split("/");
-      if (!segment) setEditor(null);
-      else if (segment === "novo") setEditor("new");
+      // O voltar do navegador também sai da listagem, e aí o endereço restaurado é de outra tela: sem esta
+      // conferência, qualquer caminho de dois segmentos (/cobrancas/<id>, /projetos/<id>) entrava aqui como
+      // se o segundo pedaço fosse um contato, e a prancha, que ainda está no ar até a troca comitar, mandava
+      // o roteador de novo para o endereço da outra tela.
+      const [, area, segment] = window.location.pathname.split("/");
+      if (area !== "clientes") return;
+      if (segment === "novo") {
+        setOpen(null);
+        setEditor("new");
+        return;
+      }
+      /* Quem acabou de ser excluído aqui só fecha: mandar ao roteador cairia na página de não encontrado. */
+      const gone = Boolean(segment && hidden.includes(segment));
+      const item = segment && !gone ? page.items.find((client) => client.id === segment) : undefined;
+      /* A ficha que a rota trouxe conta tanto quanto as desta página: quem abriu por link ou recarregou está
+         numa rota /clientes/<id> cujo contato costuma estar fora da página de itens, e sem isto o voltar
+         pedia ao roteador o endereço que o navegador já tinha restaurado, o que não reabre nada. */
+      const fromRoute = editing && editing !== "new" && editing.id === segment ? editing : undefined;
+      const target = item ?? fromRoute;
+      /* O endereço da janela nasceu com a gaveta de ficha fechada, e voltar para ele devolve esse estado. */
+      if (target) setOpen(null);
+      setEditor(target ?? null);
+      if (segment && !gone && !target) {
+        /* Sem rolagem, como em `go`: a lista restaurada fica onde estava. */
+        startTransition(() => router.replace(`${window.location.pathname}${window.location.search}` as Route, { scroll: false }));
+      }
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  const editorPath = (next: ClientEditor) => (next === null ? "/clientes" : next === "new" ? "/clientes/novo" : `/clientes/${next.id}`);
+  }, [page.items, hidden, editing, router]);
 
   // Editar quem já está na tela abre no lugar, com a ficha completa chegando dentro da gaveta: sem ida
   // ao servidor pela página, o que era o que deixava o clique sem resposta.
@@ -155,7 +225,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
 
   const go = useCallback(
     (next: Partial<ClientsQuery>) => {
-      const merged = { ...live, ...next };
+      const merged = { ...liveRef.current, ...next };
       setLive(merged);
       setSelected([]);
       const params = new URLSearchParams();
@@ -170,10 +240,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       if (merged.pageSize !== CLIENTS_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
 
       const search = params.toString();
-      const base = editorPath(editor);
+      const base = editorPath(editorRef.current);
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [live, editor, router],
+    [router],
   );
 
   const changeView = (next: ClientsView) => {
@@ -257,6 +327,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   const suppliers = live.group === "fornecedores";
   const singular = suppliers ? "fornecedor" : "cliente";
   const plural = suppliers ? "fornecedores" : "clientes";
+  const groupTabs = useTabList(CONTACT_GROUPS, suppliers ? "fornecedores" : "clientes", (group) => go({ group, page: 1 }));
 
   // Excluir de uma vez: a action valida no servidor e devolve a contagem; a tela avisa, limpa a marcação
   // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
@@ -280,6 +351,18 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       title: result.deleted === 1 ? "Cliente excluído" : `${result.deleted} clientes excluídos`,
       description: "A base já está sem eles.",
       tone: "success",
+      feedback: {
+        visual: targets.length === 1 ? (
+          <Avatar name={targets[0].name} src={targets[0].avatarUrl ?? undefined} size="lg" shape="rounded" />
+        ) : (
+          <AvatarGroup>
+            {targets.slice(0, 3).map((client) => (
+              <Avatar key={client.id} name={client.name} src={client.avatarUrl ?? undefined} size="md" shape="rounded" />
+            ))}
+          </AvatarGroup>
+        ),
+        confetti: false,
+      },
     });
   };
 
@@ -413,11 +496,11 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         }
       />
 
-      <div className={styles.groups} role="tablist" aria-label="Tipo de contato">
-        <button type="button" role="tab" aria-selected={!suppliers} className={styles.group} onClick={() => go({ group: "clientes", page: 1 })}>
+      <div className={styles.groups} aria-label="Tipo de contato" {...groupTabs.listProps}>
+        <button type="button" className={styles.group} {...groupTabs.tabProps("clientes")} onClick={() => go({ group: "clientes", page: 1 })}>
           Clientes
         </button>
-        <button type="button" role="tab" aria-selected={suppliers} className={styles.group} onClick={() => go({ group: "fornecedores", page: 1 })}>
+        <button type="button" className={styles.group} {...groupTabs.tabProps("fornecedores")} onClick={() => go({ group: "fornecedores", page: 1 })}>
           Fornecedores
         </button>
       </div>
@@ -482,7 +565,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         </div>
       )}
 
-      <ClientDrawer client={open} onClose={() => setOpen(null)} onEdit={() => open && editClient(open)} />
+      {drawerReady && <ClientDrawer client={open} onClose={() => setOpen(null)} onEdit={() => open && editClient(open)} />}
       <ConfirmDialog
         open={confirming}
         pending={deleting}
@@ -492,15 +575,17 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         onClose={() => setConfirming(false)}
         onConfirm={removeSelected}
       />
-      <ClientFormDialog
-        editor={editor}
-        defaultKind={suppliers ? "supplier" : "customer"}
-        onClose={() => openEditor(null)}
-        onSaved={() => {
-          openEditor(null);
-          startTransition(() => router.refresh());
-        }}
-      />
+      {editorReady && (
+        <ClientFormDialog
+          editor={editor}
+          defaultKind={suppliers ? "supplier" : "customer"}
+          onClose={() => openEditor(null)}
+          onSaved={() => {
+            openEditor(null);
+            startTransition(() => router.refresh());
+          }}
+        />
+      )}
     </div>
   );
 }

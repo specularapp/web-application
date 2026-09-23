@@ -17,7 +17,6 @@
   background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
 }
 
 @media (min-width: 48rem) {
@@ -116,7 +115,6 @@
   background-color: color-mix(in oklab, var(--link-hue) 10%, transparent);
   border: 0.0375rem solid color-mix(in oklab, var(--link-hue) 28%, transparent);
   border-radius: var(--card-inner, var(--radius-md));
-  corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 

@@ -3,7 +3,11 @@
 import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
 import type { Icon } from "@phosphor-icons/react";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "../button";
 import { Dialog } from "../dialog";
 import { popIn } from "../styles";
@@ -25,6 +29,8 @@ export type CelebrationProps = {
    */
   figure?: string;
   icon?: Icon;
+  /** Uma identidade concreta do que acabou de mudar, como o rosto do cliente ou a imagem do item. */
+  visual?: ReactNode;
   /** O matiz da festa: o verde de quem recebeu, o azul de quem enviou. Padrão, o acento da casa. */
   hue?: string;
   /** O caminho que a pessoa costuma querer em seguida; sem ele fica só o fechar. */
@@ -78,6 +84,10 @@ const Sheet = styled.div`
   gap: var(--space-5);
   padding: var(--space-6) var(--space-5) var(--space-5);
   text-align: center;
+
+  @media ${MOBILE_QUERY} {
+    padding-block-end: var(--floating-bar-inset);
+  }
 `;
 
 /* O palco: só o que é grande no meio, e os papéis saindo do centro por cima dele, uma vez, quando a janela
@@ -116,12 +126,26 @@ const Glyph = styled.span`
     color-mix(in oklab, var(--party-hue) 20%, transparent)
   );
   border-radius: var(--radius-2xl);
-  corner-shape: squircle;
   animation: ${popIn} var(--duration-slow) var(--ease-spring) both;
 
   & svg {
     width: 2.25rem;
     height: 2.25rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const Visual = styled.span`
+  display: inline-grid;
+  place-items: center;
+  animation: ${popIn} var(--duration-slow) var(--ease-spring) both;
+
+  & > [role="img"] {
+    width: 5rem;
+    height: 5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -159,17 +183,49 @@ const Copy = styled.div`
 const Actions = styled.div`
   display: grid;
   gap: var(--space-2);
+
+  /* No celular o caminho de seguir e o fechar moram na barra flutuante, como em toda janela da casa. */
+  @media ${MOBILE_QUERY} {
+    display: none;
+  }
 `;
+
+/**
+ * As ações da comemoração na barra do celular (2026-09-22, a pedido): o caminho de seguir, quando há, é a
+ * principal, e o X fecha. Sem caminho, a principal é o próprio continuar. Mora dentro da janela para
+ * registrar um degrau acima da tela de baixo.
+ */
+function CelebrationBar({ action, closeLabel, onClose }: { action?: CelebrationAction; closeLabel: string; onClose: () => void }) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const router = useRouter();
+  useFloatingActionsRegistration(
+    mobile
+      ? {
+          primary: action
+            ? {
+                label: action.label,
+                onClick: () => {
+                  action.onClick?.();
+                  onClose();
+                  if (action.href) router.push(action.href as Route);
+                },
+              }
+            : { label: closeLabel, onClick: onClose },
+          cancel: { label: "Fechar", onClick: onClose },
+        }
+      : null,
+  );
+  return null;
+}
 
 /**
  * A comemoração da casa: a janela de vidro com o feito em tamanho grande, o confete nas cores do sistema
  * saindo do centro uma vez, o que aconteceu, o que isso significa e o caminho de seguir.
  *
  * Nasceu como o fim do arrasto de pontos do painel (2026-09-07) e virou peça em 2026-09-16, a pedido, para
- * **todo feito da aplicação** ter o mesmo retorno. Ela não substitui o `Toast`: o toast é o recibo de uma
- * ação comum, que aparece no canto e some sozinho; a comemoração para a tela, e por isso é só para o que a
- * pessoa vai querer contar para alguém. Quem decide qual dos dois usar é `useCelebration`, e a régua está
- * escrita lá.
+ * **todo feito da aplicação** ter o mesmo retorno. A camada global de feedback usa esta peça nas ações bem
+ * sucedidas e mantém o `Toast` para alertas e erros. O palco pode mostrar um ícone, um valor ou a identidade
+ * concreta do registro afetado.
  */
 export function Celebration({
   open,
@@ -178,6 +234,7 @@ export function Celebration({
   description,
   figure,
   icon: Mark,
+  visual,
   hue = "var(--color-accent)",
   action,
   closeLabel = "Continuar",
@@ -186,6 +243,7 @@ export function Celebration({
 }: CelebrationProps) {
   return (
     <Dialog open={open} onClose={onClose} label={title} size="sm" surface="glass">
+      <CelebrationBar action={action} closeLabel={closeLabel} onClose={onClose} />
       <Sheet style={{ "--party-hue": hue } as CSSProperties}>
         <Stage aria-hidden="true">
           {confetti &&
@@ -203,7 +261,7 @@ export function Celebration({
                 }
               />
             ))}
-          {figure ? <Figure>{figure}</Figure> : Mark ? <Glyph><Mark weight="bold" /></Glyph> : null}
+          {visual ? <Visual>{visual}</Visual> : figure ? <Figure>{figure}</Figure> : Mark ? <Glyph><Mark weight="bold" /></Glyph> : null}
         </Stage>
 
         <Copy>

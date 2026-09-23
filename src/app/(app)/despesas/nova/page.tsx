@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { getAiUsageData } from "@/features/ai/queries";
 import { ChargesScreen } from "@/features/finance/components/charges-screen";
 import { CHARGES_GRID_COOKIE, CHARGES_VIEW_COOKIE, defaultChargesPageSize, listCharges, parseChargesGridSize, parseChargesQuery, parseChargesView } from "@/features/finance/list";
@@ -15,7 +16,8 @@ export default async function NewExpensePage({ searchParams }: PageProps<"/despe
   const query = parseChargesQuery({ busca: first(params.busca), situacao: first(params.situacao), forma: first(params.forma), pagina: first(params.pagina), porPagina: first(params.porPagina) }, defaultChargesPageSize(view, gridSize));
   query.direction = "outgoing";
   const [data, ai] = await Promise.all([loadChargesScreenData("/despesas"), getAiUsageData()]);
-  const prefill = { clientId: first(params.fornecedor) || undefined };
+  const fornecedor = z.uuid().safeParse(first(params.fornecedor));
+  const prefill = { clientId: fornecedor.success ? fornecedor.data : undefined };
 
   return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} direction="outgoing" creating prefill={prefill} />;
 }

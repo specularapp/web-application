@@ -116,7 +116,15 @@ export type TaskMention = {
    * conversa acha o resumo para o cartão e para a ficha que abre ao apontar.
    */
   recordKey?: string;
+  /** O rosto da pessoa marcada, guardado com a marcação para a conversa desenhar quem é. */
+  avatarUrl?: string | null;
 };
+
+/**
+ * O texto de um comentário que é só áudio ou só arquivo. A coluna exige ao menos um caractere, e o espaço de
+ * largura zero cumpre isso sem aparecer: a conversa o reconhece e desenha só o que veio junto.
+ */
+export const ATTACHMENT_ONLY = "\u200b";
 
 export type Task = {
   id: string;
@@ -157,6 +165,12 @@ export type Task = {
   attachments: TaskAttachment[];
   /** Da mais recente para a mais antiga. */
   activity: TaskEvent[];
+  /**
+   * Veio a ficha inteira, e não o recorte do cartão (2026-09-22). O quadro carrega só o que o cartão desenha:
+   * sem vínculos, sem descrição e com conversa e anexos só em contagem. A ficha abre na hora com esse recorte
+   * e só grava depois de receber a tarefa inteira, senão o salvar apagaria o que o recorte não trouxe.
+   */
+  loaded?: boolean;
 };
 
 /** O que o bloco de tarefas do painel mostra: as mais próximas do vencimento, da mais urgente para a mais distante. */

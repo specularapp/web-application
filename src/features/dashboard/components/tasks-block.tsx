@@ -11,7 +11,7 @@ import { Text } from "@/components/ui/text";
 import { TaskOpener } from "@/features/tasks/components/task-opener";
 import { dueOf, statusLabels, statusOf, statusTones } from "@/features/tasks/labels";
 import type { Task, TasksSummary } from "@/features/tasks/summary";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import list from "./block-list.module.css";
 import styles from "./tasks-block.module.css";
@@ -24,7 +24,7 @@ const SHOWN_PEOPLE = 3;
 const names = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" });
 
 /* Cartão de tarefa no raio `md` da casa, recortado no fallback porque não tem borda. */
-const cardCorner = squircle("md", { clip: true });
+const cardCorner = rounded("md", { clip: true });
 
 // O cartão é o gatilho da janela de detalhes, com o mesmo `li` e a mesma classe de sempre; a seta da
 // ponta também abre. A janela é a ficha completa da tarefa.

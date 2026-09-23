@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { promises as dns } from "node:dns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { siteConfig } from "@/lib/metadata";
@@ -82,7 +83,7 @@ export async function getAccount(client: SettingsClient, userId: string): Promis
 
 export async function saveAccount(client: SettingsClient, userId: string, input: SaveAccountInput): Promise<ServiceResult<Account>> {
   const { error } = await client.from("profiles").update({ full_name: input.fullName }).eq("id", userId);
-  if (error) return { ok: false, error: error.message || SAVE_FAILED };
+  if (error) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   /* O nome também mora nos metadados da sessão, que é de onde a concha o lê sem ir ao banco. */
   await client.auth.updateUser({ data: { full_name: input.fullName } });
@@ -200,7 +201,7 @@ export async function saveResume(client: SettingsClient, userId: string, input: 
 
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Esse endereço já é de outra pessoa. Escolha outro." };
-    return { ok: false, error: error.message || SAVE_FAILED };
+    return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   }
 
   const resume = await getResume(client, userId);
@@ -239,7 +240,7 @@ export async function setCustomDomain(client: SettingsClient, organizationId: st
 
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Esse domínio já está em uso por outra equipe." };
-    return { ok: false, error: error.message || SAVE_FAILED };
+    return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   }
 
   const current = await getCustomDomain(client, organizationId);
@@ -271,7 +272,7 @@ export async function verifyCustomDomain(client: SettingsClient, organizationId:
     .update({ custom_domain_verified_at: new Date().toISOString() })
     .eq("id", organizationId);
 
-  if (error) return { ok: false, error: error.message || SAVE_FAILED };
+  if (error) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   const verified = await getCustomDomain(client, organizationId);
   return verified ? { ok: true, data: verified } : { ok: false, error: SAVE_FAILED };

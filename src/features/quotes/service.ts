@@ -1,8 +1,10 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getIssuer } from "@/features/organizations/service";
 import { shareCredentials, shareToken, shareTokenHash } from "@/lib/security/share-token";
+import { houseDay } from "@/lib/utils/day";
 import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { QuotesListPage, QuotesQuery } from "./list-options";
@@ -137,7 +139,7 @@ async function peopleFor(client: QuotesClient, ids: (string | null)[]) {
  */
 function readStatus(row: Row): QuoteStatus {
   if (row.status === "sent" || row.status === "viewed") {
-    if (row.valid_until && row.valid_until < format(new Date(), "yyyy-MM-dd")) return "expired";
+    if (row.valid_until && row.valid_until < houseDay()) return "expired";
   }
   return row.status;
 }
@@ -148,6 +150,7 @@ export async function listQuotes(
   query: QuotesQuery,
 ): Promise<QuotesListPage> {
   let builder = client.from("quotes").select(columns, { count: "exact" }).eq("organization_id", organizationId);
+  const today = houseDay();
 
   if (query.search) {
     const term = query.search.replace(/[%,()]/g, " ").trim();
@@ -155,7 +158,16 @@ export async function listQuotes(
       [`title.ilike.%${term}%`, `reference.ilike.%${term}%`, `client_name.ilike.%${term}%`, `client_company.ilike.%${term}%`].join(","),
     );
   }
-  if (query.status !== "todos") builder = builder.eq("status", query.status);
+  /* "Vencido" não existe na coluna: é "sent"/"viewed" com validade passada, a mesma régua de `readStatus` e
+     das contagens abaixo. Filtrar por "sent" ou "viewed" precisa excluir quem já virou vencido, senão o
+     filtro e a etiqueta desenhada na linha se contradizem. */
+  if (query.status === "expired") {
+    builder = builder.in("status", ["sent", "viewed"]).not("valid_until", "is", null).lt("valid_until", today);
+  } else if (query.status === "sent" || query.status === "viewed") {
+    builder = builder.eq("status", query.status).or(`valid_until.is.null,valid_until.gte.${today}`);
+  } else if (query.status !== "todos") {
+    builder = builder.eq("status", query.status);
+  }
   if (query.period !== "sempre") {
     const since = new Date();
     since.setDate(since.getDate() - Number(query.period));
@@ -175,7 +187,6 @@ export async function listQuotes(
   /* As contagens saem da base inteira, e não da página, para o menu de filtros dizer quanto há em cada
      situação em vez de quanto há na tela. O vencido é lido aqui pela mesma régua da listagem. */
   const counts: Record<QuoteStatus, number> = { draft: 0, sent: 0, viewed: 0, approved: 0, declined: 0, expired: 0 };
-  const today = format(new Date(), "yyyy-MM-dd");
   for (const row of all.data ?? []) {
     const expired = (row.status === "sent" || row.status === "viewed") && row.valid_until !== null && row.valid_until < today;
     counts[expired ? "expired" : (row.status as QuoteStatus)] += 1;
@@ -332,7 +343,7 @@ export async function saveQuote(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || "Esse orçamento não existe mais." };
+    if (error || !data) return { ok: false, error: dbMessage(error, "Esse orçamento não existe mais.") };
   } else {
     /* O id nasce aqui, e não no banco, porque o resumo do token é derivado dele: gerar a linha primeiro
        obrigaria a uma segunda escrita só para gravar o resumo. */
@@ -347,7 +358,7 @@ export async function saveQuote(
       share_token_hash: hash,
     });
 
-    if (error) return { ok: false, error: error.message || SAVE_FAILED };
+    if (error) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   }
 
   const { error: deleteError } = await client.from("quote_lines").delete().eq("quote_id", id).eq("organization_id", organizationId);
@@ -415,7 +426,7 @@ export async function deleteQuotes(
     .in("id", ids)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   /* O histórico sobrevive ao documento: apagar um orçamento não pode apagar quem o apagou. */
   for (const row of data ?? []) {
@@ -448,7 +459,7 @@ export async function rotateQuoteToken(
     .eq("organization_id", organizationId)
     .eq("id", id);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: { token } };
 }
 
@@ -488,7 +499,7 @@ export async function respondToQuote(
   approved: boolean,
 ): Promise<ServiceResult<{ status: QuoteStatus; organizationId: string }>> {
   const { data, error } = await admin.rpc("respond_quote", { p_token_hash: shareTokenHash(token), p_approved: approved });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   if (!data) return { ok: false, error: "Este orçamento não está mais disponível para resposta." };
 
   /* O time sai do próprio documento: quem responde pelo link não tem sessão, e a action precisa dele para
@@ -528,7 +539,7 @@ export async function markQuoteStatus(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, {
     recordType: "quote",
@@ -580,7 +591,7 @@ export async function duplicateQuote(
     issued_at: new Date().toISOString().slice(0, 10),
   });
 
-  if (error) return { ok: false, error: error.message || SAVE_FAILED };
+  if (error) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   if ((lines ?? []).length > 0) {
     const { error: linesError } = await client.from("quote_lines").insert(

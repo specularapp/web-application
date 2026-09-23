@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Logo } from "@/components/layout/logo";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { formatMoney } from "@/lib/utils/format";
 import styles from "./cash-card.module.css";
@@ -23,7 +23,7 @@ export type CashCardProps = {
 // na proporção de um cartão de verdade. É a visão do financeiro, e não um cartão real.
 export function CashCard({ balance, action, caption, className }: CashCardProps) {
   return (
-    <div className={cx(styles.card, className)} {...squircle("lg")}>
+    <div className={cx(styles.card, className)} {...rounded("lg")}>
       <Logo variant="icon" height={24} className={styles.brand} />
       <Badge tone="success" size="sm" icon={<CheckCircleIcon />} className={styles.status}>
         Ativo

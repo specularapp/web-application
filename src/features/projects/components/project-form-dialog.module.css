@@ -10,16 +10,6 @@
   min-height: 0;
 }
 
-.head {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
-  border-block-end: var(--panel-line) solid var(--color-border);
-}
-
 /* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
    ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
 .body {
@@ -164,7 +154,6 @@
   cursor: pointer;
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .toggleCopy {
@@ -198,7 +187,6 @@
   padding-inline: 0.25rem var(--space-1);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 /* A bolinha da cor da etiqueta, a mesma da ficha da tarefa: encostada no nome, com o recuo da ponta. */
@@ -251,23 +239,6 @@
 
 .alert {
   padding-inline: var(--space-5);
-}
-
-/* Cancelar e salvar fixos no rodapé, à direita. No celular o rodapé some: os dois moram na barra
-   flutuante do menu. */
-.foot {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-5);
-  border-block-start: var(--panel-line) solid var(--color-border);
-}
-
-@media (max-width: 47.9375rem) {
-  .foot {
-    display: none;
-  }
 }
 
 /* Dentro da tela do editor, sem cabeçalho nem rodapé próprios: o corpo é o formulário inteiro, e quem rola é

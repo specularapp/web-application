@@ -116,6 +116,28 @@ Feito:
   `glyph`, cinza e bandeja por padrão, porque pasta é caminho e cor forte competiria com os projetos dentro
   dela. A janela é a mesma da cor do quadro (`AppearanceDialog`), com nome, cor e ícone, e a pasta com glifo
   próprio o mantém aberta ou fechada, senão a mesma pasta pareceria duas.
+- **Editar a pasta ficou preso à própria árvore** (a pedido): o chevron duplo da linha abre o novo
+  `AppearancePopover`, compacto e ancorado como o seletor de equipe, em vez de montar uma janela central.
+  Em Tarefas ele reúne nome, ícone e cor; no Funil de vendas, nome e cor. Criar dentro e excluir seguem no
+  menu de três pontos da cabeça da ficha, sem perder as ações que o chevron antigo oferecia. A duplicidade
+  que montava `NameDialog` e `AppearanceDialog` ao mesmo tempo para uma pasta de tarefas saiu. O salvamento
+  atualiza a árvore e fecha devolvendo o foco ao chevron.
+- **Os galhos de pastas e subpastas foram redesenhados** nos dois domínios sobre a nova referência: cada
+  filho recebe um SVG contínuo, com descida, curva suave e um círculo vazado na ponta. A espessura fica
+  estável em qualquer densidade e não há bordas sobrepostas para escurecer a emenda ou picotar o fio.
+- **O feedback de ações virou uma camada global**: todo `toast` de sucesso agora abre a janela no padrão dos
+  25 pontos diários, com ícone e matiz derivados do que aconteceu e confete só em criação, envio, aprovação,
+  recebimento e conclusão. Resultados de remover, cancelar, reabrir e encerrar entram mesmo quando eram
+  neutros; avisos e erros continuam no canto. A criação de contrato, que só navegava, também passou a dar
+  retorno. A janela aceita uma identidade visual real, além de número e glifo.
+- **Cliente cadastrado aparece no próprio retorno**: criar ou editar cliente, criar cobrança ou despesa,
+  salvar orçamento, criar projeto ligado a cliente e excluir cadastro mostram a foto, a logo ou o avatar
+  gerado da pessoa. Cobranças usam a mesma identidade ao copiar, enviar, receber, pagar e encerrar
+  recorrência. Os seletores de cliente, responsável e envolvidos foram revisados; o formulário antigo de
+  oportunidade, ainda disponível no domínio, recebeu as mídias que faltavam.
+- **“Todas as tarefas” e “Todas as oportunidades” saíram da árvore**. Entrar em Tarefas ou Funil de vendas
+  continua abrindo a visão geral pela rota raiz, mas pastas, projetos e funis agora começam logo abaixo do
+  cabeçalho e ganham a altura que as duas linhas redundantes ocupavam.
 - **O bloco de código passou a usar a lib inteira** (a pedido: "use uma lib para essa parte do código para
   ficar bem completo"): o `common` do lowlight, com as trinta e sete linguagens do dia a dia do
   highlight.js, no lugar das dez que estavam registradas à mão, mais **linguagem adivinhada** quando o bloco
@@ -1212,3 +1234,128 @@ Typecheck, lint e build aprovados.
 
 Pendencia: confirmar no ambiente hospedado qual erro o registro do servidor mostra agora. Se for o segredo,
 basta gera-lo e publicar de novo.
+
+### 2026-09-22 | Acompanhamento de projeto e formulários públicos
+
+- Página pública de acompanhamento com marca do projeto, progresso, datas e linha de etapas agregada, sem
+  expor tarefas, comentários, valores ou equipe. O menu do projeto passou a gerar e copiar o link com 180
+  dias de validade.
+- Novo domínio de formulários com listagem, contagem de respostas, editor em tela inteira, perguntas por
+  arraste, sete tipos de resposta, vínculo de campos com o cadastro do cliente, destinatário opcional,
+  validade, mensagem de confirmação, consentimento e prévia responsiva.
+- Página pública do formulário com identidade do projeto, validação por pergunta, consentimento obrigatório
+  e confirmação de envio. Nome, e-mail, telefone e demais campos mapeados criam ou atualizam o cliente, e a
+  resposta guarda o texto aceito e o horário da concordância.
+- A geração e a leitura do acompanhamento foram separadas da data editorial do projeto: a telemetria do link
+  não altera mais o campo `updated_at` mostrado ao cliente.
+- Revisão visual solicitada: acompanhamento recomposto como rastreio minimalista com resumo, caminho
+  horizontal, histórico e cartões do sistema. O formulário público passou a funcionar por páginas, com uma
+  ou mais perguntas em cada página, progresso, teclado, máscaras, componentes compartilhados e validação por
+  etapa. Criada a página privada de respostas com o conteúdo e o consentimento de cada envio. Os cards da
+  listagem agora usam `Card`, e o conector SVG da árvore lateral foi removido para restaurar o tracejado
+  anterior. Migração `20260922010400` aplicada e prova paginada temporária removida ao final.
+- RLS em todas as tabelas novas; páginas públicas por RPC de `service_role`, token derivado com apenas o hash
+  no banco, expiração, `noindex`, limite por IP e rotas públicas incluídas no proxy e no `robots.txt`.
+- APIs para web e aplicativo em `/api/v1/formularios`, `/api/v1/formularios/publico/[token]` e nos endpoints
+  de acompanhamento de projeto. Migrações aplicadas no banco hospedado e tipos gerados novamente.
+- Fluxo real conferido no navegador: publicação, abertura deslogada, envio, criação e vínculo do cliente,
+  normalização de telefone, consentimento e contagem da resposta. Os dados sintéticos do teste foram apagados
+  depois da conferência. Relatório em `relatorio-paginas-publicas-projeto.md`.
+
+### 2026-09-22 | Raios curtos, modais e rolagem
+
+- O sistema de superelipse foi removido por completo. Componentes usam apenas `border-radius`, sem
+  `corner-shape`, `clip-path`, provider, observadores ou código de fallback.
+- A escala global de raios passou a 4, 6, 8, 10, 12, 14 e 16 px. Controles e botões de ícone usam 6, 8 e
+  10 px, deixando cartões, campos, modais e menus mais retos e minimalistas.
+- Modais independentes usam o fundo principal no tema escuro. Tarefa, oportunidade e projeto usam a variante
+  `workspace` para preservar a superfície elevada das fichas extensas.
+- Dropdowns e seletores roláveis compartilham um degradê vertical nas extremidades. Conferido no navegador
+  pelo `mask-image` do menu de filtros, junto do fundo preto do modal.
+- Listagem, editor e respostas de formulários foram compactados no celular, e a página pública validou os
+  obrigatórios sem enviar dados. O acompanhamento público foi conferido com um projeto real.
+
+### 2026-09-22 | Feedbacks, aprovações e cronômetro
+
+- Criada a central de feedbacks e a avaliação pública curta com nota, recomendação e comentário. Concluir um
+  projeto passa a garantir o pedido de feedback e disponibiliza o link para o cliente sem duplicar registros.
+- Criada a central de aprovações com entregas por URL ou imagens, versões numeradas, página pública e decisões
+  de aprovar, rejeitar ou solicitar alterações com justificativa vinculada à versão.
+- Adicionado o cronômetro persistente em projetos e tarefas, com contador fixo à direita, detalhes no hover e
+  proteção de um único apontamento ativo por usuário.
+- Novas tabelas com RLS, tokens públicos derivados, expiração, RPCs fechadas, limites por IP, Storage validado
+  e APIs de domínio. Migrações aplicadas e tipos do banco regenerados.
+- Fluxos reais conferidos no navegador e no banco: avaliação enviada, versão publicada, alteração solicitada
+  e refletida no histórico, cronômetro iniciado e encerrado. Todos os registros sintéticos foram removidos.
+- Relatório completo em `relatorio-feedbacks-aprovacoes-tempo.md`.
+
+### 2026-09-22 | Varredura de defeitos em clientes, financeiro, equipe e janelas
+
+Pedido: rastrear e corrigir os erros das telas de clientes e do financeiro, deixar as janelas pequenas
+leves e consistentes, e permitir convidar gente e ver os membros ao editar uma equipe.
+
+**Como o rastreio foi feito.** Quarenta e um pares de área e lente leram o código, cada par com uma lente
+só (correção, dados, layout, acessibilidade, regras da casa, peso, acabamento de janela). Cada achado
+passou por um filtro barato que confere se a citação existe e depois por um cético encarregado de refutá-lo,
+com a instrução de refutar na dúvida. De 141 achados, 53 caíram e 86 se sustentaram. O modelo saiu da
+lente, e não do agente: julgamento de execução e de dados no Opus, conferência contra lista escrita no
+Sonnet, e a checagem de citação no Haiku.
+
+**Quatro problemas eram o mesmo problema em muitos arquivos**, e viraram peça única. O que cada uma resolve
+está em `structure.md`, na seção da varredura:
+
+- `useOpenedOnce` mais `dynamic()`: janela pesada deixou de descer no primeiro paint e continua animando a
+  saída. A ficha da tarefa tem mais de mil e seiscentas linhas e descia em toda abertura de `/tarefas`; a
+  busca da moldura descia em toda página da aplicação.
+- `useTabList`: o teclado de uma fila de escolhas, uma vez. Oito lugares prometiam navegação por seta pelo
+  papel ARIA e não entregavam nenhuma.
+- `dbMessage`: oitenta e três lugares devolviam o texto cru do Postgres para a tela, com nome de tabela, de
+  coluna e de restrição. Agora só passa o que as funções do banco escreveram em português.
+- `houseDay`: `new Date().toISOString()` decidia o dia em UTC enquanto o banco decidia em São Paulo. Das
+  21h à meia-noite os dois discordavam, e o mesmo cartão dizia "em atraso" no selo e "vence hoje" no rodapé.
+
+**Correções em lote.** Dez agentes, um por conjunto de arquivos que não se cruzam, com os defeitos já
+conferidos em mãos. Cada lote foi revisado por um agente independente lendo o `git diff`. A revisão reprovou
+quatro lotes por motivo objetivo (dois erros de tipo e de lint, uma regressão de recorrência, uma correção
+que quebrava o convite dos primeiros passos) e gerou uma terceira rodada sobre os próprios achados dela.
+
+**Equipe.** Editar uma equipe pelo seletor agora mostra quem está dentro, os convites pendentes e o convite
+novo, que sai na hora. O bloco é o mesmo da página da equipe, o `TeamPeoplePanel`; o que muda é só a moldura
+em volta. O convite deixou de exigir que a equipe fosse a em uso: quem administra qualquer equipe da lista
+convida por ela, e quem decide a permissão é o banco. As pessoas de uma equipe passaram a ter rota em
+`api/v1`, como o resto.
+
+**As etapas de tarefa ganharam rota em `api/v1`.** Elas viraram linha de tabela em 21 de setembro e nasceram
+só com Server Action: sem a rota, o aplicativo não descobre o id de uma etapa, e sem o id não cria tarefa.
+Era a metade que faltava da regra da casa de servir web e mobile.
+
+**Conferência com o olho.** `scripts/probe-session.mjs` cria uma conta descartável com dados e imprime os
+cookies da sessão, o que abriu as telas autenticadas para medição no navegador. Foi assim que apareceram os
+alvos de toque de 36 e de 27 pixels, e foi assim que uma regressão minha foi pega: o seletor de grade e
+tabela tinha virado aba em vez de rádio.
+
+**O azulejo da marca no menu** deixou de ser redondo e ficou quase quadrado, com dois pixels de canto. É a
+única medida de canto escrita à mão na casa, porque dois pixels ficam abaixo do menor degrau da escala; o
+motivo está no CSS, ao lado da regra.
+
+Pendências:
+
+- **Decisão de produto pendente, com efeito imediato.** O teto de pessoas do plano passou a ser conferido ao
+  convidar, que era um defeito confirmado: a regra existia no banco e ninguém a lia. O efeito é mais forte do
+  que parece. `plan_within_limit` compara com **menor que**, e `team_members` do plano gratuito é **1**, que é
+  o próprio dono. Na prática, **equipe no plano gratuito não convida mais ninguém**, e a etapa de membros dos
+  primeiros passos recusa todo convite com o recado de mudar de plano. Se a intenção era essa, está certo e é
+  a etapa de membros que precisa mostrar o portão do plano em vez de oferecer um campo que sempre recusa. Se
+  não era, o que muda é uma linha de entitlement: `('free', 'team_members', true, 1)` em
+  `db/migrations/billing/20260916101300_add_domain_entitlements.sql`. Antes desta varredura nada disso era
+  conferido, então qualquer equipe convidava à vontade em qualquer plano.
+- A migração das janelas para `DialogHeader` e `DialogFooter` cobriu as janelas de formulário. As gavetas, os
+  painéis e os editores têm recuo, escala de título e rodapé próprios, e cada agente mediu e recusou a troca
+  em vez de mudar o desenho. Unificá-los de verdade é decidir uma moldura só para eles, que é trabalho de
+  desenho, e não de refatoração.
+- Três migrações nasceram nesta varredura e **ainda não foram aplicadas**: `charge_quote_once` (um orçamento
+  não vira duas cobranças), `release_current_org_on_member_removal` (quem é removido não fica com a equipe
+  antiga em vigor) e `quote_client_buys` (fornecedor não recebe orçamento). Elas adicionam garantia e o código
+  roda sem elas, mas a garantia só existe depois de `npm run db:sync` e `npm run db:push`.
+- Vinte achados ficaram registrados como não corrigidos, cada um com o motivo e o caminho da correção, nos
+  relatórios dos lotes.

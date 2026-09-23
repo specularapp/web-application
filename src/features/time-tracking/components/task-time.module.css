@@ -1,0 +1,49 @@
+/* O gatilho sem cara de botão: a etiqueta é o valor, como nas outras propriedades da ficha. */
+.trigger {
+  display: inline-flex;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.number {
+  font-variant-numeric: tabular-nums;
+}
+
+.live {
+  font-variant-numeric: tabular-nums;
+  color: var(--sys-orange);
+}
+
+/* Os últimos trechos no cartão: o dia com o intervalo de um lado e a duração do outro. */
+.entries {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* O resumo na bandeja do celular: o mesmo conteúdo do cartão, com o respiro da janela e a folga da barra. */
+.sheet {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--floating-bar-inset);
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { iconButtonCornerRadius, squirclePx } from "@/lib/corners";
+import { iconButtonCornerRadius, roundedPx } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { YEARLY_DISCOUNT, type BillingCycle } from "../plans";
 import styles from "./cycle-toggle.module.css";
@@ -27,7 +27,7 @@ export function CycleToggle({ value, onChange, fullWidth = false, className }: C
       role="radiogroup"
       aria-label="Ciclo de cobrança"
       data-full={fullWidth || undefined}
-      {...squirclePx(iconButtonCornerRadius.md)}
+      {...roundedPx(iconButtonCornerRadius.md)}
     >
       {options.map((option) => (
         <button
@@ -38,7 +38,7 @@ export function CycleToggle({ value, onChange, fullWidth = false, className }: C
           className={styles.cycle}
           data-active={value === option.value || undefined}
           onClick={() => onChange(option.value)}
-          {...squirclePx(iconButtonCornerRadius.sm)}
+          {...roundedPx(iconButtonCornerRadius.sm)}
         >
           {option.label}
           {option.value === "yearly" && (

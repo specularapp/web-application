@@ -23,6 +23,10 @@ export type TasksScreenProps = {
   basePath: string;
   /** Quem pode assumir uma tarefa, para os seletores da janela. */
   team?: TaskPerson[];
+  /** Quem está vendo. */
+  viewer?: TaskPerson;
+  /** A tarefa que o endereço pede aberta, pelo identificador ou pelo id. */
+  openTask?: string;
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
   /** O projeto deste quadro; nulo no balde de tarefas soltas. */
@@ -41,7 +45,7 @@ export type TasksScreenProps = {
 // a prancha com a busca e o quadro, essa sim com o recuo da tela. Server Component: quem tem estado é a
 // prancha. Serve o quadro de todas as tarefas e o de um projeto, que é a mesma tela com outra lista, outras
 // etapas e outro nome no topo.
-export function TasksScreen({ board, query, collapsed, ai, title, basePath, team, records, projectId, projects, stages, projectStages, project }: TasksScreenProps) {
+export function TasksScreen({ board, query, collapsed, ai, title, basePath, team, viewer, openTask, records, projectId, projects, stages, projectStages, project }: TasksScreenProps) {
   return (
     <div className={styles.screen}>
       <Topbar ai={ai} title={title} />
@@ -51,6 +55,8 @@ export function TasksScreen({ board, query, collapsed, ai, title, basePath, team
         collapsed={collapsed}
         basePath={basePath}
         team={team}
+        viewer={viewer}
+        openTask={openTask}
         records={records}
         projectId={projectId}
         projects={projects}

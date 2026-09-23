@@ -13,10 +13,27 @@
 }
 
 .dialog {
+  position: relative;
   min-height: 0;
   padding: var(--space-6) var(--space-5) var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* O fechar sozinho, sem repetir o título que o `PlanChooser` já desenha por dentro: flutua sobre o
+   conteúdo, ancorado na caixa que rola, e não se move com a rolagem. Classe dobrada porque a folha do
+   `Button` é do Emotion e entra depois desta no pacote: com o mesmo peso ela venceria. */
+.close.close {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  z-index: 3;
+  --button-background: var(--glass-sheet-bg);
+  --button-background-hover: var(--color-fill-tertiary);
+  --button-border: var(--color-border);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
 }
 
 @media (max-width: 47.9375rem) {

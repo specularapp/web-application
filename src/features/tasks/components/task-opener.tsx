@@ -1,9 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import type { Task } from "../summary";
-import { TaskDialog } from "./task-dialog";
 import styles from "./task-opener.module.css";
+
+/* A janela da tarefa entra por importação dinâmica, e cada linha só a monta depois de abrir a primeira vez
+   (varredura de peso de 2026-09-21): ela tem mais de mil e seiscentas linhas, e uma lista de vinte tarefas
+   carregava e instanciava todas as vinte sem ninguém ter clicado em nenhuma. */
+const TaskDialog = dynamic(() => import("./task-dialog").then((module) => module.TaskDialog));
 
 export type TaskOpenerProps = Omit<HTMLAttributes<HTMLElement>, "onClick" | "onKeyDown" | "role" | "tabIndex"> & {
   task: Task;
@@ -28,8 +34,13 @@ const INTERACTIVE = "button, a, input, select, textarea, [role='button'], [role=
  */
 export function TaskOpener({ task, label, children, ...props }: TaskOpenerProps) {
   const [open, setOpen] = useState(false);
+  const ready = useOpenedOnce(open);
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
+    // Conteúdo portado (o menu de opções, a bandeja dele no celular) continua descendente na árvore do
+    // React, mas não no DOM: sem este guarda o clique que nasce em document.body sobe até aqui e abre a
+    // ficha da tarefa por cima do que acabou de fechar. Mesmo guarda do `DetailsTrigger`.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
     if (control && control !== event.currentTarget && !control.hasAttribute("data-open-details")) return;
     setOpen(true);
@@ -52,7 +63,7 @@ export function TaskOpener({ task, label, children, ...props }: TaskOpenerProps)
       <div role="button" tabIndex={0} aria-haspopup="dialog" aria-label={label} onClick={onClick} onKeyDown={onKeyDown} {...props}>
         {children}
       </div>
-      <TaskDialog task={task} open={open} onClose={() => setOpen(false)} />
+      {ready && <TaskDialog task={task} open={open} onClose={() => setOpen(false)} />}
     </li>
   );
 }

@@ -1,24 +1,11 @@
-/* A gaveta: o título com o X, os campos rolando e os botões no pé (no celular eles moram na barra flutuante). */
+/* A gaveta: a grade de três faixas e os campos rolando no meio. O cabeçalho com o X e o rodapé com os botões
+   vêm do primitivo da janela (`DialogHeader` e `DialogFooter`), que também esconde o rodapé no celular, onde
+   as ações moram na barra flutuante. */
 .drawer {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
   min-height: 0;
-}
-
-.head {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-3) var(--space-3) var(--space-5);
-  border-block-end: 0.0375rem solid var(--color-border);
-}
-
-.heading {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
 }
 
 .body {
@@ -36,20 +23,8 @@
   gap: var(--space-3);
 }
 
-.foot {
-  display: flex;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-5);
-  border-block-start: 0.0375rem solid var(--color-border);
-}
-
 @media (max-width: 47.9375rem) {
   .body {
     padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
-  }
-
-  .foot {
-    display: none;
   }
 }

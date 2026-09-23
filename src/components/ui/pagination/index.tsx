@@ -46,7 +46,6 @@ const Bar = styled.nav`
   background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 
   & > * {
     flex-shrink: 0;

@@ -9,7 +9,7 @@ import { CodeInput } from "@/components/ui/code-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { enrollTotp, signOut, skipMfaEnrollment, verifyTotp } from "../actions";
 import authStyles from "./auth-form.module.css";
@@ -127,7 +127,7 @@ export function MfaEnroll({ next, preview }: MfaEnrollProps) {
         <Skeleton shape="rect" width="11rem" height="11rem" />
       )}
 
-      <div className={styles.secretBox} {...squircle("md")}>
+      <div className={styles.secretBox} {...rounded("md")}>
         {factor ? (
           <code className={styles.secret}>{factor.secret}</code>
         ) : (

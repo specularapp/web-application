@@ -10,42 +10,46 @@ import {
   saveStageSchema,
   saveTaskDescriptionSchema,
   stageOrderSchema,
-  subtaskToggleSchema,
-  taskCommentSchema,
   taskFormSchema,
   taskIdSchema,
   taskImageUploadSchema,
   taskMoveSchema,
+  taskChangeRequestSchema,
+  taskReferenceSchema,
 } from "./schemas";
 import {
-  addTaskComment,
   configureTaskStages,
   createTask,
   createTaskImageUpload,
   deleteTask,
   deleteTaskStage,
   duplicateTask,
-  getTask,
   moveTask,
   reorderTaskStages,
   saveTask,
   saveTaskDescription,
   saveTaskStage,
   setProjectStages,
-  toggleSubtask,
+  applyTaskChange,
+  type TaskChangeResult,
+  findTaskId,
+  getTask,
 } from "./service";
-import type { TaskStage } from "./stages";
 import type { Task } from "./summary";
+import type { TaskStage } from "./stages";
 
-export type TaskSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
+export type TaskSaveResult = { ok: true; id: string; reference?: string } | { ok: false; error: string; field?: string };
 export type TaskResult = { ok: true } | { ok: false; error: string };
 
-/** A ficha completa de uma tarefa, buscada quando a janela abre. */
-export async function loadTaskAction(id: string): Promise<Task | null> {
+/** A ficha completa de uma tarefa, buscada quando a janela abre; aceita o id ou o identificador do endereço. */
+export async function loadTaskAction(key: string): Promise<Task | null> {
   const guard = await guardAction("task-load");
   if (!guard.ok) return null;
-
-  return getTask(guard.context.supabase, guard.context.organizationId, id);
+  const { supabase, organizationId } = guard.context;
+  const parsed = taskIdSchema.safeParse(key);
+  const reference = taskReferenceSchema.safeParse(key);
+  const id = parsed.success ? parsed.data : reference.success ? await findTaskId(supabase, organizationId, reference.data) : null;
+  return id ? getTask(supabase, organizationId, id) : null;
 }
 
 /** Salva a tarefa, criando ou editando: é o mesmo formulário e a mesma regra. */
@@ -56,10 +60,10 @@ export async function saveTaskAction(input: unknown): Promise<TaskSaveResult> {
   const parsed = taskFormSchema.safeParse(input);
   if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
 
-  const saved = await saveTask(guard.context.supabase, guard.context.organizationId, parsed.data);
+  const saved = await saveTask(guard.context.supabase, guard.context.organizationId, parsed.data, guard.context.user.id);
   if (!saved.ok) return { ok: false, error: saved.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
   return { ok: true, id: saved.data.id };
 }
 
@@ -80,10 +84,11 @@ export async function moveTaskAction(input: unknown): Promise<TaskResult> {
     parsed.data.id,
     parsed.data.stageId,
     parsed.data.position,
+    guard.context.user.id,
   );
   if (!moved.ok) return { ok: false, error: moved.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
   return { ok: true };
 }
 
@@ -97,49 +102,7 @@ export async function deleteTaskAction(input: unknown): Promise<TaskResult> {
   const removed = await deleteTask(guard.context.supabase, guard.context.organizationId, parsed.data);
   if (!removed.ok) return { ok: false, error: removed.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
-  return { ok: true };
-}
-
-/** Marcar e desmarcar uma subtarefa: a escrita mais frequente da ficha. */
-export async function toggleSubtaskAction(input: unknown): Promise<TaskResult> {
-  const guard = await guardAction("subtask-toggle");
-  if (!guard.ok) return { ok: false, error: guard.error };
-
-  const parsed = subtaskToggleSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Subtarefa inválida." };
-
-  const toggled = await toggleSubtask(
-    guard.context.supabase,
-    guard.context.organizationId,
-    parsed.data.id,
-    parsed.data.done,
-  );
-  if (!toggled.ok) return { ok: false, error: toggled.error };
-
-  return { ok: true };
-}
-
-/** Um comentário na conversa da tarefa, com o que ele marcou. */
-export async function commentTaskAction(input: unknown): Promise<TaskResult> {
-  const guard = await guardAction("task-comment");
-  if (!guard.ok) return { ok: false, error: guard.error };
-
-  const parsed = taskCommentSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error).error };
-
-  const { supabase, organizationId, user } = guard.context;
-  const added = await addTaskComment(
-    supabase,
-    organizationId,
-    user.id,
-    parsed.data.taskId,
-    parsed.data.text,
-    parsed.data.mentions,
-  );
-  if (!added.ok) return { ok: false, error: added.error };
-
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
   return { ok: true };
 }
 
@@ -257,7 +220,7 @@ export async function saveTaskDescriptionAction(input: unknown): Promise<TaskRes
   const saved = await saveTaskDescription(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.description);
   if (!saved.ok) return { ok: false, error: saved.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
   return { ok: true };
 }
 
@@ -273,11 +236,11 @@ export async function createTaskAction(input: unknown): Promise<TaskSaveResult> 
   const parsed = createTaskSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Escolha a etapa em que a tarefa nasce." };
 
-  const created = await createTask(guard.context.supabase, guard.context.organizationId, parsed.data);
+  const created = await createTask(guard.context.supabase, guard.context.organizationId, parsed.data, guard.context.user.id);
   if (!created.ok) return { ok: false, error: created.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], ["/tarefas"]);
-  return { ok: true, id: created.data.id };
+  await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
+  return { ok: true, id: created.data.id, reference: created.data.reference };
 }
 
 /**
@@ -296,4 +259,21 @@ export async function configureTaskStagesAction(input: unknown): Promise<TaskRes
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.tasks, cacheTags.projects, cacheTags.shell], ["/tarefas", "/projetos"]);
   return { ok: true };
+}
+
+/**
+ * Uma mudança de dentro da ficha: comentário com áudio e arquivos, subtarefa, envolvidos, vínculo, anexo ou o
+ * envio de um arquivo (2026-09-22). A mesma regra que o aplicativo usa em `api/v1/tarefas/[id]/mudancas`.
+ */
+export async function changeTaskAction(input: unknown): Promise<TaskChangeResult> {
+  const guard = await guardAction("task-change");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = taskChangeRequestSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error).error };
+
+  const { supabase, organizationId, user } = guard.context;
+  const result = await applyTaskChange(supabase, organizationId, user.id, parsed.data.taskId, parsed.data.change);
+  if (result.ok && parsed.data.change.op !== "upload") await revalidateDomain(guard.context.organizationId, [cacheTags.tasks], [], false);
+  return result;
 }

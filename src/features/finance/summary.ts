@@ -1,3 +1,5 @@
+import { houseDay } from "@/lib/utils/day";
+
 /** Recebido, pago ou ainda por receber: é o que decide ícone, cor e sinal na lista. */
 export type TransactionKind = "income" | "expense" | "scheduled";
 
@@ -152,7 +154,9 @@ export type Charge = {
   events: ChargeEvent[];
 };
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+/* Hoje no fuso da casa, e não em UTC: é o mesmo dia que as funções do banco calculam, e é o que faz a
+   situação de uma parcela concordar com o rótulo do vencimento entre 21h e a meia-noite (2026-09-22). */
+export const todayIso = () => houseDay();
 
 export function installmentStatusOf(installment: Installment, charge: Pick<Charge, "cancelledAt">, today = todayIso()): InstallmentStatus {
   if (installment.paidAt) return "paid";

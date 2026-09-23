@@ -76,7 +76,6 @@
   background-color: transparent;
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
@@ -150,7 +149,6 @@
     color-mix(in oklab, var(--card-hue, var(--color-accent)) 20%, transparent)
   );
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .glyph svg {
@@ -227,7 +225,6 @@
   cursor: pointer;
   border: 0.0625rem dashed var(--color-label-tertiary);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);

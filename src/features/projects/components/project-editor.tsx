@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useTabList } from "@/hooks/use-tab-list";
 import { siteUrl } from "@/lib/utils/site";
 
 import type { Project, ProjectClient, ProjectOwnerOption } from "../summary";
@@ -50,6 +51,7 @@ export function ProjectEditor({ project, clients, owners, onLeave, onSaved }: Pr
   const titleId = useId();
   const form = useRef<HTMLFormElement>(null);
   const [tab, setTab] = useState<EditorTab>("form");
+  const editorTabs = useTabList(["form", "preview"] as const, tab, setTab);
   const [snapshot, setSnapshot] = useState<ProjectPreviewSnapshot | null>(null);
   const onPreview = useCallback((next: ProjectPreviewSnapshot) => setSnapshot(next), []);
 
@@ -83,12 +85,12 @@ export function ProjectEditor({ project, clients, owners, onLeave, onSaved }: Pr
         </div>
 
         {mobile ? (
-          <div className={styles.tabs} role="tablist" aria-label="Dados ou prévia">
-            <button type="button" role="tab" aria-selected={tab === "form"} className={styles.tab} onClick={() => setTab("form")}>
+          <div className={styles.tabs} aria-label="Dados ou prévia" {...editorTabs.listProps}>
+            <button type="button" className={styles.tab} {...editorTabs.tabProps("form")} onClick={() => setTab("form")}>
               <PencilSimpleIcon aria-hidden="true" />
               Dados
             </button>
-            <button type="button" role="tab" aria-selected={tab === "preview"} className={styles.tab} onClick={() => setTab("preview")}>
+            <button type="button" className={styles.tab} {...editorTabs.tabProps("preview")} onClick={() => setTab("preview")}>
               <EyeIcon aria-hidden="true" />
               Prévia
             </button>

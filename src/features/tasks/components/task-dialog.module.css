@@ -131,9 +131,29 @@
    rolando no meio e o cartão do comentário preso no pé, em vez de crescer com o que tem dentro e deixar o
    campo boiando no meio da tela quando há pouca mensagem. */
 @media (width < 64rem) {
+  /* Na conversa o cabeçalho da ficha sai (2026-09-22, a pedido): o caminho e as ações são das informações, e
+     no celular cada linha a mais é conversa a menos à vista. */
+  .dialog[data-tab="activity"] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .dialog[data-tab="activity"] .top {
+    display: none;
+  }
+
   .body[data-tab="details"] .side,
   .body[data-tab="activity"] .main {
     display: none;
+  }
+
+  /* A metade que entra desliza do lado de onde veio, no sentido de quem folheia: a conversa chega pela
+     direita e a ficha volta pela esquerda. */
+  .body[data-tab="details"] .main {
+    animation: pageFromStart var(--duration-base) var(--ease-settle);
+  }
+
+  .body[data-tab="activity"] .side {
+    animation: pageFromEnd var(--duration-base) var(--ease-settle);
   }
 
   /* Uma linha só, com piso zero: a metade escondida sai por `display: none`, então quem sobra toma a faixa
@@ -268,6 +288,13 @@
   grid-column: 1 / -1;
 }
 
+/* Duas colunas quando a grade tem três; no celular, com duas, volta a uma e divide a linha. */
+@media (width >= 48rem) {
+  .double {
+    grid-column: span 2;
+  }
+}
+
 .propertyLabel {
   display: inline-flex;
   gap: var(--space-2);
@@ -303,12 +330,17 @@
 }
 
 /* A fila de etiquetas dentro do gatilho: quebra linha quando são muitas. */
+/* As etiquetas pulam de linha quantas precisarem, dentro do gatilho do seletor, que é um botão e por padrão
+   seguraria tudo numa linha só. */
 .tagRow {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
   align-items: center;
   min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  text-align: start;
 }
 
 /* A bolinha da cor de uma etiqueta no menu de escolha: é ela que diz qual é qual antes da leitura. */
@@ -321,17 +353,15 @@
 }
 
 /* Os vínculos: um cartão por linha. */
+/* Os vínculos em grade, como os anexos: vários por linha, cada cartão na largura que o nome pede. */
 .links {
   display: grid;
+  /* Dois por linha em qualquer tela: o nome e a descrição cedem por reticências. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   padding: 0;
   margin: 0;
   list-style: none;
-}
-
-/* O identificador e a linha de apoio ganham ar do nome, senão as duas linhas leem como uma só. */
-.linkCopy .linkMeta {
-  margin-block-start: 0.125rem;
 }
 
 /**
@@ -339,32 +369,82 @@
  * e não o link. O fundo é sólido, e não o preenchimento translúcido, porque a fila de artes agrupada precisa
  * de uma cor de anel para separar as bolinhas, e ela sai daqui por `--media-surface`.
  */
+/* A mesma superfície do anexo e do resumo de tempo: o preenchimento suave e o raio médio da ficha. */
 .linkItem {
-  --media-surface: var(--color-bg-secondary);
+  --media-surface: var(--color-bg);
 
+  position: relative;
   display: flex;
   gap: var(--space-2);
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
-  padding: var(--space-2);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  corner-shape: squircle;
+  padding: var(--space-3);
+  /* Quase invisível (2026-09-22, a pedido): um véu mínimo e um fio que mal aparece, para o cartão ficar na
+     página em vez de saltar dela. O realce vem só ao passar o ponteiro. */
+  background-color: color-mix(in oklab, var(--color-fill-quaternary) 20%, transparent);
+  border: 0.0375rem solid color-mix(in oklab, var(--color-border) 55%, transparent);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .linkItem:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.linkCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
 }
 
 /* O link é a área de toque do cartão: ele estica e leva o recuo, para o clique em qualquer lugar que não
    seja o × abrir o registro. */
 .link {
-  display: flex;
+  display: grid;
   flex: 1;
-  gap: var(--space-3);
-  align-items: center;
+  gap: var(--space-2);
+  align-content: start;
   min-width: 0;
   padding: var(--space-1);
   margin: calc(var(--space-1) * -1);
+  color: inherit;
   text-decoration: none;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
+}
+
+/* O topo do cartão: o glifo no matiz do tipo e o nome do tipo em pílula, deixando lugar para o desvincular. */
+.linkTop {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding-inline-end: var(--touch-target);
+}
+
+.linkKind {
+  --kind-hue: var(--sys-gray);
+
+  padding: var(--space-half) var(--space-2);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: color-mix(in oklab, var(--kind-hue) 80%, var(--color-label));
+  background-color: light-dark(
+    color-mix(in oklab, var(--kind-hue) 12%, transparent),
+    color-mix(in oklab, var(--kind-hue) 20%, transparent)
+  );
+  border-radius: var(--radius-sm);
+}
+
+/* O pé: o código de um lado e a foto de quem é do outro. */
+.linkFoot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 1.5rem;
 }
 
 @media (hover: hover) {
@@ -374,15 +454,12 @@
   }
 }
 
-.linkCopy {
-  display: grid;
-  min-width: 0;
-}
-
 /* O desvincular fica sempre à vista, dentro do cartão: no toque não há apontar, e um × que só aparece ao
    passar o ponteiro deixava o vínculo sem como sair. */
 .linkRemove {
-  flex-shrink: 0;
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
 }
 
 /**
@@ -402,6 +479,24 @@
     color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)),
     color-mix(in oklab, var(--color-label) 4%, var(--color-bg))
   );
+  position: relative;
+  isolation: isolate;
+}
+
+/* Um pontilhado bem suave por trás da conversa (2026-09-22, a pedido): textura de mural na tinta do texto
+   quase apagada, mais presente no meio e sumindo para as bordas por uma máscara em elipse, para as laterais
+   não ganharem um corte seco. Mora numa camada à parte, atrás do conteúdo, porque a máscara não pode apagar
+   as mensagens junto. */
+.side::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background-image: radial-gradient(color-mix(in oklab, var(--color-label) 5%, transparent) 1px, transparent 1px);
+  background-size: var(--space-4) var(--space-4);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
 }
 
 .sideHead {
@@ -421,7 +516,6 @@
   padding: 0.125rem;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .switchOption {
@@ -436,7 +530,6 @@
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
   transition:
     color var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard);
@@ -547,7 +640,6 @@
   padding: var(--space-2) var(--space-3);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 /**
@@ -668,35 +760,12 @@
 }
 
 /* Os vínculos agrupados por tipo: um vão entre os grupos, o nome do grupo apagado e recuado como as linhas. */
-.linkGroups {
-  display: grid;
-  gap: var(--space-4);
-  min-width: 0;
-}
-
-.linkGroup {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.linkGroupName {
-  padding-inline: var(--space-1);
-}
-
-/* O identificador em etiqueta e a linha de apoio em texto, lado a lado: a etiqueta já se separa sozinha,
-   então não há bolinha no meio. */
-.linkMeta {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
-}
-
-.linkMeta .linkReference {
+.linkFoot .linkReference {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
+
+
 
 /**
  * Uma marcação desenhada como o que ela aponta: o rosto e o primeiro nome de uma pessoa, o glifo do domínio e
@@ -717,7 +786,6 @@
     color-mix(in oklab, var(--mention-hue) 18%, transparent)
   );
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 /* Marcação de pessoa não tem matiz de domínio: ela é o preenchimento neutro da casa, porque a cor dela é a
@@ -746,10 +814,23 @@
   list-style: none;
 }
 
+/* O dia preso no topo da conversa enquanto ela rola (2026-09-23, a pedido): cada dia gruda e é empurrado pelo
+   seguinte, então o dia mais perto de quem lê fica sempre à vista. A etiqueta ganha fundo opaco, senão dois
+   dias grudados no mesmo lugar mostrariam um texto por cima do outro. Não pega o toque, para não cobrir o
+   que passa por baixo dela. */
 .day {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
   display: grid;
   place-items: center;
-  padding-block: var(--space-3) var(--space-2);
+  padding-block: var(--space-2);
+  pointer-events: none;
+}
+
+.day > * {
+  background-color: var(--color-bg-tertiary);
+  box-shadow: var(--shadow-sm);
 }
 
 /**
@@ -817,7 +898,6 @@
   padding: var(--space-2) var(--space-3);
   background-color: var(--bubble-bg, var(--color-fill-quaternary));
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 /**
@@ -849,7 +929,6 @@
    cartão do anexo já vem no `md` do módulo dele, então aqui só o que é desta folha. */
 .bubble .mentionCard {
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 /* O que veio junto da mensagem, acima do texto: um por linha, com a superfície da bolha por baixo. O
@@ -857,6 +936,7 @@
    frase é outra, e com a mesma folga nos dois lugares o anexo lia como parte do texto. */
 .bubbleFiles {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.5rem), 1fr));
   gap: var(--space-1);
   min-width: 0;
   margin-block-end: var(--space-3);
@@ -900,7 +980,6 @@
   text-decoration: none;
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
@@ -1009,7 +1088,6 @@
   background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 /* O título diz o que a lista é, na mesma tinta de rótulo do resto da ficha: sem ele a caixa aparecia do nada
@@ -1026,7 +1104,6 @@
   min-height: var(--touch-target);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   font: inherit;
   color: inherit;
   text-align: start;
@@ -1067,4 +1144,62 @@
 .composerRecordingClock {
   color: var(--color-danger);
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes pageFromStart {
+  from {
+    opacity: 0;
+    transform: translateX(-1.5rem);
+  }
+}
+
+@keyframes pageFromEnd {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body[data-tab="details"] .main,
+  .body[data-tab="activity"] .side {
+    animation: none;
+  }
+}
+
+/* Os esqueletos da ficha enquanto a tarefa inteira chega, no formato de cada coisa que vai entrar. */
+.loadingLines {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.loadingTile {
+  list-style: none;
+}
+
+.loadingTile[data-shape="card"] {
+  height: 5.5rem;
+}
+
+.loadingTile[data-shape="square"] {
+  aspect-ratio: 1;
+}
+
+.loadingTalk {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: auto;
+  padding-block: var(--space-4);
+}
+
+.loadingBubble {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+/* A minha fica do outro lado, como na conversa de verdade. */
+.loadingBubble[data-mine] {
+  flex-direction: row-reverse;
 }

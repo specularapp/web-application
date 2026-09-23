@@ -6,7 +6,7 @@ import { Celebration, type CelebrationProps } from "@/components/ui/celebration"
 export type CelebrationOptions = Omit<CelebrationProps, "open" | "onClose">;
 
 type CelebrationContextValue = {
-  /** Para a tela e comemora. Uma por vez: duas festas empilhadas não são festa, são fila. */
+  /** Mostra o retorno principal. Uma por vez, para cada ação ter uma mensagem clara. */
   celebrate: (options: CelebrationOptions) => void;
   close: () => void;
 };
@@ -18,10 +18,8 @@ const CelebrationContext = createContext<CelebrationContextValue | null>(null);
  * do provedor de toast, porque quem comemora está no meio de um formulário ou de uma janela e não tem como
  * montar uma janela por cima de tudo por conta própria.
  *
- * **Qual dos dois usar** (a régua, para não virar festa em tudo): o `Toast` é o recibo de uma ação comum,
- * aparece no canto e some sozinho, e é o que 95% das ações merecem. A comemoração **para a tela**, então é
- * só para o que a pessoa vai querer contar para alguém: o primeiro de alguma coisa, o dinheiro que entrou, o
- * contrato assinado, a meta batida. Confete em tudo é o mesmo que confete em nada.
+ * A camada de toast promove resultados bem sucedidos para esta janela e mantém avisos e erros no canto.
+ * O confete continua opcional: o mesmo retorno atende tanto uma edição discreta quanto um marco maior.
  */
 export function CelebrationProvider({ children }: { children: ReactNode }) {
   const [party, setParty] = useState<CelebrationOptions | null>(null);
@@ -34,7 +32,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
   return (
     <CelebrationContext.Provider value={value}>
       {children}
-      {/* Só monta quando há festa: a janela abre com a explosão, e montada e fechada ela rodaria escondida. */}
+      {/* Só monta quando há retorno: assim a entrada acontece no momento exato da ação. */}
       {party && <Celebration open onClose={close} {...party} />}
     </CelebrationContext.Provider>
   );

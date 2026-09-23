@@ -5,6 +5,7 @@ import {
   AtIcon,
   CalendarBlankIcon,
   CheckCircleIcon,
+  ClockIcon,
   FileTextIcon,
   FlagIcon,
   FolderIcon,
@@ -19,6 +20,7 @@ import {
   StopIcon,
   TagIcon,
   TrayIcon,
+  StopCircleIcon,
   TimerIcon,
   UserCircleIcon,
   UsersIcon,
@@ -36,6 +38,8 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -50,6 +54,7 @@ import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-men
 import { IconButton } from "@/components/ui/icon-button";
 import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { tagSections } from "@/components/ui/tag-picker";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { RecordHoverCard } from "@/features/records/components/record-hover-card";
@@ -58,25 +63,33 @@ import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord } from "@/features/records/records";
 import { useToast } from "@/components/providers/toast-provider";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { TimeTrackerButton } from "@/features/time-tracking/components/time-tracker-button";
+import { TaskTimeBadge, useTaskTime } from "@/features/time-tracking/components/task-time";
+import { originOf } from "@/features/time-tracking/components/time-tracker-provider";
+import { rounded } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { slugify } from "@/lib/utils/slug";
 import { cx } from "@/lib/utils/cx";
 import { saveTaskAction } from "../actions";
-import { acceptAny, acceptDocuments, acceptImages, attachmentOf } from "../files";
-import { DAY_MINUTES, dueOf, estimateLabel, peopleLabel, priorityHues, priorityLabels, priorityTones } from "../labels";
+import { attachmentOf, acceptAny, acceptDocuments, acceptImages, localFileOf } from "../files";
+import { changeTask, creationOf, uploadTaskFile } from "../changes";
+import { loadTaskAction } from "../actions";
+import { DAY_MINUTES, dueOf, estimateLabel, peopleLabel, priorityLabels, priorityTones } from "../labels";
 import { linkKindValues, taskLinkKinds } from "../links";
 import { stageGlyphs, stageHue, type TaskStage } from "../stages";
 import { tagHue, taskTagCatalog } from "../tags";
-import type { Task, TaskAttachment, TaskAudio, TaskEvent, TaskLink, TaskMention, TaskPerson, TaskPriority } from "../summary";
+import { TASK_MAX_TAGS } from "../schemas";
+import { ATTACHMENT_ONLY, type Task, type TaskAttachment, type TaskAudio, type TaskEvent, type TaskLink, type TaskMention, type TaskPerson, type TaskPriority } from "../summary";
 import { AttachmentCard } from "./attachment-card";
 import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "./chat-audio";
 import { Subtasks } from "./subtasks";
 import { AttachmentDialog, LinkDialog } from "./task-add-dialogs";
 import { TaskDescription } from "./task-description";
 import { TaskMenu } from "./task-menu";
+import { priorityMark } from "./priority-mark";
 import sheet from "./task-sheet.module.css";
 import frame from "./task-dialog.module.css";
+import { randomId } from "@/lib/utils/id";
 
 /** Um projeto que a tarefa pode ter, como o leque da ficha o oferece. */
 export type TaskProjectOption = { id: string; name: string; reference: string; slug: string };
@@ -90,10 +103,22 @@ export type TaskDialogProps = {
   stages?: TaskStage[];
   /** Quem pode assumir a tarefa; sem a equipe, as opções são quem já está nela. */
   team?: TaskPerson[];
+  /** Quem está vendo: é quem assina a mensagem nova e o que a conversa desenha do lado de cá. */
+  viewer?: TaskPerson;
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
   /** Os projetos para onde a tarefa pode ir; vazio esconde o campo, que é o caso do quadro de um projeto. */
   projects?: TaskProjectOption[];
+  /**
+   * A tarefa como está na ficha agora, a cada mudança, para o cartão do quadro acompanhar na hora em vez de
+   * esperar o quadro voltar do servidor (2026-09-22, a pedido).
+   */
+  onDraftChange?: (task: Task) => void;
+  /**
+   * Avisa o quadro de que algo foi gravado aqui dentro: ele se refaz quando a ficha fecha, e não a cada
+   * gravação, que era o que fazia tudo demorar (2026-09-22).
+   */
+  onChanged?: () => void;
   /**
    * Avisa o quadro de que a etapa mudou aqui dentro (2026-09-11): sem isto a troca ficava só no rascunho da
    * ficha e a tarefa voltava para a coluna de origem ao fechar, o que no celular é o **único** caminho de
@@ -133,10 +158,9 @@ const isoDay = (date: Date) => format(date, "yyyy-MM-dd");
 
 /* Quem escreve enquanto o domínio não está no banco: o comentário é da sessão, então ele não tem autor de
    verdade para carregar. Com a tabela, quem assina é o visitante que a concha já conhece. */
-const viewer: TaskPerson = { name: "Você", avatarUrl: null };
+const anonymous: TaskPerson = { name: "Você", avatarUrl: null };
 
 /* A bandeira e a bolinha no matiz certo, para o menu dizer qual é qual pela cor e não só pelo nome. */
-const priorityMark = (priority: TaskPriority) => <FlagIcon weight="bold" style={{ color: priorityHues[priority] } as CSSProperties} />;
 
 /**
  * Texto que se edita no lugar (2026-09-10, a pedido): o valor é desenhado como sempre foi e, ao clique, o
@@ -161,8 +185,8 @@ function InlineText({
   onChange: (value: string) => void;
   label: string;
   as: "h2" | "p";
-  variant: "title2" | "callout";
-  weight?: "semibold";
+  variant: "title1" | "title2" | "callout";
+  weight?: "semibold" | "bold";
   tone?: "secondary";
   /** Uma linha só: `Enter` grava em vez de quebrar. */
   single?: boolean;
@@ -245,9 +269,22 @@ function InlineText({
 }
 
 /** Um campo da ficha: o rótulo com o glifo em cima e o valor embaixo, que é o que abre as opções. */
-function Property({ icon: Glyph, label, children, wide = false }: { icon: Icon; label: string; children: ReactNode; wide?: boolean }) {
+function Property({
+  icon: Glyph,
+  label,
+  children,
+  wide = false,
+  double = false,
+}: {
+  icon: Icon;
+  label: string;
+  children: ReactNode;
+  wide?: boolean;
+  /** Duas colunas onde a grade tem três: divide a linha com uma propriedade curta ao lado. */
+  double?: boolean;
+}) {
   return (
-    <div className={cx(frame.property, wide && frame.wide)}>
+    <div className={cx(frame.property, wide && frame.wide, double && frame.double)}>
       <Text as="dt" variant="footnote" tone="secondary" className={frame.propertyLabel}>
         <Glyph aria-hidden="true" />
         {label}
@@ -285,24 +322,36 @@ function Person({ person }: { person: TaskPerson }) {
 function LinkRow({ link, onRemove }: { link: TaskLink; onRemove: () => void }) {
   const kind = taskLinkKinds[link.kind];
 
+  /* O cartão no desenho de ficha de conteúdo (2026-09-22, a pedido, sobre a referência): no topo o nome do
+     tipo em etiqueta no matiz dele; no meio o nome do registro; no pé o código de um lado e a
+     foto do outro. O desvincular fica no canto de cima. */
   return (
-    <li className={frame.linkItem} {...squircle("md")}>
+    <li className={frame.linkItem} {...rounded("md")}>
       <Link href={kind.path(link.id)} className={frame.link}>
-        <RecordMediaView kind={link.kind} media={link.media} name={link.name} />
+        <span className={frame.linkTop}>
+          {/* O tipo só na etiqueta, no matiz dele (2026-09-23, a pedido): a cor da letra e o véu translúcido é que
+              separam cliente, orçamento, projeto e contrato de relance. */}
+          <span className={frame.linkKind} style={{ "--kind-hue": kind.hue } as CSSProperties}>
+            {kind.label}
+          </span>
+        </span>
         <span className={frame.linkCopy}>
-          <Text as="span" variant="subheadline" weight="medium" truncate>
+          <Text as="span" variant="subheadline" weight="semibold" truncate>
             {link.name}
           </Text>
-          <span className={frame.linkMeta}>
-            <Badge tone="neutral" size="sm" className={frame.linkReference}>
-              {link.reference}
-            </Badge>
-            {link.caption && (
-              <Text as="span" variant="caption1" tone="secondary" truncate>
-                {link.caption}
-              </Text>
-            )}
-          </span>
+          {/* Uma linha de apoio de cada registro, só para completar: a empresa do cliente, quem pediu o
+              orçamento, a descrição do projeto ou do contrato. */}
+          {link.caption && (
+            <Text as="span" variant="footnote" tone="secondary" truncate>
+              {link.caption}
+            </Text>
+          )}
+        </span>
+        <span className={frame.linkFoot}>
+          <Text as="span" variant="footnote" tone="tertiary" className={frame.linkReference}>
+            {link.reference}
+          </Text>
+          {link.media?.kind === "face" && <Avatar name={link.media.name} src={link.media.src ?? undefined} size="xs" />}
         </span>
       </Link>
       <IconButton label={`Desvincular ${link.name}`} variant="ghost" size="sm" className={frame.linkRemove} onClick={onRemove}>
@@ -325,7 +374,7 @@ function MentionChip({ mention }: { mention: TaskMention }) {
   if (mention.kind === "person") {
     return (
       <span className={frame.mentionChip} data-person>
-        <Avatar name={mention.name} size="xs" />
+        <Avatar name={mention.name} src={mention.avatarUrl ?? undefined} size="xs" />
         <Text as="span" variant="footnote" weight="medium" truncate>
           {mention.name.split(" ")[0]}
         </Text>
@@ -509,6 +558,86 @@ function Block({
 //
 // A `key` da tarefa remonta o miolo quando outra abre: a janela é uma só para o quadro inteiro, e sem isso o
 // rascunho de uma vazaria para a seguinte.
+/** O que o salvar da ficha manda: os campos do formulário da tarefa, na forma que o zod dela lê. */
+const payloadOf = (task: Task) => ({
+  id: task.id,
+  projectId: task.project?.id ?? null,
+  title: task.title,
+  description: task.descriptionDoc,
+  dueDate: task.dueDate,
+  startDate: task.startDate ?? "",
+  estimate: task.estimate ?? null,
+  stageId: task.stage.id,
+  priority: task.priority,
+  ownerId: task.owner.id ?? null,
+  tags: task.tags,
+  alert: task.alert ?? "",
+});
+
+/* --------------------------------- enquanto a tarefa inteira chega --------------------------------- */
+
+/*
+ * A ficha abre na hora com o recorte do cartão, e o que ele não traz (descrição, vínculos, anexos e conversa)
+ * espera a tarefa inteira num esqueleto no formato do que vai entrar ali (2026-09-23, a pedido): suave e
+ * discreto, para a ficha já ser lida enquanto o resto chega, sem um "nenhum" momentâneo que mentiria.
+ */
+function LoadingLines() {
+  return (
+    <div className={frame.loadingLines} role="status" aria-label="Carregando a descrição">
+      <Skeleton width="92%" height="0.875rem" />
+      <Skeleton width="78%" height="0.875rem" />
+      <Skeleton width="54%" height="0.875rem" />
+    </div>
+  );
+}
+
+function LoadingTiles({ className, count, shape }: { className?: string; count: number; shape: "card" | "square" }) {
+  return (
+    <ul className={className} role="status" aria-label="Carregando">
+      {Array.from({ length: count }, (_, index) => (
+        <li key={index} className={frame.loadingTile} data-shape={shape}>
+          <Skeleton shape="rect" width="100%" height="100%" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LoadingTalk() {
+  return (
+    <div className={frame.loadingTalk} role="status" aria-label="Carregando a conversa">
+      {["62%", "44%", "70%"].map((width, index) => (
+        <div key={width} className={frame.loadingBubble} data-mine={index === 1 || undefined}>
+          <Skeleton shape="circle" width="1.75rem" height="1.75rem" />
+          <Skeleton shape="rect" width={width} height="2.5rem" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A pausa entre a última gravação e a releitura da atividade, para várias gravações virarem uma leitura. */
+const ACTIVITY_PAUSE = 700;
+
+/* A pausa de releitura por tarefa e as mensagens locais que o servidor já tem: fora do componente, porque
+   são detalhes do agendamento, e não estado da tela. */
+const activityTimers = new Map<string, number>();
+const settledComments = new Set<string>();
+
+/** Relê a atividade de uma tarefa depois da pausa, guardando na conversa só a mensagem que ainda está subindo. */
+function scheduleActivity(taskId: string, setEvents: Dispatch<SetStateAction<TaskEvent[]>>) {
+  window.clearTimeout(activityTimers.get(taskId));
+  activityTimers.set(
+    taskId,
+    window.setTimeout(() => {
+      void loadTaskAction(taskId).then((fresh) => {
+        if (!fresh) return;
+        setEvents((current) => [...current.filter((event) => event.id.startsWith("local-") && !settledComments.has(event.id)), ...fresh.activity]);
+      });
+    }, ACTIVITY_PAUSE),
+  );
+}
+
 /** Quanto o dedo precisa andar na horizontal para o arrasto virar troca de página, e não rolagem torta. */
 const SWIPE = 56;
 
@@ -521,7 +650,25 @@ const taskTabs = [
   { id: "activity", label: "Atividade" },
 ] as const satisfies readonly { id: TaskTab; label: string }[];
 
-export function TaskDialog({ task, open, onClose, stages, team, records = [], projects = [], onStageChange }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, stages, team, viewer = anonymous, records = [], projects = [], onStageChange, onChanged, onDraftChange }: TaskDialogProps) {
+  /* O quadro manda o recorte do cartão, que abre a ficha na hora; a tarefa inteira chega logo depois e é ela
+     que a ficha passa a usar. Fechada a ficha, o que veio sai, para a próxima abertura buscar de novo. */
+  const [full, setFull] = useState<Task | null>(null);
+  if (!open && full) setFull(null);
+
+  useEffect(() => {
+    if (!open || !task || task.loaded) return;
+    let alive = true;
+    void loadTaskAction(task.id).then((loaded) => {
+      if (alive && loaded) setFull(loaded);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open, task?.id, task?.loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const shown = task && full?.id === task.id ? { ...full, reference: task.reference === "Nova" ? full.reference : task.reference } : task;
+
   /**
    * Qual metade a janela mostra enquanto as duas não cabem lado a lado. Mora **aqui**, e não no miolo, porque
    * o seletor que a troca flutua acima da bandeja, fora dela, e é a `Dialog` quem desenha esse lugar: dentro
@@ -545,17 +692,23 @@ export function TaskDialog({ task, open, onClose, stages, team, records = [], pr
       onClose={onClose}
       label={task ? `Tarefa ${task.title}` : "Tarefa"}
       size="xl"
+      /* O fundo da página, e não o cinza da moldura de trabalho (2026-09-22, a pedido): no escuro a ficha fica
+         no preto da casa, e os cartões de dentro, no cinza, é que se destacam. */
+      surface="page"
       focusOnOpen={false}
       above={task && <SheetSwitcher label="O que ver da tarefa" options={taskTabs} value={tab} onChange={setTab} />}
     >
-      {task && (
+      {task && shown && (
         <TaskDetail
           key={task.id}
-          task={task}
+          task={shown}
           onClose={onClose}
           stages={stages ?? [task.stage]}
           team={team ?? task.people}
+          viewer={viewer}
           records={records}
+          onChanged={onChanged}
+          onDraftChange={onDraftChange}
           projects={projects}
           onStageChange={onStageChange}
           tab={tab}
@@ -571,9 +724,12 @@ function TaskDetail({
   onClose,
   stages,
   team,
+  viewer,
   records,
   projects,
   onStageChange,
+  onChanged,
+  onDraftChange,
   tab,
   onTabChange,
 }: {
@@ -581,6 +737,9 @@ function TaskDetail({
   onClose: () => void;
   stages: TaskStage[];
   team: TaskPerson[];
+  viewer: TaskPerson;
+  onChanged?: () => void;
+  onDraftChange?: (task: Task) => void;
   records: AppRecord[];
   projects: TaskProjectOption[];
   onStageChange?: (stage: TaskStage) => void;
@@ -589,8 +748,26 @@ function TaskDetail({
   onTabChange: (tab: TaskTab) => void;
 }) {
   const { toast } = useToast();
-  const [draft, setDraft] = useState(task);
-  const [events, setEvents] = useState<TaskEvent[]>(task.activity);
+  /* Com o recorte do cartão, o que ele não traz começa vazio, e entra quando a tarefa inteira chega: os
+     anexos e a conversa do recorte são só marcadores de contagem, sem nada para desenhar. */
+  const [draft, setDraft] = useState<Task>(() => (task.loaded ? task : { ...task, links: [], attachments: [], activity: [] }));
+  const [events, setEvents] = useState<TaskEvent[]>(task.loaded ? task.activity : []);
+  const [loaded, setLoaded] = useState(Boolean(task.loaded));
+  if (task.loaded && !loaded) {
+    setLoaded(true);
+    /* O que a pessoa já mexeu no recorte fica; o que o recorte não trazia vem da tarefa inteira. */
+    setDraft((current) => ({
+      ...current,
+      description: task.description,
+      descriptionDoc: task.descriptionDoc,
+      links: task.links,
+      attachments: task.attachments,
+      activity: task.activity,
+      people: task.people,
+      loaded: true,
+    }));
+    setEvents(task.activity);
+  }
   const [comment, setComment] = useState("");
   const [feed, setFeed] = useState<"all" | "comments">("all");
   /* No celular a janela é bandeja e as ações dela moram na barra flutuante, como em toda janela da casa. */
@@ -614,6 +791,61 @@ function TaskDetail({
 
   const patch = (change: Partial<Task>) => setDraft((current) => ({ ...current, ...change }));
 
+
+  /**
+   * A atividade relida do servidor depois de cada gravação (2026-09-23, a pedido de ela refletir o que
+   * acontece na tarefa): quem escreve as notas é o servidor, no mesmo passo em que grava, e a conversa as
+   * busca logo depois. Várias gravações seguidas viram uma leitura só, pela pausa. A mensagem que ainda está
+   * subindo fica na conversa até o servidor já tê-la.
+   */
+  useEffect(() => () => window.clearTimeout(activityTimers.get(task.id)), [task.id]);
+
+  const refreshActivity = () => scheduleActivity(task.id, setEvents);
+
+  /** Grava uma mudança da ficha por trás; a tela já mostrou, e só a falha interrompe. */
+  const persist = (change: Parameters<typeof changeTask>[1]) => {
+    onChanged?.();
+    void changeTask(draft.id, change).then((result) => {
+      if (!result.ok) toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
+      else refreshActivity();
+    });
+  };
+
+  /** O anexo entra na lista na hora; o arquivo sobe e a linha é gravada apontando para ele. */
+  const attach = async (file: Omit<TaskAttachment, "id">) => {
+    const id = randomId();
+    setDraft((current) => ({ ...current, attachments: [...current.attachments, { ...file, id }] }));
+    const drop = (error: string) => {
+      setDraft((current) => ({ ...current, attachments: current.attachments.filter((entry) => entry.id !== id) }));
+      toast({ title: "Não deu para anexar", description: error, tone: "danger" });
+    };
+    const blob = localFileOf(file.url);
+    if (!blob) {
+      const saved = await changeTask(draft.id, { op: "attachment-add", id, name: file.name, type: file.type, url: file.url });
+      if (!saved.ok) drop(saved.error);
+      else {
+        onChanged?.();
+        refreshActivity();
+      }
+      return;
+    }
+    const sent = await uploadTaskFile(draft.id, blob, file.name);
+    if (!sent.ok) return drop(sent.error);
+    const saved = await changeTask(draft.id, { op: "attachment-add", id, name: file.name, type: file.type, path: sent.path, sizeBytes: blob.size || null });
+    if (!saved.ok) drop(saved.error);
+    else {
+      onChanged?.();
+      refreshActivity();
+    }
+  };
+
+  const time = useTaskTime(task.id);
+  /* Ligado de um botão, a ilha sobe dele; da barra do celular, ela nasce do pé da tela. */
+  const toggleTime = (from?: Element) =>
+    void (time.current ? time.stop() : time.start({ projectId: task.project?.id, taskId: task.id }, originOf(from ?? null)));
+  const timeLabel = time.current ? "Encerrar o tempo" : "Iniciar o tempo";
+  const timeIcon = time.current ? <StopCircleIcon weight="fill" /> : <TimerIcon weight="bold" />;
+
   /**
    * A ficha grava sozinha (2026-09-22, junto de a tarefa passar a nascer já aberta). Antes ela era um
    * rascunho que vivia só na tela: tudo o que se mexia aqui voltava ao fechar, e com a criação virando "abre
@@ -629,40 +861,37 @@ function TaskDetail({
 
   useEffect(() => () => window.clearTimeout(saveTimer.current), []);
 
+  /* O cartão do quadro acompanha a ficha a cada mudança. */
   useEffect(() => {
-    const payload = {
-      id: draft.id,
-      projectId: draft.project?.id ?? null,
-      title: draft.title,
-      description: draft.descriptionDoc,
-      dueDate: draft.dueDate,
-      startDate: draft.startDate ?? "",
-      estimate: draft.estimate ?? null,
-      stageId: draft.stage.id,
-      priority: draft.priority,
-      ownerId: draft.owner.id ?? null,
-      tags: draft.tags,
-      alert: draft.alert ?? "",
-    };
+    if (loaded) onDraftChange?.({ ...draft, activity: events });
+  }, [draft, events, loaded, onDraftChange]);
+
+  useEffect(() => {
+    /* Nada é gravado antes de a tarefa inteira chegar: com o recorte do cartão, o salvar mandaria a
+       descrição vazia por cima da verdadeira. */
+    if (!loaded) return;
+    const payload = payloadOf(draft);
     const key = JSON.stringify(payload);
 
-    /* A primeira passada é a tarefa como ela veio do servidor: nada a gravar. */
-    if (savedPayload.current === null) {
-      savedPayload.current = key;
-      return;
-    }
+    /* O ponto de partida é a tarefa como o servidor a devolveu, e não o rascunho: o que a pessoa mexeu
+       enquanto ela chegava também é mudança, e precisa ser gravado. */
+    if (savedPayload.current === null) savedPayload.current = JSON.stringify(payloadOf(task));
     if (savedPayload.current === key) return;
 
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       savedPayload.current = key;
+      onChanged?.();
       setSaving(true);
-      void callAction(saveTaskAction(payload)).then((result) => {
-        setSaving(false);
-        if (!result.ok) toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
-      });
+      void creationOf(payload.id)
+        .then(() => callAction(saveTaskAction(payload)))
+        .then((result) => {
+          setSaving(false);
+          if (!result.ok) toast({ title: "Não deu para salvar", description: result.error, tone: "danger" });
+          else scheduleActivity(payload.id, setEvents);
+        });
     }, SAVE_PAUSE);
-  }, [draft, toast]);
+  }, [draft, toast, onChanged, loaded, task]);
 
   const due = dueOf(draft);
   const stage = draft.stage;
@@ -711,10 +940,10 @@ function TaskDetail({
     if (list) list.scrollTop = list.scrollHeight;
   }, [talk.length, feed]);
 
-  /* Os vínculos agrupados por tipo, na ordem do catálogo de vínculos: tipo sem nenhum sai do caminho. */
-  const linkGroups = linkKindValues
-    .map((kind) => ({ kind, items: draft.links.filter((link) => link.kind === kind) }))
-    .filter((group) => group.items.length > 0);
+  /* Os vínculos numa grade só (2026-09-22, a pedido): uma tarefa costuma ter um de cada tipo, e um título
+     por grupo era um cabeçalho para um cartão. A ordem segue o catálogo de vínculos, para cliente vir antes
+     de orçamento em toda tarefa. */
+  const orderedLinks = [...draft.links].sort((a, b) => linkKindValues.indexOf(a.kind) - linkKindValues.indexOf(b.kind));
 
   const stageSections: DropdownSection[] = [
     {
@@ -801,8 +1030,11 @@ function TaskDetail({
         label: person.name,
         media: <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />,
         checked: draft.people.some((entry) => entry.name === person.name),
-        onChange: (on: boolean) =>
-          patch({ people: on ? [...draft.people, person] : draft.people.filter((entry) => entry.name !== person.name) }),
+        onChange: (on: boolean) => {
+          const people = on ? [...draft.people, person] : draft.people.filter((entry) => entry.name !== person.name);
+          patch({ people });
+          persist({ op: "people", userIds: people.flatMap((entry) => (entry.id && entry.id !== draft.owner.id ? [entry.id] : [])) });
+        },
       })),
     },
   ];
@@ -810,7 +1042,7 @@ function TaskDetail({
   /* As etiquetas saem do mesmo montador do seletor da casa: aqui elas aparecem de outro jeito, com a própria
      fila servindo de gatilho, no desenho de ficha de propriedades, mas as opções, as famílias e a regra do
      teto são as mesmas de toda a aplicação. */
-  const tagOptions = tagSections(taskTagCatalog, draft.tags, (tags) => patch({ tags }));
+  const tagOptions = tagSections(taskTagCatalog, draft.tags, (tags) => patch({ tags }), TASK_MAX_TAGS);
 
   /* O que dá para anexar ao comentário: os três esperam o armazenamento de arquivo. */
   const attachSections: DropdownSection[] = [
@@ -834,7 +1066,7 @@ function TaskDetail({
         id: `mention-${person.name}`,
         label: person.name,
         media: <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />,
-        onSelect: () => mark({ token: `@${person.name.split(" ")[0]}`, kind: "person", name: person.name }),
+        onSelect: () => mark({ token: `@${person.name.split(" ")[0]}`, kind: "person", name: person.name, avatarUrl: person.avatarUrl }),
       })),
     },
   ];
@@ -877,7 +1109,9 @@ function TaskDetail({
     if (!typing) return;
     const token = `@${person.name.split(" ")[0]}`;
     setComment(`${comment.slice(0, typing.at)}${token} `);
-    setMentions((current) => (current.some((entry) => entry.token === token) ? current : [...current, { token, kind: "person", name: person.name }]));
+    setMentions((current) =>
+      current.some((entry) => entry.token === token) ? current : [...current, { token, kind: "person", name: person.name, avatarUrl: person.avatarUrl }],
+    );
   };
 
   /* Os arquivos escolhidos entram na fila do comentário, e vão com ele no envio. */
@@ -903,14 +1137,57 @@ function TaskDetail({
      o botão da barra flutuante lê a mesma coisa para saber se fica apagado. */
   const canPublish = comment.trim().length > 0 || pending.length > 0 || Boolean(voice);
 
+  /**
+   * A mensagem aparece na hora, com o que veio junto, e grava por trás (2026-09-22, a pedido de a conversa
+   * não sumir): os arquivos e o áudio sobem para o balde da tarefa e só então o comentário entra, apontando
+   * para eles. Se algo falhar, a mensagem sai da conversa e o aviso diz o quê.
+   */
+  const persistComment = async (id: string, text: string, kept: TaskMention[], files: TaskAttachment[], audio: TaskAudio | null) => {
+    const failed = (error: string) => {
+      setEvents((current) => current.filter((event) => event.id !== id));
+      toast({ title: "Não deu para enviar a mensagem", description: error, tone: "danger" });
+    };
+
+    const uploaded: { path: string; name: string; type: TaskAttachment["type"]; sizeBytes: number | null }[] = [];
+    for (const file of files) {
+      const blob = localFileOf(file.url);
+      if (!blob) continue;
+      const sent = await uploadTaskFile(draft.id, blob, file.name);
+      if (!sent.ok) return failed(sent.error);
+      uploaded.push({ path: sent.path, name: file.name, type: file.type, sizeBytes: blob.size || null });
+    }
+
+    let voicePath: string | null = null;
+    const voiceBlob = audio ? localFileOf(audio.url) : null;
+    if (audio && voiceBlob) {
+      const sent = await uploadTaskFile(draft.id, voiceBlob, `audio.${voiceBlob.type.includes("mp4") ? "m4a" : "webm"}`);
+      if (!sent.ok) return failed(sent.error);
+      voicePath = sent.path;
+    }
+
+    const saved = await changeTask(draft.id, {
+      op: "comment",
+      text,
+      mentions: kept,
+      audio: audio && voicePath ? { path: voicePath, seconds: audio.seconds } : null,
+      files: uploaded,
+    });
+    if (!saved.ok) return failed(saved.error);
+    settledComments.add(id);
+    onChanged?.();
+    refreshActivity();
+  };
+
   const publish = () => {
     const text = comment.trim();
     if (!canPublish) return;
     /* Só as marcações que sobraram no texto: quem apagou o sinal à mão não quer a marcação. */
     const kept = mentions.filter((mention) => text.includes(mention.token));
+    const id = `local-${randomId()}`;
+    void persistComment(id, text, kept, pending, voice);
     setEvents((current) => [
       {
-        id: `local-${current.length + 1}`,
+        id,
         person: viewer,
         action: text,
         kind: "comment",
@@ -1008,6 +1285,8 @@ function TaskDetail({
                 onStageChange?.(next);
               },
             },
+            /* O cronômetro mora na barra no celular: no topo da ficha ele disputava a linha com o caminho. */
+            extras: [{ label: timeLabel, icon: timeIcon, disabled: time.pending, onClick: () => toggleTime() }],
             cancel: { label: "Fechar tarefa", onClick: onClose },
           };
 
@@ -1019,7 +1298,7 @@ function TaskDetail({
   };
 
   return (
-    <div className={frame.dialog}>
+    <div className={frame.dialog} data-tab={tab}>
       <header className={frame.top}>
         <nav className={frame.route} aria-label="Onde a tarefa mora">
           <Link href="/tarefas" className={frame.crumb}>
@@ -1042,6 +1321,7 @@ function TaskDetail({
         </nav>
 
         <div className={frame.actions}>
+          {!mobile && <TimeTrackerButton projectId={task.project?.id} taskId={task.id} label={task.title} />}
           {/* O leque da ficha move de etapa e conclui pelas mesmas etapas do quadro de onde ela veio: sem
               isto, "Mover para" e "Marcar como concluída" apareciam aqui dentro sem para onde ir. Abrir e
               excluir ficam de fora, porque a ficha já está aberta e quem apaga é o quadro. */}
@@ -1067,10 +1347,10 @@ function TaskDetail({
         onPointerCancel={onSwipeCancel}
       >
         <section className={frame.main} aria-label="Informações da tarefa">
-          <InlineText value={draft.title} onChange={(title) => patch({ title })} label="Título da tarefa" as="h2" variant="title2" weight="semibold" single />
+          <InlineText value={draft.title} onChange={(title) => patch({ title })} label="Título da tarefa" as="h2" variant="title1" weight="bold" single />
 
           {task.alert && (
-            <div className={sheet.alert} role="note" {...squircle("md", { clip: true })}>
+            <div className={sheet.alert} role="note" {...rounded("md", { clip: true })}>
               <WarningIcon weight="fill" aria-hidden="true" />
               <Text variant="subheadline">{task.alert}</Text>
             </div>
@@ -1178,7 +1458,11 @@ function TaskDetail({
               />
             </Property>
 
-            <Property icon={UsersIcon} label="Envolvidos" wide>
+            <Property icon={ClockIcon} label="Tempo">
+              <TaskTimeBadge entries={time.entries} running={time.running} current={time.current} />
+            </Property>
+
+            <Property icon={UsersIcon} label="Envolvidos" double>
               <DropdownMenu
                 label="Envolvidos"
                 triggerLabel="Escolher quem está envolvido"
@@ -1244,17 +1528,29 @@ function TaskDetail({
             {/* A descrição é documento desde 2026-09-22: títulos, listas, caixas de marcar, citação, código
                 e imagens. É a única parte da ficha que grava sozinha no banco, porque texto longo não se
                 escreve apertando salvar a cada parágrafo. */}
-            <TaskDescription
-              taskId={draft.id}
-              value={draft.descriptionDoc}
-              saving={saving}
-              onChange={(descriptionDoc) => patch({ descriptionDoc })}
-            />
+            {loaded ? (
+              <TaskDescription
+                taskId={draft.id}
+                value={draft.descriptionDoc}
+                saving={saving}
+                onChange={(descriptionDoc) => patch({ descriptionDoc })}
+              />
+            ) : (
+              <LoadingLines />
+            )}
           </section>
+
+          <Subtasks
+            taskId={draft.id}
+            subtasks={draft.subtasks}
+            team={candidates}
+            onChange={(subtasks) => patch({ subtasks })}
+            onSaved={refreshActivity}
+          />
 
           <Block
             title="Vínculos"
-            count={draft.links.length}
+            count={loaded ? draft.links.length : undefined}
             addLabel="Vincular registro"
             onAdd={() => setLinking(true)}
             empty="Nenhum cliente, orçamento ou projeto vinculado."
@@ -1262,41 +1558,33 @@ function TaskDetail({
             {/* Agrupado por tipo (2026-09-10, a pedido): com cliente, orçamento e projeto na mesma pilha, o
                 olho não achava o que procurava. O nome do grupo só aparece quando há mais de um tipo, senão
                 seria um título para uma lista só. */}
-            {linkGroups.length > 0 && (
-              <div className={frame.linkGroups}>
-                {linkGroups.map((group) => (
-                  <div key={group.kind} className={frame.linkGroup}>
-                    {linkGroups.length > 1 && (
-                      <Text as="h4" variant="caption1" weight="semibold" tone="secondary" className={frame.linkGroupName}>
-                        {group.items.length > 1 ? taskLinkKinds[group.kind].plural : taskLinkKinds[group.kind].label}
-                      </Text>
-                    )}
-                    <ul className={frame.links}>
-                      {group.items.map((link) => (
-                        <LinkRow
-                          key={`${link.kind}-${link.id}`}
-                          link={link}
-                          onRemove={() => patch({ links: draft.links.filter((entry) => entry !== link) })}
-                        />
-                      ))}
-                    </ul>
-                  </div>
+            {!loaded && <LoadingTiles className={frame.links} count={2} shape="card" />}
+            {loaded && orderedLinks.length > 0 && (
+              <ul className={frame.links}>
+                {orderedLinks.map((link) => (
+                  <LinkRow
+                    key={`${link.kind}-${link.id}`}
+                    link={link}
+                    onRemove={() => {
+                      patch({ links: draft.links.filter((entry) => entry !== link) });
+                      persist({ op: "link-remove", kind: link.kind, recordId: link.id });
+                    }}
+                  />
                 ))}
-              </div>
+              </ul>
             )}
           </Block>
 
-          <Subtasks subtasks={draft.subtasks} team={candidates} />
-
           <Block
             title="Anexos"
-            count={draft.attachments.length}
+            count={loaded ? draft.attachments.length : undefined}
             addLabel="Anexar arquivo"
             onAdd={() => setAttaching(true)}
             empty="Nenhum arquivo anexado."
           >
-            {draft.attachments.length > 0 && (
-              <ul className={sheet.list}>
+            {!loaded && <LoadingTiles className={sheet.tiles} count={3} shape="square" />}
+            {loaded && draft.attachments.length > 0 && (
+              <ul className={sheet.tiles}>
                 {draft.attachments.map((file) => (
                   <li key={file.id}>
                     <AttachmentCard file={file} />
@@ -1342,14 +1630,16 @@ function TaskDetail({
               por dia, o comentário em bolha e a mudança de estado em linha de sistema no meio. A rolagem
               nasce embaixo, junto do compositor, que é onde a última mensagem está. */}
           <div className={frame.feed} ref={thread}>
-            {shownEvents.length === 0 ? (
+            {!loaded ? (
+              <LoadingTalk />
+            ) : shownEvents.length === 0 ? (
               <Text variant="footnote" tone="tertiary" align="center" className={frame.feedEmpty}>
                 {feed === "comments" ? "Nenhum comentário ainda." : "Nada registrado ainda."}
               </Text>
             ) : (
               <ol className={frame.thread}>
                 {talk.map(({ event, day, opensAuthor, closesAuthor }) => {
-                  const mine = event.person.name === viewer.name;
+                  const mine = viewer.id ? event.person.id === viewer.id : event.person.name === viewer.name;
 
                   return (
                     <Fragment key={event.id}>
@@ -1386,7 +1676,7 @@ function TaskDetail({
                                 </Text>
                               </span>
                             )}
-                            <div className={frame.bubble} {...squircle("md")}>
+                            <div className={frame.bubble} {...rounded("md")}>
                               {/* O que a mensagem aponta, em cartão, acima do texto: é a ficha do registro
                                   marcado. Pessoa não entra aqui (pedido de 2026-09-10): ela já aparece por
                                   dentro da frase, com rosto e nome, e o cartão repetia o que o texto diz. */}
@@ -1407,7 +1697,7 @@ function TaskDetail({
                                 </div>
                               )}
                               {event.audio && <AudioBubble audio={event.audio} />}
-                              {event.action && (
+                              {event.action && event.action !== ATTACHMENT_ONLY && (
                                 <Text as="p" variant="subheadline" className={frame.bubbleText}>
                                   <EventBody action={event.action} mentions={event.mentions} />
                                 </Text>
@@ -1442,7 +1732,7 @@ function TaskDetail({
                 desenho do menu de opções da casa (2026-09-10, a pedido): absoluta, para não empurrar o campo
                 a cada tecla. O primeiro da lista responde ao Enter, como em toda conversa. */}
             {suggested.length > 0 && (
-              <div className={frame.suggest} {...squircle("lg")} role="listbox" aria-label="Marcar alguém">
+              <div className={frame.suggest} {...rounded("lg")} role="listbox" aria-label="Marcar alguém">
                 <Text as="span" variant="caption2" weight="medium" className={frame.suggestTitle}>
                   Marcar alguém
                 </Text>
@@ -1456,7 +1746,7 @@ function TaskDetail({
                 ))}
               </div>
             )}
-            <div className={frame.composerCard} {...squircle("lg")}>
+            <div className={frame.composerCard} {...rounded("lg")}>
               {/* A gravação em curso aparece **dentro do cartão** (2026-09-11, a pedido de a gravação ter
                   animação): a onda que se move com a voz e o relógio correndo. No celular o microfone mora na
                   barra flutuante e o único sinal era o glifo virar "parar", que não diz que está gravando; no
@@ -1601,13 +1891,16 @@ function TaskDetail({
         onClose={() => setLinking(false)}
         records={records}
         linked={draft.links}
-        onAdd={(link) => patch({ links: [...draft.links, link] })}
+        onAdd={(link) => {
+          patch({ links: [...draft.links, link] });
+          persist({ op: "link-add", kind: link.kind, recordId: link.id });
+        }}
       />
 
       <AttachmentDialog
         open={attaching}
         onClose={() => setAttaching(false)}
-        onAdd={(file) => patch({ attachments: [...draft.attachments, { ...file, id: `local-${draft.attachments.length + 1}` }] })}
+        onAdd={(file) => void attach(file)}
       />
 
       {/* Marcar um registro no comentário: o mesmo seletor do vincular, e o que ele devolve é escrito no

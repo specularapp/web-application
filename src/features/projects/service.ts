@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { differenceInCalendarDays, format } from "date-fns";
 import { projectFace, type ProjectFolderOption } from "./summary";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -459,7 +460,7 @@ export async function saveProject(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
     const failed = await syncMembers(client, organizationId, data.id, input.memberIds);
     if (failed) return { ok: false, error: failed };
@@ -482,7 +483,7 @@ export async function saveProject(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   const failed = await syncMembers(client, organizationId, data.id, input.memberIds);
   if (failed) return { ok: false, error: failed };
@@ -516,7 +517,7 @@ export async function deleteProject(
   id: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("projects").delete().eq("organization_id", organizationId).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   /* O histórico sobrevive ao registro: apagar o projeto não apaga quem o apagou. */
   await logRecordEvent(client, organizationId, { recordType: "project", recordId: id, action: "deleted", summary: "Excluiu o projeto" });
@@ -663,7 +664,7 @@ export async function saveProjectFolder(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
     return { ok: true, data: { id: data.id } };
   }
 
@@ -678,7 +679,7 @@ export async function saveProjectFolder(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: { id: data.id } };
 }
 
@@ -692,7 +693,7 @@ export async function deleteProjectFolder(
   id: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("project_folders").delete().eq("id", id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -708,7 +709,7 @@ export async function moveProject(
     .eq("id", input.id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -730,7 +731,7 @@ export async function setProjectStatus(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, {
     recordType: "project",
@@ -758,7 +759,7 @@ export async function setProjectPublic(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, {
     recordType: "project",
@@ -788,6 +789,6 @@ export async function setProjectAppearance(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: undefined };
 }

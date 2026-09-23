@@ -66,7 +66,11 @@ export type ClientsPeriod = (typeof periodValues)[number];
    vigor saber que, fora do padrão, favorito e situação já não são "todos". */
 export const DEFAULT_FAVORITE = "todos" satisfies ClientsFavorite;
 export const DEFAULT_STATUS = "todos" satisfies ClientsStatus;
-export const DEFAULT_PERIOD = "30" satisfies ClientsPeriod;
+/* A base inteira é o padrão, como na listagem de orçamentos (acerto de 2026-09-22, na varredura): com
+   "30" a listagem abria escondendo quem entrou há mais de um mês, e como o período no padrão não conta como
+   filtro em vigor, a tela vazia dizia que não existia cliente nenhum, sem etiqueta nem botão de limpar.
+   Trinta e noventa dias seguem como escolha explícita, e aí sim aparecem como filtro. */
+export const DEFAULT_PERIOD = "sempre" satisfies ClientsPeriod;
 
 /* Três períodos bastam: o mês corrente de trabalho, o trimestre e a base inteira (2026-09-08, a pedido).
    O rótulo mora num mapa, e não na lista de opções, porque a etiqueta do filtro em vigor diz a mesma

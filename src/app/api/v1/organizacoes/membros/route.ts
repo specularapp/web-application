@@ -5,16 +5,33 @@ import {
   inviteRoleChangeSchema,
   memberRemovalSchema,
   memberRoleChangeSchema,
+  organizationIdSchema,
 } from "@/features/organizations/schemas";
 import {
   cancelInvite,
   changeInviteRole,
   changeMemberRole,
-  getTeamState,
+  getTeam,
+  getTeamPeople,
   inviteMember,
   removeMember,
 } from "@/features/organizations/service";
 import { authorizeRequest, invalidPayload, readJson } from "@/lib/api/v1";
+
+/** Quem está na equipe e quem foi convidado. O id vem na busca, porque o aplicativo lista as equipes da pessoa. */
+export async function GET(request: Request) {
+  const auth = await authorizeRequest(request, "members-read");
+  if ("response" in auth) return auth.response;
+
+  const organizationId = new URL(request.url).searchParams.get("equipe") ?? "";
+  const parsed = organizationIdSchema.safeParse({ organizationId });
+  if (!parsed.success) return invalidPayload();
+
+  const result = await getTeamPeople(auth.session.supabase, parsed.data.organizationId, auth.session.userId);
+  if (!result.ok) return Response.json({ error: result.error }, { status: 404 });
+
+  return Response.json(result.data);
+}
 
 export async function POST(request: Request) {
   const auth = await authorizeRequest(request, "invite");
@@ -23,15 +40,17 @@ export async function POST(request: Request) {
   const parsed = createInviteSchema.safeParse(await readJson(request));
   if (!parsed.success) return invalidPayload();
 
-  const state = await getTeamState(auth.session.supabase, auth.session.userId);
-  if (!state.team || state.team.id !== parsed.data.organizationId) {
-    return Response.json({ error: "Time não encontrado" }, { status: 404 });
-  }
+  /* A equipe vem por id, e quem pode convidar é o banco: a leitura serve para o nome do time no e-mail, e a
+     RLS devolve nada para quem não participa. */
+  const team = await getTeam(auth.session.supabase, parsed.data.organizationId);
+  if (!team) return Response.json({ error: "Time não encontrado" }, { status: 404 });
+
+  const people = await getTeamPeople(auth.session.supabase, parsed.data.organizationId, auth.session.userId);
 
   const result = await inviteMember(auth.session.supabase, parsed.data, {
     origin: siteConfig.url,
-    teamName: state.team.name,
-    inviterName: state.viewer.name,
+    teamName: team.name,
+    inviterName: people.ok ? people.data.viewer.name : null,
   });
 
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });

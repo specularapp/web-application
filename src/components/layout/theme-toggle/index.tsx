@@ -35,7 +35,6 @@ const Dock = styled.div`
   background-color: var(--color-bg-grouped-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   box-shadow: var(--shadow-md);
 `;
 

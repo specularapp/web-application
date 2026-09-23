@@ -1,5 +1,5 @@
 /* Quem está do outro lado, no raio de metade do lado, a escala do botão de ícone e do `Avatar` em
-   squircle, seja logo ou ícone. Sem borda, para o fallback poder recortar na superelipse. */
+   rounded, seja logo ou ícone. Sem borda, para o fallback poder recortar na superelipse. */
 .party {
   --party-size: var(--control-height-sm);
   --party-radius: var(--icon-button-radius-sm);

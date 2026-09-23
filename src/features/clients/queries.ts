@@ -7,9 +7,23 @@ import { getClient, getClientsSummary, listClients, listClientOptions } from "./
 import type { Client, ClientsSummary } from "./summary";
 
 /* O que a URL pediu vira parte da chave: duas pessoas no mesmo filtro leem o mesmo bolo, e trocar o filtro
-   abre outro. A ordem é fixa, senão a mesma pergunta geraria chaves diferentes. */
+   abre outro. A ordem é fixa, senão a mesma pergunta geraria chaves diferentes.
+
+   O grupo é o primeiro e não é enfeite: é ele que decide se a consulta traz clientes ou fornecedores, e sem
+   ele na chave a aba de fornecedores servia a lista de clientes guardada trinta segundos antes, com o total
+   errado na paginação (2026-09-22, na varredura). */
 const queryKey = (query: ClientsQuery) =>
-  [query.search, query.favorite, query.status, query.period, query.withEmail, query.withPhone, query.page, query.pageSize].join("|");
+  [
+    query.group,
+    query.search,
+    query.favorite,
+    query.status,
+    query.period,
+    query.withEmail,
+    query.withPhone,
+    query.page,
+    query.pageSize,
+  ].join("|");
 
 /** A página da listagem para a tela, já com a sessão e o time resolvidos. */
 export async function getClientsPage(query: ClientsQuery, next = "/clientes"): Promise<ClientsListPage> {

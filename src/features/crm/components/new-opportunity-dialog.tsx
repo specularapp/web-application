@@ -8,6 +8,7 @@ import { CaretDownIcon, CaretUpIcon, CheckIcon, XIcon } from "@phosphor-icons/re
 import { useId, useMemo, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
@@ -114,12 +115,21 @@ function OpportunityForm(props: NewOpportunityDialogProps) {
 
   const clientOptions = useMemo(() => [
     { value: NEW_LEAD, label: "Novo lead (sem cadastro)" },
-    ...props.clients.map((client) => ({ value: client.id, label: client.company ? `${client.name}, ${client.company}` : client.name })),
+    ...props.clients.map((client) => ({
+      value: client.id,
+      label: client.company ? `${client.name}, ${client.company}` : client.name,
+      media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="rounded" />,
+    })),
   ], [props.clients]);
   const funnelOptions = [{ value: NONE, label: "Sem funil" }, ...props.funnels.filter((funnel) => funnel.reference !== null).map((funnel) => ({ value: funnel.id, label: funnel.name }))];
-  const ownerOptions = [{ value: NONE, label: "Sem responsável" }, ...props.team.map((person) => ({ value: person.id, label: person.name }))];
+  const ownerOptions = [{ value: NONE, label: "Sem responsável" }, ...props.team.map((person) => ({
+    value: person.id,
+    label: person.name,
+    media: <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" shape="rounded" />,
+  }))];
   const peopleSections: DropdownSection[] = [{ id: "people", items: props.team.map((person) => ({
     id: person.id, label: person.name, selected: values.peopleIds.includes(person.id), keepOpen: true,
+    media: <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" shape="rounded" />,
     onSelect: () => set("peopleIds", values.peopleIds.includes(person.id) ? values.peopleIds.filter((id) => id !== person.id) : [...values.peopleIds, person.id]),
   })) }];
 
@@ -152,7 +162,15 @@ function OpportunityForm(props: NewOpportunityDialogProps) {
     }));
     setSaving(false);
     if (!result.ok) { setError({ field: result.field, message: result.error }); toast({ title: "Não deu para salvar", description: result.error, tone: "danger" }); return; }
-    toast({ title: editing ? "Oportunidade atualizada" : "Oportunidade criada", description: editing ? "As mudanças já aparecem na ficha." : `Ela entrou em ${crmStageMeta[result.opportunity.stage].label}.`, tone: "success" });
+    toast({
+      title: editing ? "Oportunidade atualizada" : "Oportunidade criada",
+      description: editing ? "As mudanças já aparecem na ficha." : `Ela entrou em ${crmStageMeta[result.opportunity.stage].label}.`,
+      tone: "success",
+      feedback: {
+        visual: <Avatar name={result.opportunity.client.name} src={result.opportunity.client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+        confetti: !editing,
+      },
+    });
     props.onSaved(result.opportunity);
   };
 

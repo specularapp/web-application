@@ -1,4 +1,6 @@
 import "server-only";
+import { houseDayWithOffset } from "@/lib/utils/day";
+import { dbMessage, type DbError } from "@/lib/db/message";
 import { addMonths, format, parseISO, startOfMonth, startOfQuarter, startOfYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -92,13 +94,24 @@ type Row = {
 };
 
 const isoDate = (date: Date) => format(date, "yyyy-MM-dd");
-const day = (offset: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + offset);
-  return isoDate(date);
-};
+
+/* O deslocamento em dias sai do fuso da casa, como todo "hoje" deste domínio. */
+const day = (offset: number) => houseDayWithOffset(offset);
 
 const NOBODY = { name: "Equipe", avatarUrl: null };
+
+/**
+ * Toda leitura que vira número de dinheiro na tela passa por aqui antes.
+ *
+ * Falha de consulta não pode virar zero: uma negativa de RLS ou um tempo esgotado devolvia `data: null`, o
+ * `(rows ?? [])` absorvia, e a prancha abria inteira dizendo "Em caixa R$ 0,00" e "Nenhuma parcela vencida.
+ * Ótimo sinal." com o financeiro real intacto do outro lado. Pior ainda com o `cached` por cima, que
+ * guardaria esse vazio por um minuto para todo o time. Lançando, a rota cai no limite de erro, que é o que
+ * ela é (2026-09-22, na varredura, na mesma regra de `clients/service.ts`).
+ */
+function ensureRead(error: DbError | null) {
+  if (error) throw new Error(dbMessage(error, "Não foi possível ler o financeiro agora. Tente de novo em instantes."));
+}
 
 function toCharge(row: Row, owner: { name: string; avatarUrl: string | null }): Charge {
   return {
@@ -181,19 +194,25 @@ async function ownersOf(client: FinanceClient, organizationId: string) {
 }
 
 export async function listCharges(client: FinanceClient, organizationId: string): Promise<Charge[]> {
-  const [{ data }, owners] = await Promise.all([
+  const [{ data, error }, owners] = await Promise.all([
     client.from("charges").select(columns).eq("organization_id", organizationId).order("created_at", { ascending: false }).limit(500),
     ownersOf(client, organizationId),
   ]);
+
+  ensureRead(error);
 
   return ((data ?? []) as unknown as Row[]).map((row) => toCharge(row, (row.owner_id && owners.get(row.owner_id)) || NOBODY));
 }
 
 export async function getCharge(client: FinanceClient, organizationId: string, id: string): Promise<Charge | null> {
-  const [{ data }, owners] = await Promise.all([
+  const [{ data, error }, owners] = await Promise.all([
     client.from("charges").select(columns).eq("organization_id", organizationId).eq("id", id).maybeSingle(),
     ownersOf(client, organizationId),
   ]);
+
+  /* Falha de leitura não é cobrança inexistente: sem isto, uma negativa de RLS ou um tempo esgotado devolvia
+     `null` e a ficha abria como 404, dizendo que o registro não existe mais. */
+  ensureRead(error);
 
   if (!data) return null;
   const row = data as unknown as Row;
@@ -217,6 +236,12 @@ export async function getChargeLookups(client: FinanceClient, organizationId: st
       .eq("status", "approved"),
     client.from("charges").select("quote_id").eq("organization_id", organizationId).not("quote_id", "is", null),
   ]);
+
+  /* As três contam: com o erro engolido, a janela abria sem contato nenhum, sem orçamento nenhum, ou pior,
+     com a lista de já cobrados vazia, reoferecendo orçamento que já tem cobrança. */
+  ensureRead(clients.error);
+  ensureRead(quotes.error);
+  ensureRead(taken.error);
 
   const used = new Set((taken.data ?? []).map((row) => row.quote_id));
 
@@ -286,6 +311,25 @@ export async function createCharge(
   if (contact && input.direction === "incoming" && contact.kind === "supplier") return { ok: false, error: "Escolha um contato cadastrado como cliente." };
   if (contact && input.direction === "outgoing" && contact.kind === "customer") return { ok: false, error: "Escolha um contato cadastrado como fornecedor." };
 
+  /* O orçamento é conferido contra o banco como o contato (2026-09-22, na varredura). A janela esconder o
+     orçamento já cobrado é filtro de leitura, e filtro de leitura não é trava: dois POST na rota, ou duas
+     abas abertas dentro do minuto de cache, cobravam duas vezes o mesmo orçamento aprovado, e dava para
+     cobrar um rascunho ou um recusado, que a janela nunca ofereceria. A trava que vale para as duas abas e
+     para o aplicativo é o índice único de `quote_id`; esta conferência existe para a recusa ter texto. */
+  if (input.quoteId) {
+    const { data: quote, error: quoteError } = await client
+      .from("quotes")
+      .select("id, status")
+      .eq("organization_id", organizationId)
+      .eq("id", input.quoteId)
+      .maybeSingle();
+
+    if (quoteError) return { ok: false, error: dbMessage(quoteError, "Não foi possível conferir o orçamento.") };
+    if (!quote) return { ok: false, error: "Esse orçamento não está mais na base." };
+    if (quote.status !== "approved") return { ok: false, error: "Só orçamento aprovado pode virar cobrança." };
+  }
+
+  const noun = chargeDirections[input.direction].label.toLocaleLowerCase("pt-BR");
   const id = crypto.randomUUID();
   const { hash } = shareCredentials("charge", id);
 
@@ -310,7 +354,9 @@ export async function createCharge(
     token_hash: hash,
   });
 
-  if (error) return { ok: false, error: error.message };
+  /* O índice único barrou: outra aba, ou o aplicativo, cobrou este orçamento primeiro. */
+  if (error && error.code === "23505" && input.quoteId) return { ok: false, error: "Esse orçamento já tem cobrança." };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const { error: installmentsError } = await client.from("charge_installments").insert(
     splitAmount(input.amount, input.installments).map((amount, index) => ({
@@ -323,11 +369,18 @@ export async function createCharge(
   );
 
   if (installmentsError) {
-    await client.from("charges").delete().eq("id", id);
-    return { ok: false, error: installmentsError.message };
+    /* Desfazer é obrigatório, e o desfazer precisa ser conferido (2026-09-22, na varredura): cobrança sem
+       nenhuma parcela lê como **paga** na lista, porque a situação sai das parcelas, e ao mesmo tempo soma o
+       valor cheio no que há a receber. Se nem o desfazer funcionar, quem está olhando tem de saber que ficou
+       registro pela metade, em vez de ler só "não foi possível". */
+    const { error: undoError } = await client.from("charges").delete().eq("id", id).eq("organization_id", organizationId);
+    if (undoError) {
+      return { ok: false, error: `Não foi possível criar as parcelas, e a ${noun} ficou incompleta na base. Avise quem administra a equipe antes de criar outra.` };
+    }
+
+    return { ok: false, error: dbMessage(installmentsError, "Não foi possível criar as parcelas.") };
   }
 
-  const noun = chargeDirections[input.direction].label.toLocaleLowerCase("pt-BR");
   await client.from("charge_events").insert({ organization_id: organizationId, charge_id: id, kind: "created" });
   await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "created", summary: `Criou a ${noun} ${input.title}` });
 
@@ -381,7 +434,7 @@ export async function sendCharge(
     .eq("id", id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await client.from("charge_events").insert({
     organization_id: organizationId,
@@ -426,9 +479,10 @@ export async function payInstallment(
     p_operation: "pay",
     p_installment_id: installment.id,
     p_method: input.method ?? charge.method,
-    p_paid_on: input.paidOn ?? todayIso(),
+    /* Sem data escolhida, a chave nem vai: quem decide é a função do banco, que usa o fuso da casa. */
+    ...(input.paidOn ? { p_paid_on: input.paidOn } : {}),
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const updated = await getCharge(client, organizationId, charge.id);
   if (!updated) return { ok: false, error: "Não foi possível baixar a parcela." };
@@ -448,12 +502,14 @@ export async function payInstallment(
 }
 
 /**
- * A próxima cobrança de uma série recorrente, com o vencimento adiantado de um ciclo. Só nasce quando a
- * anterior fecha por inteiro, e só uma vez: a trava é o índice único de `recurring_from_id`, e não um `if`
- * daqui, que duas abas abertas ao mesmo tempo furariam.
+ * A próxima cobrança de uma série recorrente, um ciclo adiante e sempre depois da série que fechou. Só nasce
+ * quando a anterior fecha por inteiro, e só uma vez: a trava é o índice único de `recurring_from_id`, e não
+ * um `if` daqui, que duas abas abertas ao mesmo tempo furariam.
  */
 async function spawnNextRecurrence(client: FinanceClient, organizationId: string, userId: string, charge: Charge) {
   if (charge.recurrence === "none") return;
+  /* Série sem parcela nenhuma não fechou nada: repetir o vazio só multiplicaria registro pela metade. */
+  if (charge.installments.length === 0) return;
   if (charge.installments.some((installment) => !installment.paidAt)) return;
 
   const months = recurrenceMonths[charge.recurrence];
@@ -485,8 +541,18 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
   /* Já existia a próxima desta: o índice único barrou, e não há nada a corrigir. */
   if (error) return error.code === "23505" ? undefined : "Pagamento registrado, mas não foi possível criar a próxima recorrência";
 
-  const first = charge.installments[0];
-  const base = first ? parseISO(first.dueDate) : new Date();
+  /* O ciclo conta do primeiro vencimento, e a série nova nunca começa em cima da que fechou (2026-09-22, na
+     varredura). Contar só do primeiro fazia uma mensal de três parcelas nascer com 10/02, 10/03 e 10/04, dois
+     vencimentos já recebidos e vencidos no dia em que a nova era criada. Contar só do último atrasava o ciclo
+     em uma parcela a cada volta: trimestral de três parcelas pulava de m3 para m5, e no ciclo seguinte para
+     m7, acumulando dois meses de buraco por volta. O início é o mais tarde entre um ciclo depois da primeira
+     parcela e o mês seguinte à última, e o espaçamento interno segue de mês em mês, como na criação. */
+  const dueDates = charge.installments.map((installment) => installment.dueDate);
+  const firstDue = dueDates.reduce((earliest, due) => (due < earliest ? due : earliest));
+  const lastDue = dueDates.reduce((latest, due) => (due > latest ? due : latest));
+  const firstNext = addMonths(parseISO(firstDue), months);
+  const afterLast = addMonths(parseISO(lastDue), 1);
+  const base = firstNext > afterLast ? firstNext : afterLast;
 
   const { error: installmentsError } = await client.from("charge_installments").insert(
     charge.installments.map((installment, index) => ({
@@ -494,7 +560,7 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
       charge_id: id,
       number: installment.number,
       amount: installment.amount,
-      due_date: isoDate(addMonths(base, months + index)),
+      due_date: isoDate(addMonths(base, index)),
     })),
   );
 
@@ -532,7 +598,7 @@ export async function reopenInstallment(
     p_installment_id: installmentId,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const updated = await getCharge(client, organizationId, id);
   if (!updated) return { ok: false, error: "Não foi possível reabrir a parcela." };
@@ -558,7 +624,7 @@ export async function cancelCharge(
     p_operation: "cancel",
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "archived", summary: `${actor} cancelou a cobrança` });
 
@@ -590,7 +656,7 @@ export async function createTransaction(
     .select("*")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || "Não foi possível registrar a movimentação." };
+  if (error || !data) return { ok: false, error: dbMessage(error, "Não foi possível registrar a movimentação.") };
   return { ok: true, data: toTransaction(data) };
 }
 
@@ -614,14 +680,32 @@ function scheduledOf(entry: UpcomingInstallment): Transaction {
   };
 }
 
-/** As parcelas em aberto de toda a base, do vencimento mais próximo para o mais distante. */
-async function upcomingOf(client: FinanceClient, organizationId: string, today: string): Promise<UpcomingInstallment[]> {
-  const { data } = await client
+/**
+ * As parcelas em aberto, do vencimento mais próximo para o mais distante.
+ *
+ * `within` recorta quem só precisa do que cai logo, como o bloco do painel: sem recorte a consulta lê as
+ * parcelas em aberto de todos os vencimentos da base, inclusive as de dez anos à frente, para o painel
+ * desenhar duas linhas (2026-09-22, na varredura). A visão geral continua lendo tudo, porque os azulejos
+ * "A receber" e "A pagar" somam o que está em aberto sem recorte de data.
+ *
+ * O total de parcelas da cobrança vem de `count` na própria consulta, e não da lista de irmãs: a etiqueta
+ * quer o número, e trazer o id de cada parcela de cada cobrança só para medir o tamanho da lista carregava a
+ * base inteira de parcelas junto.
+ */
+async function upcomingOf(
+  client: FinanceClient,
+  organizationId: string,
+  today: string,
+  within?: { from: string; to: string },
+): Promise<UpcomingInstallment[]> {
+  const open = client
     .from("charge_installments")
-    .select("id, number, amount, due_date, reported, charges!inner(id, reference, direction, title, client_name, client_company, client_avatar_url, cancelled_at, charge_installments(id))")
+    .select("id, number, amount, due_date, reported, charges!inner(id, reference, direction, title, client_name, client_company, client_avatar_url, cancelled_at, charge_installments(count))")
     .eq("organization_id", organizationId)
-    .is("paid_at", null)
-    .order("due_date");
+    .is("paid_at", null);
+
+  const { data, error } = await (within ? open.gte("due_date", within.from).lte("due_date", within.to) : open).order("due_date");
+  ensureRead(error);
 
   return (data ?? [])
     .filter((row) => !row.charges.cancelled_at)
@@ -633,7 +717,7 @@ async function upcomingOf(client: FinanceClient, organizationId: string, today: 
       clientName: row.charges.client_company ?? row.charges.client_name,
       clientAvatarUrl: row.charges.client_avatar_url,
       number: row.number,
-      total: row.charges.charge_installments.length,
+      total: row.charges.charge_installments[0]?.count ?? 1,
       amount: row.amount,
       dueDate: row.due_date,
       overdue: row.due_date < today,
@@ -652,10 +736,13 @@ function periodStart(period: FinancePeriod) {
 
 /** O saldo em caixa: o que havia antes de a base começar, mais tudo que entrou, menos tudo que saiu. */
 async function balanceOf(client: FinanceClient, organizationId: string) {
-  const [{ data: settings }, { data: rows }] = await Promise.all([
+  const [{ data: settings, error: settingsError }, { data: rows, error }] = await Promise.all([
     client.from("finance_settings").select("opening_balance").eq("organization_id", organizationId).maybeSingle(),
     client.from("transactions").select("kind, amount, status").eq("organization_id", organizationId).eq("status", "confirmed"),
   ]);
+
+  ensureRead(settingsError);
+  ensureRead(error);
 
   return (rows ?? []).reduce(
     (sum, row) => sum + (row.kind === "income" ? row.amount : row.kind === "expense" ? -row.amount : 0),
@@ -675,17 +762,20 @@ export async function getFinanceOverview(
   const start = periodStart(period);
   const sixMonthsAgo = isoDate(subMonths(startOfMonth(new Date()), 5));
 
-  const [balance, pending, { data: all }] = await Promise.all([
+  /* "Desde o começo" não tem piso (2026-09-22, na varredura): os seis meses existem para o gráfico, que
+     desenha sempre esse trecho, e aplicá-los ao período mais amplo fazia o cartão Recebido somar menos que o
+     do ano, embaixo do rótulo "Desde o começo", enquanto o saldo em caixa, que não passa por este recorte,
+     seguia contando tudo. O piso é o mais antigo entre o período pedido e a janela do gráfico. */
+  const floor = start ? (start < sixMonthsAgo ? start : sixMonthsAgo) : null;
+  const scope = client.from("transactions").select("*").eq("organization_id", organizationId);
+
+  const [balance, pending, { data: all, error }] = await Promise.all([
     balanceOf(client, organizationId),
     upcomingOf(client, organizationId, today),
-    client
-      .from("transactions")
-      .select("*")
-      .eq("organization_id", organizationId)
-      .gte("date", start && start < sixMonthsAgo ? start : sixMonthsAgo)
-      .order("date", { ascending: false })
-      .limit(1000),
+    (floor ? scope.gte("date", floor) : scope).order("date", { ascending: false }).limit(1000),
   ]);
+
+  ensureRead(error);
 
   const transactions = (all ?? []).map(toTransaction);
   const inPeriod = (transaction: Transaction) => !start || transaction.date >= start;
@@ -740,11 +830,14 @@ export async function getFinanceOverview(
 /** O que o bloco do painel mostra: o caixa e as últimas movimentações, com o que vence logo no topo. */
 export async function getFinanceSummary(client: FinanceClient, organizationId: string): Promise<FinanceSummary> {
   const today = todayIso();
-  const [balance, pending, { data }] = await Promise.all([
+  const [balance, pending, { data, error }] = await Promise.all([
     balanceOf(client, organizationId),
-    upcomingOf(client, organizationId, today),
+    /* O painel só mostra o que cai nesta semana, então é só isso que ele lê. */
+    upcomingOf(client, organizationId, today, { from: today, to: day(7) }),
     client.from("transactions").select("*").eq("organization_id", organizationId).order("date", { ascending: false }).limit(10),
   ]);
+
+  ensureRead(error);
 
   const soon = pending.filter((entry) => !entry.overdue && entry.dueDate <= day(7)).slice(0, 2).map(scheduledOf);
   return { balance, transactions: [...soon, ...(data ?? []).map(toTransaction)] };
@@ -820,7 +913,7 @@ export async function stopRecurrence(client: FinanceClient, organizationId: stri
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || "Não foi possível encerrar a recorrência." };
+  if (error || !data) return { ok: false, error: dbMessage(error, "Não foi possível encerrar a recorrência.") };
 
   await logRecordEvent(client, organizationId, { recordType: "charge", recordId: id, action: "updated", summary: "Encerrou a recorrência" });
 

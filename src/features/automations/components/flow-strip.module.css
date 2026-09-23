@@ -33,7 +33,6 @@
   color: var(--tile-hue);
   background-color: light-dark(color-mix(in oklab, var(--tile-hue) 14%, transparent), color-mix(in oklab, var(--tile-hue) 22%, transparent));
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 .tile svg {

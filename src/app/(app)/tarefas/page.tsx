@@ -43,6 +43,8 @@ export default async function TasksPage({ searchParams }: PageProps<"/tarefas">)
       ai={ai}
       basePath="/tarefas"
       team={data.team}
+      viewer={data.viewer}
+      openTask={first(params.tarefa)}
       records={data.records}
       projects={projects}
       stages={data.stages}

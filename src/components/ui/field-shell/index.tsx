@@ -14,7 +14,6 @@ const Surface = styled.span`
   background-color: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--field-radius);
-  corner-shape: squircle;
 
   &[data-size="sm"] {
     ${fieldMetrics("sm")};

@@ -1,0 +1,2 @@
+.screen { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
+@media (max-width: 47.9375rem) { .screen { grid-template-rows: auto auto; height: auto; min-height: 100%; } }

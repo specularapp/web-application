@@ -1,14 +1,12 @@
 "use client";
 
-import { XIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Badge } from "@/components/ui/badge";
-import { Dialog } from "@/components/ui/dialog";
-import { IconButton } from "@/components/ui/icon-button";
+import { Dialog, DialogHeader } from "@/components/ui/dialog";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { categories, nodeCatalog } from "../catalog";
 import { momentLabel, runStatuses, stepStatuses } from "../labels";
 import type { AutomationRun } from "../summary";
@@ -40,19 +38,7 @@ function RunLog({ name, runs, highlight, onClose }: Omit<RunLogDialogProps, "ope
   useFloatingActionsRegistration({ cancel: { label: "Fechar", onClick: onClose } });
   return (
     <div className={styles.drawer}>
-      <header className={styles.head}>
-        <div className={styles.heading}>
-          <Text as="h2" variant="headline" weight="semibold">
-            Execuções
-          </Text>
-          <Text variant="footnote" tone="secondary" truncate>
-            {name}
-          </Text>
-        </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
-          <XIcon />
-        </IconButton>
-      </header>
+      <DialogHeader title="Execuções" description={name} onClose={onClose} />
 
       <div className={styles.body}>
         {runs.length === 0 ? (
@@ -70,7 +56,7 @@ function RunLog({ name, runs, highlight, onClose }: Omit<RunLogDialogProps, "ope
               const status = runStatuses[run.status];
               return (
                 <li key={run.id}>
-                  <details className={styles.run} open={highlight ? run.id === highlight : index === 0} {...squircle("lg")}>
+                  <details className={styles.run} open={highlight ? run.id === highlight : index === 0} {...rounded("lg")}>
                     <summary className={styles.summary}>
                       <Badge tone={status.tone} size="sm" icon={<status.icon />}>
                         {status.label}

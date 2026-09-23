@@ -9,24 +9,6 @@
   min-height: 0;
 }
 
-.head {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
-  border-block-end: var(--panel-line) solid var(--color-border);
-}
-
-/* O menu de situação e o X, no vão do menu. */
-.headActions {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-1);
-  align-items: center;
-}
-
 /* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
    ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
 .body {
@@ -107,6 +89,15 @@
   gap: var(--space-3);
 }
 
+/* No celular as duas ficam uma sobre a outra. A bandeja ocupa a largura toda da tela, e a 320px sobravam
+   cerca de 138px por coluna: o botão de trocar a imagem não caberia e a linha estourava a caixa
+   (2026-09-22, na varredura). */
+@media (max-width: 47.9375rem) {
+  .images {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* A foto ou a logo: a moldura de 3,5rem e, ao lado, o rótulo com os botões embaixo. */
 .image {
   display: flex;
@@ -185,21 +176,4 @@
   flex: 1;
   place-items: center;
   min-height: 12rem;
-}
-
-/* Cancelar e salvar fixos no rodapé, à direita. No celular o rodapé some: os dois moram na barra
-   flutuante do menu. */
-.foot {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-5);
-  border-block-start: var(--panel-line) solid var(--color-border);
-}
-
-@media (max-width: 47.9375rem) {
-  .foot {
-    display: none;
-  }
 }

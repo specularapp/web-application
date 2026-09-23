@@ -1,13 +1,22 @@
 "use client";
 
-import { DotsSixVerticalIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import styled from "@emotion/styled";
+import { CaretRightIcon, CaretUpDownIcon, DotsSixVerticalIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
-import { squircle } from "@/lib/corners";
+import { layerMotion } from "@/components/ui/styles";
+import { useAnchoredPosition } from "@/hooks/use-anchored-position";
+import { isTopLayer, useLayer } from "@/hooks/use-layer";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useOutsideDismiss } from "@/hooks/use-outside-dismiss";
+import { usePresence } from "@/hooks/use-presence";
+import { rounded } from "@/lib/corners";
+import { cx } from "@/lib/utils/cx";
 import { Button } from "../button";
 import { Dialog } from "../dialog";
 import { Field } from "../field";
@@ -97,6 +106,7 @@ function StageSettingsForm({
   onSave,
 }: Omit<StageSettingsDialogProps, "open">) {
   const dragId = useId();
+  const mobile = useMediaQuery(MOBILE_QUERY);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -117,8 +127,36 @@ function StageSettingsForm({
   useFloatingActionsRegistration({
     primary: { label: "Salvar etapas", loading: saving, disabled: rows.length === 0, onClick: onSave },
     extras: [{ label: "Nova etapa", icon: <PlusIcon weight="bold" />, onClick: onAdd }],
-    cancel: { label: "Cancelar", onClick: onClose },
+    cancel: { label: "Fechar", onClick: onClose },
   });
+
+  /* No celular a tabela não cabe: cada etapa vira uma linha que abre a própria bandeja de edição. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const editingIndex = rows.findIndex((entry) => entry.key === editing);
+  const aspectLabel = (value: string) => aspect.options.find((option) => option.value === value)?.label ?? "";
+
+  /* Etapa nova já nasce com o cursor no nome: é a primeira coisa que ela pede. No celular ela abre direto na
+     bandeja, que foca o nome ao abrir. */
+  const [known, setKnown] = useState(rows.length);
+  const [fresh, setFresh] = useState(false);
+  if (rows.length !== known) {
+    setKnown(rows.length);
+    if (mobile && rows.length > known) {
+      setEditing(rows[rows.length - 1]?.key ?? null);
+      setFresh(true);
+    }
+  }
+
+  const table = useRef<HTMLDivElement>(null);
+  const count = useRef(rows.length);
+
+  useEffect(() => {
+    if (!mobile && rows.length > count.current) {
+      const names = table.current?.querySelectorAll<HTMLInputElement>("input[data-stage-name]");
+      names?.[names.length - 1]?.focus();
+    }
+    count.current = rows.length;
+  }, [mobile, rows.length]);
 
   return (
     <div className={styles.dialog}>
@@ -126,13 +164,15 @@ function StageSettingsForm({
         <Text as="h2" variant="headline">
           Etapas de {name}
         </Text>
-        <IconButton size="sm" label="Fechar" variant="ghost" disabled={saving} onClick={onClose}>
-          <XIcon />
-        </IconButton>
+        {!mobile && (
+          <IconButton size="sm" label="Fechar" variant="ghost" disabled={saving} onClick={onClose}>
+            <XIcon />
+          </IconButton>
+        )}
       </header>
 
       <div className={styles.body}>
-        <div className={styles.stageTable} {...squircle("md")}>
+        <div ref={table} className={styles.stageTable} {...rounded("md")}>
           <div className={styles.tableHead} aria-hidden="true">
             <span />
             <span>Nome da etapa</span>
@@ -162,11 +202,33 @@ function StageSettingsForm({
             }}
           >
             <SortableContext items={rows.map((entry) => entry.key)} strategy={verticalListSortingStrategy}>
-              {rows.map((entry, index) => (
+              {rows.map((entry, index) =>
+                mobile ? (
+                  <SortableStage key={entry.key} id={entry.key} index={index} disabled={saving} className={styles.mobileRow}>
+                    <button type="button" className={styles.stageSummary} onClick={() => {
+                        setFresh(false);
+                        setEditing(entry.key);
+                      }}
+                      {...rounded("md")}
+                    >
+                      <Swatch hue={entry.hue} />
+                      <span className={styles.stageSummaryText}>
+                        <Text as="span" variant="subheadline" weight="medium" className={styles.stageSummaryName}>
+                          {entry.label || `Etapa ${index + 1}`}
+                        </Text>
+                        <Text as="span" variant="footnote" tone="secondary">
+                          {aspectLabel(entry.aspect)}
+                        </Text>
+                      </span>
+                      <CaretRightIcon aria-hidden="true" />
+                    </button>
+                  </SortableStage>
+                ) : (
                 <SortableStage key={entry.key} id={entry.key} index={index} disabled={saving}>
                   <Field label={`Nome da etapa ${index + 1}`} required>
                     <Input
                       size="sm"
+                      data-stage-name=""
                       className={styles.stageControl}
                       value={entry.label}
                       maxLength={60}
@@ -177,6 +239,8 @@ function StageSettingsForm({
                   <div className={styles.pair}>
                     <Field label="Cor">
                       <Select
+                        surface="glass"
+                        indicator="toggle"
                         size="sm"
                         className={styles.stageControl}
                         label={`Cor da etapa ${index + 1}`}
@@ -188,6 +252,7 @@ function StageSettingsForm({
                     </Field>
                     <Field label={aspect.label}>
                       <Select
+                        surface="glass"
                         size="sm"
                         className={styles.stageControl}
                         label={`${aspect.label} da etapa ${index + 1}`}
@@ -211,7 +276,8 @@ function StageSettingsForm({
                     </IconButton>
                   </div>
                 </SortableStage>
-              ))}
+                ),
+              )}
             </SortableContext>
           </DndContext>
 
@@ -223,9 +289,11 @@ function StageSettingsForm({
         </div>
 
         <div className={styles.actions}>
-          <Button size="sm" variant="outline" iconStart={<PlusIcon />} disabled={saving || rows.length >= max} onClick={onAdd}>
-            Nova etapa
-          </Button>
+          {!mobile && (
+            <Button size="sm" variant="outline" iconStart={<PlusIcon />} disabled={saving || rows.length >= max} onClick={onAdd}>
+              Nova etapa
+            </Button>
+          )}
           {onReset && (
             <Button size="sm" variant="ghost" disabled={saving} onClick={onReset}>
               Usar etapas padrão
@@ -236,6 +304,7 @@ function StageSettingsForm({
         {removals.map((removal) => (
           <Field key={removal.key} label={`Mover ${itemsLabel} de ${removal.label} para`} required>
             <Select
+              surface="glass"
               size="sm"
               className={styles.stageControl}
               label={`Destino de ${removal.label}`}
@@ -258,24 +327,116 @@ function StageSettingsForm({
       </div>
 
       <footer className={styles.foot}>
-        <Button size="sm" variant="secondary" disabled={saving} onClick={onClose}>
-          Cancelar
-        </Button>
         <Button size="sm" loading={saving} disabled={rows.length === 0} onClick={onSave}>
           Salvar etapas
         </Button>
       </footer>
+
+      {mobile && (
+        <Dialog open={editingIndex >= 0} onClose={() => setEditing(null)} label="Editar etapa" size="sm" surface="glass" focusOnOpen={fresh}>
+          {editingIndex >= 0 && (
+            <StageSheet
+              index={editingIndex}
+              row={rows[editingIndex]}
+              colorOptions={colorOptions}
+              aspect={aspect}
+              disabled={saving}
+              onChange={(values) => change(rows[editingIndex].key, values)}
+              onRemove={() => {
+                const key = rows[editingIndex].key;
+                setEditing(null);
+                onRowsChange(rows.filter((item) => item.key !== key));
+              }}
+              onClose={() => setEditing(null)}
+            />
+          )}
+        </Dialog>
+      )}
     </div>
   );
 }
 
-function SortableStage({ id, index, disabled, children }: { id: string; index: number; disabled: boolean; children: ReactNode }) {
+/** A bandeja de uma etapa no celular: o nome, a cor e o significado, com remover e fechar na barra. */
+function StageSheet({
+  index,
+  row,
+  colorOptions,
+  aspect,
+  disabled,
+  onChange,
+  onRemove,
+  onClose,
+}: {
+  index: number;
+  row: StageRow;
+  colorOptions: readonly SelectOption<string>[];
+  aspect: StageSettingsDialogProps["aspect"];
+  disabled: boolean;
+  onChange: (values: Partial<StageRow>) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  useFloatingActionsRegistration({
+    extras: [{ label: "Remover etapa", icon: <TrashIcon weight="bold" />, disabled, onClick: onRemove }],
+    cancel: { label: "Fechar", onClick: onClose },
+  });
+
+  return (
+    <div className={styles.dialog}>
+      <header className={styles.head}>
+        <Text as="h2" variant="headline">
+          {row.label || `Etapa ${index + 1}`}
+        </Text>
+      </header>
+      <div className={styles.body}>
+        <Field label="Nome da etapa" required>
+          <Input value={row.label} maxLength={60} disabled={disabled} onChange={(event) => onChange({ label: event.target.value })} />
+        </Field>
+        <Field label="Cor">
+          <Select
+            surface="glass"
+            indicator="toggle"
+            label="Cor da etapa"
+            value={row.hue}
+            options={[...colorOptions]}
+            disabled={disabled}
+            onChange={(hue) => onChange({ hue: String(hue) })}
+          />
+        </Field>
+        <Field label={aspect.label}>
+          <Select
+            surface="glass"
+            label={`${aspect.label} da etapa`}
+            value={row.aspect}
+            options={[...aspect.options]}
+            disabled={disabled}
+            onChange={(value) => onChange({ aspect: String(value) })}
+          />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function SortableStage({
+  id,
+  index,
+  disabled,
+  className,
+  children,
+}: {
+  id: string;
+  index: number;
+  disabled: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
 
   return (
     <section
       ref={setNodeRef}
-      className={styles.row}
+      className={className ?? styles.row}
       data-dragging={isDragging || undefined}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       aria-label={`Etapa ${index + 1}`}
@@ -320,15 +481,168 @@ export type AppearanceDialogProps = {
   onSave: (value: AppearanceValue) => Promise<string | undefined>;
 };
 
+export type AppearancePopoverProps = Omit<AppearanceDialogProps, "open" | "onClose"> & {
+  /** O nome do botão próprio; sem ele a caixa não desenha gatilho e abre ancorada em `anchor`. */
+  triggerLabel?: string;
+  renderHeaderAction?: (close: () => void) => ReactNode;
+  /**
+   * A caixa aberta de fora, colada em quem pediu (2026-09-23, a pedido: a cor do quadro abre igual a edição da
+   * pasta): quem chama monta a caixa já aberta e a ancora na linha do menu, sem o chevron próprio.
+   */
+  anchor?: RefObject<HTMLElement | null>;
+  /** Avisa quem montou a caixa ancorada que ela fechou, para ela sair da árvore. */
+  onClose?: () => void;
+};
+
+const APPEARANCE_WIDTH = 320;
+const APPEARANCE_HEIGHT = 336;
+const APPEARANCE_EDGE = 16;
+
+const AppearancePanel = styled.div`
+  --genie-y: calc(var(--space-2) * -1);
+  --panel-line: 0.0375rem;
+
+  position: fixed;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  width: min(${APPEARANCE_WIDTH}px, calc(100vw - ${APPEARANCE_EDGE * 2}px));
+  max-height: calc(100dvh - ${APPEARANCE_EDGE * 2}px);
+  overflow: hidden;
+  background-color: var(--glass-layer-bg);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+  transform-origin: top left;
+
+  ${layerMotion};
+
+  &[data-placement="above"] {
+    --genie-y: var(--space-2);
+    transform-origin: bottom left;
+    translate: 0 -100%;
+  }
+`;
+
 export function AppearanceDialog({ open = true, onClose, ...rest }: AppearanceDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} label={rest.title} size="md" surface="solid">
+    <Dialog open={open} onClose={onClose} label={rest.title} size="md" surface="solid" className={styles.appearancePanel}>
       <AppearanceForm onClose={onClose} {...rest} />
     </Dialog>
   );
 }
 
-function AppearanceForm({ title, glyphOptions, colorOptions, labels, initial, withName = true, onClose, onSave }: Omit<AppearanceDialogProps, "open">) {
+export function AppearancePopover({ triggerLabel, renderHeaderAction, anchor, onClose, ...rest }: AppearancePopoverProps) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(Boolean(anchor));
+  const { present, state, onAnimationEnd } = usePresence(open && !mobile);
+  const layer = useLayer(open && !mobile);
+  const target = (anchor ?? triggerRef) as RefObject<HTMLElement | null>;
+  const position = useAnchoredPosition(open && !mobile, target, {
+    width: APPEARANCE_WIDTH,
+    height: APPEARANCE_HEIGHT,
+    edge: APPEARANCE_EDGE,
+  });
+
+  const close = useCallback(() => {
+    setOpen(false);
+    onClose?.();
+  }, [onClose]);
+
+  /* O foco volta para o gatilho quando a caixa fecha, num efeito, e não dentro do `close`: o `close` é
+     entregue a quem desenha o leque do cabeçalho, e uma função que lê `ref` não pode ser passada durante a
+     renderização. */
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (wasOpen.current && !open) triggerRef.current?.focus({ preventScroll: true });
+    wasOpen.current = open;
+  }, [open]);
+
+  useOutsideDismiss(open && !mobile, [panelRef, target], close, () => isTopLayer(layer));
+
+  useEffect(() => {
+    if (!open || mobile) return;
+
+    const frame = window.requestAnimationFrame(() =>
+      panelRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus({ preventScroll: true }),
+    );
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [mobile, open]);
+
+  useEffect(() => {
+    if (!open || mobile) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !isTopLayer(layer)) return;
+      event.preventDefault();
+      close();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [close, layer, mobile, open]);
+
+  const form = <AppearanceForm {...rest} compact headerAction={renderHeaderAction?.(close)} onClose={close} />;
+
+  return (
+    <>
+      {!anchor && (
+        <IconButton
+          ref={triggerRef}
+          label={triggerLabel ?? rest.title}
+          variant="ghost"
+          size="sm"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+        >
+          <CaretUpDownIcon weight="bold" />
+        </IconButton>
+      )}
+
+      {mobile ? (
+        <Dialog open={open} onClose={close} label={rest.title} size="sm" surface="glass" scrim={false} focusOnOpen={false}>
+          {form}
+        </Dialog>
+      ) : (
+        present &&
+        createPortal(
+          <AppearancePanel
+            ref={panelRef}
+            role="dialog"
+            aria-label={rest.title}
+            data-placement={position?.placement ?? "below"}
+            data-state={state}
+            style={position ? { top: position.top, left: position.left } : { visibility: "hidden" }}
+            onAnimationEnd={onAnimationEnd}
+          >
+            {form}
+          </AppearancePanel>,
+          document.body,
+        )
+      )}
+    </>
+  );
+}
+
+function AppearanceForm({
+  title,
+  glyphOptions,
+  colorOptions,
+  labels,
+  initial,
+  withName = true,
+  compact = false,
+  headerAction,
+  onClose,
+  onSave,
+}: Omit<AppearanceDialogProps, "open"> & { compact?: boolean; headerAction?: ReactNode }) {
   const [value, setValue] = useState<AppearanceValue>({
     name: initial?.name ?? "",
     hue: initial?.hue ?? String(colorOptions[0]?.value ?? "blue"),
@@ -359,38 +673,54 @@ function AppearanceForm({ title, glyphOptions, colorOptions, labels, initial, wi
     onClose();
   };
 
-  useFloatingActionsRegistration({
-    primary: { label: "Salvar", loading: saving, disabled: !ready, onClick: () => void save() },
-    cancel: { label: "Cancelar", onClick: onClose },
-  });
+  /* No celular salvar e fechar moram na barra flutuante, como em toda janela da casa: o X do topo e o rodapé
+     saem da ficha para sobrar espaço. */
+  const mobile = useMediaQuery(MOBILE_QUERY);
+
+  useFloatingActionsRegistration(
+    mobile
+      ? {
+          primary: { label: "Salvar", loading: saving, disabled: !ready, onClick: () => void save() },
+          cancel: { label: "Fechar", onClick: onClose },
+        }
+      : null,
+  );
 
   return (
     <form
-      className={styles.dialog}
+      className={cx(styles.dialog, compact && styles.appearanceCompact)}
       onSubmit={(event) => {
         event.preventDefault();
         void save();
       }}
     >
       <header className={styles.head}>
-        <Text as="h2" variant="headline">
+        <Text as="h2" variant={compact ? "subheadline" : "headline"} weight={compact ? "semibold" : undefined}>
           {title}
         </Text>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-          <XIcon />
-        </IconButton>
+        <span className={styles.headActions}>
+          {headerAction}
+          {!mobile && (
+            <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
+              <XIcon />
+            </IconButton>
+          )}
+        </span>
       </header>
 
       <div className={styles.body}>
         {withName && (
           <Field label="Nome" required>
-            <Input value={value.name} maxLength={60} disabled={saving} onChange={(event) => setValue({ ...value, name: event.target.value })} />
+            <Input size={compact ? "sm" : "md"} value={value.name} maxLength={60} disabled={saving} onChange={(event) => setValue({ ...value, name: event.target.value })} />
           </Field>
         )}
         <div className={glyphOptions ? styles.pair : undefined}>
           {glyphOptions && (
             <Field label={labels?.glyph ?? "Ícone"}>
               <Select
+                surface="glass"
+                indicator="toggle"
+                size={compact ? "sm" : "md"}
                 label={labels?.glyph ?? "Ícone"}
                 value={value.glyph}
                 options={[...glyphOptions]}
@@ -401,6 +731,9 @@ function AppearanceForm({ title, glyphOptions, colorOptions, labels, initial, wi
           )}
           <Field label={labels?.hue ?? "Cor"}>
             <Select
+              surface="glass"
+              indicator="toggle"
+              size={compact ? "sm" : "md"}
               label={labels?.hue ?? "Cor"}
               value={value.hue}
               options={[...colorOptions]}
@@ -417,10 +750,7 @@ function AppearanceForm({ title, glyphOptions, colorOptions, labels, initial, wi
       </div>
 
       <footer className={styles.foot}>
-        <Button variant="secondary" disabled={saving} onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" loading={saving} disabled={!ready}>
+        <Button size={compact ? "sm" : "md"} type="submit" loading={saving} disabled={!ready}>
           Salvar
         </Button>
       </footer>

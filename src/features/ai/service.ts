@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { addMonths, format, startOfMonth } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { planLimit } from "@/features/billing/service";
@@ -107,7 +108,7 @@ export async function listConversations(client: AiClient, userId: string, limit 
 
 export async function deleteConversation(client: AiClient, userId: string, id: string): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("ai_conversations").delete().eq("id", id).eq("user_id", userId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -118,7 +119,7 @@ export async function renameConversation(
   title: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("ai_conversations").update({ title }).eq("id", id).eq("user_id", userId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 

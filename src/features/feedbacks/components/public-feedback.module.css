@@ -1,0 +1,20 @@
+.page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100dvh; color: var(--color-label); background: var(--color-bg); }
+.header { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; padding: var(--space-4) max(var(--space-4), calc((100% - 44rem) / 2)); border-block-end: 1px solid var(--color-border); }
+.header span, .intro > span, .page footer { color: var(--color-label-secondary); font-size: var(--text-footnote); }
+.panel { width: min(100% - var(--space-6), 44rem); margin: auto; padding-block: var(--space-10); }
+.intro { display: grid; gap: var(--space-2); margin-block-end: var(--space-8); }
+.intro h1, .success h1 { margin: 0; font-size: var(--text-title1); letter-spacing: var(--tracking-tightest); }
+.intro p, .success p { margin: 0; color: var(--color-label-secondary); line-height: var(--leading-normal); }
+.form { display: grid; gap: var(--space-6); }
+.question { display: grid; gap: var(--space-3); margin: 0; padding: 0; border: 0; }
+.question legend { margin-block-end: var(--space-3); font-size: var(--text-body); font-weight: var(--weight-semibold); }
+.stars { display: flex; gap: var(--space-2); }
+.stars button { display: grid; width: var(--touch-target); height: var(--touch-target); padding: 0; color: var(--color-label-tertiary); background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-md); place-items: center; cursor: pointer; }
+.stars button[aria-pressed="true"], .stars button:has(~ button[aria-pressed="true"]) { color: var(--sys-yellow); background: color-mix(in srgb, var(--sys-yellow) 12%, transparent); border-color: color-mix(in srgb, var(--sys-yellow) 45%, var(--color-border)); }
+.stars svg { width: 1.35rem; height: 1.35rem; }
+.choice { display: flex; gap: var(--space-2); }
+.error { margin: 0; color: var(--color-danger); font-size: var(--text-footnote); }
+.success { display: grid; justify-items: start; gap: var(--space-3); }
+.success > svg { width: 2.5rem; height: 2.5rem; color: var(--color-success); }
+.page footer { padding: var(--space-4); text-align: center; }
+@media (max-width: 35rem) { .panel { padding-block: var(--space-6); } .intro h1, .success h1 { font-size: var(--text-title2); } }

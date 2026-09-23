@@ -19,6 +19,8 @@ export type TasksScreenData = {
   /** O catálogo de etapas da equipe, na ordem dela: as colunas do quadro de todas e o que se pode ligar no
    *  quadro de um projeto. */
   stages: TaskStage[];
+  /** Quem está vendo, para a conversa saber o que é dela e assinar a mensagem nova com o rosto certo. */
+  viewer: TaskPerson;
   /** O projeto do endereço, quando a página é a de um; nulo no quadro de todas. */
   project: TaskProject | null;
   records: AppRecord[];
@@ -30,7 +32,7 @@ export type TasksScreenData = {
  * à parte, porque a árvore já veio e a página precisa dela.
  */
 export async function loadTasksScreenData(query: TasksQuery, slug?: string, next = "/tarefas"): Promise<TasksScreenData> {
-  const { supabase, organizationId } = await requireOrganization(next);
+  const { supabase, organizationId, user } = await requireOrganization(next);
   const tree = await getProjectTree(supabase, organizationId);
   const project = slug ? findProject(tree, slug) : null;
 
@@ -49,9 +51,12 @@ export async function loadTasksScreenData(query: TasksQuery, slug?: string, next
     listTaskStages(supabase, organizationId),
   ]);
 
+  const team = members.map((member) => ({ id: member.userId, name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl }));
+
   return {
     tasks,
-    team: members.map((member) => ({ id: member.userId, name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl })),
+    team,
+    viewer: team.find((person) => person.id === user.id) ?? { id: user.id, name: "Você", avatarUrl: null },
     tree,
     project,
     records,

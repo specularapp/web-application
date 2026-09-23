@@ -6,7 +6,7 @@
  * sai a meia altura em que o cotovelo vira. O eixo cai no centro do azulejo da linha de cima: recuo da linha
  * (8px) mais metade do azulejo (10px) dá 18px, e o degrau de 24px menos esses 18 dá os 6px do eixo.
  *
- * O fio é tracejado e tem um pixel inteiro. O cotovelo termina na borda do glifo do filho, enquanto a
+ * O fio é uma linha contínua de um pixel inteiro. O cotovelo termina na borda do glifo do filho, enquanto a
  * continuação vertical começa somente depois da curva. Assim os dois desenhos não se sobrepõem e o galho
  * não ganha emendas mais escuras entre uma linha e outra.
  */
@@ -75,8 +75,8 @@
   width: calc(var(--tree-axis) + var(--space-2));
   height: calc(var(--tree-row) / 2 + var(--space-1));
   pointer-events: none;
-  border-inline-start: var(--tree-line) dashed var(--tree-ink);
-  border-block-end: var(--tree-line) dashed var(--tree-ink);
+  border-inline-start: var(--tree-line) solid var(--tree-ink);
+  border-block-end: var(--tree-line) solid var(--tree-ink);
   border-end-start-radius: var(--tree-elbow);
 }
 
@@ -93,7 +93,7 @@
   inset-inline-start: calc(var(--tree-axis) * -1);
   width: 0;
   pointer-events: none;
-  border-inline-start: var(--tree-line) dashed var(--tree-ink);
+  border-inline-start: var(--tree-line) solid var(--tree-ink);
 }
 
 /* O degrau: os filhos entram recuados, e é do recuo deles que o eixo do fio é medido. Aninhado, o recuo
@@ -127,9 +127,9 @@
 }
 
 /* A marca do projeto: o véu do matiz dele com o glifo na tinta cheia da cor, nas mesmas contas do `Badge`
-   suave da casa. É o que distingue um quadro do outro de relance. **Redonda**, e por isso sem o sistema de
-   cantos: círculo é o caso que a regra da casa deixa de fora, porque `round` já é o padrão. O `overflow`
-   é o que corta a logo no círculo, papel que antes era do recorte do squircle. */
+   suave da casa. É o que distingue um quadro do outro de relance. Quase quadrada, com o canto de dois
+   pixels que o azulejo declara na marcação pelo sistema de cantos: a logo de um projeto é retangular, e o
+   círculo comia as pontas dela. O `overflow` recorta a imagem na forma. */
 .node .tile {
   --tile-ink: color-mix(in oklab, var(--project-hue) 70%, var(--color-label));
 
@@ -137,9 +137,14 @@
     color-mix(in oklab, var(--project-hue) 14%, transparent),
     color-mix(in oklab, var(--project-hue) 20%, transparent)
   );
-  border-radius: var(--radius-full);
+  /* Dois pixels, abaixo do menor degrau do sistema de cantos, e de propósito (2026-09-21, a pedido de
+     "2px quase quadrado"). Num azulejo de vinte pixels o `xs`, que são quatro, é um quinto do lado e lê
+     como redondo; dois pixels leem como quadrado com a quina lixada, que é o que foi pedido. É a única
+     medida de canto da casa escrita à mão, e está aqui e não na marcação justamente para não reivindicar
+     um token que não é o dela. */
+  border-radius: 0.125rem;
 
-  /* Corta a logo no círculo: o papel que antes era do recorte do squircle. */
+  /* Recorta a logo na forma do azulejo. */
   overflow: hidden;
 }
 
@@ -203,13 +208,4 @@
   .item .count {
     margin-inline-end: 2rem;
   }
-}
-
-/* A imagem da folha dentro do azulejo: cobre a peça inteira, com o canto do próprio azulejo cortando as
-   quinas (o `clip` do sistema de cantos). Ela substitui o glifo, e não divide espaço com ele, senão a marca
-   sairia do tamanho de uma unha em uma linha de vinte pixels. */
-.node .tile .photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }

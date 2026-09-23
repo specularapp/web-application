@@ -121,7 +121,6 @@
   padding: var(--space-2);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .linkIcon {
@@ -133,7 +132,6 @@
   color: var(--color-label-secondary);
   background-color: var(--color-bg);
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 .linkIcon svg {

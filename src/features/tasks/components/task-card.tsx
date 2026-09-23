@@ -1,16 +1,18 @@
 "use client";
 
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
-import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, PaperclipIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, LinkSimpleIcon, PaperclipIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
 import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SuccessOverlay } from "@/components/ui/success-mark";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { dueOf, estimateLabel, priorityLabels, priorityTones, subtasksDone } from "../labels";
 import type { TaskStage } from "../stages";
+import { tagHue } from "../tags";
 import type { Task } from "../summary";
 import { TaskMenu } from "./task-menu";
 import styles from "./task-card.module.css";
@@ -26,6 +28,10 @@ export type TaskCardDrag = {
 };
 
 export type TaskCardProps = {
+  /** A tarefa acabou de ser arrastada para uma etapa que conclui: o cartão mostra o check e depois volta. */
+  celebrating?: boolean;
+  /** Avisa que o check terminou, para o quadro tirar a marca. */
+  onCelebrated?: () => void;
   task: Task;
   /**
    * Abre a ficha. Recebe a tarefa em vez de fechar sobre ela (2026-09-17, na rodada de velocidade): assim
@@ -74,7 +80,17 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // A ordem é a de quem varre a coluna com o olho: o que é urgente, o que é, onde mora, o que diz, como está
 // classificado, quanto falta, e por fim quem cuida e quando vence. Etiquetas, trabalho e as contagens do pé
 // só aparecem quando existem, então tarefa simples tem cartão curto e tarefa cheia tem cartão cheio.
-export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = false, stages, onMove, onDelete }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({
+  task,
+  onOpen,
+  drag,
+  overlay = false,
+  stages,
+  onMove,
+  onDelete,
+  celebrating = false,
+  onCelebrated,
+}: TaskCardProps) {
   const due = dueOf(task);
   const faces = task.people.slice(0, SHOWN_FACES);
   const restFaces = task.people.length - faces.length;
@@ -113,7 +129,7 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
       className={styles.card}
       data-dragging={drag?.dragging || undefined}
       data-overlay={overlay || undefined}
-      {...squircle("xl", { clip: true })}
+      {...rounded("xl", { clip: true })}
     >
       <div
         {...drag?.attributes}
@@ -126,7 +142,7 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
         data-grab={drag ? "" : undefined}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         {/* O topo: a prioridade, o aviso quando há, e o leque na outra ponta. O aviso é só glifo, porque o
             texto dele mora na ficha; aqui ele avisa que existe. */}
@@ -148,24 +164,24 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
           )}
         </div>
 
-        <Text as="h3" variant="subheadline" weight="semibold" className={styles.title}>
-          {task.title}
-        </Text>
-
-        {/* Onde a tarefa mora: a pasta do projeto e o identificador, na mesma linha e apagados. Sem projeto,
-            sobra o identificador sozinho. */}
+        {/* Onde a tarefa mora, antes do título (2026-09-22, a pedido: rota, título e descrição, nessa ordem):
+            a pasta do projeto e o identificador, na mesma linha e apagados. Sem projeto, sobra o identificador. */}
         <p className={styles.context}>
           {task.project && (
             <>
               <FolderIcon aria-hidden="true" className={styles.contextIcon} />
               <span className={styles.project}>{task.project.name}</span>
               <span className={styles.dot} aria-hidden="true">
-                ·
+                /
               </span>
             </>
           )}
           <span className={styles.reference}>{task.reference}</span>
         </p>
+
+        <Text as="h3" variant="subheadline" weight="semibold" className={styles.title}>
+          {task.title}
+        </Text>
 
         <Text variant="footnote" tone="secondary" className={styles.description}>
           {task.description}
@@ -174,7 +190,7 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
         {tags.length > 0 && (
           <div className={styles.tags}>
             {tags.map((tag) => (
-              <Badge key={tag} size="sm" className={styles.tag}>
+              <Badge key={tag} size="sm" hue={tagHue(tag)} className={styles.tag}>
                 {tag}
               </Badge>
             ))}
@@ -238,7 +254,18 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
             </VisuallyHidden>
           </span>
 
+          {/* As contagens do que a tarefa carrega, no canto e apagadas: vínculos, anexos e conversa. Só
+              aparece a que existe, então o pé de uma tarefa simples fica só com o prazo. */}
           <span className={styles.meta}>
+            {task.links.length > 0 && (
+              <span className={styles.count}>
+                <LinkSimpleIcon aria-hidden="true" />
+                <Text as="span" variant="caption1" tone="inherit">
+                  {task.links.length}
+                </Text>
+                <VisuallyHidden>{task.links.length === 1 ? "registro vinculado" : "registros vinculados"}</VisuallyHidden>
+              </span>
+            )}
             {task.attachments.length > 0 && (
               <span className={styles.count}>
                 <PaperclipIcon aria-hidden="true" />
@@ -263,6 +290,8 @@ export const TaskCard = memo(function TaskCard({ task, onOpen, drag, overlay = f
           </span>
         </div>
       </div>
+      {/* Concluída pelo arraste, só como efeito (2026-09-23, a pedido): o véu com o check cobre o cartão e some. */}
+      {celebrating && <SuccessOverlay onDone={onCelebrated} />}
     </li>
   );
 });

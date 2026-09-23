@@ -37,7 +37,6 @@ const Shell = styled.span`
   background-color: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--control-radius-md);
-  corner-shape: squircle;
 
   @media (max-width: 47.9375rem) {
     border-radius: var(--radius-md);

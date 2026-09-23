@@ -145,7 +145,6 @@
   min-height: 3.25rem;
   padding: var(--space-2) var(--space-2);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .row[data-unread] {
@@ -183,7 +182,6 @@
   color: var(--item-hue, var(--color-label-secondary));
   background-color: light-dark(color-mix(in oklab, var(--item-hue, var(--color-label)) 12%, transparent), color-mix(in oklab, var(--item-hue, var(--color-label)) 20%, transparent));
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .glyph svg {
@@ -202,7 +200,6 @@
   font-size: var(--text-footnote);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .code code {
@@ -237,7 +234,6 @@
   padding: var(--space-2);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .picks {
@@ -275,7 +271,6 @@
   padding: var(--space-4);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .cardHead {

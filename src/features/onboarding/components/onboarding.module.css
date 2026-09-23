@@ -57,7 +57,6 @@
   background-color: color-mix(in oklab, var(--color-bg-grouped-secondary) 55%, transparent);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-3xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
@@ -80,33 +79,6 @@
   from {
     opacity: 0;
     scale: 0.96;
-  }
-}
-
-@keyframes markEnter {
-  from {
-    opacity: 0;
-    scale: 0.82;
-  }
-}
-
-@keyframes ringFill {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes markOut {
-  to {
-    opacity: 0;
-    scale: 0.7;
-  }
-}
-
-@keyframes markIn {
-  from {
-    opacity: 0;
-    scale: 0.6;
   }
 }
 
@@ -138,59 +110,8 @@
   }
 }
 
-.mark,
 .welcomeText {
   position: relative;
-}
-
-.mark {
-  display: grid;
-  place-items: center;
-  width: var(--mark-size);
-  height: var(--mark-size);
-  animation: markEnter var(--duration-slow) var(--ease-spring) backwards;
-}
-
-.mark svg:first-child {
-  position: absolute;
-  inset: 0;
-}
-
-/* Marca e check ocupam a mesma célula: quando o anel fecha, uma sai e o outro entra no lugar exato. */
-.markLogo,
-.markCheck {
-  grid-area: 1 / 1;
-}
-
-.markLogo {
-  animation: markOut var(--duration-base) var(--ease-standard) var(--ring-duration) forwards;
-}
-
-/* `backwards` é o que segura o check invisível durante a espera do anel, sem precisar de `opacity: 0` no
-   estilo base: com o zero declarado aqui, o `to` implícito do quadro também seria zero e ele animaria de
-   invisível para invisível. */
-.markCheck {
-  width: 2.125rem;
-  height: 2.125rem;
-  color: var(--color-brand);
-  fill: currentColor;
-  animation: markIn var(--duration-slow) var(--ease-spring) var(--ring-duration) backwards;
-}
-
-.ringTrack {
-  stroke: var(--color-fill-quaternary);
-}
-
-/* O traço começa todo escondido e vai sendo revelado: `dashoffset` do tamanho do próprio traço some em
-   `--ring-duration`, que é o mesmo tempo da espera antes de fechar. */
-.ringFill {
-  stroke: var(--color-brand);
-  stroke-dasharray: var(--ring-length);
-  stroke-dashoffset: var(--ring-length);
-  animation: ringFill var(--ring-duration) var(--ease-standard) forwards;
-}
-
-.welcomeText {
   display: grid;
   gap: var(--space-1);
   animation: welcomeEnter var(--duration-slow) var(--ease-standard) var(--duration-fast) backwards;
@@ -296,7 +217,6 @@
   width: 100%;
   aspect-ratio: var(--identity-ratio, 4 / 1);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
 }
 
 /* Círculo puro fica fora do sistema de cantos, então nada de corner-shape aqui. */

@@ -7,7 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { paymentMethods, quoteStatuses } from "../labels";
 import type { Quote } from "../summary";
@@ -88,7 +88,7 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
   };
 
   return (
-    <li className={styles.card} data-status={quote.status} {...squircle("xl", { clip: true })}>
+    <li className={styles.card} data-status={quote.status} {...rounded("xl", { clip: true })}>
       <div
         role="button"
         tabIndex={0}
@@ -97,7 +97,7 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         {/* Em cima a situação e o leque, e nada mais: numa coluna de 16rem, que é a medida da grade, o código
             do documento com uma etiqueta de "Visualizado" e o leque não cabem na mesma linha (medido em
@@ -137,7 +137,7 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
             foi, com a empresa, e quem da equipe responde, só o rosto, com o nome na dica e na voz. */}
         <div className={styles.people}>
           <span className={styles.client}>
-            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="rounded" />
             <span className={styles.clientCopy}>
               <Text as="span" variant="footnote" weight="medium" truncate>
                 {quote.client.company ?? quote.client.name}

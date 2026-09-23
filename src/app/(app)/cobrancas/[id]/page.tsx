@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { getAiUsageData } from "@/features/ai/queries";
 import { ChargesScreen } from "@/features/finance/components/charges-screen";
 import {
@@ -15,9 +16,13 @@ import { getChargeById, loadChargesScreenData } from "@/features/finance/queries
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
+/* Memorizada por requisição, na receita de `getOrganizationContext`: os metadados e a página pedem a mesma
+   cobrança na mesma renderização, e sem isto a segunda chamada refazia a busca dos donos da equipe. */
+const loadCharge = cache(getChargeById);
+
 export async function generateMetadata({ params }: PageProps<"/cobrancas/[id]">) {
   const { id } = await params;
-  const charge = await getChargeById(id);
+  const charge = await loadCharge(id);
 
   return createMetadata({
     title: charge ? `${charge.reference}: ${charge.title}` : "Cobrança",
@@ -45,7 +50,7 @@ export default async function ChargePage({ params, searchParams }: PageProps<"/c
   );
   query.direction = "incoming";
 
-  const [charge, data, ai] = await Promise.all([getChargeById(id), loadChargesScreenData(), getAiUsageData()]);
+  const [charge, data, ai] = await Promise.all([loadCharge(id), loadChargesScreenData(), getAiUsageData()]);
   if (!charge || charge.direction !== "incoming") notFound();
 
   return <ChargesScreen page={listCharges(data.charges, query)} query={query} view={view} lookups={data.lookups} ai={ai} direction="incoming" viewing={charge} />;

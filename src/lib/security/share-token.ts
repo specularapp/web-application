@@ -14,7 +14,7 @@ import { env } from "@/lib/env";
  * Revogar é somar um na versão: o token anterior deixa de bater com o resumo gravado, sem apagar o
  * documento nem mexer em mais nada.
  */
-export type ShareKind = "quote" | "contract" | "charge";
+export type ShareKind = "quote" | "contract" | "charge" | "project" | "form" | "feedback" | "approval";
 
 function secret() {
   return env.share().SHARE_LINK_SECRET;

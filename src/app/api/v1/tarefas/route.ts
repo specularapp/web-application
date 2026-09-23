@@ -24,5 +24,5 @@ export async function POST(request: Request) {
   const body = await readPayload(request, taskFormSchema);
   if ("response" in body) return body.response;
 
-  return fromMutation(await saveTask(auth.session.supabase, auth.session.organizationId, body.data), auth.session.organizationId, ["tasks"]);
+  return fromMutation(await saveTask(auth.session.supabase, auth.session.organizationId, body.data, auth.session.userId), auth.session.organizationId, ["tasks"]);
 }

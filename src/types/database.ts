@@ -163,6 +163,246 @@ export type Database = {
           },
         ]
       }
+      approval_assets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          position: number
+          url: string
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          position?: number
+          url: string
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          position?: number
+          url?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_assets_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "approval_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_decisions: {
+        Row: {
+          approval_id: string
+          created_at: string
+          decision: Database["public"]["Enums"]["approval_decision_type"]
+          feedback: string | null
+          id: string
+          organization_id: string
+          respondent_name: string | null
+          version_id: string
+        }
+        Insert: {
+          approval_id: string
+          created_at?: string
+          decision: Database["public"]["Enums"]["approval_decision_type"]
+          feedback?: string | null
+          id?: string
+          organization_id: string
+          respondent_name?: string | null
+          version_id: string
+        }
+        Update: {
+          approval_id?: string
+          created_at?: string
+          decision?: Database["public"]["Enums"]["approval_decision_type"]
+          feedback?: string | null
+          id?: string
+          organization_id?: string
+          respondent_name?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_decisions_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_decisions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_decisions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: true
+            referencedRelation: "approval_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          expires_at: string
+          id: string
+          organization_id: string
+          project_id: string
+          reference: string
+          share_token_hash: string
+          share_token_version: number
+          status: Database["public"]["Enums"]["approval_status"]
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string
+          id?: string
+          organization_id: string
+          project_id: string
+          reference: string
+          share_token_hash: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["approval_status"]
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          project_id?: string
+          reference?: string
+          share_token_hash?: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["approval_status"]
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_versions: {
+        Row: {
+          approval_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string
+          organization_id: string
+          preview_url: string | null
+          published_at: string | null
+          source_type: Database["public"]["Enums"]["approval_source_type"]
+          title: string
+          version_number: number
+        }
+        Insert: {
+          approval_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          organization_id: string
+          preview_url?: string | null
+          published_at?: string | null
+          source_type: Database["public"]["Enums"]["approval_source_type"]
+          title: string
+          version_number: number
+        }
+        Update: {
+          approval_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          organization_id?: string
+          preview_url?: string | null
+          published_at?: string | null
+          source_type?: Database["public"]["Enums"]["approval_source_type"]
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_versions_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_versions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_runs: {
         Row: {
           at: string
@@ -758,6 +998,94 @@ export type Database = {
           },
         ]
       }
+      client_feedback: {
+        Row: {
+          client_id: string | null
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+          project_id: string
+          prompt: string
+          rating: number | null
+          reference: string
+          respondent_name: string | null
+          share_token_hash: string
+          share_token_version: number
+          status: Database["public"]["Enums"]["client_feedback_status"]
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          organization_id: string
+          project_id: string
+          prompt?: string
+          rating?: number | null
+          reference: string
+          respondent_name?: string | null
+          share_token_hash: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["client_feedback_status"]
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          project_id?: string
+          prompt?: string
+          rating?: number | null
+          reference?: string
+          respondent_name?: string | null
+          share_token_hash?: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["client_feedback_status"]
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           about: string | null
@@ -1333,6 +1661,243 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      intake_form_questions: {
+        Row: {
+          created_at: string
+          description: string
+          form_id: string
+          id: string
+          label: string
+          options: Json
+          organization_id: string
+          page: number
+          placeholder: string
+          position: number
+          profile_field:
+            | Database["public"]["Enums"]["intake_profile_field"]
+            | null
+          required: boolean
+          type: Database["public"]["Enums"]["intake_question_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          form_id: string
+          id?: string
+          label: string
+          options?: Json
+          organization_id: string
+          page?: number
+          placeholder?: string
+          position?: number
+          profile_field?:
+            | Database["public"]["Enums"]["intake_profile_field"]
+            | null
+          required?: boolean
+          type: Database["public"]["Enums"]["intake_question_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          form_id?: string
+          id?: string
+          label?: string
+          options?: Json
+          organization_id?: string
+          page?: number
+          placeholder?: string
+          position?: number
+          profile_field?:
+            | Database["public"]["Enums"]["intake_profile_field"]
+            | null
+          required?: boolean
+          type?: Database["public"]["Enums"]["intake_question_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_form_questions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "intake_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_questions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_form_submissions: {
+        Row: {
+          answers: Json
+          client_id: string | null
+          consent_text: string
+          consented_at: string
+          created_at: string
+          form_id: string
+          id: string
+          organization_id: string
+          project_id: string
+          respondent_email: string | null
+          respondent_name: string | null
+          respondent_phone: string | null
+        }
+        Insert: {
+          answers: Json
+          client_id?: string | null
+          consent_text: string
+          consented_at: string
+          created_at?: string
+          form_id: string
+          id?: string
+          organization_id: string
+          project_id: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          respondent_phone?: string | null
+        }
+        Update: {
+          answers?: Json
+          client_id?: string | null
+          consent_text?: string
+          consented_at?: string
+          created_at?: string
+          form_id?: string
+          id?: string
+          organization_id?: string
+          project_id?: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          respondent_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_form_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "intake_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_submissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_forms: {
+        Row: {
+          client_id: string | null
+          closed_at: string | null
+          consent_text: string
+          created_at: string
+          created_by: string | null
+          description: string
+          expires_at: string
+          id: string
+          organization_id: string
+          project_id: string
+          published_at: string | null
+          reference: string
+          share_token_hash: string
+          share_token_version: number
+          status: Database["public"]["Enums"]["intake_form_status"]
+          submit_label: string
+          success_message: string
+          success_title: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          closed_at?: string | null
+          consent_text?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string
+          id?: string
+          organization_id: string
+          project_id: string
+          published_at?: string | null
+          reference: string
+          share_token_hash: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["intake_form_status"]
+          submit_label?: string
+          success_message?: string
+          success_title?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          closed_at?: string | null
+          consent_text?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          project_id?: string
+          published_at?: string | null
+          reference?: string
+          share_token_hash?: string
+          share_token_version?: number
+          status?: Database["public"]["Enums"]["intake_form_status"]
+          submit_label?: string
+          success_message?: string
+          success_title?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_forms_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_forms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_forms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -2132,6 +2697,10 @@ export type Database = {
           status: Database["public"]["Enums"]["project_status"]
           tags: string[]
           tools: Database["public"]["Enums"]["project_tool"][]
+          tracking_expires_at: string | null
+          tracking_token_hash: string | null
+          tracking_token_version: number
+          tracking_viewed_at: string | null
           updated_at: string
           url: string | null
         }
@@ -2159,6 +2728,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
           tools?: Database["public"]["Enums"]["project_tool"][]
+          tracking_expires_at?: string | null
+          tracking_token_hash?: string | null
+          tracking_token_version?: number
+          tracking_viewed_at?: string | null
           updated_at?: string
           url?: string | null
         }
@@ -2186,6 +2759,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
           tools?: Database["public"]["Enums"]["project_tool"][]
+          tracking_expires_at?: string | null
+          tracking_token_hash?: string | null
+          tracking_token_version?: number
+          tracking_viewed_at?: string | null
           updated_at?: string
           url?: string | null
         }
@@ -2874,6 +3451,67 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          note: string
+          organization_id: string
+          project_id: string | null
+          started_at: string
+          stopped_at: string | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          note?: string
+          organization_id: string
+          project_id?: string | null
+          started_at?: string
+          stopped_at?: string | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          note?: string
+          organization_id?: string
+          project_id?: string | null
+          started_at?: string
+          stopped_at?: string | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
@@ -2961,6 +3599,7 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      approval_by_token: { Args: { p_token_hash: string }; Returns: Json }
       attach_billing_customer: {
         Args: { p_organization_id: string; p_stripe_customer_id: string }
         Returns: string
@@ -2985,6 +3624,10 @@ export type Database = {
       }
       charge_by_token: { Args: { p_token_hash: string }; Returns: Json }
       claim_daily_bonus: { Args: { p_points: number }; Returns: boolean }
+      client_feedback_by_token: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
       complete_onboarding: {
         Args: { p_organization_id: string }
         Returns: undefined
@@ -3039,6 +3682,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      intake_form_by_token: { Args: { p_token_hash: string }; Returns: Json }
       is_member: { Args: { p_organization_id: string }; Returns: boolean }
       log_record_event: {
         Args: {
@@ -3053,6 +3697,10 @@ export type Database = {
       }
       mark_charge_viewed: { Args: { p_token_hash: string }; Returns: undefined }
       mark_contract_party_viewed: {
+        Args: { p_token_hash: string }
+        Returns: undefined
+      }
+      mark_project_tracking_viewed: {
         Args: { p_token_hash: string }
         Returns: undefined
       }
@@ -3118,6 +3766,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      project_tracking_by_token: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
       public_portfolio: { Args: { p_slug: string }; Returns: Json }
       public_resume: { Args: { p_slug: string }; Returns: Json }
       quote_by_token: { Args: { p_token_hash: string }; Returns: Json }
@@ -3158,6 +3810,30 @@ export type Database = {
       sign_contract_party: {
         Args: { p_signature_url: string; p_token_hash: string }
         Returns: boolean
+      }
+      submit_approval_decision: {
+        Args: {
+          p_decision: Database["public"]["Enums"]["approval_decision_type"]
+          p_feedback: string
+          p_respondent_name: string
+          p_token_hash: string
+          p_version_id: string
+        }
+        Returns: Json
+      }
+      submit_client_feedback: {
+        Args: {
+          p_comment: string
+          p_rating: number
+          p_respondent_name: string
+          p_token_hash: string
+          p_would_recommend: boolean
+        }
+        Returns: Json
+      }
+      submit_intake_form: {
+        Args: { p_answers: Json; p_consent: boolean; p_token_hash: string }
+        Returns: Json
       }
       sync_subscription: {
         Args: {
@@ -3218,6 +3894,15 @@ export type Database = {
     Enums: {
       ai_answer_state: "thinking" | "writing" | "done" | "stopped"
       ai_role: "person" | "assistant"
+      approval_decision_type: "approved" | "changes_requested" | "rejected"
+      approval_source_type: "url" | "images"
+      approval_status:
+        | "draft"
+        | "pending"
+        | "approved"
+        | "changes_requested"
+        | "rejected"
+        | "closed"
       automation_run_mode: "event" | "test"
       automation_run_status: "ok" | "failed" | "waiting"
       automation_status: "active" | "paused" | "draft"
@@ -3236,6 +3921,7 @@ export type Database = {
         | "reopened"
         | "cancelled"
       charge_recurrence: "none" | "monthly" | "quarterly" | "yearly"
+      client_feedback_status: "pending" | "submitted" | "closed"
       client_kind: "customer" | "supplier" | "both"
       contract_event_kind:
         | "created"
@@ -3281,6 +3967,24 @@ export type Database = {
         | "archived"
         | "restored"
         | "deleted"
+      intake_form_status: "draft" | "published" | "closed"
+      intake_profile_field:
+        | "name"
+        | "email"
+        | "phone"
+        | "company"
+        | "role"
+        | "city"
+        | "website"
+        | "about"
+      intake_question_type:
+        | "short_text"
+        | "long_text"
+        | "email"
+        | "phone"
+        | "single_choice"
+        | "multiple_choice"
+        | "date"
       member_role: "owner" | "admin" | "member"
       notification_kind: "acao" | "revisao" | "sistema"
       opportunity_source:
@@ -3575,6 +4279,16 @@ export const Constants = {
     Enums: {
       ai_answer_state: ["thinking", "writing", "done", "stopped"],
       ai_role: ["person", "assistant"],
+      approval_decision_type: ["approved", "changes_requested", "rejected"],
+      approval_source_type: ["url", "images"],
+      approval_status: [
+        "draft",
+        "pending",
+        "approved",
+        "changes_requested",
+        "rejected",
+        "closed",
+      ],
       automation_run_mode: ["event", "test"],
       automation_run_status: ["ok", "failed", "waiting"],
       automation_status: ["active", "paused", "draft"],
@@ -3594,6 +4308,7 @@ export const Constants = {
         "cancelled",
       ],
       charge_recurrence: ["none", "monthly", "quarterly", "yearly"],
+      client_feedback_status: ["pending", "submitted", "closed"],
       client_kind: ["customer", "supplier", "both"],
       contract_event_kind: [
         "created",
@@ -3638,6 +4353,26 @@ export const Constants = {
         "tray",
       ],
       history_action: ["created", "updated", "archived", "restored", "deleted"],
+      intake_form_status: ["draft", "published", "closed"],
+      intake_profile_field: [
+        "name",
+        "email",
+        "phone",
+        "company",
+        "role",
+        "city",
+        "website",
+        "about",
+      ],
+      intake_question_type: [
+        "short_text",
+        "long_text",
+        "email",
+        "phone",
+        "single_choice",
+        "multiple_choice",
+        "date",
+      ],
       member_role: ["owner", "admin", "member"],
       notification_kind: ["acao", "revisao", "sistema"],
       opportunity_source: [

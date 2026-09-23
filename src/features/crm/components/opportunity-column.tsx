@@ -9,7 +9,7 @@ import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { compactMoney, formatMoney } from "@/lib/utils/format";
 import { useEventCallback } from "@/hooks/use-event-callback";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { totalValue } from "../labels";
 import { crmSortIcons, crmSortLabels, crmSortValues, type CrmColumnSort } from "../list-options";
 import type { CrmStage, CrmStageMeta } from "../stages";
@@ -19,6 +19,9 @@ import styles from "./opportunity-column.module.css";
 
 export type OpportunityColumnProps = {
   stage: CrmStageMeta;
+  /** A oportunidade que acabou de chegar arrastada numa etapa de ganho, para o cartão dela mostrar o check. */
+  celebrating?: string | null;
+  onCelebrated?: () => void;
   /** As oportunidades da etapa, já filtradas e na ordem que a coluna escolheu. */
   opportunities: Opportunity[];
   collapsed: boolean;
@@ -49,9 +52,13 @@ const DraggableCard = memo(function DraggableCard({
   stages,
   onMove,
   onDelete,
+  celebrating,
+  onCelebrated,
 }: {
   opportunity: Opportunity;
   stage: CrmStage;
+  celebrating?: boolean;
+  onCelebrated?: () => void;
   onOpen: (opportunity: Opportunity) => void;
   stages?: CrmStage[];
   onMove?: (opportunity: Opportunity, stage: CrmStage) => void;
@@ -71,6 +78,8 @@ const DraggableCard = memo(function DraggableCard({
       stages={stages}
       onMove={onMove}
       onDelete={onDelete}
+      celebrating={celebrating}
+      onCelebrated={onCelebrated}
     />
   );
 });
@@ -82,6 +91,8 @@ const DraggableCard = memo(function DraggableCard({
 // O que o funil acrescenta é o **dinheiro da coluna**, na mesma linha da etiqueta: num quadro de vendas a
 // pergunta da etapa não é só "quantas", é "quanto tem parado aqui", e essa resposta não cabe na contagem.
 export function OpportunityColumn({
+  celebrating = null,
+  onCelebrated,
   stage,
   opportunities,
   collapsed,
@@ -161,11 +172,11 @@ export function OpportunityColumn({
               style={hue}
               aria-expanded={!collapsed}
               onClick={() => onCollapsedChange(!collapsed)}
-              {...squircle("md", { clip: true })}
+              {...rounded("md", { clip: true })}
             >
               <Glyph aria-hidden="true" className={styles.glyph} weight="bold" />
               <span className={styles.name}>{stage.label}</span>
-              <span className={styles.count} aria-hidden="true" {...squircle("sm", { clip: true })}>
+              <span className={styles.count} aria-hidden="true" {...rounded("sm", { clip: true })}>
                 {count}
               </span>
               <VisuallyHidden>
@@ -209,7 +220,7 @@ export function OpportunityColumn({
               {/* O lugar do cartão que vem: tracejado no matiz da etapa, no topo da pilha, que é a parte da
                   coluna que está à vista quando o cartão chega. */}
               {landing && (
-                <li className={styles.landing} aria-hidden="true" {...squircle("xl")}>
+                <li className={styles.landing} aria-hidden="true" {...rounded("xl")}>
                   <Text as="span" variant="caption1" weight="medium" tone="inherit">
                     Soltar em {stage.label}
                   </Text>
@@ -219,6 +230,8 @@ export function OpportunityColumn({
                 draggable ? (
                   <DraggableCard
                     key={opportunity.id}
+                    celebrating={celebrating === opportunity.id}
+                    onCelebrated={onCelebrated}
                     opportunity={opportunity}
                     stage={stage.id}
                     onOpen={open}

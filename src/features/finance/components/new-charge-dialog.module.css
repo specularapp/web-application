@@ -43,7 +43,6 @@
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .previewTitle {
@@ -66,21 +65,9 @@
   justify-content: space-between;
 }
 
-.foot {
-  display: flex;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-5);
-  border-block-start: 0.0375rem solid var(--color-border);
-}
-
 @media (max-width: 47.9375rem) {
   .body {
     padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
-  }
-
-  .foot {
-    display: none;
   }
 }
 
@@ -105,7 +92,6 @@
   background-color: var(--color-fill-tertiary);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .photoFrame svg {
@@ -147,7 +133,6 @@
   padding: var(--space-half);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .side {
@@ -163,7 +148,6 @@
   background: none;
   border: 0;
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 .side svg {

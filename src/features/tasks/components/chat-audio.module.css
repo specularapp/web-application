@@ -70,7 +70,6 @@
     color-mix(in oklab, var(--color-danger) 18%, transparent)
   );
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 .recording .clock {

@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { quoteTotals } from "@/features/quotes/totals";
 import type { QuoteStatus } from "@/features/quotes/summary";
@@ -168,7 +169,10 @@ export async function listClients(
   const start = (query.page - 1) * query.pageSize;
   const { data, count, error } = await builder.order("name").range(start, start + query.pageSize - 1);
 
-  if (error) return { items: [], total: 0 };
+  /* Falha do banco não pode virar página vazia: o `cached` guardaria esse vazio por trinta segundos e todo
+     o time veria a base sem cadastro nenhum. Lançando, a tela cai no limite de erro, que é o que ela é
+     (2026-09-22, na varredura). */
+  if (error) throw new Error(dbMessage(error, LOAD_FAILED));
 
   const rows = (data ?? []) as ListRow[];
   const stats = await statsFor(client, organizationId, rows.map((row) => row.id));
@@ -357,7 +361,7 @@ export async function saveClient(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
     const changes = diffFields(before, values, historyLabels);
     if (changes.length > 0) {
@@ -379,7 +383,7 @@ export async function saveClient(
     .select("id, reference")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, {
     recordType: "client",
@@ -406,6 +410,17 @@ export async function setClientFlag(
      dinâmica, e escrita assim ela é conferida na compilação. */
   const values = flag === "active" ? { active: value } : { favorite: value };
 
+  /* O que estava, para o histórico dizer o de e o para de verdade, como no `saveClient`. Deduzir o anterior
+     do que chegou registrava uma mudança que não aconteceu: o leque do cartão manda o valor otimista, e com
+     o cartão mostrando estado velho (outra pessoa já favoritou, ou outra aba) o banco não muda nada e o
+     histórico contava "favorito: de não para sim" (2026-09-22, na varredura). */
+  const { data: before } = await client
+    .from("clients")
+    .select("active, favorite")
+    .eq("organization_id", organizationId)
+    .eq("id", id)
+    .maybeSingle();
+
   const { data, error } = await client
     .from("clients")
     .update(values)
@@ -414,7 +429,15 @@ export async function setClientFlag(
     .select("name")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
+
+  const changes =
+    flag === "active"
+      ? diffFields({ active: before?.active }, { active: value }, { active: historyLabels.active })
+      : diffFields({ favorite: before?.favorite }, { favorite: value }, { favorite: historyLabels.favorite });
+
+  /* Interruptor que não mudou nada não vira linha do histórico: a linha do tempo é o que aconteceu. */
+  if (changes.length === 0) return { ok: true, data: undefined };
 
   const summary =
     flag === "active"
@@ -430,7 +453,7 @@ export async function setClientFlag(
     recordId: id,
     action: "updated",
     summary,
-    changes: [{ field: flag, label: flag === "active" ? "situação" : "favorito", from: value ? "não" : "sim", to: value ? "sim" : "não" }],
+    changes,
   });
 
   return { ok: true, data: undefined };
@@ -456,19 +479,25 @@ export async function deleteClients(
     if (error.code === "23503") {
       return { ok: false, error: "Há cliente com projeto ligado. Apague ou mova os projetos antes." };
     }
-    return { ok: false, error: error.message || LOAD_FAILED };
+    return { ok: false, error: dbMessage(error, LOAD_FAILED) };
   }
 
   /* O histórico não tem chave estrangeira para o registro justamente por isto: apagar o cliente não pode
-     apagar a prova de que ele existiu e de quem o apagou. */
-  for (const row of data ?? []) {
-    await logRecordEvent(client, organizationId, {
-      recordType: "client",
-      recordId: row.id,
-      action: "deleted",
-      summary: "Excluiu o cliente",
-    });
-  }
+     apagar a prova de que ele existiu e de quem o apagou.
+
+     Os eventos saem juntos, e não um por vez: em série, apagar cem clientes eram cem idas ao banco depois de
+     o registro já ter sido removido, mais de três segundos de espera, com risco de a função estourar o tempo
+     e deixar parte do lote sem prova (2026-09-22, na varredura). */
+  await Promise.all(
+    (data ?? []).map((row) =>
+      logRecordEvent(client, organizationId, {
+        recordType: "client",
+        recordId: row.id,
+        action: "deleted",
+        summary: "Excluiu o cliente",
+      }),
+    ),
+  );
 
   return { ok: true, data: { deleted: data?.length ?? 0 } };
 }
@@ -477,12 +506,18 @@ export async function deleteClients(
  * Os clientes que os seletores dos outros domínios oferecem, na mesma forma do cartão da listagem: é o que o
  * editor de orçamento desenha, e uma segunda forma só para ele sairia de sincronia na primeira coluna nova.
  * Os números da relação não entram, porque nenhum seletor os mostra.
+ *
+ * Só quem compra, no mesmo recorte da aba Clientes da listagem: sem isto um contato cadastrado como
+ * fornecedor não aparecia em /clientes mas aparecia no seletor do editor de orçamento, e dava para emitir
+ * orçamento para ele (2026-09-22, na varredura). Quem precisar dos fornecedores pede o recorte de lá, como
+ * o seletor de nova cobrança do financeiro já faz.
  */
 export async function listClientOptions(client: ClientsClient, organizationId: string): Promise<ClientListItem[]> {
   const { data } = await client
     .from("clients")
     .select(listColumns)
     .eq("organization_id", organizationId)
+    .in("kind", ["customer", "both"])
     .eq("active", true)
     .order("created_at", { ascending: false })
     .limit(500);

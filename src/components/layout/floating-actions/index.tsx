@@ -223,6 +223,27 @@ export function useFloatingActionsRegistration(actions: FloatingActions | null) 
 const FloatingDepthContext = createContext(0);
 
 /**
+ * O sair padrão de toda bandeja do celular (2026-09-22, a pedido: "cada modalzinho que abre é independente e
+ * o container flutuante reflete sempre o que está em foco"). Sem ele, uma lista de escolha aberta dentro de
+ * uma ficha deixava na barra o salvar e o X da ficha, e o X fechava a ficha por baixo da lista.
+ *
+ * Registra meio degrau acima de quem abriu a bandeja e meio abaixo do conteúdo dela: ganha da camada de
+ * baixo e cede para a própria bandeja quando ela pendura ações de verdade.
+ */
+export function useFloatingCloseFallback(active: boolean, onClose: () => void) {
+  const owner = useId();
+  const context = useContext(FloatingActionsContext);
+  const depth = useContext(FloatingDepthContext) + 0.5;
+  const register = context?.register;
+
+  useEffect(() => {
+    register?.(active ? { cancel: { label: "Fechar", onClick: onClose } } : null, depth, owner);
+  });
+
+  useEffect(() => () => register?.(null, depth, owner), [register, depth, owner]);
+}
+
+/**
  * Marca que o que está aqui dentro é uma camada acima da de fora, para a barra saber quem manda quando duas
  * registram ao mesmo tempo. A `Dialog` abre um destes em volta do conteúdo dela, então bandeja aberta dentro
  * de janela conta como um degrau a mais sem ninguém precisar dizer nada.

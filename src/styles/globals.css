@@ -2,12 +2,24 @@
 @import "./tokens.css";
 @import "./vendors/react-day-picker.css";
 
-[data-squircle] {
-  corner-shape: squircle;
-}
+[data-corner-radius="xs"] { border-radius: var(--radius-xs); }
+[data-corner-radius="sm"] { border-radius: var(--radius-sm); }
+[data-corner-radius="md"] { border-radius: var(--radius-md); }
+[data-corner-radius="lg"] { border-radius: var(--radius-lg); }
+[data-corner-radius="xl"] { border-radius: var(--radius-xl); }
+[data-corner-radius="2xl"] { border-radius: var(--radius-2xl); }
+[data-corner-radius="3xl"] { border-radius: var(--radius-3xl); }
+[data-corner-clip] { overflow: hidden; }
 
 html {
   background-color: var(--color-bg);
+}
+
+/* O tamanho do degradê de lista que rola, registrado para a máscara acompanhar a rolagem em vez de pular. */
+@property --scroll-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
 }
 
 html[data-scroll="locked"],

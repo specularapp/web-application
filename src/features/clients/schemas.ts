@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_TAGS } from "@/lib/tags";
+import { isSiteUrl, siteUrl } from "@/lib/utils/site";
 import { clientTagValues } from "./tags";
 import { clientKindValues } from "./summary";
 
@@ -26,7 +27,7 @@ export { MAX_TAGS };
 /** O que a ficha de cliente aceita, na criação e na edição: é o mesmo formulário. */
 export const clientFormSchema = z.object({
   /** Presente na edição; ausente na criação. */
-  id: z.string().trim().min(1).optional(),
+  id: z.uuid().optional(),
   kind: z.enum(clientKindValues).default("customer"),
   name: z.string().trim().min(2, "Informe o nome do contato").max(clientLimits.name, "Nome longo demais"),
   company: z.string().trim().max(clientLimits.company, "Nome da empresa longo demais"),
@@ -34,7 +35,16 @@ export const clientFormSchema = z.object({
   email: z.union([z.literal(""), z.email("E-mail inválido").max(clientLimits.email)]),
   /** Só dígitos, com DDD: fixo tem 10 e celular tem 11. */
   phone: z.union([z.literal(""), z.string().regex(/^\d{10,11}$/, "Telefone incompleto")]),
-  website: z.string().trim().max(clientLimits.website, "Endereço longo demais"),
+  /* O endereço sai normalizado para `https://`, como a ficha o desenha, e é recusado se não for endereço
+     de verdade: sem isto o zod aceitava `fast.com.br`, o banco guardava, e a ficha quebrava ao abrir,
+     porque quem a desenha lê o domínio com `new URL` (2026-09-22, na varredura). O teto de tamanho vale
+     depois da normalização, que é o que o banco vai guardar. */
+  website: z
+    .string()
+    .trim()
+    .transform(siteUrl)
+    .refine((value) => value.length <= clientLimits.website, "Endereço longo demais")
+    .refine((value) => value === "" || isSiteUrl(value), "Endereço de site inválido"),
   city: z.string().trim().max(clientLimits.city, "Cidade longa demais"),
   about: z.string().trim().max(clientLimits.about, "Anotação longa demais"),
   /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
@@ -47,7 +57,7 @@ export const clientFormSchema = z.object({
 export type ClientFormInput = z.infer<typeof clientFormSchema>;
 
 /** Os clientes marcados para excluir de uma vez: ao menos um, e não mais que uma página. */
-export const clientIdsSchema = z.array(z.string().trim().min(1)).min(1).max(100);
+export const clientIdsSchema = z.array(z.uuid()).min(1).max(100);
 
 /** Um dos dois interruptores do leque, ligado ou desligado. */
 export const clientFlagSchema = z.object({

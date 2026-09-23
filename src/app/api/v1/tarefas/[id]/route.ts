@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if ("response" in body) return body.response;
   if (body.data.id !== id) return Response.json({ error: "Tarefa divergente" }, { status: 400 });
 
-  return fromMutation(await moveTask(auth.session.supabase, auth.session.organizationId, id, body.data.stageId, body.data.position), auth.session.organizationId, ["tasks"]);
+  return fromMutation(await moveTask(auth.session.supabase, auth.session.organizationId, id, body.data.stageId, body.data.position, auth.session.userId), auth.session.organizationId, ["tasks"]);
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {

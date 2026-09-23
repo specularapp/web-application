@@ -30,7 +30,7 @@ export function QuoteSignature({ owner, signedAt, host }: QuoteSignatureProps) {
   return (
     <section className={styles.signature} aria-label={`Assinado digitalmente por ${owner.name}`}>
       <div className={styles.credit}>
-        {/* O selo vai em círculo, e não no squircle do resto da casa: ele é o carimbo de quem assinou, e não
+        {/* O selo vai em círculo, e não no rounded do resto da casa: ele é o carimbo de quem assinou, e não
             o avatar da pessoa numa lista. */}
         <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} size="sm" className={styles.seal} />
 

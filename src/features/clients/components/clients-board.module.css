@@ -52,7 +52,6 @@
   padding: var(--space-half);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .group {
@@ -66,7 +65,14 @@
   background: none;
   border: 0;
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
+}
+
+/* Em ponteiro grosso as duas abas chegam aos 44px da regra, e a caixa em volta acompanha. Os 28px do
+   segmento são a densidade certa para o mouse, e não para o dedo (2026-09-22, medido na tela). */
+@media (pointer: coarse) {
+  .group {
+    min-height: var(--touch-target);
+  }
 }
 
 .group[aria-selected="true"] {

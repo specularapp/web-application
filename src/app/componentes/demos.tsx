@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CheckoutPanel } from "@/features/billing/components/checkout-panel";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Listbox, type ListboxPlacement } from "@/components/ui/listbox";
 import { Pagination } from "@/components/ui/pagination";
@@ -23,6 +23,8 @@ import { Text } from "@/components/ui/text";
 import type { DocNode } from "@/lib/rich-doc";
 import { Toast } from "@/components/ui/toast";
 import { memberRoleOptions } from "@/features/onboarding/labels";
+import { TeamPeoplePanel } from "@/features/organizations/components/team-people";
+import { SettingsSection } from "@/features/settings/components/settings-page";
 import styles from "./componentes.module.css";
 
 const orderOptions = [
@@ -299,6 +301,71 @@ export function CheckoutPreview() {
   );
 }
 
+/**
+ * O cabeçalho e o rodapé de janela no primitivo (2026-09-21): a mesma peça que as janelas da aplicação
+ * passaram a usar, no lugar do `header` e do `footer` que cada uma remontava com o CSS repetido.
+ */
+export function DialogChromeDemo() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Abrir janela com cabeçalho e rodapé
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} label="Nova cobrança" size="md" placement="end" surface="page">
+        <DialogHeader
+          title="Nova cobrança"
+          description="O cliente recebe um link para pagar"
+          onClose={() => setOpen(false)}
+        />
+        <div className={styles.dialogDemoBody}>
+          <Text variant="body">O corpo rola por dentro, entre o cabeçalho e o rodapé, que ficam presos.</Text>
+        </div>
+        <DialogFooter>
+          <Button size="sm" radius="md" variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button size="sm" radius="md" onClick={() => setOpen(false)}>
+            Criar cobrança
+          </Button>
+        </DialogFooter>
+      </Dialog>
+    </>
+  );
+}
+/**
+ * As pessoas de uma equipe na vitrine (2026-09-21): o mesmo bloco que a pagina da equipe mostra e que a
+ * gaveta de editar equipe abre. Fica aqui porque o lugar dele no produto esta atras do login, e esta tela e
+ * onde ele se confere com o olho.
+ *
+ * Os dados sao de mentira e as acoes falam com o servidor de verdade: e para olhar, nao para mexer.
+ */
+export function TeamPeopleDemo() {
+  const viewer = {
+    userId: "1",
+    name: "Aleph Ramos",
+    email: "aleph@exemplo.com.br",
+    avatarUrl: null,
+    role: "owner" as const,
+  };
+
+  return (
+    <Stack gap={4}>
+      <TeamPeoplePanel
+        organizationId="demonstracao"
+        viewer={viewer}
+        members={[
+          viewer,
+          { userId: "2", name: "Marina Alves", email: "marina@exemplo.com.br", avatarUrl: null, role: "admin" as const },
+          { userId: "3", name: "Tiago Prado", email: "tiago@exemplo.com.br", avatarUrl: null, role: "member" as const },
+        ]}
+        invites={[{ id: "4", name: "Bruna Lima", email: "bruna@exemplo.com.br", role: "member" as const }]}
+        section={SettingsSection}
+      />
+    </Stack>
+  );
+}
 /**
  * O texto rico da casa na vitrine (2026-09-22): o editor puro, sem caixa, com a bolha da seleção, e a
  * leitura do mesmo documento embaixo. É aqui que ele se confere com o olho, porque o lugar dele no produto

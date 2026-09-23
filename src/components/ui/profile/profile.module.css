@@ -73,7 +73,7 @@
 
 /* Foto grande passando por cima da capa, com um anel na cor do fundo para descolar dela. Três classes
    para vencer `.avatar[data-size]`, de onde saem o tamanho e o raio; o motor lê o raio do
-   `border-radius`, então o squircle segue junto. */
+   `border-radius`, então o rounded segue junto. */
 .profile .head .photoFace {
   --avatar-size: 5.5rem;
   --avatar-radius: var(--radius-xl);

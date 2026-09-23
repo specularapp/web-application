@@ -3,9 +3,9 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { EmotionRegistry } from "@/components/providers/emotion-registry";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { SquircleProvider } from "@/components/providers/squircle-provider";
 import { CelebrationProvider } from "@/components/providers/celebration-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { FloatingActionsProvider } from "@/components/layout/floating-actions";
 import { isAuthPath } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
@@ -85,14 +85,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <EmotionRegistry nonce={nonce}>
-          {/* O recibo de toda ação e a comemoração do que merece parar a tela, lado a lado na raiz: as duas
-              são chamadas de dentro de formulário e de janela, que não têm como montar camada por cima. */}
-          <ToastProvider>
-            <CelebrationProvider>{children}</CelebrationProvider>
-          </ToastProvider>
+          {/* O feedback principal envolve o recibo: assim todo sucesso pode ganhar a janela contextual, e
+              avisos e erros continuam chegando no canto sem cada tela precisar montar sua própria camada. */}
+          {/* A barra flutuante do celular fica acima dos dois: a comemoração e a confirmação são janelas, e as
+              ações delas moram na barra, então quem as registra precisa enxergar o provedor dela. */}
+          <FloatingActionsProvider>
+            <CelebrationProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </CelebrationProvider>
+          </FloatingActionsProvider>
           {isHomologation() && <ThemeToggle initial={preference ?? "dark"} />}
         </EmotionRegistry>
-        <SquircleProvider />
       </body>
     </html>
   );

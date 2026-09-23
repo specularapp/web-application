@@ -8,7 +8,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useEventCallback } from "@/hooks/use-event-callback";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { columnSortIcons, columnSortLabels, columnSortValues, type TasksColumnSort } from "../list-options";
 import { stageHue, stageGlyphs, type TaskStage } from "../stages";
 import type { Task } from "../summary";
@@ -16,6 +16,9 @@ import { TaskCard } from "./task-card";
 import styles from "./task-column.module.css";
 
 export type TaskColumnProps = {
+  /** A tarefa que acabou de chegar arrastada numa etapa que conclui, para o cartão dela mostrar o check. */
+  celebrating?: string | null;
+  onCelebrated?: () => void;
   stage: TaskStage;
   /** As tarefas da etapa, já filtradas e na ordem que a coluna escolheu. */
   tasks: Task[];
@@ -68,9 +71,13 @@ const DraggableCard = memo(function DraggableCard({
   stages,
   onMove,
   onDelete,
+  celebrating,
+  onCelebrated,
 }: {
   task: Task;
   stage: TaskStage;
+  celebrating?: boolean;
+  onCelebrated?: () => void;
   onOpen: (task: Task) => void;
   stages?: TaskStage[];
   onMove?: (task: Task, stage: TaskStage) => void;
@@ -92,11 +99,15 @@ const DraggableCard = memo(function DraggableCard({
       stages={stages}
       onMove={onMove}
       onDelete={onDelete}
+      celebrating={celebrating}
+      onCelebrated={onCelebrated}
     />
   );
 });
 
 export function TaskColumn({
+  celebrating = null,
+  onCelebrated,
   stage,
   tasks,
   collapsed,
@@ -197,11 +208,11 @@ export function TaskColumn({
             style={hue}
             aria-expanded={!collapsed}
             onClick={() => onCollapsedChange(!collapsed)}
-            {...squircle("md", { clip: true })}
+            {...rounded("md", { clip: true })}
           >
             <Glyph aria-hidden="true" className={styles.glyph} weight="bold" />
             <span className={styles.name}>{stage.name}</span>
-            <span className={styles.count} aria-hidden="true" {...squircle("sm", { clip: true })}>
+            <span className={styles.count} aria-hidden="true" {...rounded("sm", { clip: true })}>
               {count}
             </span>
             <VisuallyHidden>
@@ -236,7 +247,7 @@ export function TaskColumn({
                   coluna cheia, e o aviso não avisava nada. A ordem de dentro segue sendo a da coluna, então
                   o lugar aqui é o do anúncio, e não o da fila. */}
               {landing && (
-                <li className={styles.landing} aria-hidden="true" {...squircle("xl")}>
+                <li className={styles.landing} aria-hidden="true" {...rounded("xl")}>
                   <Text as="span" variant="caption1" weight="medium" tone="inherit">
                     Soltar em {stage.name}
                   </Text>
@@ -246,6 +257,8 @@ export function TaskColumn({
                 draggable ? (
                   <DraggableCard
                     key={task.id}
+                    celebrating={celebrating === task.id}
+                    onCelebrated={onCelebrated}
                     task={task}
                     stage={stage}
                     onOpen={open}

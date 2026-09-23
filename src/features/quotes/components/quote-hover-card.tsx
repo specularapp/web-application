@@ -34,7 +34,7 @@ export function QuoteHoverCard({ quote, children }: QuoteHoverCardProps) {
       content={
         <>
           <HoverCardHead>
-            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} shape="squircle" />
+            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} shape="rounded" />
             <HoverCardNaming>
               <Text as="span" variant="headline" weight="semibold" truncate>
                 {quote.title}

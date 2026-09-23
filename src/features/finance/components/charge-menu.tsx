@@ -30,13 +30,11 @@ export function ChargeMenu({ charge, onOpen, onSend, onCopyLink, onPayNext, onSt
   const side = chargeDirections[charge.direction];
   const noun = side.label.toLocaleLowerCase("pt-BR");
 
+  /* A primeira seção entra junto com o item, e não antes dele: montada sempre, ela chegava vazia ao leque do
+     cartão e da ficha, que não passam `onOpen`, e desenhava uma faixa em branco com um fio divisor por cima
+     do primeiro grupo de verdade, além de um grupo sem rótulo e sem filho na árvore de acessibilidade. */
   const sections: DropdownSection[] = [
-    {
-      id: "actions",
-      items: [
-        ...(onOpen ? [{ id: "open", label: `Abrir ${noun}`, icon: EyeIcon, onSelect: onOpen }] : []),
-      ],
-    },
+    ...(onOpen ? [{ id: "actions", items: [{ id: "open", label: `Abrir ${noun}`, icon: EyeIcon, onSelect: onOpen }] }] : []),
     ...((active && onSend) || onCopyLink
       ? [{
           id: "share",
@@ -55,6 +53,12 @@ export function ChargeMenu({ charge, onOpen, onSend, onCopyLink, onPayNext, onSt
       : []),
     ...(active && onCancel ? [{ id: "danger", items: [{ id: "cancel", label: `Cancelar ${noun}`, icon: XCircleIcon, tone: "danger" as const, onSelect: onCancel }] }] : []),
   ];
+
+  /* Sem nenhuma opção não há leque (2026-09-22, na varredura): no cartão de uma despesa paga ou cancelada não
+     sobrava item nenhum (não há link, não há parcela a confirmar, não há o que cancelar, e o cartão não passa
+     `onOpen`), e o gatilho abria uma caixa com "Nada bateu com o que você procurou." num leque que nunca teve
+     campo de busca. Botão que não faz nada não fica na tela. */
+  if (sections.length === 0) return null;
 
   return <DropdownMenu label={`Opções de ${charge.reference}`} triggerLabel={`Mais opções de ${charge.title}`} sections={sections} />;
 }

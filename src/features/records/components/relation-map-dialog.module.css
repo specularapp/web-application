@@ -11,7 +11,7 @@
 
 @media (max-width: 47.9375rem) {
   .dialog {
-    height: 100%;
+    height: 85dvh;
   }
 }
 
@@ -28,7 +28,6 @@
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-md);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
@@ -110,7 +109,6 @@
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   translate: -50% 0;
   -webkit-backdrop-filter: var(--glass-layer-blur);
@@ -132,7 +130,6 @@
   border: 0.0375rem solid var(--color-border);
   border-inline-start: 0.1875rem solid var(--node-hue);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
 }
 
@@ -150,7 +147,6 @@
   color: inherit;
   text-decoration: none;
   border-radius: inherit;
-  corner-shape: inherit;
 }
 
 .nodeLink:focus-visible {

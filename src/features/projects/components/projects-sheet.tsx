@@ -6,7 +6,7 @@ import type { CSSProperties } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import type { ProjectsSummary } from "../summary";
 import styles from "./projects-sheet.module.css";
 
@@ -15,7 +15,7 @@ export type ProjectsSheetProps = { summary: ProjectsSummary };
 const SHOWN_CLIENTS = 5;
 
 /* O azulejo de cada número no raio `md` da casa, recortado no fallback porque não tem borda. */
-const tileCorner = squircle("md", { clip: true });
+const tileCorner = rounded("md", { clip: true });
 
 const number = new Intl.NumberFormat("pt-BR");
 

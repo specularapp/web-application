@@ -62,7 +62,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Logo } from "@/components/layout/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { createMetadata } from "@/lib/metadata";
 import styles from "./componentes.module.css";
 import {
@@ -71,7 +71,9 @@ import {
   DropdownMenuDemo,
   ListboxDemo,
   PaginationDemo,
+  DialogChromeDemo,
   RichTextDemo,
+  TeamPeopleDemo,
   SelectActionsDemo,
   ToastDemo,
   ToastPreview,
@@ -120,7 +122,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Button",
-        note: "Emotion e client. Texto ao centro, borda discreta, cantos squircle e peso do ícone acompanhando o do texto. Com loading, o Spinner ocupa o lugar do ícone, o botão trava e ganha aria-busy.",
+        note: "Emotion e client. Texto ao centro, borda discreta, cantos rounded e peso do ícone acompanhando o do texto. Com loading, o Spinner ocupa o lugar do ícone, o botão trava e ganha aria-busy.",
         wide: true,
         layout: "stack",
         example: (
@@ -278,6 +280,16 @@ const groups: Group[] = [
         name: "Dialog",
         note: "Janela opaca e adaptativa ao tema. A chamada usa surface=glass de propósito para provar que o contrato antigo agora resolve para uma superfície sólida e legível.",
         example: <DialogDemo />,
+      },
+      {
+        name: "TeamPeoplePanel",
+        note: "Quem esta na equipe, os convites pendentes e o convite novo. O mesmo bloco serve a pagina da equipe e a gaveta de editar equipe, e o que muda e so a moldura em volta.",
+        example: <TeamPeopleDemo />,
+      },
+      {
+        name: "DialogHeader e DialogFooter",
+        note: "O cabeçalho e o rodapé de janela como peça do primitivo: título, linha de apoio, ações da ponta e o fechar em cima; cancelar e confirmar embaixo, escondidos no celular porque lá as ações moram na barra flutuante.",
+        example: <DialogChromeDemo />,
       },
       {
         name: "RichText",
@@ -543,7 +555,7 @@ const groups: Group[] = [
       },
       {
         name: "Checkbox",
-        note: "Caixa nativa por baixo, invisível sobre o quadrado desenhado. Marcado e indeterminado em --color-brand com o traço na cor do fundo, como o botão primário. Squircle no raio sm: no xs a superelipse parecia quadrada em 20px.",
+        note: "Caixa nativa por baixo, invisível sobre o quadrado desenhado. Marcado e indeterminado em --color-brand com o traço na cor do fundo, como o botão primário. Canto tradicional no raio sm.",
         layout: "stack",
         example: (
           <Stack gap={3}>
@@ -912,7 +924,7 @@ const groups: Group[] = [
     entries: [
       {
         name: "Avatar",
-        note: "Sem foto entra o rosto do DiceBear no estilo Lorelei, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão, squircle com raio em metade do lado, na escala do botão de ícone, e hexágono por recorte para emblema de nível. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
+        note: "Sem foto entra o rosto do DiceBear no estilo Lorelei, desenhado a partir do seed (o e-mail, para o avatar não mudar quando o nome muda), sobre um pastel da paleta do sistema escolhido pela mesma semente; com src a foto vem por next/image. Círculo por padrão, rounded com raio em metade do lado, na escala do botão de ícone, e hexágono por recorte para emblema de nível. No grupo os avatares se sobrepõem em sequência, com anel na cor do fundo.",
         wide: true,
         layout: "stack",
         example: (
@@ -925,8 +937,8 @@ const groups: Group[] = [
             </Sample>
             <Sample label="shape">
               <Avatar name="Marina Costa" shape="circle" />
-              <Avatar name="Marina Costa" shape="squircle" />
-              <Avatar name="Marina Costa" shape="squircle" size="lg" />
+              <Avatar name="Marina Costa" shape="rounded" />
+              <Avatar name="Marina Costa" shape="rounded" size="lg" />
               <Avatar name="Marina Costa" shape="hexagon" />
               <Avatar name="Marina Costa" shape="hexagon" size="lg" />
             </Sample>
@@ -943,15 +955,15 @@ const groups: Group[] = [
                 <Avatar name="João Pedro" />
               </AvatarGroup>
             </Sample>
-            <Sample label="grupo pequeno e squircle">
+            <Sample label="grupo pequeno e rounded">
               <AvatarGroup>
                 <Avatar name="Aleph Ramos" size="sm" />
                 <Avatar name="Marina Costa" size="sm" />
                 <Avatar name="João Pedro" size="sm" />
               </AvatarGroup>
               <AvatarGroup>
-                <Avatar name="Aleph Ramos" shape="squircle" />
-                <Avatar name="Marina Costa" shape="squircle" />
+                <Avatar name="Aleph Ramos" shape="rounded" />
+                <Avatar name="Marina Costa" shape="rounded" />
               </AvatarGroup>
             </Sample>
           </div>
@@ -959,7 +971,7 @@ const groups: Group[] = [
       },
       {
         name: "Badge",
-        note: "Etiqueta de situação, categoria ou contagem. Um só matiz por tom gera tinta, fundo e borda com contraste AA nos dois temas. Canto squircle por tamanho, ou pílula.",
+        note: "Etiqueta de situação, categoria ou contagem. Um só matiz por tom gera tinta, fundo e borda com contraste AA nos dois temas. Canto rounded por tamanho, ou pílula.",
         wide: true,
         layout: "stack",
         example: (
@@ -1013,7 +1025,7 @@ const groups: Group[] = [
             </Sample>
             <Sample label="shape">
               <Badge tone="purple" shape="rounded">
-                Squircle
+                Arredondada
               </Badge>
               <Badge tone="purple" shape="pill">
                 Pílula
@@ -1325,7 +1337,7 @@ export default function ComponentesPage() {
         </header>
 
         <div className={styles.stats}>
-          <div className={styles.stat} {...squircle("lg")}>
+          <div className={styles.stat} {...rounded("lg")}>
             <Text as="p" variant="title2" numeric>
               {readyCount}
             </Text>
@@ -1333,7 +1345,7 @@ export default function ComponentesPage() {
               prontos
             </Text>
           </div>
-          <div className={styles.stat} {...squircle("lg")}>
+          <div className={styles.stat} {...rounded("lg")}>
             <Text as="p" variant="title2" numeric>
               {pendingCount}
             </Text>
@@ -1341,7 +1353,7 @@ export default function ComponentesPage() {
               pendentes
             </Text>
           </div>
-          <div className={styles.stat} {...squircle("lg")}>
+          <div className={styles.stat} {...rounded("lg")}>
             <Text as="p" variant="title2" numeric>
               {groups.length}
             </Text>
@@ -1369,7 +1381,7 @@ export default function ComponentesPage() {
                     key={entry.name}
                     className={styles.box}
                     data-wide={entry.wide || undefined}
-                    {...squircle("2xl")}
+                    {...rounded("2xl")}
                   >
                     <div className={styles.boxHead}>
                       <Text as="h3" variant="headline">
@@ -1385,7 +1397,7 @@ export default function ComponentesPage() {
                     <div
                       className={styles.demo}
                       data-layout={entry.layout ?? "row"}
-                      {...squircle("md")}
+                      {...rounded("md")}
                     >
                       {entry.example}
                     </div>
@@ -1415,7 +1427,7 @@ export default function ComponentesPage() {
                     <div
                       key={name}
                       className={styles.pendingItem}
-                      {...squircle("md")}
+                      {...rounded("md")}
                     >
                       <span>{name}</span>
                       <span className={styles.chip} data-state="pending">

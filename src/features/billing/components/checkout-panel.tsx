@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { confirmSubscriptionAction } from "../actions";
 import { chargeCents, formatMoney, planById, type BillingCycle, type PlanId } from "../plans";
 import styles from "./checkout.module.css";
@@ -89,7 +89,7 @@ export function CheckoutPanel({
       </header>
 
       <div className={styles.columns}>
-        <div className={styles.summary} {...squircle("xl")}>
+        <div className={styles.summary} {...rounded("xl")}>
           <div className={styles.summaryHead}>
             <Text as="h3" variant="headline" weight="semibold">
               {plan?.name ?? intent.plan}

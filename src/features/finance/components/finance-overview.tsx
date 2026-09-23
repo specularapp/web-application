@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useState, type CSSProperties, type ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,17 +15,22 @@ import { DetailsTrigger } from "@/components/ui/details-dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
-import { dueLabel, dueTone, financePeriods, installmentLabel, transactionKinds } from "../labels";
+import { chargeDirections, dueLabel, dueTone, financePeriods, installmentLabel, transactionKinds } from "../labels";
 import { chargePath } from "../share";
 import type { FinanceOverview, FinancePeriod, Transaction, TransactionKind, UpcomingInstallment } from "../summary";
 import { CashflowChart } from "./cashflow-chart-lazy";
 import { CashCard } from "./cash-card";
-import { TransactionFormDialog } from "./transaction-form-dialog";
 import { TransactionParty } from "./transaction-party";
 import { TransactionReceipt } from "./transaction-receipt";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
+import { useTabList } from "@/hooks/use-tab-list";
 import styles from "./finance-overview.module.css";
+
+/* A nova movimentação entra por importação dinâmica, montada só na primeira abertura (varredura de peso de
+   2026-09-21): a visão geral já carrega o gráfico, e o formulário leva seletor de data e de cliente. */
+const TransactionFormDialog = dynamic(() => import("./transaction-form-dialog").then((module) => module.TransactionFormDialog));
 
 export type FinanceOverviewBoardProps = { overview: FinanceOverview };
 
@@ -36,6 +42,9 @@ const kindFilters: { value: KindFilter; label: string }[] = [
   { value: "expense", label: "Saídas" },
   { value: "scheduled", label: "Previstas" },
 ];
+
+/* A ordem em que a seta do teclado percorre o filtro. */
+const kindFilterValues = kindFilters.map((entry) => entry.value);
 
 /** Quantas movimentações a lista mostra de uma vez. */
 const SHOWN = 40;
@@ -55,6 +64,9 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
   const pathname = usePathname();
   const [kind, setKind] = useState<KindFilter>("all");
   const [adding, setAdding] = useState(false);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const addReady = useOpenedOnce(adding);
+  const kindTabs = useTabList(kindFilterValues, kind, setKind);
 
   const changePeriod = (period: FinancePeriod) => {
     const search = period === "mes" ? "" : `?periodo=${period}`;
@@ -170,9 +182,9 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
         title="Movimentações"
         icon={<ReceiptIcon />}
         action={
-          <div className={styles.segment} role="tablist" aria-label="Que movimentações ver">
+          <div className={styles.segment} aria-label="Que movimentações ver" {...kindTabs.listProps}>
             {kindFilters.map((option) => (
-              <button key={option.value} type="button" role="tab" className={styles.segmentItem} aria-selected={kind === option.value} onClick={() => setKind(option.value)}>
+              <button key={option.value} type="button" className={styles.segmentItem} {...kindTabs.tabProps(option.value)} onClick={() => setKind(option.value)}>
                 {option.label}
               </button>
             ))}
@@ -197,13 +209,15 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
         )}
       </Card>
 
-      <TransactionFormDialog
-        open={adding}
-        onClose={() => setAdding(false)}
-        onCreated={() => {
-          setAdding(false);
-        }}
-      />
+      {addReady && (
+        <TransactionFormDialog
+          open={adding}
+          onClose={() => setAdding(false)}
+          onCreated={() => {
+            setAdding(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -211,8 +225,8 @@ export function FinanceOverviewBoard({ overview }: FinanceOverviewBoardProps) {
 /* Um número do período: o glifo no matiz, o rótulo, o valor e a linha de apoio. */
 function Tile({ icon, hue, label, value, foot }: { icon: ReactNode; hue: string; label: string; value: number; foot: string }) {
   return (
-    <div className={styles.tile} style={{ "--tile-hue": hue } as CSSProperties} {...squircle("lg")}>
-      <span className={styles.tileGlyph} aria-hidden="true" {...squircle("sm")}>
+    <div className={styles.tile} style={{ "--tile-hue": hue } as CSSProperties} {...rounded("lg")}>
+      <span className={styles.tileGlyph} aria-hidden="true" {...rounded("sm")}>
         {icon}
       </span>
       <Text as="span" variant="caption1" tone="secondary" className={styles.tileLabel}>
@@ -228,8 +242,13 @@ function Tile({ icon, hue, label, value, foot }: { icon: ReactNode; hue: string;
   );
 }
 
-/* As parcelas por vencer ou vencidas: quem paga, qual parcela de qual cobrança, o valor e o vencimento em
-   palavras. A linha inteira abre a cobrança. */
+/* As parcelas por vencer ou vencidas: quem paga ou recebe, de que lado ela está, qual parcela de qual
+   cobrança, o valor com sinal e o vencimento em palavras. A linha inteira abre a cobrança.
+
+   As duas listas misturam o que a equipe tem a receber e o que ela tem a pagar de propósito, e por isso cada
+   linha precisa dizer o lado (2026-09-22, na varredura): sem o sinal e sem o rótulo, uma cobrança de cinco
+   mil e uma despesa de cinco mil no mesmo dia saíam idênticas, e quem lia contava dez mil a caminho do caixa
+   quando o efeito era zero. O sinal e o nome saem de `chargeDirections`, o mesmo mapa do cartão e da tabela. */
 function DueList({ items, empty, onOpen }: { items: UpcomingInstallment[]; empty: string; onOpen: (entry: UpcomingInstallment) => void }) {
   if (items.length === 0) {
     return (
@@ -240,29 +259,33 @@ function DueList({ items, empty, onOpen }: { items: UpcomingInstallment[]; empty
   }
   return (
     <ul className={styles.dueList}>
-      {items.slice(0, 5).map((entry) => (
-        <li key={entry.installmentId}>
-          <button type="button" className={styles.dueRow} onClick={() => onOpen(entry)}>
-            <Avatar name={entry.clientName ?? entry.title} src={entry.clientAvatarUrl ?? undefined} size="sm" shape="squircle" />
-            <span className={styles.dueCopy}>
-              <Text as="span" variant="footnote" weight="medium" truncate>
-                {entry.clientName ?? "Cobrança avulsa"}
-              </Text>
-              <Text as="span" variant="caption1" tone="secondary" truncate>
-                {installmentLabel(entry.number, entry.total)} de {entry.title}
-              </Text>
-            </span>
-            <span className={styles.dueEnd}>
-              <Text as="span" variant="footnote" weight="semibold" numeric>
-                {formatMoney(entry.amount)}
-              </Text>
-              <Badge tone={entry.reported ? "info" : dueTone(entry.dueDate)} size="sm">
-                {entry.reported ? "Pagamento avisado" : dueLabel(entry.dueDate)}
-              </Badge>
-            </span>
-          </button>
-        </li>
-      ))}
+      {items.slice(0, 5).map((entry) => {
+        const side = chargeDirections[entry.direction];
+        return (
+          <li key={entry.installmentId}>
+            <button type="button" className={styles.dueRow} onClick={() => onOpen(entry)}>
+              <Avatar name={entry.clientName ?? entry.title} src={entry.clientAvatarUrl ?? undefined} size="sm" shape="rounded" />
+              <span className={styles.dueCopy}>
+                <Text as="span" variant="footnote" weight="medium" truncate>
+                  {entry.clientName ?? `${side.label} avulsa`}
+                </Text>
+                <Text as="span" variant="caption1" tone="secondary" truncate>
+                  {side.listLabel} · {installmentLabel(entry.number, entry.total)} de {entry.title}
+                </Text>
+              </span>
+              <span className={styles.dueEnd}>
+                <Text as="span" variant="footnote" weight="semibold" numeric>
+                  {side.sign}
+                  {formatMoney(entry.amount)}
+                </Text>
+                <Badge tone={entry.reported ? "info" : dueTone(entry.dueDate)} size="sm">
+                  {entry.reported ? "Pagamento avisado" : dueLabel(entry.dueDate)}
+                </Badge>
+              </span>
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

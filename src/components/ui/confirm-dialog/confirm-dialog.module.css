@@ -28,7 +28,6 @@
   color: var(--color-label-secondary);
   background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 /* O glifo sozinho, para o que não tem rosto: uma automação, um item do catálogo, um contrato. */
@@ -40,7 +39,6 @@
   color: var(--color-danger);
   background-color: color-mix(in oklab, var(--color-danger) 12%, transparent);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .glyph svg {
@@ -60,4 +58,16 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   width: 100%;
+}
+
+/* No celular confirmar e fechar vão para a barra flutuante: os botões da janela saem, e a bandeja ganha a
+   folga da barra embaixo. */
+@media (max-width: 47.9375rem) {
+  .actions {
+    display: none;
+  }
+
+  .dialog {
+    padding-block-end: var(--floating-bar-inset);
+  }
 }

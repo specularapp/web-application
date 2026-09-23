@@ -1,8 +1,8 @@
 "use client";
 
-import { FileIcon, FilePdfIcon, PaperclipIcon, PlusIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
-import { format } from "date-fns";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { CheckIcon, FileIcon, FilePdfIcon, PaperclipIcon, PlusIcon, TrashIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { format, parseISO } from "date-fns";
+import { useRef, useState, type FormEvent } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { RecordPicker } from "@/features/records/components/record-picker";
 import { recordKinds, type AppRecord, type RecordKind } from "@/features/records/records";
-import { acceptDocuments, acceptImages, attachmentTypeOf, sizeLabel } from "../files";
+import { acceptDocuments, acceptImages, attachmentTypeOf, previewOf, sizeLabel } from "../files";
 import { priorityLabels } from "../labels";
 import type { Subtask, TaskAttachment, TaskLink, TaskLinkKind, TaskPerson, TaskPriority } from "../summary";
+import { priorityMark } from "./priority-mark";
 import styles from "./task-add-dialogs.module.css";
 
 /**
@@ -58,22 +59,25 @@ const isoDay = (date: Date) => format(date, "yyyy-MM-dd");
  * fecha**, então não existe estado esperando um salvar. **A barra fica só com o X de sair**: uma principal
  * chamada "Fechar" ao lado do X de sair seriam dois botões para a mesma ação.
  */
+/** A ação ao lado da de confirmar, como excluir a subtarefa aberta. */
+type SideAction = { label: string; icon: React.ReactNode; onClick: () => void };
+
 function BarActions({
   active,
   submitLabel,
   submitIcon,
   disabled,
   onSubmit,
+  side,
   onClose,
-  form,
 }: {
   active: boolean;
   submitLabel?: string;
   submitIcon?: React.ReactNode;
   disabled?: boolean;
-  onSubmit?: (event: FormEvent) => void;
+  onSubmit?: (event?: FormEvent) => void;
+  side?: SideAction;
   onClose: () => void;
-  form: React.RefObject<HTMLFormElement | null>;
 }) {
   useFloatingActionsRegistration(
     active
@@ -83,9 +87,12 @@ function BarActions({
               label: submitLabel ?? "Salvar",
               icon: submitIcon,
               disabled,
-              onClick: () => form.current?.requestSubmit(),
+              /* Direto na confirmação, e não pelo envio do formulário: o envio passa pela validação do
+                 navegador, que recusava calado quando algum campo escondido da bandeja não passava. */
+              onClick: () => onSubmit(),
             },
-            cancel: { label: "Cancelar", onClick: onClose },
+            extras: side ? [{ label: side.label, icon: side.icon, onClick: side.onClick }] : [],
+            cancel: { label: "Fechar", onClick: onClose },
           }
         : { cancel: { label: "Fechar", onClick: onClose } }
       : null,
@@ -103,16 +110,19 @@ function AddDialog({
   submitLabel,
   submitIcon,
   disabled,
+  side,
   size = "md",
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
-  onSubmit?: (event: FormEvent) => void;
+  onSubmit?: (event?: FormEvent) => void;
   submitLabel?: string;
   submitIcon?: React.ReactNode;
   disabled?: boolean;
+  /** A ação que mora ao lado da de confirmar, como excluir o que está aberto. */
+  side?: SideAction;
   size?: "md" | "lg";
   children: React.ReactNode;
 }) {
@@ -134,30 +144,38 @@ function AddDialog({
         submitIcon={submitIcon}
         disabled={disabled}
         onSubmit={onSubmit}
+        side={side}
         onClose={onClose}
-        form={submit}
       />
       <form ref={submit} className={styles.dialog} onSubmit={onSubmit}>
+        {/* Quem cancela é o X do topo (2026-09-22, a pedido): o pé fica só com o que confirma. No celular o X
+            mora na barra flutuante. */}
         <div className={styles.head}>
           <Text as="h2" variant="headline" weight="semibold">
             {title}
           </Text>
+          {!mobile && (
+            <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
+              <XIcon />
+            </IconButton>
+          )}
         </div>
 
         <div className={styles.body}>{children}</div>
 
-        {/* Sem botão de confirmar, o pé fica só com o fechar: é o caso do vincular, em que escolher já é
-            confirmar. */}
-        <div className={styles.actions} data-single={onSubmit ? undefined : ""}>
-          <Button variant="outline" radius="md" fullWidth onClick={onClose}>
-            {onSubmit ? "Cancelar" : "Fechar"}
-          </Button>
-          {onSubmit && (
+        {/* Sem botão de confirmar não há pé: é o caso do vincular, em que escolher já é confirmar. */}
+        {onSubmit && (
+          <div className={styles.actions} data-single={side ? undefined : ""}>
+            {side && (
+              <Button variant="outline" radius="md" fullWidth iconStart={side.icon} className={styles.danger} onClick={side.onClick}>
+                {side.label}
+              </Button>
+            )}
             <Button type="submit" radius="md" fullWidth iconStart={submitIcon} disabled={disabled}>
               {submitLabel}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </form>
     </Dialog>
   );
@@ -169,26 +187,24 @@ export type SubtaskDialogProps = {
   /** Quem pode assumir a subtarefa. */
   team: TaskPerson[];
   onAdd: (subtask: Omit<Subtask, "id">) => void;
+  /** A subtarefa aberta para ver e editar; sem ela, a janela cria uma nova. */
+  subtask?: Subtask;
+  /** Excluir a subtarefa aberta, quando a janela está editando. */
+  onRemove?: () => void;
 };
 
-/** Acrescentar subtarefa: o que precisa ser feito, quem assume, quanto pesa e até quando. */
-export function SubtaskDialog({ open, onClose, team, onAdd }: SubtaskDialogProps) {
-  const [title, setTitle] = useState("");
-  const [owner, setOwner] = useState("");
-  const [priority, setPriority] = useState<TaskPriority | "">("");
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+/** O teto do título no celular (2026-09-22, a pedido): curto, para a linha caber na tela sem reticência longa. */
+const SUBTASK_TITLE_MOBILE = 60;
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const clean = title.trim();
-    if (!clean) return;
-    onAdd({
-      title: clean,
-      done: false,
-      person: team.find((person) => person.name === owner),
-      priority: priority || undefined,
-      dueDate: dueDate ? isoDay(dueDate) : undefined,
-    });
+/** Acrescentar subtarefa: o que precisa ser feito, quem assume, quanto pesa e até quando. */
+export function SubtaskDialog({ open, onClose, team, onAdd, subtask, onRemove }: SubtaskDialogProps) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const [title, setTitle] = useState(subtask?.title ?? "");
+  const [owner, setOwner] = useState(subtask?.person?.name ?? "");
+  const [priority, setPriority] = useState<TaskPriority | "">(subtask?.priority ?? "");
+  const [dueDate, setDueDate] = useState<Date | undefined>(subtask?.dueDate ? parseISO(subtask.dueDate) : undefined);
+
+  const close = () => {
     setTitle("");
     setOwner("");
     setPriority("");
@@ -196,23 +212,40 @@ export function SubtaskDialog({ open, onClose, team, onAdd }: SubtaskDialogProps
     onClose();
   };
 
+  const submit = (event?: FormEvent) => {
+    event?.preventDefault();
+    const clean = title.trim();
+    if (!clean) return;
+    onAdd({
+      title: clean,
+      done: subtask?.done ?? false,
+      person: team.find((person) => person.name === owner),
+      priority: priority || undefined,
+      dueDate: dueDate ? isoDay(dueDate) : undefined,
+    });
+    close();
+  };
+
   return (
     <AddDialog
       open={open}
-      onClose={onClose}
-      title="Nova subtarefa"
+      onClose={close}
+      title={subtask ? "Subtarefa" : "Nova subtarefa"}
       onSubmit={submit}
-      submitLabel="Adicionar"
-      submitIcon={<PlusIcon />}
+      submitLabel={subtask ? "Salvar" : "Adicionar"}
+      submitIcon={subtask ? <CheckIcon /> : <PlusIcon />}
+      side={onRemove ? { label: "Excluir", icon: <TrashIcon />, onClick: onRemove } : undefined}
       disabled={!title.trim()}
     >
       <Field label="O que precisa ser feito" required>
-        <Input value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} placeholder="Revisar o escopo com a cliente" />
+        <Input value={title} maxLength={mobile ? SUBTASK_TITLE_MOBILE : 120} onChange={(event) => setTitle(event.target.value)} placeholder="Revisar o escopo" />
       </Field>
 
       <div className={styles.pair}>
         <Field label="Responsável">
           <Select
+            surface="glass"
+            indicator="toggle"
             label="Responsável"
             options={[
               { value: "", label: "Sem responsável" },
@@ -227,8 +260,12 @@ export function SubtaskDialog({ open, onClose, team, onAdd }: SubtaskDialogProps
 
         <Field label="Prioridade">
           <Select
+            surface="glass"
             label="Prioridade"
-            options={[{ value: "", label: "Sem prioridade" }, ...priorities.map((value) => ({ value, label: priorityLabels[value] }))]}
+            options={[
+              { value: "", label: "Sem prioridade", media: <XIcon /> },
+              ...priorities.map((value) => ({ value, label: priorityLabels[value], media: priorityMark(value) })),
+            ]}
             value={priority}
             onChange={(value) => setPriority(value as TaskPriority | "")}
           />
@@ -238,6 +275,7 @@ export function SubtaskDialog({ open, onClose, team, onAdd }: SubtaskDialogProps
       <Field label="Prazo">
         <DatePicker value={dueDate} onChange={setDueDate} placeholder="Sem prazo" />
       </Field>
+
     </AddDialog>
   );
 }
@@ -302,49 +340,47 @@ export type AttachmentDialogProps = {
  * quando ela sai, senão cada redesenho deixaria um endereço pendurado na memória.
  */
 function PickedImage({ file }: { file: File }) {
-  const url = useMemo(() => URL.createObjectURL(file), [file]);
-
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
-
   /* eslint-disable-next-line @next/next/no-img-element */
-  return <img src={url} alt="" />;
+  return <img src={previewOf(file)} alt="" />;
 }
-
-
 
 /**
  * Anexar arquivo é **upload** (2026-09-10, a pedido): a área recebe o arquivo arrastado ou aberto pelo
  * seletor do sistema, vários de uma vez, e mostra o que foi escolhido antes de confirmar. O tipo sai do que o
  * navegador diz do arquivo, e não de uma escolha à mão: a pessoa já sabe o que arrastou.
  *
- * O endereço é um `blob:` feito na hora (`URL.createObjectURL`), então o anexo abre e baixa de verdade nesta
- * sessão. **O que falta é o armazenamento**: quem ligar o bucket troca o `URL.createObjectURL` pelo envio e
- * guarda o endereço que voltar, sem mexer em mais nada daqui.
+ * A lista mostra o anexo na hora pelo endereço local do arquivo, e a ficha o sobe para o balde da tarefa ao
+ * confirmar, gravando a linha que aponta para ele.
  */
 export function AttachmentDialog({ open, onClose, onAdd }: AttachmentDialogProps) {
   const [picked, setPicked] = useState<File[]>([]);
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
+  const close = () => {
+    setPicked([]);
+    setOver(false);
+    onClose();
+  };
+
   const take = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setPicked((current) => [...current, ...Array.from(files)]);
   };
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = (event?: FormEvent) => {
+    event?.preventDefault();
     if (picked.length === 0) return;
     for (const file of picked) {
-      onAdd({ name: file.name, url: URL.createObjectURL(file), type: attachmentTypeOf(file), size: sizeLabel(file.size) });
+      onAdd({ name: file.name, url: previewOf(file), type: attachmentTypeOf(file), size: sizeLabel(file.size) });
     }
-    setPicked([]);
-    onClose();
+    close();
   };
 
   return (
     <AddDialog
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Anexar arquivo"
       onSubmit={submit}
       submitLabel={picked.length > 1 ? `Anexar ${picked.length}` : "Anexar"}
@@ -368,9 +404,9 @@ export function AttachmentDialog({ open, onClose, onAdd }: AttachmentDialogProps
           setOver(false);
           take(event.dataTransfer.files);
         }}
-        {...squircle("lg")}
+        {...rounded("lg")}
       >
-        <span className={styles.dropMark} aria-hidden="true" {...squircle("md", { clip: true })}>
+        <span className={styles.dropMark} aria-hidden="true" {...rounded("md", { clip: true })}>
           <UploadSimpleIcon />
         </span>
         <Text variant="subheadline" weight="semibold">
@@ -394,7 +430,7 @@ export function AttachmentDialog({ open, onClose, onAdd }: AttachmentDialogProps
         <ul className={styles.picked}>
           {picked.map((file, index) => (
             <li key={`${file.name}-${index}`} className={styles.pickedItem}>
-              <span className={styles.pickedMark} data-preview={attachmentTypeOf(file) === "image" || undefined} aria-hidden="true" {...squircle("sm", { clip: true })}>
+              <span className={styles.pickedMark} data-preview={attachmentTypeOf(file) === "image" || undefined} aria-hidden="true" {...rounded("sm", { clip: true })}>
                 {attachmentTypeOf(file) === "image" ? (
                   <PickedImage file={file} />
                 ) : attachmentTypeOf(file) === "pdf" ? (

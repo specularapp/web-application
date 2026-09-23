@@ -13,7 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { createContractAction } from "../actions";
 import { contractKinds, contractSources } from "../labels";
@@ -110,6 +110,11 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
       toast({ title: "Não deu para criar", description: result.error, tone: "danger" });
       return;
     }
+    toast({
+      title: "Contrato criado",
+      description: input.source === "scratch" ? "A folha em branco já está pronta para editar." : "O modelo já está pronto para ajustar.",
+      tone: "success",
+    });
     onCreated(result.id);
   };
 
@@ -126,6 +131,7 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
       const response = await fetch("/api/contratos/arquivo", { method: "POST", body: form });
       const data = (await response.json().catch(() => ({}))) as { id?: string; error?: string };
       if (!response.ok || !data.id) throw new Error(data.error ?? "Não deu para enviar o arquivo.");
+      toast({ title: "Contrato criado", description: "O PDF já está pronto para marcar os campos de assinatura.", tone: "success" });
       onCreated(data.id);
     } catch (error) {
       toast({ title: "Não deu para enviar", description: error instanceof Error ? error.message : "Tente de novo.", tone: "danger" });
@@ -190,8 +196,8 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
             const creating = busy === source;
             return (
               <li key={source}>
-                <button type="button" className={styles.option} style={{ "--option-hue": hue } as CSSProperties} disabled={working} aria-busy={creating || undefined} onClick={() => choose(source)} {...squircle("lg")}>
-                  <span className={styles.glyph} aria-hidden="true" {...squircle("md")}>
+                <button type="button" className={styles.option} style={{ "--option-hue": hue } as CSSProperties} disabled={working} aria-busy={creating || undefined} onClick={() => choose(source)} {...rounded("lg")}>
+                  <span className={styles.glyph} aria-hidden="true" {...rounded("md")}>
                     {creating ? <Spinner size="sm" label="" /> : <meta.icon weight="duotone" />}
                   </span>
                   <span className={styles.copy}>
@@ -217,9 +223,9 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
 
       {step === "upload" && (
         <div className={styles.upload}>
-          <div {...getRootProps({ className: cx(styles.dropzone, isDragActive && styles.dropzoneActive), ...squircle("lg") })}>
+          <div {...getRootProps({ className: cx(styles.dropzone, isDragActive && styles.dropzoneActive), ...rounded("lg") })}>
             <input {...getInputProps()} aria-label="Escolher o PDF do contrato" />
-            <span className={cx(styles.glyph, styles.uploadGlyph)} aria-hidden="true" {...squircle("md")}>
+            <span className={cx(styles.glyph, styles.uploadGlyph)} aria-hidden="true" {...rounded("md")}>
               {file ? <FilePdfIcon weight="duotone" /> : <UploadSimpleIcon weight="duotone" />}
             </span>
             {file ? (
@@ -269,7 +275,7 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
                   aria-busy={creating || undefined}
                   aria-label={`Usar o modelo ${template.name}`}
                   onClick={() => void create({ source: "template", templateId: template.id })}
-                  {...squircle("lg")}
+                  {...rounded("lg")}
                 >
                   {/* A folha em miniatura: o documento de verdade em corpo miúdo, esmaecendo no pé. */}
                   <span className={styles.paper} data-scheme="light" aria-hidden="true">

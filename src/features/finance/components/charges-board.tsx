@@ -3,11 +3,13 @@
 import { ArrowCounterClockwiseIcon, CurrencyCircleDollarIcon, ListBulletsIcon, PlusIcon, SquaresFourIcon, XCircleIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingActionsRegistration, useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog } from "@/components/ui/dialog";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
@@ -45,11 +47,16 @@ import type { ChargeLookups } from "../service";
 import { nextInstallment, type Charge, type ChargeDirection, type ChargeMethod, type Installment } from "../summary";
 import { saveChargesGridSize, saveChargesView, type ChargesView } from "../view-cookie";
 import { ChargeCard } from "./charge-card";
-import { ChargeDialog } from "./charge-dialog";
 import type { ChargeMenuActions } from "./charge-menu";
 import { ChargesTable } from "./charges-table";
-import { NewChargeDialog } from "./new-charge-dialog";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import styles from "./charges-board.module.css";
+
+/* A ficha da cobrança e a nova cobrança entram por importação dinâmica, montadas só na primeira abertura
+   (varredura de peso de 2026-09-21): juntas são mais de seiscentas linhas com parcelas, seletor de cliente e
+   seletor de data, e a listagem abria carregando as duas sem ninguém ter clicado. */
+const ChargeDialog = dynamic(() => import("./charge-dialog").then((module) => module.ChargeDialog));
+const NewChargeDialog = dynamic(() => import("./new-charge-dialog").then((module) => module.NewChargeDialog));
 
 export type ChargesBoardProps = {
   page: ChargesListPage;
@@ -136,28 +143,47 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
     startTransition(() => router.refresh());
   };
 
+  const feedbackOf = (charge: Charge, confetti = false) => {
+    const party = partyOf(charge);
+    return {
+      visual: <Avatar name={party.name} src={party.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+      confetti,
+    };
+  };
+
   const copyLink = async (charge: Charge) => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/cobranca/${charge.token}`);
-      toast({ title: "Link copiado", description: `O link de ${partyOf(charge).name} está na área de transferência.`, tone: "success" });
+      toast({ title: "Link copiado", description: `O link de ${partyOf(charge).name} está na área de transferência.`, tone: "success", feedback: feedbackOf(charge) });
     } catch {
       toast({ title: "Não deu para copiar", description: "Abra a ficha e copie o endereço pela barra do navegador.", tone: "warning" });
     }
   };
 
+  /* Enviar não é idempotente: cada chamada grava um evento na linha do tempo e dispara um e-mail. Sem trava,
+     o segundo clique enquanto o primeiro ainda ia e voltava mandava dois e-mails iguais ao cliente
+     (2026-09-22). A referência segura o clique repetido antes do `await`, por cobrança. */
+  const sending = useRef<Set<string>>(new Set());
   const send = async (charge: Charge) => {
-    const result = await callAction(sendChargeAction({ id: charge.id }));
-    if (!result.ok) {
-      toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
-      return;
+    if (sending.current.has(charge.id)) return;
+    sending.current.add(charge.id);
+    try {
+      const result = await callAction(sendChargeAction({ id: charge.id }));
+      if (!result.ok) {
+        toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
+        return;
+      }
+      if (viewing?.id === charge.id) setViewing(result.charge);
+      startTransition(() => router.refresh());
+      toast({
+        title: result.reminder ? "Lembrete enviado" : "Cobrança enviada",
+        description: result.emailed ? `${partyOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
+        tone: result.emailed ? "success" : "warning",
+        feedback: result.emailed ? feedbackOf(charge, true) : undefined,
+      });
+    } finally {
+      sending.current.delete(charge.id);
     }
-    if (viewing?.id === charge.id) setViewing(result.charge);
-    startTransition(() => router.refresh());
-    toast({
-      title: result.reminder ? "Lembrete enviado" : "Cobrança enviada",
-      description: result.emailed ? `${partyOf(charge).name} recebeu o e-mail com o link.` : "O e-mail não saiu neste ambiente. Copie o link do cliente na ficha.",
-      tone: result.emailed ? "success" : "warning",
-    });
   };
 
   const [busyInstallment, setBusyInstallment] = useState<string | null>(null);
@@ -173,7 +199,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
     if (result.warning) toast({ title: "Confira a recorrência", description: result.warning, tone: "warning" });
     if (viewing?.id === charge.id) setViewing(result.charge);
     startTransition(() => router.refresh());
-    toast({ title: direction === "outgoing" ? "Pagamento confirmado" : "Recebimento confirmado", description: direction === "outgoing" ? `${formatMoney(installment.amount)} saiu do caixa como pagamento a ${partyOf(charge).company ?? partyOf(charge).name}.` : `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${partyOf(charge).company ?? partyOf(charge).name}.`, tone: "success" });
+    toast({ title: direction === "outgoing" ? "Pagamento confirmado" : "Recebimento confirmado", description: direction === "outgoing" ? `${formatMoney(installment.amount)} saiu do caixa como pagamento a ${partyOf(charge).company ?? partyOf(charge).name}.` : `${formatMoney(installment.amount)} entrou no caixa como recebimento de ${partyOf(charge).company ?? partyOf(charge).name}.`, tone: "success", feedback: feedbackOf(charge, true) });
   };
 
   const reopen = async (charge: Charge, installment: Installment) => {
@@ -192,6 +218,9 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
 
   const [cancelling, setCancelling] = useState<Charge | null>(null);
   const [removing, setRemoving] = useState(false);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const viewReady = useOpenedOnce(viewing !== null);
+  const createReady = useOpenedOnce(creating);
   /* Encerrar a série: a cobrança fica, a próxima não nasce. Sem confirmação, porque nada se perde e a
      recorrência pode ser religada na próxima cobrança. */
   const stopRecurrence = async (charge: Charge) => {
@@ -200,7 +229,7 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
       toast({ title: "Não deu para encerrar", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Recorrência encerrada", description: `${charge.reference} continua em aberto; a próxima não nasce mais.`, tone: "success" });
+    toast({ title: "Recorrência encerrada", description: `${charge.reference} continua em aberto; a próxima não nasce mais.`, tone: "success", feedback: feedbackOf(charge) });
     if (viewing?.id === charge.id) setViewing(result.charge);
     startTransition(() => router.refresh());
   };
@@ -231,9 +260,21 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
     };
   };
 
+  /* O que `go` precisa ler fica em referência, e não no fechamento (2026-09-22). O temporizador da busca
+     dispara 320 ms depois da tecla: com o filtro preso no fechamento, um `go` antigo reescrevia a URL com a
+     situação e o tamanho anteriores, desfazendo a escolha feita nesse meio tempo. De quebra `go` fica
+     estável, e o observador da grade deixa de ser desmontado a cada ficha aberta ou fechada. */
+  const liveRef = useRef(live);
+  const routeRef = useRef({ viewing, creating });
+  useEffect(() => {
+    liveRef.current = live;
+    routeRef.current = { viewing, creating };
+  });
+
   const go = useCallback(
     (next: Partial<ChargesQuery>) => {
-      const merged = { ...live, ...next };
+      const merged = { ...liveRef.current, ...next };
+      liveRef.current = merged;
       setLive(merged);
       const params = new URLSearchParams();
       if (merged.search) params.set(QUERY_PARAM, merged.search);
@@ -242,10 +283,10 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
       if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
       if (merged.pageSize !== (asTable ? TABLE_PER_PAGE : GRID_PER_PAGE_DEFAULT)) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
       const search = params.toString();
-      const base = pathOf(direction, viewing, creating);
+      const base = pathOf(direction, routeRef.current.viewing, routeRef.current.creating);
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [live, viewing, creating, router, asTable, direction],
+    [router, asTable, direction],
   );
 
   const changeView = (next: ChargesView) => {
@@ -449,9 +490,13 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
         </>
       )}
 
-      <ChargeDialog charge={viewing} onClose={() => show(null, false)} onSend={viewing ? () => void send(viewing) : undefined} onCopyLink={viewing ? () => void copyLink(viewing) : undefined} onCancel={viewing ? () => setCancelling(viewing) : undefined} onPay={viewing ? (installment) => void pay(viewing, installment) : undefined} onReopen={viewing ? (installment) => void reopen(viewing, installment) : undefined} busyInstallment={busyInstallment} />
+      {viewReady && (
+        <ChargeDialog charge={viewing} onClose={() => show(null, false)} onSend={viewing ? () => void send(viewing) : undefined} onCopyLink={viewing ? () => void copyLink(viewing) : undefined} onCancel={viewing ? () => setCancelling(viewing) : undefined} onPay={viewing ? (installment) => void pay(viewing, installment) : undefined} onReopen={viewing ? (installment) => void reopen(viewing, installment) : undefined} busyInstallment={busyInstallment} />
+      )}
 
-      <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} direction={direction} onClose={() => show(viewing, false)} onCreated={created} />
+      {createReady && (
+        <NewChargeDialog open={creating} lookups={lookups} clientId={prefill?.clientId} direction={direction} onClose={() => show(viewing, false)} onCreated={created} />
+      )}
 
       <Dialog open={cancelling !== null} onClose={() => !removing && setCancelling(null)} label={`Cancelar ${noun}`} size="sm" focusOnOpen={false}>
         {cancelling && <ConfirmCancel charge={cancelling} busy={removing} onCancel={() => setCancelling(null)} onConfirm={() => void cancel()} />}

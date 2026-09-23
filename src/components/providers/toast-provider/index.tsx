@@ -2,6 +2,19 @@
 
 import styled from "@emotion/styled";
 import {
+  ArchiveIcon,
+  CheckCircleIcon,
+  CopyIcon,
+  CurrencyCircleDollarIcon,
+  PaperPlaneTiltIcon,
+  PencilSimpleIcon,
+  PlusCircleIcon,
+  SealCheckIcon,
+  TrashIcon,
+  UserPlusIcon,
+  type Icon,
+} from "@phosphor-icons/react";
+import {
   createContext,
   useCallback,
   useContext,
@@ -13,7 +26,13 @@ import {
   type ReactNode,
 } from "react";
 import { MOBILE_QUERY } from "@/hooks/use-media-query";
+import { useCelebration, type CelebrationOptions } from "@/components/providers/celebration-provider";
 import { Toast, type ToastAction, type ToastTone } from "@/components/ui/toast";
+
+export type ToastFeedback = Partial<Omit<CelebrationOptions, "title" | "description">> & {
+  title?: string;
+  description?: string;
+};
 
 export type ToastOptions = {
   title: string;
@@ -21,6 +40,8 @@ export type ToastOptions = {
   tone?: ToastTone;
   action?: ToastAction;
   duration?: number;
+  /** Ajusta o retorno visual de uma ação bem sucedida. `false` preserva o recibo discreto no canto. */
+  feedback?: false | ToastFeedback;
 };
 
 type ToastEntry = ToastOptions & { id: string; open: boolean };
@@ -60,6 +81,46 @@ function durationOf(entry: ToastEntry) {
   return entry.duration ?? DEFAULT_DURATION;
 }
 
+type FeedbackPreset = { icon: Icon; hue: string; confetti: boolean };
+
+function feedbackPreset(title: string): FeedbackPreset {
+  const value = title.toLocaleLowerCase("pt-BR");
+  if (/(pagamento|paga|pago|recebid|cobrança|despesa|financeir|dinheiro)/.test(value)) {
+    return { icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)", confetti: /recebid|pago|quitad/.test(value) };
+  }
+  if (/(enviad|publicad|compartilhad)/.test(value)) {
+    return { icon: PaperPlaneTiltIcon, hue: "var(--sys-blue)", confetti: true };
+  }
+  if (/(assinad|aprovaid|concluíd|finalizad|ganh)/.test(value)) {
+    return { icon: SealCheckIcon, hue: "var(--sys-green)", confetti: true };
+  }
+  if (/(copiad|duplicad)/.test(value)) {
+    return { icon: CopyIcon, hue: "var(--sys-indigo)", confetti: false };
+  }
+  if (/(excluíd|removid|apagado)/.test(value)) {
+    return { icon: TrashIcon, hue: "var(--sys-red)", confetti: false };
+  }
+  if (/(arquivad)/.test(value)) {
+    return { icon: ArchiveIcon, hue: "var(--sys-gray)", confetti: false };
+  }
+  if (/(convid|membro|pessoa adicionad)/.test(value)) {
+    return { icon: UserPlusIcon, hue: "var(--sys-purple)", confetti: true };
+  }
+  if (/(criad|cadastrad|adicionad|nova |novo )/.test(value)) {
+    return { icon: PlusCircleIcon, hue: "var(--sys-blue)", confetti: true };
+  }
+  if (/(salv|atualiz|alterad|editad|renomead)/.test(value)) {
+    return { icon: PencilSimpleIcon, hue: "var(--sys-blue)", confetti: false };
+  }
+  return { icon: CheckCircleIcon, hue: "var(--sys-green)", confetti: false };
+}
+
+function isCompletedAction(title: string) {
+  return /(excluíd|removid|apagado|arquivad|cancelad|reabert|restaurad|desconectad|encerrad)/.test(
+    title.toLocaleLowerCase("pt-BR"),
+  );
+}
+
 function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: string) => void }) {
   const [paused, setPaused] = useState(false);
   const remaining = useRef(durationOf(entry));
@@ -95,6 +156,7 @@ function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: st
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { celebrate } = useCelebration();
   const [entries, setEntries] = useState<ToastEntry[]>([]);
   const counter = useRef(0);
 
@@ -108,9 +170,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((options: ToastOptions) => {
     counter.current += 1;
     const id = `toast-${counter.current}`;
+    if ((options.tone === "success" || (options.tone === "neutral" && isCompletedAction(options.title))) && options.feedback !== false) {
+      const feedback = options.feedback ?? {};
+      const preset = feedbackPreset(options.title);
+      celebrate({
+        title: feedback.title ?? options.title,
+        description: feedback.description ?? options.description,
+        icon: feedback.icon ?? preset.icon,
+        hue: feedback.hue ?? preset.hue,
+        confetti: feedback.confetti ?? preset.confetti,
+        figure: feedback.figure,
+        visual: feedback.visual,
+        action: feedback.action,
+        closeLabel: feedback.closeLabel,
+        children: feedback.children,
+      });
+      return id;
+    }
     setEntries((current) => [...current, { ...options, id, open: true }]);
     return id;
-  }, []);
+  }, [celebrate]);
 
   const value = useMemo(() => ({ toast, dismiss }), [toast, dismiss]);
   const visible = entries.slice(0, MAX_VISIBLE);

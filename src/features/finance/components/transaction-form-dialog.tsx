@@ -1,20 +1,20 @@
 "use client";
 
-import { CheckIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { useId, useRef, useState, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
-import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { onlyDigits } from "@/lib/masks";
+import { houseDay } from "@/lib/utils/day";
 import { createTransactionAction } from "../actions";
 import { chargeMethods, transactionKinds } from "../labels";
 import { transactionLimits } from "../schemas";
@@ -30,7 +30,7 @@ export type TransactionFormDialogProps = {
 
 type Values = { kind: "income" | "expense"; title: string; description: string; amount: string; date: string; method: ChargeMethod | "none" };
 
-const blank = (): Values => ({ kind: "expense", title: "", description: "", amount: "", date: format(new Date(), "yyyy-MM-dd"), method: "none" });
+const blank = (): Values => ({ kind: "expense", title: "", description: "", amount: "", date: houseDay(), method: "none" });
 
 const kindOptions = (["income", "expense"] as const).map((value) => ({ value, label: transactionKinds[value].label }));
 
@@ -58,6 +58,9 @@ function TransactionForm({ onClose, onCreated, savingRef }: Omit<TransactionForm
   const [values, setValues] = useState<Values>(blank);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* A movimentação lançada aqui é fato consumado: o servidor grava como confirmada e o caixa cai na hora.
+     Por isso a data não passa de hoje, no fuso da casa, o mesmo dia que o banco usa (2026-09-22). */
+  const today = parseISO(houseDay());
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((current) => ({ ...current, [key]: value }));
 
@@ -93,19 +96,7 @@ function TransactionForm({ onClose, onCreated, savingRef }: Omit<TransactionForm
 
   return (
     <div className={styles.drawer} aria-labelledby={titleId}>
-      <header className={styles.head}>
-        <div className={styles.heading}>
-          <Text as="h2" id={titleId} variant="headline" weight="semibold">
-            Nova movimentação
-          </Text>
-          <Text variant="footnote" tone="secondary">
-            Uma entrada ou saída que não veio de cobrança.
-          </Text>
-        </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-          <XIcon />
-        </IconButton>
-      </header>
+      <DialogHeader id={titleId} title="Nova movimentação" description="Uma entrada ou saída que não veio de cobrança." closeDisabled={saving} onClose={onClose} />
 
       <div className={styles.body}>
         <Field label="Tipo">
@@ -122,7 +113,7 @@ function TransactionForm({ onClose, onCreated, savingRef }: Omit<TransactionForm
             <Input type="text" size="sm" mask="currency" inputMode="numeric" value={values.amount} placeholder="0,00" onChange={(event) => set("amount", onlyDigits(event.target.value))} />
           </Field>
           <Field label="Data" required>
-            <DatePicker size="sm" value={parseISO(values.date)} onChange={(date) => set("date", format(date ?? new Date(), "yyyy-MM-dd"))} />
+            <DatePicker size="sm" value={parseISO(values.date)} max={today} onChange={(date) => set("date", date ? format(date, "yyyy-MM-dd") : houseDay())} />
           </Field>
         </div>
         <Field label="Forma">
@@ -135,14 +126,14 @@ function TransactionForm({ onClose, onCreated, savingRef }: Omit<TransactionForm
         )}
       </div>
 
-      <footer className={styles.foot}>
+      <DialogFooter>
         <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
           Cancelar
         </Button>
         <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>
           {saving ? "Salvando" : "Salvar"}
         </Button>
-      </footer>
+      </DialogFooter>
     </div>
   );
 }

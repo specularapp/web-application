@@ -18,6 +18,7 @@ import { Text } from "@/components/ui/text";
 import { quoteStatuses } from "@/features/quotes/labels";
 import { applyPattern } from "@/lib/masks";
 import { formatMoney } from "@/lib/utils/format";
+import { siteLabel } from "@/lib/utils/site";
 import type { Client, ClientProjectStatus } from "../summary";
 import styles from "./client-sections.module.css";
 import { ProjectMark } from "@/features/projects/components/project-mark";
@@ -35,7 +36,6 @@ const external = { target: "_blank", rel: "noreferrer" };
 
 const longDate = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy", { locale: ptBR });
 const shortDate = (iso: string) => format(parseISO(iso), "d MMM. yyyy", { locale: ptBR });
-const hostOf = (url: string) => new URL(url).host;
 
 // O miolo da ficha do cliente: sobre, contato, etiquetas, orçamentos vinculados e projetos. Vive num
 // componente só porque duas telas mostram a mesma coisa com molduras diferentes: o cartão de perfil que
@@ -78,7 +78,7 @@ export function ClientSections({ client }: ClientSectionsProps) {
           {client.website && (
             <ProfileFact icon={GlobeIcon} label="Site">
               <TextLink href={client.website as Route} {...external}>
-                {hostOf(client.website)}
+                {siteLabel(client.website)}
               </TextLink>
             </ProfileFact>
           )}

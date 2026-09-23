@@ -31,6 +31,27 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
   const method = chargeMethods[charge.method];
   const paidCount = charge.installments.filter((installment) => installment.paidAt).length;
   const lastPaid = [...charge.installments].filter((installment) => installment.paidAt).sort((a, b) => (b.paidAt ?? "").localeCompare(a.paidAt ?? ""))[0];
+  const noun = side.label.toLocaleLowerCase("pt-BR");
+  const settledVerb = charge.direction === "outgoing" ? "Pago" : "Recebido";
+  const terms = charge.installments.length > 1 ? `${charge.installments.length}x de ${formatMoney(charge.installments[0]?.amount ?? 0)}` : "À vista";
+  const settledNote = `Paga por completo${lastPaid?.paidAt ? ` em ${shortDate(lastPaid.paidAt.slice(0, 10))}` : ""}`;
+  const cancelledNote = charge.cancelledAt ? `Cancelada em ${shortDate(charge.cancelledAt.slice(0, 10))}` : "";
+  const dueNote = next ? (next.reported ? "Pagamento avisado" : dueLabel(next.dueDate)) : "";
+
+  /* O cartão inteiro é o gatilho, e `role="button"` apaga os descendentes da árvore de acessibilidade: sem
+     um nome composto, quem usa leitor de tela só ouvia "Abrir a cobrança CB-0012" e perdia cliente, valor,
+     situação e vencimento, que os olhos leem de relance (2026-09-22). */
+  const label = [
+    `Abrir a ${noun} ${charge.reference}`,
+    charge.title,
+    payer.company ?? payer.name,
+    `${formatMoney(charge.amount)}, ${terms}, ${method.label}`,
+    status.label,
+    cancelledNote || (next ? `${installmentLabel(next.number, charge.installments.length)}, ${shortDate(next.dueDate)}, ${dueNote}` : settledNote),
+    received > 0 && received < charge.amount ? `${settledVerb} ${formatMoney(received)} de ${formatMoney(charge.amount)}` : "",
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
@@ -47,7 +68,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
 
   return (
     <article className={styles.card} data-status={chargeStatusOf(charge)}>
-      <div className={styles.inner} role="button" tabIndex={0} aria-label={`Abrir a ${side.label.toLocaleLowerCase("pt-BR")} ${charge.reference}`} onClick={onClick} onKeyDown={onKeyDown}>
+      <div className={styles.inner} role="button" tabIndex={0} aria-label={label} onClick={onClick} onKeyDown={onKeyDown}>
         <header className={styles.head}>
           {/* O lado antes da situação: "em aberto" quer dizer coisas opostas conforme o dinheiro entre ou
               saia, e é o glifo com a cor que resolve isso de relance. */}
@@ -61,7 +82,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         </header>
 
         <div className={styles.copy}>
-          <Text as="h3" variant="headline" weight="semibold" className={styles.title}>
+          <Text as="h2" variant="headline" weight="semibold" className={styles.title}>
             {charge.title}
           </Text>
           <Text as="p" variant="caption1" tone="secondary" numeric>
@@ -70,7 +91,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         </div>
 
         <div className={styles.client}>
-          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="rounded" />
           <span className={styles.clientCopy}>
             <Text as="span" variant="footnote" weight="medium" truncate>
               {payer.company ?? payer.name}
@@ -87,7 +108,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
           </Text>
           <Text as="span" variant="caption1" tone="secondary" className={styles.terms}>
             <method.icon aria-hidden="true" />
-            {charge.installments.length > 1 ? `${charge.installments.length}x de ${formatMoney(charge.installments[0]?.amount ?? 0)}` : "À vista"}, {method.label}
+            {terms}, {method.label}
           </Text>
         </div>
 
@@ -106,7 +127,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         <footer className={styles.foot}>
           {charge.cancelledAt ? (
             <Text as="span" variant="caption1" tone="tertiary">
-              Cancelada em {shortDate(charge.cancelledAt.slice(0, 10))}
+              {cancelledNote}
             </Text>
           ) : next ? (
             <>
@@ -114,12 +135,12 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
                 {installmentLabel(next.number, charge.installments.length)}, {shortDate(next.dueDate)}
               </Text>
               <Badge tone={next.reported ? "info" : dueTone(next.dueDate)} size="sm">
-                {next.reported ? "Pagamento avisado" : dueLabel(next.dueDate)}
+                {dueNote}
               </Badge>
             </>
           ) : (
             <Text as="span" variant="caption1" tone="secondary">
-              Paga por completo{lastPaid?.paidAt ? ` em ${shortDate(lastPaid.paidAt.slice(0, 10))}` : ""}
+              {settledNote}
             </Text>
           )}
         </footer>

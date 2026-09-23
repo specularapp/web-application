@@ -7,6 +7,7 @@ import { callAction } from "@/lib/action";
 import { configureTaskStagesAction } from "../actions";
 import { paletteHueValues } from "../schemas";
 import { stageKindLabels, stageKindValues, type TaskStage, type TaskStageKind } from "../stages";
+import { randomId } from "@/lib/utils/id";
 
 /**
  * As etapas do quadro de tarefas, na **mesma janela do funil de vendas** (2026-09-22, a pedido: "precisa
@@ -131,7 +132,7 @@ export function StagesDialog({ open, name, stages, projectId, onClose, onSaved }
       destinations={destinations}
       onDestinationChange={(key: string, to: string) => setDestinations((current) => ({ ...current, [key]: to }))}
       onAdd={() =>
-        setDraft((current) => [...current, { key: `nova-${crypto.randomUUID()}`, label: "", hue: "blue", aspect: "ongoing" }])
+        setDraft((current) => [...current, { key: `nova-${randomId()}`, label: "", hue: "blue", aspect: "ongoing" }])
       }
       max={60}
       saving={saving}

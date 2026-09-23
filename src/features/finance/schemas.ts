@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { houseDay } from "@/lib/utils/day";
 import { chargeDirectionValues } from "./summary";
 
 /**
@@ -77,7 +78,11 @@ export const createTransactionSchema = z.object({
   title: z.string().trim().min(2, "Diga de quem veio ou para onde foi.").max(transactionLimits.title),
   description: z.string().trim().max(transactionLimits.description),
   amount: z.number().int().min(1, "Informe o valor.").max(transactionLimits.amount, "Confira o valor."),
-  date: dateSchema,
+  /* Movimentação avulsa é dinheiro que já entrou ou já saiu, e nasce confirmada: com data futura ela
+     derrubava o caixa de hoje por algo que ainda não aconteceu. O que é para frente se lança como cobrança
+     ou despesa, que tem parcela e vencimento. A guarda vale no servidor, e não só na tela, porque a regra
+     precisa valer para o aplicativo também (2026-09-22, na varredura). */
+  date: dateSchema.refine((value) => value <= houseDay(), "A data não pode ser no futuro."),
   method: z.enum(["pix", "card", "boleto", "transfer"]).nullable(),
 });
 

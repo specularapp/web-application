@@ -1,5 +1,7 @@
 import "server-only";
-import { format } from "date-fns";
+import { dbMessage } from "@/lib/db/message";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers } from "@/features/organizations/service";
 import { docText, type DocNode } from "@/lib/rich-doc";
@@ -7,7 +9,7 @@ import type { Json } from "@/types/database";
 import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { TasksQuery } from "./list-options";
-import { DEFAULT_TASK_TITLE, type ConfigureStagesInput, type SaveStageInput, type TaskFormInput } from "./schemas";
+import { DEFAULT_TASK_TITLE, type ConfigureStagesInput, type SaveStageInput, type TaskChangeInput, type TaskFormInput } from "./schemas";
 import type { TaskStage, TaskStageGlyph, TaskStageKind } from "./stages";
 import type { TaskOpenCounts } from "./tree";
 import type {
@@ -22,6 +24,8 @@ import type {
   TaskPriority,
   TasksSummary,
 } from "./summary";
+import { ATTACHMENT_ONLY } from "./summary";
+import { estimateLabel, priorityLabels } from "./labels";
 
 /** A regra das tarefas contra o banco, na mesma forma dos outros domínios. */
 export type TasksClient = SupabaseClient<Database>;
@@ -49,7 +53,8 @@ const boardColumns = `
   task_people(user_id),
   subtasks(id, title, done, assignee_id, priority, due_date, position),
   task_attachments(count),
-  task_events(count)
+  task_events(count),
+  task_links(count)
 `;
 
 /* A ficha inteira, buscada quando a janela abre: aí sim a conversa, os anexos e os vínculos por completo. */
@@ -92,6 +97,7 @@ const toStage = (row: StageRow): TaskStage => ({ id: row.id, name: row.name, hue
 type BoardRow = Omit<Row, "task_attachments" | "task_events" | "task_links"> & {
   task_attachments: Counted;
   task_events: Counted;
+  task_links: Counted;
 };
 
 type Row = {
@@ -227,6 +233,7 @@ function toBoardTask(row: BoardRow, people: Map<string, TaskPerson>): Task {
     ...toTask({ ...row, task_attachments: [], task_events: [], task_links: [] }, people),
     attachments: placeholders(row.task_attachments[0]?.count ?? 0),
     activity: Array.from({ length: row.task_events[0]?.count ?? 0 }, (_, index) => ({ id: `${row.id}-e${index}` }) as TaskEvent),
+    links: Array.from({ length: row.task_links[0]?.count ?? 0 }, (_, index) => ({ id: `${row.id}-l${index}` }) as TaskLink),
   };
 }
 
@@ -298,7 +305,7 @@ function toTask(row: Row, people: Map<string, TaskPerson>): Task {
 async function peopleOf(client: TasksClient, organizationId: string) {
   const members = await listTeamMembers(client, organizationId);
   return new Map<string, TaskPerson>(
-    members.map((member) => [member.userId, { name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl }]),
+    members.map((member) => [member.userId, { id: member.userId, name: member.name || member.email || "Equipe", avatarUrl: member.avatarUrl }]),
   );
 }
 
@@ -332,6 +339,13 @@ export async function listTasks(
   return ((data ?? []) as unknown as BoardRow[]).map((row) => toBoardTask(row, people));
 }
 
+/** O id de uma tarefa pelo identificador que a pessoa lê (`TAR-2026-0005`), para o endereço poder usá-lo. */
+export async function findTaskId(client: TasksClient, organizationId: string, reference: string): Promise<string | null> {
+  const { data } = await client.from("tasks").select("id").eq("organization_id", organizationId).eq("reference", reference).maybeSingle();
+  return data?.id ?? null;
+}
+
+/** A ficha inteira, com os arquivos do balde privado já trocados por endereços assinados. */
 export async function getTask(client: TasksClient, organizationId: string, id: string): Promise<Task | null> {
   const [{ data }, people] = await Promise.all([
     client.from("tasks").select(fullColumns).eq("organization_id", organizationId).eq("id", id).maybeSingle(),
@@ -339,7 +353,21 @@ export async function getTask(client: TasksClient, organizationId: string, id: s
   ]);
 
   if (!data) return null;
-  return toTask(data as unknown as Row, people);
+  const row = data as unknown as Row;
+  const signed = await signStored(client, [...row.task_attachments.map((file) => file.url), ...row.task_events.map((event) => event.audio_url)]);
+  const sign = (url: string) => signed.get(url) ?? url;
+
+  return {
+    ...toTask(
+      {
+        ...row,
+        task_attachments: row.task_attachments.map((file) => ({ ...file, url: sign(file.url) })),
+        task_events: row.task_events.map((event) => ({ ...event, audio_url: event.audio_url ? sign(event.audio_url) : null })),
+      },
+      people,
+    ),
+    loaded: true,
+  };
 }
 
 /** O bloco do painel: as tarefas mais próximas do vencimento que ainda não fecharam. */
@@ -368,6 +396,7 @@ export async function saveTask(
   client: TasksClient,
   organizationId: string,
   input: TaskFormInput,
+  actorId: string | null = null,
 ): Promise<ServiceResult<{ id: string }>> {
   const values = {
     organization_id: organizationId,
@@ -390,7 +419,7 @@ export async function saveTask(
   if (input.id) {
     const { data: before } = await client
       .from("tasks")
-      .select("title, description, due_date, start_date, estimate_minutes, stage_id, priority, owner_id, tags, alert")
+      .select("title, description, due_date, start_date, estimate_minutes, stage_id, priority, owner_id, tags, alert, project_id")
       .eq("organization_id", organizationId)
       .eq("id", input.id)
       .maybeSingle();
@@ -403,18 +432,19 @@ export async function saveTask(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
     const changes = diffFields(before, values, taskHistoryLabels);
     if (changes.length > 0) {
       await logRecordEvent(client, organizationId, { recordType: "task", recordId: data.id, action: "updated", summary: summarize(changes), changes });
     }
+    if (before) await logTaskActivity(client, organizationId, actorId, data.id, await describeSave(client, organizationId, before, values));
 
     return { ok: true, data: { id: data.id } };
   }
 
   const { data, error } = await client.from("tasks").insert(values).select("id").single();
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, { recordType: "task", recordId: data.id, action: "created", summary: `Criou a tarefa ${input.title}` });
 
@@ -442,6 +472,7 @@ export async function moveTask(
   id: string,
   stageId: string,
   position: number,
+  actorId: string | null = null,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client
     .from("tasks")
@@ -449,7 +480,9 @@ export async function moveTask(
     .eq("id", id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
+  const stage = await stageName(client, stageId);
+  if (stage) await logTaskActivity(client, organizationId, actorId, id, [`moveu para ${stage}`]);
   return { ok: true, data: undefined };
 }
 
@@ -459,51 +492,12 @@ export async function deleteTask(
   id: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("tasks").delete().eq("organization_id", organizationId).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await logRecordEvent(client, organizationId, { recordType: "task", recordId: id, action: "deleted", summary: "Excluiu a tarefa" });
 
   return { ok: true, data: undefined };
 }
-
-/** Marcar e desmarcar uma subtarefa: a escrita mais frequente da ficha, e a mais barata. */
-export async function toggleSubtask(
-  client: TasksClient,
-  organizationId: string,
-  id: string,
-  done: boolean,
-): Promise<ServiceResult<undefined>> {
-  const { error } = await client.from("subtasks").update({ done }).eq("id", id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
-  return { ok: true, data: undefined };
-}
-
-/** Um comentário na conversa da tarefa, com o que ele marcou. */
-export async function addTaskComment(
-  client: TasksClient,
-  organizationId: string,
-  userId: string,
-  taskId: string,
-  text: string,
-  mentions: TaskMention[],
-): Promise<ServiceResult<{ id: string }>> {
-  const { data, error } = await client
-    .from("task_events")
-    .insert({
-      organization_id: organizationId,
-      task_id: taskId,
-      actor_id: userId,
-      action: text,
-      kind: "comment",
-      mentions,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
-  return { ok: true, data: { id: data.id } };
-}
-
 
 /**
  * Quantas tarefas em aberto cada projeto tem, contadas no banco. O menu precisa só disso, e carregar as
@@ -552,7 +546,7 @@ export async function duplicateTask(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   if ((subtasks ?? []).length > 0) {
     await client.from("subtasks").insert(
@@ -611,7 +605,7 @@ export async function saveTaskStage(
       .select("id, name, hue, glyph, kind")
       .maybeSingle();
 
-    if (error) return { ok: false, error: error.code === "23505" ? STAGE_TAKEN : error.message || STAGE_FAILED };
+    if (error) return { ok: false, error: error.code === "23505" ? STAGE_TAKEN : dbMessage(error, STAGE_FAILED) };
     if (!data) return { ok: false, error: "Essa etapa não está mais no catálogo." };
     return { ok: true, data: toStage(data as StageRow) };
   }
@@ -629,7 +623,7 @@ export async function saveTaskStage(
     .select("id, name, hue, glyph, kind")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.code === "23505" ? STAGE_TAKEN : error?.message || STAGE_FAILED };
+  if (error || !data) return { ok: false, error: error?.code === "23505" ? STAGE_TAKEN : dbMessage(error, STAGE_FAILED) };
   return { ok: true, data: toStage(data as StageRow) };
 }
 
@@ -640,14 +634,14 @@ export async function saveTaskStage(
  */
 export async function deleteTaskStage(client: TasksClient, id: string, moveTo: string | null): Promise<ServiceResult<undefined>> {
   const { error } = await client.rpc("delete_task_stage", { p_id: id, p_move_to: moveTo ?? undefined });
-  if (error) return { ok: false, error: error.message || "Não foi possível apagar a etapa." };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível apagar a etapa.") };
   return { ok: true, data: undefined };
 }
 
 /** A ordem do catálogo, numa escrita só. */
 export async function reorderTaskStages(client: TasksClient, ids: string[]): Promise<ServiceResult<undefined>> {
   const { error } = await client.rpc("reorder_task_stages", { p_ids: ids });
-  if (error) return { ok: false, error: error.message || "Não foi possível salvar a ordem." };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível salvar a ordem.") };
   return { ok: true, data: undefined };
 }
 
@@ -676,7 +670,7 @@ export async function setProjectStages(
     { onConflict: "project_id,stage_id" },
   );
 
-  if (error) return { ok: false, error: error.message || STAGE_FAILED };
+  if (error) return { ok: false, error: dbMessage(error, STAGE_FAILED) };
   return { ok: true, data: undefined };
 }
 
@@ -740,7 +734,7 @@ export async function saveTaskDescription(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: undefined };
 }
 
@@ -754,25 +748,28 @@ export async function saveTaskDescription(
 export async function createTask(
   client: TasksClient,
   organizationId: string,
-  input: { projectId: string | null; stageId: string },
-): Promise<ServiceResult<{ id: string }>> {
+  input: { id?: string; projectId: string | null; stageId: string },
+  actorId: string | null = null,
+): Promise<ServiceResult<{ id: string; reference: string }>> {
   const { data, error } = await client
     .from("tasks")
     .insert({
+      ...(input.id && { id: input.id }),
       organization_id: organizationId,
       project_id: input.projectId,
       stage_id: input.stageId,
       title: DEFAULT_TASK_TITLE,
       due_date: format(new Date(), "yyyy-MM-dd"),
     })
-    .select("id")
+    .select("id, reference")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, { recordType: "task", recordId: data.id, action: "created", summary: `Criou a tarefa ${DEFAULT_TASK_TITLE}` });
+  await logTaskActivity(client, organizationId, actorId, data.id, ["criou a tarefa"]);
 
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, reference: data.reference } };
 }
 
 /**
@@ -795,7 +792,7 @@ export async function configureTaskStages(
 
     if (stage.id) {
       const { error } = await client.from("task_stages").update(values).eq("id", stage.id).eq("organization_id", organizationId);
-      if (error) return { ok: false, error: error.code === "23505" ? STAGE_TAKEN : error.message || STAGE_FAILED };
+      if (error) return { ok: false, error: error.code === "23505" ? STAGE_TAKEN : dbMessage(error, STAGE_FAILED) };
       ids.push(stage.id);
       continue;
     }
@@ -806,7 +803,7 @@ export async function configureTaskStages(
       .select("id")
       .single();
 
-    if (error || !data) return { ok: false, error: error?.code === "23505" ? STAGE_TAKEN : error?.message || STAGE_FAILED };
+    if (error || !data) return { ok: false, error: error?.code === "23505" ? STAGE_TAKEN : dbMessage(error, STAGE_FAILED) };
     ids.push(data.id);
   }
 
@@ -818,4 +815,313 @@ export async function configureTaskStages(
   if (input.projectId) return setProjectStages(client, organizationId, input.projectId, ids);
 
   return { ok: true, data: undefined };
+}
+
+/* ---------------------------------- o que muda dentro da ficha ---------------------------------- */
+
+/** O balde privado dos arquivos da tarefa: anexo da ficha, arquivo e áudio da conversa. */
+const TASK_FILE_BUCKET = "task-files";
+
+/**
+ * Como um arquivo do balde é guardado na coluna de endereço: o prefixo diz que o que vem depois é caminho, e
+ * não um endereço pronto. Na leitura ele vira um endereço assinado; um link ou um Figma segue como está.
+ */
+const STORED_PREFIX = `${TASK_FILE_BUCKET}:`;
+
+const stored = (path: string) => `${STORED_PREFIX}${path}`;
+
+/** Quanto vale o endereço assinado que a ficha recebe: o bastante para uma sessão de trabalho. */
+const SIGNED_SECONDS = 60 * 60 * 6;
+
+/**
+ * Troca os caminhos guardados pelos endereços assinados, numa ida só ao Storage para a ficha inteira. É o que
+ * faz a imagem, o arquivo e o áudio continuarem abrindo depois de recarregar, num balde que não é público.
+ */
+async function signStored(client: TasksClient, urls: (string | null)[]) {
+  const paths = [
+    ...new Set(urls.filter((url): url is string => Boolean(url?.startsWith(STORED_PREFIX))).map((url) => url.slice(STORED_PREFIX.length))),
+  ];
+  const signed = new Map<string, string>();
+  if (paths.length === 0) return signed;
+  const { data } = await client.storage.from(TASK_FILE_BUCKET).createSignedUrls(paths, SIGNED_SECONDS);
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) signed.set(stored(entry.path), entry.signedUrl);
+  }
+  return signed;
+}
+
+const linkColumns = { client: "client_id", quote: "quote_id", project: "linked_project_id", contract: "contract_id" } as const;
+
+const extensionOf = (name: string) => {
+  const match = /\.([a-z0-9]{1,8})$/i.exec(name);
+  return match ? `.${match[1].toLowerCase()}` : "";
+};
+
+export type TaskChangeResult = ServiceResult<{ path?: string; token?: string }>;
+
+const CHANGE_FAILED = "Não foi possível guardar essa mudança. Tente de novo em instantes.";
+
+/**
+ * Aplica uma mudança da ficha (2026-09-22). A tarefa é conferida antes, pela organização, e todo caminho de
+ * arquivo precisa estar na pasta dela: sem isso, um pedido forjado gravaria na tarefa um arquivo de outra.
+ */
+export async function applyTaskChange(
+  client: TasksClient,
+  organizationId: string,
+  userId: string,
+  taskId: string,
+  change: TaskChangeInput,
+): Promise<TaskChangeResult> {
+  const { data: task } = await client.from("tasks").select("id").eq("organization_id", organizationId).eq("id", taskId).maybeSingle();
+  if (!task) return { ok: false, error: "Essa tarefa não está mais no quadro." };
+
+  const folder = `${organizationId}/tarefa/${taskId}/`;
+  const inFolder = (path: string) => path.startsWith(folder) && !path.includes("..");
+  const done = (error: { message: string } | null): TaskChangeResult =>
+    error ? { ok: false, error: dbMessage(error, CHANGE_FAILED) } : { ok: true, data: {} };
+  /* A nota na atividade da tarefa, com quem fez: é o que a conversa mostra entre as mensagens. */
+  const note = (action: string) => logTaskActivity(client, organizationId, userId, taskId, [action]);
+
+  switch (change.op) {
+    case "upload": {
+      const path = `${folder}${crypto.randomUUID()}${extensionOf(change.name)}`;
+      const { data, error } = await client.storage.from(TASK_FILE_BUCKET).createSignedUploadUrl(path);
+      if (error || !data) return { ok: false, error: "Não foi possível preparar o envio do arquivo." };
+      return { ok: true, data: { path: data.path, token: data.token } };
+    }
+
+    case "comment": {
+      if ((change.audio && !inFolder(change.audio.path)) || change.files.some((file) => !inFolder(file.path))) {
+        return { ok: false, error: "Arquivo fora desta tarefa." };
+      }
+      const { data: event, error } = await client
+        .from("task_events")
+        .insert({
+          organization_id: organizationId,
+          task_id: taskId,
+          actor_id: userId,
+          action: change.text || ATTACHMENT_ONLY,
+          kind: "comment",
+          mentions: change.mentions as unknown as Json,
+          audio_url: change.audio ? stored(change.audio.path) : null,
+          audio_seconds: change.audio?.seconds ?? null,
+        })
+        .select("id")
+        .single();
+      if (error || !event) return done(error ?? { message: CHANGE_FAILED });
+      if (change.files.length === 0) return done(null);
+      const { error: filesError } = await client.from("task_attachments").insert(
+        change.files.map((file) => ({
+          organization_id: organizationId,
+          task_id: taskId,
+          event_id: event.id,
+          name: file.name,
+          type: file.type,
+          url: stored(file.path),
+          size_bytes: file.sizeBytes,
+        })),
+      );
+      return done(filesError);
+    }
+
+    case "subtask-add": {
+      const { count } = await client.from("subtasks").select("id", { count: "exact", head: true }).eq("task_id", taskId);
+      await note(`adicionou a subtarefa "${change.title}"`);
+      const { error } = await client.from("subtasks").insert({
+        id: change.id,
+        organization_id: organizationId,
+        task_id: taskId,
+        title: change.title,
+        assignee_id: change.assigneeId,
+        priority: change.priority,
+        due_date: change.dueDate,
+        position: count ?? 0,
+      });
+      return done(error);
+    }
+
+    case "subtask-update": {
+      const values = {
+        ...(change.title !== undefined && { title: change.title }),
+        ...(change.done !== undefined && { done: change.done }),
+        ...(change.assigneeId !== undefined && { assignee_id: change.assigneeId }),
+        ...(change.priority !== undefined && { priority: change.priority }),
+        ...(change.dueDate !== undefined && { due_date: change.dueDate }),
+      };
+      const { data: row, error } = await client.from("subtasks").update(values).eq("id", change.id).eq("task_id", taskId).select("title").maybeSingle();
+      if (!error && row) {
+        await note(
+          change.done === true
+            ? `concluiu a subtarefa "${row.title}"`
+            : change.done === false
+              ? `reabriu a subtarefa "${row.title}"`
+              : `editou a subtarefa "${row.title}"`,
+        );
+      }
+      return done(error);
+    }
+
+    case "subtask-remove": {
+      const { data: row, error } = await client.from("subtasks").delete().eq("id", change.id).eq("task_id", taskId).select("title").maybeSingle();
+      if (!error && row) await note(`removeu a subtarefa "${row.title}"`);
+      return done(error);
+    }
+
+    case "subtask-order": {
+      /* Uma escrita por subtarefa, todas presas à tarefa: uma lista de subtarefas é curta, e o filtro pela
+         tarefa impede que um id de fora mude de lugar. */
+      const results = await Promise.all(
+        change.ids.map((id, position) => client.from("subtasks").update({ position }).eq("id", id).eq("task_id", taskId)),
+      );
+      const failure = results.find((result) => result.error)?.error ?? null;
+      if (!failure) await note("reorganizou as subtarefas");
+      return done(failure);
+    }
+
+    case "people": {
+      const { error } = await client.from("task_people").delete().eq("task_id", taskId);
+      if (!error) await note("atualizou quem está envolvido");
+      if (error || change.userIds.length === 0) return done(error);
+      const { error: insertError } = await client
+        .from("task_people")
+        .insert([...new Set(change.userIds)].map((user) => ({ task_id: taskId, user_id: user, organization_id: organizationId })));
+      return done(insertError);
+    }
+
+    case "link-add": {
+      const { count } = await client.from("task_links").select("id", { count: "exact", head: true }).eq("task_id", taskId);
+      const { error } = await client.from("task_links").insert({
+        organization_id: organizationId,
+        task_id: taskId,
+        client_id: change.kind === "client" ? change.recordId : null,
+        quote_id: change.kind === "quote" ? change.recordId : null,
+        linked_project_id: change.kind === "project" ? change.recordId : null,
+        contract_id: change.kind === "contract" ? change.recordId : null,
+        position: count ?? 0,
+      });
+      if (!error) await note(`vinculou ${await linkName(client, change.kind, change.recordId)}`);
+      return done(error);
+    }
+
+    case "link-remove": {
+      const { error } = await client.from("task_links").delete().eq("task_id", taskId).eq(linkColumns[change.kind], change.recordId);
+      if (!error) await note(`desvinculou ${await linkName(client, change.kind, change.recordId)}`);
+      return done(error);
+    }
+
+    case "attachment-add": {
+      if (change.path && !inFolder(change.path)) return { ok: false, error: "Arquivo fora desta tarefa." };
+      const { error } = await client.from("task_attachments").insert({
+        id: change.id,
+        organization_id: organizationId,
+        task_id: taskId,
+        name: change.name,
+        type: change.type,
+        url: change.path ? stored(change.path) : (change.url ?? ""),
+        size_bytes: change.sizeBytes,
+      });
+      if (!error) await note(`anexou "${change.name}"`);
+      return done(error);
+    }
+
+    case "attachment-remove": {
+      const { data: file } = await client.from("task_attachments").select("url, name").eq("id", change.id).eq("task_id", taskId).maybeSingle();
+      const { error } = await client.from("task_attachments").delete().eq("id", change.id).eq("task_id", taskId);
+      if (!error && file) await note(`removeu o anexo "${file.name}"`);
+      if (!error && file?.url.startsWith(STORED_PREFIX)) {
+        await client.storage.from(TASK_FILE_BUCKET).remove([file.url.slice(STORED_PREFIX.length)]);
+      }
+      return done(error);
+    }
+  }
+}
+
+/* --------------------------------- a atividade da tarefa --------------------------------- */
+
+/** Quanto tempo a mesma nota, da mesma pessoa, não se repete: o salvar automático grava a cada pausa. */
+const SAME_NOTE_WINDOW = 10 * 60 * 1000;
+
+/**
+ * Uma nota na atividade da tarefa (2026-09-23, a pedido: "as atividades precisam refletir as coisas que
+ * acontecem na tarefa"). Vai para `task_events` como mudança, com quem fez, que é o que a conversa desenha
+ * entre as mensagens, no formato "Aleph moveu para Em revisão". A mesma nota seguida da mesma pessoa não se
+ * repete dentro de dez minutos: sem isso, escrever a descrição deixaria uma nota por pausa de digitação.
+ *
+ * Sem quem fez não há nota: a RLS exige que o autor seja quem está gravando, e o que o sistema faz sozinho
+ * não é conversa da equipe.
+ */
+export async function logTaskActivity(client: TasksClient, organizationId: string, actorId: string | null, taskId: string, actions: string[]) {
+  if (!actorId || actions.length === 0) return;
+  const { data: last } = await client
+    .from("task_events")
+    .select("action, actor_id, kind, at")
+    .eq("task_id", taskId)
+    .order("at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const repeated = (action: string) =>
+    Boolean(last && last.kind === "change" && last.actor_id === actorId && last.action === action && Date.now() - new Date(last.at).getTime() < SAME_NOTE_WINDOW);
+  const fresh = actions.filter((action) => !repeated(action));
+  if (fresh.length === 0) return;
+  await client
+    .from("task_events")
+    .insert(fresh.map((action) => ({ organization_id: organizationId, task_id: taskId, actor_id: actorId, action, kind: "change" as const })));
+}
+
+async function stageName(client: TasksClient, stageId: string) {
+  const { data } = await client.from("task_stages").select("name").eq("id", stageId).maybeSingle();
+  return data?.name ?? null;
+}
+
+const linkArticles = { client: "o cliente", quote: "o orçamento", project: "o projeto", contract: "o contrato" } as const;
+
+/** O registro vinculado como a nota o nomeia: "o orçamento ORC-2026-0001". */
+async function linkName(client: TasksClient, kind: keyof typeof linkArticles, id: string) {
+  const table = kind === "client" ? "clients" : kind === "quote" ? "quotes" : kind === "project" ? "projects" : "contracts";
+  const { data } = await client.from(table).select("reference").eq("id", id).maybeSingle();
+  return `${linkArticles[kind]} ${data?.reference ?? ""}`.trim();
+}
+
+const noteDay = (iso: string) => format(parseISO(iso), "d 'de' MMM.", { locale: ptBR });
+
+type SavedRow = {
+  title: string;
+  description: string;
+  due_date: string;
+  start_date: string | null;
+  estimate_minutes: number | null;
+  stage_id: string;
+  priority: TaskPriority;
+  owner_id: string | null;
+  tags: string[];
+  alert: string | null;
+  project_id: string | null;
+};
+
+/** O que o salvar da ficha mudou, em notas: uma por campo, no jeito que a conversa lê. */
+async function describeSave(client: TasksClient, organizationId: string, before: SavedRow, after: Omit<SavedRow, never> & Record<string, unknown>) {
+  const notes: string[] = [];
+  if (before.title !== after.title) notes.push(`renomeou para "${after.title}"`);
+  if (before.stage_id !== after.stage_id) {
+    const stage = await stageName(client, after.stage_id);
+    if (stage) notes.push(`moveu para ${stage}`);
+  }
+  if (before.priority !== after.priority) notes.push(`mudou a prioridade para ${priorityLabels[after.priority]}`);
+  if (before.due_date !== after.due_date) notes.push(`mudou o prazo para ${noteDay(after.due_date)}`);
+  if (before.start_date !== after.start_date) notes.push(after.start_date ? `mudou o início para ${noteDay(after.start_date)}` : "tirou a data de início");
+  if (before.estimate_minutes !== after.estimate_minutes) {
+    notes.push(after.estimate_minutes ? `estimou em ${estimateLabel(after.estimate_minutes)}` : "tirou a estimativa");
+  }
+  if (before.owner_id !== after.owner_id) {
+    if (!after.owner_id) notes.push("tirou o responsável");
+    else {
+      const person = (await peopleOf(client, organizationId)).get(after.owner_id);
+      notes.push(`passou a tarefa para ${person?.name ?? "outra pessoa"}`);
+    }
+  }
+  if ([...before.tags].sort().join() !== [...after.tags].sort().join()) notes.push("atualizou as etiquetas");
+  if ((before.alert ?? "") !== (after.alert ?? "")) notes.push(after.alert ? "atualizou o aviso" : "tirou o aviso");
+  if (before.description !== after.description) notes.push("atualizou a descrição");
+  if (before.project_id !== after.project_id) notes.push(after.project_id ? "mudou a tarefa de projeto" : "tirou a tarefa do projeto");
+  return notes;
 }

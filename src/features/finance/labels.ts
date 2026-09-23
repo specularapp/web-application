@@ -3,7 +3,7 @@ import { ArrowDownLeftIcon, ArrowUpRightIcon, BankIcon, BarcodeIcon, CalendarChe
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { BadgeTone } from "@/components/ui/badge";
-import type { Charge, ChargeDirection, ChargeMethod, ChargeRecurrence, ChargeStatus, FinancePeriod, InstallmentStatus, TransactionKind } from "./summary";
+import { todayIso, type Charge, type ChargeDirection, type ChargeMethod, type ChargeRecurrence, type ChargeStatus, type FinancePeriod, type InstallmentStatus, type TransactionKind } from "./summary";
 
 /**
  * Cada direção por extenso, num lugar só: é daqui que saem o nome da lista, o verbo da baixa, como a outra
@@ -132,9 +132,22 @@ export const momentLabel = (iso: string) => format(parseISO(iso), "d MMM., HH:mm
 
 export const installmentLabel = (number: number, total: number) => (total > 1 ? `Parcela ${number} de ${total}` : "Parcela única");
 
+/**
+ * Quantos dias faltam, contados no fuso da casa (2026-09-22, na varredura).
+ *
+ * As duas funções abaixo recebiam `new Date()`, que é o instante de quem está olhando: no servidor isso é a
+ * hora do servidor, no navegador é a do aparelho, e a situação da parcela é decidida por `todayIso()`, que é
+ * o dia em São Paulo. Os três discordavam, e o resultado aparecia na tela: o cartão dizia "em atraso" no
+ * selo e "vence hoje" no rodapé, e o HTML do servidor não batia com o da hidratação.
+ *
+ * Agora as duas contam sobre o mesmo dia, em texto `YYYY-MM-DD`, sem hora e sem fuso para discordar.
+ */
+const daysUntil = (dueDate: string, today: string) =>
+  differenceInCalendarDays(parseISO(`${dueDate}T00:00:00Z`), parseISO(`${today}T00:00:00Z`));
+
 /** O vencimento em palavras, olhando para hoje: "Vence em 3 dias", "Vence hoje", "Venceu há 2 dias". */
-export function dueLabel(dueDate: string, today = new Date()) {
-  const days = differenceInCalendarDays(parseISO(dueDate), today);
+export function dueLabel(dueDate: string, today = todayIso()) {
+  const days = daysUntil(dueDate, today);
   if (days === 0) return "Vence hoje";
   if (days === 1) return "Vence amanhã";
   if (days === -1) return "Venceu ontem";
@@ -142,7 +155,7 @@ export function dueLabel(dueDate: string, today = new Date()) {
 }
 
 /** O tom do vencimento: vermelho vencido, laranja perto, neutro longe. */
-export function dueTone(dueDate: string, today = new Date()): BadgeTone {
-  const days = differenceInCalendarDays(parseISO(dueDate), today);
+export function dueTone(dueDate: string, today = todayIso()): BadgeTone {
+  const days = daysUntil(dueDate, today);
   return days < 0 ? "danger" : days <= 3 ? "warning" : "neutral";
 }

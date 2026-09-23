@@ -1,0 +1,120 @@
+@keyframes markEnter {
+  from {
+    opacity: 0;
+    scale: 0.82;
+  }
+}
+
+@keyframes ringFill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes markOut {
+  to {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+@keyframes markIn {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  animation: markEnter var(--duration-slow) var(--ease-spring) backwards;
+}
+
+.mark svg:first-child {
+  position: absolute;
+  inset: 0;
+}
+
+/* A marca e o check ocupam a mesma célula: quando o anel fecha, uma sai e o outro entra no lugar exato. */
+.before,
+.check {
+  grid-area: 1 / 1;
+}
+
+.before {
+  display: grid;
+  place-items: center;
+  animation: markOut var(--duration-base) var(--ease-standard) var(--ring-duration) forwards;
+}
+
+/* O "backwards" é o que segura o check invisível durante a espera do anel, sem precisar de opacidade zero no
+   estilo base: com o zero declarado aqui, o fim implícito do quadro também seria zero e ele animaria de
+   invisível para invisível. */
+.check {
+  width: calc(var(--mark-size) * 0.4);
+  height: calc(var(--mark-size) * 0.4);
+  color: var(--color-brand);
+  fill: currentColor;
+  animation: markIn var(--duration-slow) var(--ease-spring) var(--ring-duration) backwards;
+}
+
+.track {
+  stroke: var(--color-fill-quaternary);
+}
+
+/* O traço começa todo escondido e vai sendo revelado: o deslocamento do tamanho do próprio traço some no
+   tempo do anel, que é o tempo antes de o check entrar. */
+.fill {
+  stroke: var(--color-brand);
+  stroke-dasharray: var(--ring-length);
+  stroke-dashoffset: var(--ring-length);
+  animation: ringFill var(--ring-duration) var(--ease-standard) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark,
+  .before,
+  .check,
+  .fill {
+    animation-duration: 1ms;
+  }
+}
+
+/* O véu sobre um cartão: verde translúcido sobre o cartão inteiro, com o anel e o check no meio. Entra,
+   segura e sai num quadro só, e quem o tira da árvore é o fim dele. */
+@keyframes overlayLife {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.overlay {
+  --color-brand: var(--sys-green);
+
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background-color: color-mix(in oklab, var(--sys-green) 16%, var(--color-bg));
+  border-radius: inherit;
+  animation: overlayLife 1800ms var(--ease-standard) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation-duration: 1200ms;
+  }
+}

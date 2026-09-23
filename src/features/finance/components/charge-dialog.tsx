@@ -13,7 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { chargeDirections, chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, momentLabel, partyOf, recurrenceLabels, shortDate } from "../labels";
 import { chargeOpen, chargeSettled, chargeStatusOf, installmentStatusOf, nextInstallment, type Charge, type ChargeEvent, type Installment } from "../summary";
@@ -150,7 +150,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
             )}
           </div>
           <div className={styles.client}>
-            <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="md" shape="squircle" />
+            <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="md" shape="rounded" />
             <span className={styles.clientCopy}>
               <Text as="span" variant="footnote" weight="semibold" truncate>
                 {payer.company ?? payer.name}
@@ -180,7 +180,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
               const meta = installmentStatuses[state];
               const busy = busyInstallment === installment.id;
               return (
-                <li key={installment.id} className={styles.installment} data-status={state} {...squircle("md")}>
+                <li key={installment.id} className={styles.installment} data-status={state} {...rounded("md")}>
                   <span className={styles.installmentNumber} aria-hidden="true">
                     {installment.number}
                   </span>
@@ -234,7 +234,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
             <Text as="h3" variant="subheadline" weight="semibold">
               {outgoing ? "Como foi pago" : "Como o cliente paga"}
             </Text>
-            <div className={styles.payment} {...squircle("md")}>
+            <div className={styles.payment} {...rounded("md")}>
               <span className={styles.paymentHead}>
                 <method.icon aria-hidden="true" />
                 <Text as="span" variant="footnote" weight="semibold">
@@ -289,7 +289,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
 
 function Fact({ label, value, caption, tone }: { label: string; value: string; caption: string; tone?: BadgeTone }) {
   return (
-    <div className={styles.fact} data-tone={tone} {...squircle("md")}>
+    <div className={styles.fact} data-tone={tone} {...rounded("md")}>
       <Text as="span" variant="caption1" tone="secondary">
         {label}
       </Text>

@@ -3,7 +3,7 @@
 import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StoredImage } from "@/components/ui/stored-image";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { cx } from "@/lib/utils/cx";
 import { compactMoney } from "@/lib/utils/format";
-import { loadClientAction } from "../actions";
+import { ClientLoadFailure, useFullClient } from "../load-client";
 import type { ClientListItem } from "../list-options";
-import type { Client } from "../summary";
 import { ClientBadges, clientActions } from "./client-profile";
 import { ClientMenu } from "./client-menu";
 import { ClientSections } from "./client-sections";
@@ -43,53 +42,39 @@ const external = { target: "_blank", rel: "noreferrer" };
 // projetos, e vinte e quatro delas por página encheriam a carga com o que a grade nem desenha. Enquanto
 // vem, o cabeçalho já mostra o que o cartão sabia, então a gaveta nunca abre vazia.
 export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
-  const [full, setFull] = useState<Client | null>(null);
-  const [asked, setAsked] = useState<string | null>(null);
-  const id = client?.id;
+  // Quem está desenhado na gaveta: segue o cliente aberto e fica quando ele zera, senão o painel sairia
+  // vazio, com só a moldura pintada, porque a `Dialog` só desmonta os filhos no fim da animação de saída
+  // (2026-09-22, na varredura). É o que o JSDoc do prop promete, e o que a janela de edição já fazia.
+  const [shown, setShown] = useState<ClientListItem | null>(client);
 
   // Ajuste de estado durante o render, e não em efeito: é o que o React recomenda para reagir a prop
-  // nova, e o lint barra `setState` síncrono dentro de efeito. Trocar de cliente limpa a ficha antiga no
-  // mesmo render, senão a gaveta mostraria a de quem estava aberto antes enquanto a nova vem.
-  if (id && asked !== id) {
-    setAsked(id);
-    setFull(null);
-  }
+  // nova, e o lint barra `setState` síncrono dentro de efeito.
+  if (client && client !== shown) setShown(client);
 
-  useEffect(() => {
-    if (!id) return;
-
-    let current = true;
-    void loadClientAction(id).then((data) => {
-      if (current) setFull(data);
-    });
-
-    return () => {
-      current = false;
-    };
-  }, [id]);
+  const { client: full, error: failed, retry } = useFullClient(client?.id);
 
   return (
     <Dialog
       open={Boolean(client)}
       onClose={onClose}
-      label={client ? `Ficha de ${client.name}` : "Ficha do contato"}
+      label={shown ? `Ficha de ${shown.name}` : "Ficha do contato"}
       size="lg"
       placement="end"
       surface="page"
       scrim={false}
       focusOnOpen={false}
     >
-      {client && (
+      {shown && (
         <>
           {/* O título e as ações ficam grudados no topo: a gaveta rola por dentro e o nome do cliente é
               a referência de onde a pessoa está. */}
           <header className={styles.head}>
             <div className={styles.heading}>
               <Text as="h2" variant="title3" weight="semibold" truncate>
-                {client.name}
+                {shown.name}
               </Text>
               <Text variant="caption1" tone="secondary" className={styles.since}>
-                {client.kind === "supplier" ? "Fornecedor" : "Cliente"} desde {longDate(client.createdAt)}
+                {shown.kind === "supplier" ? "Fornecedor" : "Cliente"} desde {longDate(shown.createdAt)}
               </Text>
             </div>
             <div className={styles.headActions}>
@@ -111,11 +96,11 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
                   abre a fenda do carimbo quando há carimbo. */}
               <span className={styles.portrait}>
                 <Avatar
-                  name={client.name}
-                  src={client.avatarUrl ?? undefined}
-                  seed={client.email ?? client.name}
+                  name={shown.name}
+                  src={shown.avatarUrl ?? undefined}
+                  seed={shown.email ?? shown.name}
                   size="lg"
-                  shape="squircle"
+                  shape="rounded"
                   className={full?.company ? styles.photo : undefined}
                 />
                 {full?.company && <CompanyMark name={full.company} src={full.companyLogoUrl} />}
@@ -123,7 +108,7 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
               <div className={styles.who}>
                 <div className={styles.naming}>
                   <Text as="p" variant="headline" weight="semibold" truncate>
-                    {client.name}
+                    {shown.name}
                   </Text>
                   {full && <ClientBadges client={full} />}
                 </div>
@@ -186,7 +171,13 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
               </div>
             ) : (
               <div className={styles.loading}>
-                <Spinner size="md" label="Carregando a ficha do contato" />
+                {/* A ficha que não vem tem recado e saída, e não um giro sem fim: o cabeçalho já mostra o
+                    que o cartão sabia, e aqui embaixo fica o que falta e o que fazer. */}
+                {failed ? (
+                  <ClientLoadFailure error={failed} onRetry={retry} />
+                ) : (
+                  <Spinner size="md" label="Carregando a ficha do contato" />
+                )}
               </div>
             )}
           </div>

@@ -475,7 +475,6 @@
 .bar::before {
   inset: 0;
   border-radius: calc(var(--radius-md) + var(--space-1));
-  corner-shape: squircle;
 }
 
 /* A bolinha mora na ponta da barra, do tamanho do botão mais o recuo, e nasce apagada. */
@@ -533,6 +532,13 @@
    acima da janela; a barra fica acima das duas, porque é dela que sai o X que fecha o menu. */
 .bar[data-actions] {
   z-index: calc(var(--z-modal) + 2);
+}
+
+/* Janela aberta de dentro do menu: a barra é só dela. O botão do menu sai, e com ele o fio que o separava do
+   X da janela, senão seriam dois X lado a lado, um para cada camada. */
+.bar[data-over-menu] .barToggle,
+.bar[data-over-menu] .barMode[data-active] > .barDivider:last-child {
+  display: none;
 }
 
 /* O botão principal da janela na barra toma o que sobra do modo, e o nome cede por reticências antes de a

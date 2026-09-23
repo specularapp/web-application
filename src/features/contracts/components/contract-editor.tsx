@@ -282,7 +282,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
     value: client.id,
     label: client.company ?? client.name,
     caption: client.company ? client.name : undefined,
-    media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
+    media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="rounded" />,
   }));
   const projectOptions = lookups.projects.filter((project) => !setup.clientId || project.clientId === setup.clientId).map((project) => ({ value: project.id, label: project.name }));
   const quoteOptions = lookups.quotes.filter((quote) => !setup.clientId || quote.clientId === setup.clientId).map((quote) => ({ value: quote.id, label: quote.number, caption: `${quote.title}, ${formatMoney(quote.amount)}` }));

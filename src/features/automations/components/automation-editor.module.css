@@ -268,7 +268,6 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 0.0625rem solid var(--color-border);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
   transition:
     border-color var(--duration-fast) var(--ease-standard),
@@ -384,7 +383,6 @@
   color: var(--node-hue);
   background-color: light-dark(color-mix(in oklab, var(--node-hue) 14%, transparent), color-mix(in oklab, var(--node-hue) 22%, transparent));
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .nodeGlyph svg {
@@ -573,7 +571,6 @@
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-md);
   translate: -50% -50%;
   -webkit-backdrop-filter: var(--glass-layer-blur);
@@ -605,7 +602,6 @@
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   translate: -50% 0;
   -webkit-backdrop-filter: var(--glass-layer-blur);
@@ -675,7 +671,6 @@
   border: 0.0375rem solid var(--color-border);
   border-inline-start: 0.1875rem solid var(--item-hue);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
   transition:
     background-color var(--duration-fast) var(--ease-standard),
@@ -729,7 +724,6 @@
   color: var(--item-hue);
   background-color: light-dark(color-mix(in oklab, var(--item-hue) 14%, transparent), color-mix(in oklab, var(--item-hue) 22%, transparent));
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
 }
 
 .paletteGlyph svg {
@@ -772,7 +766,6 @@
   color: var(--item-hue);
   background-color: light-dark(color-mix(in oklab, var(--item-hue) 14%, transparent), color-mix(in oklab, var(--item-hue) 22%, transparent));
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .configGlyph svg {

@@ -20,7 +20,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { Text } from "@/components/ui/text";
 import { slugify } from "@/lib/utils/slug";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { readCookie } from "@/lib/cookies";
 import {
@@ -226,7 +226,6 @@ const Option = styled.li`
   letter-spacing: var(--tracking-tight);
   color: var(--color-label);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   cursor: pointer;
 
   ${hoverMotion};
@@ -405,7 +404,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             type="button"
             style={{ "--pill-hue": item.hue } as CSSProperties}
             onClick={() => go(item.href)}
-            {...squircle("md")}
+            {...rounded("md")}
           >
             <item.icon aria-hidden="true" />
             {item.label}

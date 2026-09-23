@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { reportPaymentAction } from "../actions";
 import { chargeMethods, chargeStatuses, dueLabel, dueTone, installmentLabel, installmentStatuses, longDate, partyOf } from "../labels";
@@ -73,14 +73,14 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
           )}
         </div>
         <div className={styles.client}>
-          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="rounded" />
           <Text as="span" variant="footnote" tone="secondary">
             {payer.standalone ? payer.name : `Para ${payer.company ?? payer.name}`}
           </Text>
         </div>
       </header>
 
-      <section className={styles.sheet} {...squircle("xl")}>
+      <section className={styles.sheet} {...rounded("xl")}>
         <div className={styles.summary}>
           <div className={styles.amount}>
             <Text as="p" variant="caption1" tone="secondary">
@@ -127,7 +127,7 @@ export function ChargePublicView({ charge: initial, issuerName }: ChargePublicVi
             const meta = installmentStatuses[state];
             const canReport = state !== "paid" && state !== "cancelled" && !installment.reported;
             return (
-              <li key={installment.id} className={styles.installment} data-status={state} {...squircle("md")}>
+              <li key={installment.id} className={styles.installment} data-status={state} {...rounded("md")}>
                 <span className={styles.installmentCopy}>
                   <Text as="span" variant="footnote" weight="semibold">
                     {installmentLabel(installment.number, charge.installments.length)}

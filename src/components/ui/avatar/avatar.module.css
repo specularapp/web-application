@@ -29,7 +29,7 @@
   --avatar-radius: var(--icon-button-radius-lg);
 }
 
-.avatar[data-shape="squircle"] {
+.avatar[data-shape="rounded"] {
   border-radius: var(--avatar-radius);
 }
 

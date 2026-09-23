@@ -1,7 +1,7 @@
 "use client";
 
-import { CrmAppearanceDialog, type CrmAppearance } from "@/features/crm/components/crm-appearance-dialog";
-import { TaskAppearanceDialog } from "@/features/tasks/components/appearance-dialog";
+import { CrmAppearanceDialog, CrmAppearancePopover, type CrmAppearance } from "@/features/crm/components/crm-appearance-dialog";
+import { TaskAppearanceDialog, TaskAppearancePopover } from "@/features/tasks/components/appearance-dialog";
 import { StagesDialog as TaskStagesDialog } from "@/features/tasks/components/stages-dialog";
 import { setProjectAppearanceAction } from "@/features/projects/actions";
 import type { ProjectHue } from "@/features/projects/summary";
@@ -14,6 +14,8 @@ import {
   BinocularsIcon,
   BuildingsIcon,
   CaretDownIcon,
+  CaretUpDownIcon,
+  FileIcon,
   FolderSimpleIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -40,14 +42,12 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
-import { NameDialog } from "@/components/ui/name-dialog";
-import { StoredImage } from "@/components/ui/stored-image";
 import { deleteCrmFolderAction, deleteFunnelAction, moveFunnelAction, saveCrmFolderAction, saveFunnelAction } from "@/features/crm/actions";
 import type { CrmTreeItem } from "@/features/crm/tree";
 import { deleteFolderAction, moveProjectAction, saveFolderAction } from "@/features/projects/actions";
 import type { TaskStage } from "@/features/tasks/stages";
 import type { TaskTreeItem } from "@/features/tasks/tree";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./sidebar.module.css";
 import tree from "./nav-tree.module.css";
@@ -86,12 +86,6 @@ export type NavTreeItem =
       hue: string;
       /** O nome do matiz como está no banco; o `hue` é o token que a linha usa para se tingir. */
       paletteHue?: string;
-      /**
-       * A cara da folha, quando ela tem uma: a logo do projeto, a do cliente ou o rosto dele. Veste o
-       * azulejo no lugar do glifo, que é o que faz a linha ser reconhecida pela marca antes do nome. O funil
-       * não tem imagem e segue no glifo.
-       */
-      imageUrl?: string | null;
       /** As etapas do quadro, na ordem das colunas: é o que a janela de etapas arruma. */
       stages: string[];
       stageDefinitions?: CrmStageDefinition[];
@@ -140,7 +134,7 @@ export const fromTaskTree = (items: TaskTreeItem[]): NavTreeItem[] =>
   items.map((item) =>
     item.kind === "folder"
       ? { kind: "folder", id: item.id, name: item.name, open: item.open, hue: item.hue, paletteHue: item.paletteHue, glyph: item.glyph, children: fromTaskTree(item.children) }
-      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, paletteHue: item.paletteHue, imageUrl: item.imageUrl, stages: item.stages.map((stage) => stage.id), taskStageDefinitions: item.stages, bucket: item.bucket },
+      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, paletteHue: item.paletteHue, stages: item.stages.map((stage) => stage.id), taskStageDefinitions: item.stages, bucket: item.bucket },
   );
 
 /** A árvore do funil na mesma forma: o funil é a folha. */
@@ -156,12 +150,11 @@ type Leaf = Extract<NavTreeItem, { kind: "leaf" }>;
 
 /** O que está aberto por cima da árvore: uma janela de nome, de etapas ou de confirmação, para um nó. */
 type Opened =
-  | { kind: "rename-folder"; node: Folder; parentId: string | null }
   | { kind: "new-folder"; parentId: string | null; parentName?: string }
   | { kind: "new-leaf"; parentId: string | null; parentName?: string }
   | { kind: "rename-leaf"; node: Leaf }
   | { kind: "stages"; node: Leaf }
-  | { kind: "look"; node: Leaf }
+  | { kind: "look"; node: Leaf; anchor: { current: HTMLElement | null } }
   | { kind: "delete-folder"; node: Folder }
   | { kind: "delete-leaf"; node: Leaf };
 
@@ -169,6 +162,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
   const router = useRouter();
   const { toast } = useToast();
   const domain = basePath === "/tarefas" ? "tarefas" : "funis";
+  const files = domain === "tarefas";
 
   // As pastas do caminho até onde a pessoa está nascem abertas, e daí em diante quem manda é o clique. O
   // estado é da sessão de propósito: guardar em cookie faria o menu abrir num galho e o servidor mandar
@@ -194,7 +188,9 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
   const saveFolder = async (input: { id?: string; name: string; parentId: string | null; hue?: string; glyph?: string }) => {
     const result = domain === "tarefas" ? await saveFolderAction(input) : await saveCrmFolderAction(input);
     if (!result.ok) return result.error;
-    done(input.id ? "Pasta renomeada" : "Pasta criada", input.id ? `Agora ela se chama ${input.name}.` : `${input.name} já está na árvore.`);
+    /* Editar a pasta não avisa: o próprio menu já mostra o nome e a cor novos. */
+    if (!input.id) done("Pasta criada", `${input.name} já está na árvore.`);
+    router.refresh();
     return undefined;
   };
 
@@ -271,24 +267,47 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
 
   /* --------------------------------------------- os leques -------------------------------------------- */
 
-  const folderSections = (node: Folder, parentId: string | null): DropdownSection[] => [
-    {
-      id: "edit",
-      items: [{ id: "rename", label: domain === "tarefas" ? "Renomear pasta" : "Editar pasta e cor", icon: PencilSimpleIcon, onSelect: () => setOpened({ kind: "rename-folder", node, parentId }) }],
-    },
+  const folderSections = (node: Folder, closeEditor: () => void): DropdownSection[] => [
     {
       id: "create",
       label: "Criar dentro",
       items: [
-        { id: "folder", label: "Nova pasta", icon: FolderPlusIcon, onSelect: () => setOpened({ kind: "new-folder", parentId: node.id, parentName: node.name }) },
+        {
+          id: "folder",
+          label: "Nova pasta",
+          icon: FolderPlusIcon,
+          onSelect: () => {
+            closeEditor();
+            setOpened({ kind: "new-folder", parentId: node.id, parentName: node.name });
+          },
+        },
         domain === "tarefas"
-          ? { id: "leaf", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route }
-          : { id: "leaf", label: "Novo funil", icon: FunnelIcon, onSelect: () => setOpened({ kind: "new-leaf", parentId: node.id, parentName: node.name }) },
+          ? { id: "leaf", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route, onSelect: closeEditor }
+          : {
+              id: "leaf",
+              label: "Novo funil",
+              icon: FunnelIcon,
+              onSelect: () => {
+                closeEditor();
+                setOpened({ kind: "new-leaf", parentId: node.id, parentName: node.name });
+              },
+            },
       ],
     },
     {
       id: "danger",
-      items: [{ id: "delete", label: "Excluir pasta", icon: TrashIcon, tone: "danger", onSelect: () => setOpened({ kind: "delete-folder", node }) }],
+      items: [
+        {
+          id: "delete",
+          label: "Excluir pasta",
+          icon: TrashIcon,
+          tone: "danger",
+          onSelect: () => {
+            closeEditor();
+            setOpened({ kind: "delete-folder", node });
+          },
+        },
+      ],
     },
   ];
 
@@ -300,7 +319,15 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
             items: [
               { id: "edit", label: "Editar projeto", icon: PencilSimpleIcon, href: `/projetos/${node.id}/editar` as Route },
               { id: "stages", label: "Etapas do quadro", icon: ListDashesIcon, onSelect: () => setOpened({ kind: "stages", node }) },
-              { id: "look", label: "Cor do quadro", icon: PaletteIcon, onSelect: () => setOpened({ kind: "look", node }) },
+              {
+                id: "look",
+                label: "Cor do quadro",
+                icon: PaletteIcon,
+                /* Abre por cima do leque, colada na linha do quadro, como a edição da pasta: o leque fica aberto
+                   por baixo e volta a valer quando a cor fecha. */
+                keepOpen: true,
+                onSelect: () => setOpened({ kind: "look", node, anchor: { current: document.querySelector<HTMLElement>(`[data-leaf="${node.id}"]`) } }),
+              },
             ],
           },
           ...moveSection(node, parentId),
@@ -334,6 +361,48 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
     </span>
   );
 
+  const folderEditor = (node: Folder, parentId: string | null) => {
+    const headerAction = (closeEditor: () => void) => (
+      <DropdownMenu
+        label={`Outras ações de ${node.name}`}
+        triggerLabel={`Outras ações de ${node.name}`}
+        sections={folderSections(node, closeEditor)}
+        icon={<CaretUpDownIcon weight="bold" />}
+        size="sm"
+      />
+    );
+
+    return (
+      <span className={tree.actions}>
+        {domain === "tarefas" ? (
+          <TaskAppearancePopover
+            title="Editar pasta"
+            triggerLabel={`Editar nome e cor de ${node.name}`}
+            initial={{
+              name: node.name,
+              hue: (node.paletteHue ?? "gray") as ProjectHue,
+              glyph: (node.glyph ?? "tray") as ProjectGlyph,
+            }}
+            labels={{ hue: "Cor da pasta", glyph: "Ícone da pasta" }}
+            renderHeaderAction={headerAction}
+            onSave={(value) =>
+              saveFolder({ id: node.id, name: value.name, hue: value.hue, glyph: value.glyph, parentId })
+            }
+          />
+        ) : (
+          <CrmAppearancePopover
+            folder
+            title="Editar pasta"
+            triggerLabel={`Editar nome e cor de ${node.name}`}
+            initial={{ name: node.name, hue: hueOf(node.hue) }}
+            renderHeaderAction={headerAction}
+            onSave={(value) => saveFolder({ id: node.id, name: value.name, hue: value.hue, parentId })}
+          />
+        )}
+      </span>
+    );
+  };
+
   /* Cada filho é um galho, e o último da fila fecha o fio em L em vez de deixá-lo seguir para baixo. */
   const limbs = (nodes: NavTreeItem[], parentId: string | null) =>
     nodes.map((node, index) => (
@@ -362,7 +431,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
             className={cx(styles.row, tree.node)}
             aria-expanded={expanded}
             onClick={() => toggle(node.id)}
-            {...squircle("md")}
+            {...rounded("md")}
           >
             <span className={tree.mark} style={node.hue ? { color: node.hue } : undefined} aria-hidden="true">
               <Glyph />
@@ -374,7 +443,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
               </Badge>
             )}
           </button>
-          {actions(node, folderSections(node, parentId))}
+          {folderEditor(node, parentId)}
         </div>
         {expanded && node.children.length > 0 && <div className={tree.children}>{limbs(node.children, node.id)}</div>}
       </>
@@ -386,37 +455,28 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
     const hue = { "--project-hue": node.hue } as CSSProperties;
 
     return (
-      <div className={tree.item}>
+      <div className={tree.item} data-leaf={node.id}>
         <Link
           href={`${basePath}/${node.slug}` as Route}
           className={cx(styles.row, tree.node)}
           data-active={node.slug === current || undefined}
           onClick={onNavigate}
-          {...squircle("md")}
+          {...rounded("md")}
         >
-          {/* A marca no matiz da folha: é o que faz cada quadro ser reconhecido antes de o nome ser lido. A
-              pasta segue com o glifo solto, porque ela é o caminho, e não o destino.
-
-              Com imagem, ela cobre a peça (2026-09-20, a pedido): a marca do projeto ou a de quem contratou
-              diz de relance o que o glifo genérico não dizia. O matiz continua no fundo e na contagem, então
-              a linha segue lendo como a mesma identidade, e o véu por baixo é o que segura a logo vazada ou
-              de fundo claro.
-
-              Redonda, e não azulejo (a pedido, na mesma rodada): num quadrado de vinte pixels a logo
-              encostava nas quatro quinas e lia como recorte seco. Círculo **não declara canto nenhum**,
-              pela regra da casa: `round` já é o padrão do sistema de cantos, e é o CSS que arredonda e corta. */}
-          <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true">
-            {node.imageUrl ? (
-              <StoredImage src={node.imageUrl} alt="" width={20} height={20} className={tree.photo} />
-            ) : (
+          {/* O projeto é um arquivo genérico, sem logo nem matiz (2026-09-22, a pedido): a árvore lê como
+              pastas e arquivos, mais sóbria. O funil segue com o azulejo no matiz dele. */}
+          {files ? (
+            <span className={tree.mark} aria-hidden="true">
+              <FileIcon />
+            </span>
+          ) : (
+            <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true">
               <Glyph weight="bold" />
-            )}
-          </span>
+            </span>
+          )}
           <span className={styles.label}>{node.name}</span>
-          {/* A contagem no matiz da folha: ela e o azulejo leem como a mesma identidade, e a fila de números
-              deixa de ser uma coluna de cinza igual. A pasta segue neutra, porque soma matizes diferentes. */}
           {node.open > 0 && (
-            <Badge hue={node.hue} size="sm" className={tree.count}>
+            <Badge hue={files ? undefined : node.hue} size="sm" className={tree.count}>
               {node.open}
             </Badge>
           )}
@@ -439,45 +499,25 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
       </div>
 
       {/* As janelas, uma de cada vez, montadas só enquanto algo está aberto. */}
-      {domain === "tarefas" && (opened?.kind === "rename-folder" || opened?.kind === "new-folder") && (
-        <NameDialog
-          open
-          onClose={() => setOpened(null)}
-          title={opened.kind === "rename-folder" ? "Renomear pasta" : "Nova pasta"}
-          description={opened.kind === "new-folder" && opened.parentName ? `Dentro de ${opened.parentName}` : undefined}
-          placeholder="Clientes, Interno, 2026"
-          initialValue={opened.kind === "rename-folder" ? opened.node.name : ""}
-          onSubmit={(name) =>
-            saveFolder(opened.kind === "rename-folder" ? { id: opened.node.id, name, parentId: opened.parentId } : { name, parentId: opened.parentId })
-          }
-        />
-      )}
-
-      {domain === "tarefas" && (opened?.kind === "rename-folder" || opened?.kind === "new-folder") && (
+      {domain === "tarefas" && opened?.kind === "new-folder" && (
         <TaskAppearanceDialog
           open
-          title={opened.kind === "rename-folder" ? "Editar pasta" : "Nova pasta"}
-          initial={
-            opened.kind === "rename-folder"
-              ? { name: opened.node.name, hue: (opened.node.paletteHue ?? "gray") as ProjectHue, glyph: (opened.node.glyph ?? "tray") as ProjectGlyph }
-              : { hue: "gray" as ProjectHue, glyph: "tray" as ProjectGlyph }
-          }
+          title="Nova pasta"
+          initial={{ hue: "gray" as ProjectHue, glyph: "tray" as ProjectGlyph }}
           onClose={() => setOpened(null)}
           onSave={(value: { name: string; hue: string; glyph: string }) =>
             saveFolder({
               name: value.name,
               hue: value.hue,
               glyph: value.glyph,
-              parentId: opened.kind === "rename-folder" ? opened.parentId : opened.parentId,
-              ...(opened.kind === "rename-folder" && { id: opened.node.id }),
+              parentId: opened.parentId,
             })
           }
         />
       )}
-      {domain === "funis" && (opened?.kind === "rename-folder" || opened?.kind === "new-folder") && <CrmAppearanceDialog
-        folder title={opened.kind === "rename-folder" ? "Editar pasta" : "Nova pasta"} onClose={() => setOpened(null)}
-        initial={opened.kind === "rename-folder" ? { name: opened.node.name, hue: hueOf(opened.node.hue) } : undefined}
-        onSave={(value) => saveFolder({ name: value.name, hue: value.hue, parentId: opened.parentId, ...(opened.kind === "rename-folder" && { id: opened.node.id }) })}
+      {domain === "funis" && opened?.kind === "new-folder" && <CrmAppearanceDialog
+        folder title="Nova pasta" onClose={() => setOpened(null)}
+        onSave={(value) => saveFolder({ name: value.name, hue: value.hue, parentId: opened.parentId })}
       />}
       {(opened?.kind === "rename-leaf" || opened?.kind === "new-leaf") && <CrmAppearanceDialog
         title={opened.kind === "rename-leaf" ? "Editar funil" : "Novo funil"} onClose={() => setOpened(null)}
@@ -488,8 +528,8 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
         id={opened.node.id} name={opened.node.name} stages={opened.node.stages} definitions={opened.node.stageDefinitions} onClose={() => setOpened(null)} onSaved={() => router.refresh()}
       /> : <TaskStagesDialog open name={opened.node.name} stages={opened.node.taskStageDefinitions ?? []} projectId={opened.node.bucket ? null : opened.node.id} onClose={() => setOpened(null)} onSaved={() => router.refresh()} />)}
       {opened?.kind === "look" && domain === "tarefas" && (
-        <TaskAppearanceDialog
-          open
+        <TaskAppearancePopover
+          anchor={opened.anchor}
           withName={false}
           title="Cor do quadro"
           initial={{ hue: opened.node.paletteHue ?? "blue", glyph: opened.node.glyph }}
@@ -497,7 +537,6 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           onSave={async (value: { hue: string; glyph: string }) => {
             const result = await setProjectAppearanceAction({ id: opened.node.id, hue: value.hue, glyph: value.glyph });
             if (!result.ok) return result.error;
-            done("Cor do quadro salva", `${opened.node.name} já aparece assim no menu.`);
             router.refresh();
             return undefined;
           }}

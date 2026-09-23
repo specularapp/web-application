@@ -9,6 +9,9 @@ export function readCookie(name: string) {
 
 // Preferência de interface vai em cookie porque Web Storage é proibido pelo lint. Nunca token, sessão
 // nem dado pessoal: para isso existe a sessão do Supabase, que é escrita pelo servidor.
+// `Secure` só onde a página é https: pelo IP da rede local, no celular em desenvolvimento, o navegador recusa
+// cookie seguro em http, e nenhuma preferência ficava guardada. Em produção tudo é https, e nada muda.
 export function cookieString(name: string, value: string, maxAge = YEAR) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax; Secure; Max-Age=${maxAge}`;
+  const secure = typeof location === "undefined" || location.protocol === "https:" ? "; Secure" : "";
+  return `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax${secure}; Max-Age=${maxAge}`;
 }

@@ -16,6 +16,8 @@ export const QUERY_PARAM = "busca";
 export const PRIORITY_PARAM = "prioridade";
 export const DEADLINE_PARAM = "prazo";
 export const OVERDUE_PARAM = "atrasadas";
+/** A tarefa aberta, pelo identificador que a pessoa lê (`?tarefa=TAR-2026-0005`): o endereço abre a ficha dela. */
+export const TASK_PARAM = "tarefa";
 
 export const priorityFilterValues = ["todas", "low", "normal", "high", "urgent"] as const;
 export const deadlineValues = ["7", "30", "sempre"] as const;

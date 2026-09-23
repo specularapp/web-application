@@ -45,7 +45,6 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
 }
 
@@ -95,7 +94,6 @@
   background-color: var(--color-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .installment[data-status="overdue"] {
@@ -140,7 +138,6 @@
   padding: var(--space-4);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .paymentHead {

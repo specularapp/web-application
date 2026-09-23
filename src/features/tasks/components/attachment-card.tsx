@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import { ArrowSquareOutIcon, CheckCircleIcon, DownloadSimpleIcon, FigmaLogoIcon, FileIcon, FileImageIcon, FilePdfIcon, GlobeSimpleIcon, LinkSimpleIcon, XIcon, type Icon } from "@phosphor-icons/react";
-import Image from "next/image";
+import { StoredImage } from "@/components/ui/stored-image";
 import { useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
@@ -12,7 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import type { TaskAttachment, TaskAttachmentType } from "../summary";
 import styles from "./task-sheet.module.css";
 
@@ -77,17 +77,19 @@ function brandOf(url: string, fallback?: string) {
 }
 
 /* Cartão e chip no raio `md` e `sm` da casa, recortados no fallback porque não têm borda. */
-const cardCorner = squircle("md", { clip: true });
-const chipCorner = squircle("sm", { clip: true });
-const stageCorner = squircle("lg", { clip: true });
+const cardCorner = rounded("md", { clip: true });
+const chipCorner = rounded("sm", { clip: true });
+const stageCorner = rounded("lg", { clip: true });
 /* A pílula de ações tem 44px de altura, e o raio `lg` (20px) fica abaixo da metade dela; com borda, não recorta. */
-const toolbarCorner = squircle("lg");
+const toolbarCorner = rounded("lg");
 
 /**
- * As ações do anexo na barra flutuante do celular (2026-09-11, a pedido), no mesmo contrato das janelas de
- * acrescentar: abrir em outra aba é a principal, baixar e copiar são os glifos do meio, e o X fecha. Mora
- * **dentro** da `Dialog`, porque a barra elege quem registrou na maior profundidade e é ali que o
- * `FloatingLayer` da janela já elevou a conta; de fora, esta janela empataria com a ficha que a abre.
+ * As ações do anexo na barra flutuante do celular, no contrato das janelas de acrescentar: uma principal com
+ * nome, um glifo ao lado e o X. Enxuta de propósito (2026-09-22, a pedido): com abrir em nova aba, baixar,
+ * copiar e fechar, a barra passava da largura da tela. Arquivo que se baixa tem baixar como principal, e o
+ * abrir em nova aba sai, porque o palco já mostra o arquivo; link e Figma, que não abrem aqui dentro, ficam
+ * com abrir como principal, que é o único jeito de vê-los. Mora **dentro** da `Dialog`, para registrar um
+ * degrau acima da ficha que a abre.
  */
 function ViewerActions({
   active,
@@ -107,11 +109,10 @@ function ViewerActions({
   useFloatingActionsRegistration(
     active
       ? {
-          primary: { label: "Abrir em nova aba", icon: <ArrowSquareOutIcon weight="bold" />, onClick: onOpen },
-          extras: [
-            ...(downloadable ? [{ label: "Baixar", icon: <DownloadSimpleIcon weight="bold" />, onClick: onDownload }] : []),
-            { label: "Copiar link", icon: <LinkSimpleIcon weight="bold" />, onClick: () => void onCopy() },
-          ],
+          primary: downloadable
+            ? { label: "Baixar", icon: <DownloadSimpleIcon weight="bold" />, onClick: onDownload }
+            : { label: "Abrir", icon: <ArrowSquareOutIcon weight="bold" />, onClick: onOpen },
+          extras: [{ label: "Copiar link", icon: <LinkSimpleIcon weight="bold" />, onClick: () => void onCopy() }],
           cancel: { label: "Fechar", onClick: onClose },
         }
       : null,
@@ -147,7 +148,7 @@ const Head = styled.div`
 const Stage = styled.div`
   position: relative;
   aspect-ratio: 16 / 10;
-  max-height: 60dvh;
+  max-height: 75dvh;
   overflow: hidden;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
@@ -195,7 +196,6 @@ const Mark = styled.span`
   font-size: 2.25rem;
   background-color: var(--color-bg);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
 
   & > svg {
@@ -283,36 +283,27 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
 
   return (
     <>
-      <button type="button" className={styles.file} aria-haspopup="dialog" onClick={() => setOpen(true)} {...cardCorner}>
+      <button type="button" className={styles.file} aria-haspopup="dialog" aria-label={`Abrir ${file.name}, ${meta}`} title={file.name} onClick={() => setOpen(true)} {...cardCorner}>
         {/* A prévia (2026-09-10, a pedido): imagem mostra a imagem em miniatura, e o resto mostra a marca do
             serviço quando a casa a conhece, ou o glifo do formato quando não. No meio de uma lista de
             anexos, é a prévia que diz na hora o que é cada um. */}
         <span className={styles.fileIcon} data-preview={kind.stage === "image" || undefined} aria-hidden="true" {...chipCorner}>
           {kind.stage === "image" ? (
-            <Image src={file.url} alt="" fill sizes="72px" />
+            <StoredImage src={file.url} alt="" fill sizes="72px" />
           ) : brand ? (
             <BrandIcon name={brand} color className={styles.fileBrand} />
           ) : (
             <Glyph weight="duotone" />
           )}
         </span>
-        <span className={styles.fileCopy}>
-          <Text as="span" variant="subheadline" weight="medium" truncate>
-            {file.name}
-          </Text>
-          <Text as="span" variant="footnote" tone="secondary">
-            {meta}
-          </Text>
-        </span>
         {file.label && (
           <Badge tone="success" size="sm" icon={<CheckCircleIcon />} className={styles.fileLabel}>
             {file.label}
           </Badge>
         )}
-        <ArrowSquareOutIcon className={styles.open} aria-hidden="true" />
       </button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} label={`Anexo ${file.name}`} size="md" surface="glass" focusOnOpen={false}>
+      <Dialog open={open} onClose={() => setOpen(false)} label={`Anexo ${file.name}`} size="lg" surface="glass" focusOnOpen={false}>
         <ViewerActions
           active={open && mobile}
           downloadable={kind.downloadable}
@@ -332,7 +323,7 @@ export function AttachmentCard({ file }: AttachmentCardProps) {
           </Head>
 
           <Stage {...stageCorner}>
-            {kind.stage === "image" && <Image src={file.url} alt={file.name} fill sizes="(max-width: 48rem) 100vw, 40rem" />}
+            {kind.stage === "image" && <StoredImage src={file.url} alt={file.name} fill sizes="(max-width: 48rem) 100vw, 40rem" />}
             {kind.stage === "frame" && <iframe src={file.url} title={file.name} />}
             {kind.stage === "card" && (
               <CardPreview>

@@ -60,7 +60,6 @@
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
@@ -93,7 +92,6 @@
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .sheetFoot {

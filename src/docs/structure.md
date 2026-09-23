@@ -183,15 +183,17 @@ Paleta de cores do sistema Apple (Human Interface Guidelines, System colors), em
 
 ### Comemoração (Celebration)
 
-- **O retorno de um feito, quando ele merece parar a tela** (`components/ui/celebration/` e o provedor em `components/providers/celebration-provider/`, 2026-09-16, a pedido de que "tudo que eu fizer no sistema tenha um feedback legal igual ao do arrastar para ganhar pontos"). A janela de vidro abre com o feito em tamanho grande (um número, quando há, ou o glifo no azulejo do matiz), o confete nas cores do sistema saindo do centro uma vez, o que aconteceu, o que isso significa e o caminho de seguir.
-- **A régua de qual dos dois usar**, para não virar festa em tudo: o `Toast` é o recibo de uma ação comum, aparece no canto e some sozinho, e é o que a grande maioria das ações merece. A comemoração **para a tela**, então é só para o que a pessoa vai querer contar para alguém: o primeiro de alguma coisa, o dinheiro que entrou, o contrato assinado, a meta batida. Confete em tudo é o mesmo que confete em nada.
-- Nasceu como o fim do arrasto de pontos do painel, em 2026-09-07, e saiu de lá para a casa: o `ClaimReward` ficou só com o que é dos pontos, e o desenho da festa passou a ser de todos. Chama-se de qualquer lugar por `useCelebration().celebrate({...})`, como `useToast`, porque quem comemora está no meio de um formulário ou de uma janela e não tem como montar camada por cima sozinho. Uma por vez: duas festas empilhadas não são festa, são fila.
+- **O retorno comum de uma ação concluída** (`components/ui/celebration/` e o provedor em `components/providers/celebration-provider/`). A janela abre com um valor, um glifo ou a identidade concreta do registro, como a foto do cliente, seguida do que aconteceu, do efeito da ação e do caminho de continuar.
+- O `ToastProvider` promove automaticamente todo `tone: "success"` e os resultados neutros de remoção, cancelamento, restauração e encerramento para essa janela. `feedback` permite trocar foto, ícone, matiz, texto, ação e confete; `feedback: false` conserva o recibo discreto quando a interação é frequente demais para interromper. Avisos e erros continuam no canto.
+- **Confete segue o peso do acontecimento**: criar, enviar, receber, aprovar e concluir comemoram; salvar, copiar, renomear e excluir usam a mesma janela sem papel voando. Assim o feedback é consistente sem dizer que toda correção é uma conquista.
+- Nasceu como o fim do arrasto de pontos do painel, em 2026-09-07, e saiu de lá para a casa. O `ClaimReward` ficou só com os pontos; telas que precisam de uma composição própria ainda podem chamar `useCelebration().celebrate({...})` diretamente. Uma por vez, para cada ação ter uma mensagem clara.
 - A janela só monta quando há festa, porque a explosão roda na entrada; montada e fechada, ela rodaria escondida e não apareceria na hora certa. Movimento reduzido tira o confete e as entradas em mola.
 
 ### Toast
 
 - Todo toast tem ícone, título, descrição e um botão de ação, sem botão de fechar. Sem `action` o botão vira "Entendi" e só fecha. Contrato e comportamento em `libs.md`.
 - `Toast` em `components/ui/toast/` é só o visual, e por isso aparece estático na vitrine. Fila, timer e posição ficam no `ToastProvider` de `components/providers/toast-provider/`, montado no layout raiz dentro do `EmotionRegistry`. `useToast()` devolve `toast(options)` e `dismiss(id)`.
+- O provedor fica dentro do `CelebrationProvider`: sucesso entra na camada de feedback principal; `warning`, `danger` e informações transitórias seguem pela fila visual do toast.
 - Geometria concêntrica: raio `--radius-xl` (24) com padding 12 dá 12 de raio interno, então o botão de ação é `Button size="sm" radius="md"`. Canto nativo declarado direto, como o Tooltip; fora do recorte do fallback porque contém um botão com anel de foco.
 - Animação só de `transform` e `opacity`, que o compositor resolve sem layout: entra com `--ease-spring` em `--duration-slow`, sai em `--duration-base`. A saída existe porque `dismiss` primeiro marca `open: false` e só remove 240ms depois. `prefers-reduced-motion` corta as duas.
 - Timer por item, com pausa em hover e foco: o efeito começa um `setTimeout` com o tempo restante e, ao pausar, desconta o que passou. Erro (`danger`) não fecha sozinho; os outros fecham em 5s. Escape fecha o toast focado.
@@ -244,18 +246,12 @@ Dois níveis: os primitivos estáticos em `ui/table` (região que rola, tabela, 
 
 ### Cantos
 
-- Todo canto arredondado passa pelo sistema de cantos da casa, sem lib. `squircle("lg")` de `src/lib/corners.ts` emite `data-squircle` e `data-squircle-radius`; `squircleAuto()` emite só `data-squircle` e deixa o raio para o CSS; `squirclePx(n)` para raio fixo fora da escala. `border-radius` continua sempre no CSS: é o fallback e é o que o motor lê quando o raio não vem no atributo.
-- Onde existe `corner-shape` (Chromium 139+), `globals.css` aplica `corner-shape: squircle` em `[data-squircle]` e acabou: fundo, borda, sombra, anel de foco e recorte de filhos saem do motor do navegador, sem JS. O motor detecta o suporte com `CSS.supports` e não liga nada.
-- Sem `corner-shape` (Safari, Firefox), o motor em `src/lib/squircle/` recorta por `clip-path: path()` com a superelipse (suavização 0,6, a do iOS, pelo algoritmo de cantos suavizados do Figma em `path.ts`). Só recorta quem já recorta (`overflow: hidden` ou `clip`) ou quem pede com `{ clip: true }`. Tudo o mais fica no `round` do `border-radius`. Motivo: recorte cortaria anel de foco de botão e popover que sai do container, que foram exatamente os bugs do cornerKit.
-- Elemento com borda nunca é recortado: a borda CSS segue o arco de círculo e o recorte seguiria a superelipse, então ela apareceria quebrada no canto. É por isso que nenhuma variante do fallback desenha borda; borda é sempre CSS.
-- Motor (`engine.ts`): um `ResizeObserver` só para todos os elementos, escrita agrupada por `requestAnimationFrame`, cache de caminhos por tamanho e raio, `MutationObserver` para elemento que entra, sai ou troca de atributo, `WeakMap` para o que já foi aplicado. Escrever `clip-path` não muda layout, então não realimenta o observer: sem loop por construção. Nada de `<style>` injetado, então a CSP fica em paz. `SquircleProvider` no layout raiz só liga o motor uma vez.
-- Componente client com raio dinâmico usa `useSquircle(raio, clip)` de `src/lib/squircle/use-squircle.ts`, que devolve um ref callback: emite os atributos e registra o elemento, com limpeza ao desmontar.
-- Quem declara `corner-shape: squircle` direto no CSS, sem `data-squircle` (FieldShell, Tooltip, Listbox, Pagination, Checkbox, Toast), fica nativo no Chromium e redondo no fallback, de propósito: são elementos com anel de foco, popover ou conteúdo que não pode ser recortado.
-- O cornerKit saiu em 2026-08-29 depois de uma sequência de bugs: `<style>` injetado bloqueado pela CSP, fundo repintado por SVG que atrasava e piscava, caixa de 20px do Checkbox virando invisível, borda semitransparente empilhando alfa, um observer por elemento. O nativo cobre o caso principal e o fallback nosso é pequeno, previsível e sem borda.
-- Escala em passos de 4px para o encaixe concêntrico: xs 4, sm 8, md 12, lg 16, xl 20, 2xl 28. A regra da Apple é raio interno igual ao externo menos o padding, e nessa escala a conta sempre cai em outro token (20 menos 8 dá 12, 16 menos 4 dá 12).
-- **Canto de dentro é sempre concêntrico.** Nada aninhado escolhe raio próprio: ele sai do raio do pai menos o padding que os separa. No CSS é `calc(var(--corner) - var(--pad))`, no TS é `concentric(raioDoPai, espacamento)` de `src/lib/corners.ts`. Quando os dois convivem, o mesmo número alimenta o `border-radius` e o `data-squircle-radius`, senão o fallback e o desenho do cornerKit discordam.
-- Botão é o exemplo da casa: raio 20 no tamanho `md` e `padding-block` de 8 dão etiqueta interna de 12, que é outro token da escala. É por isso que a escala anda de 4 em 4.
-- Botão só de ícone tem escala própria (`--icon-button-radius-*` e `iconButtonCornerRadius`), com o raio em exatamente metade do lado: 18 em 36, 22 em 44, 26 em 52. É o máximo que a superelipse aceita antes do clamp, e dá o formato de ícone do iOS. Passar disso não arredonda mais, só faz o CSS e o cornerKit divergirem.
+- Todo canto arredondado usa o arco circular padrão de `border-radius`, com valores da escala `--radius-*`. O resultado é idêntico em Chromium, Safari e Firefox e não depende de `corner-shape`, `clip-path`, observadores ou JavaScript.
+- Em CSS, prefira declarar `border-radius: var(--radius-*)` no próprio primitivo. Em TypeScript, `rounded(token)` emite `data-corner-radius`, `roundedAuto()` mantém o raio definido pelo CSS e `roundedPx(n)` aproxima o valor ao token mais próximo. A opção `{ clip: true }` emite apenas `overflow: hidden` para mídia ou fundos que precisam respeitar o canto.
+- Pílulas, indicadores circulares e avatares redondos usam `--radius-full`. Controles quadrados e cartões usam o token compatível com sua altura e densidade, sem ultrapassar metade do menor lado.
+- A escala é curta e progressiva para manter a interface minimalista: xs 4, sm 6, md 8, lg 10, xl 12, 2xl 14 e 3xl 16. O raio nunca cresce a ponto de transformar caixas comuns em cápsulas.
+- **Canto de dentro é sempre concêntrico.** Nada aninhado escolhe raio próprio: ele sai do raio do pai menos o padding que os separa. No CSS é `calc(var(--corner) - var(--pad))`, no TS é `concentric(raioDoPai, espacamento)` de `src/lib/corners.ts`. Quando os dois convivem, o mesmo token alimenta o `border-radius` e o atributo `data-corner-radius`.
+- Botões comuns e botões de ícone seguem a mesma leitura curta: 6 no tamanho pequeno, 8 no médio e 10 no grande. A forma continua reconhecível sem competir com o conteúdo.
 - Nesse botão o lado é fixo (`width` e `height`, não `min-`), o padding é zero e o glifo é 45% da altura por `calc`, então a proporção do ícone é idêntica nos três tamanhos.
 
 ### Containers aninhados
@@ -264,15 +260,13 @@ Dois níveis: os primitivos estáticos em `ui/table` (região que rola, tabela, 
 
 | nível | raio | padding | raio interno |
 | --- | --- | --- | --- |
-| 1 | 40 | 16 | 24 |
-| 2 | 24 | 12 | 12 |
-| 3 | 12 | 8 | 4 |
+| 1 | 16 | 16 | 4 |
+| 2 | 12 | 12 | 4 |
+| 3 | 8 | 8 | 4 |
 | 4 e além | 4 | 8 | 4 |
 
-- A escada é concêntrica de verdade, não aproximação: em toda linha o raio interno é o externo menos o padding, e o resultado cai sempre num token existente. Só fecha assim por causa dos valores da escala (4, 8, 12, 20, 24, 32); mexer num deles quebra a corrente.
-- O raio interno é o externo **menos** o padding, nunca mais. O arco do pai tem centro em (R, R); o filho recuado por P tem centro em (P + Ri, P + Ri). Para os centros baterem, Ri = R − P. Somar o padding empurra o centro do filho para dentro e desalinha: com pai 24 e padding 16, somar erra o centro em 32px.
-- Por isso padding folgado se resolve **subindo o raio do pai**, não o do filho. O nível 1 usa `--radius-3xl` (40) justamente para caber 16 de padding e ainda sobrar 24 de raio interno.
-- `Surface` não declara `data-squircle-radius`. No fallback o motor lê o `border-radius` computado. Assim o CSS continua sendo a fonte única do raio e a escada funciona em qualquer profundidade sem duplicar número em TS.
+- O raio interno usa `max(4px, raio externo menos o recuo)`. O piso de 4px impede quinas secas e mantém todos os níveis da composição na mesma família visual.
+- `Surface` deixa o `border-radius` no CSS. A profundidade troca apenas os tokens, sem duplicar valores em TypeScript.
 - Quem precisa de raio fixo e conhecido (Button, Table, Kbd) continua declarando o atributo, que tem prioridade sobre a leitura.
 
 ### Menu (Sidebar)
@@ -304,7 +298,18 @@ De cima para baixo, seguindo a referência do usuário (a barra de projeto da Ve
 - A tela cheia do celular desbota na base num degradê para a cor do fundo, uma camada grudada no rodapé da tela que rola (`::after` em `sticky`), onde o conteúdo passa por trás da barra flutuante, em vez de ser cortado pela borda da tela. Era `mask-image` na tela inteira até 2026-09-07, e a máscara desbotava o fundo opaco junto: a página aparecia por baixo do menu.
 - Celular: o painel não fica na tela. Uma barra flutuante no rodapé, ao centro, traz "Buscar" e o botão de abrir; aberto, o painel toma a tela inteira, sem a marca, e as ações da conta aparecem listadas em vez de escondidas atrás do botão de seta, porque no celular esconder opção atrás de camada custa um toque a mais e uma camada a mais.
 - A seta dupla do time abre a janela de troca (`TeamSwitcher`, 2026-09-03), a primeira camada flutuante do menu. Opções da conta, busca e notificações vieram depois, e `DropdownMenu` saiu do stub em 2026-09-07, descrito abaixo.
-- **O chevron da árvore** (2026-09-17, a pedido): ao passar o mouse numa linha da árvore de tarefas ou de funis, a contagem da ponta direita dá lugar a um chevron que abre o leque daquele nó, no mesmo lugar, sem a linha ganhar largura. Pasta: renomear, criar pasta/projeto/funil dentro, excluir (o que estava dentro volta para a raiz, porque o vínculo é `set null`). Projeto: editar a ficha (`/projetos/<id>/editar`) e as etapas do quadro (`StagesDialog`). Funil: renomear, etapas, excluir (as oportunidades vão para o balde "Sem funil"). O balde não tem chevron: ele é o que sobra, e não um quadro que alguém criou. O chevron mora **ao lado** da linha, e não dentro, porque a linha é botão ou link e botão dentro de botão não é HTML; no toque, sem hover, ele fica sempre à vista. O "+" do cabeçalho da pasta cria na raiz: projeto vai para a página dele, pasta e funil pedem só um nome (`NameDialog`). Toda escrita derruba `projects`/`crm`, que levam a concha na cascata de tags, e a árvore volta nova pelo `router.refresh()`.
+- **O controle da árvore** (2026-09-17, ajustado em 2026-09-21): ao passar o mouse numa linha de tarefas ou
+  de funis, a contagem da ponta direita dá lugar ao controle daquele nó, no mesmo lugar, sem a linha ganhar
+  largura. Na pasta ele é o **chevron duplo** do perfil e abre `AppearancePopover`, uma ficha sólida,
+  compacta e presa ao gatilho como o seletor de equipe. Nome e cor são editados ali; a pasta de tarefas
+  também oferece o glifo. O menu de três pontos na cabeça da ficha guarda criar pasta, projeto ou funil
+  dentro e excluir. Projeto e funil mantêm o `DropdownMenu` para ficha, aparência, etapas, movimento e
+  exclusão. O balde não tem controle porque é o que sobra, e não um quadro criado. O controle mora **ao
+  lado** da linha, porque a linha já é botão ou link; no toque, sem hover, ele fica sempre à vista. Salvar
+  revalida o domínio, atualiza a árvore por `router.refresh()` e devolve o foco ao gatilho.
+- **Entrar em Tarefas ou Funil de vendas abre a rota raiz por padrão, sem desenhar uma linha “Todas as
+  tarefas” ou “Todas as oportunidades”**. A visão geral continua sendo o primeiro quadro, mas a árvore usa
+  o espaço inteiro para pastas, projetos e funis.
 - **A barra do celular aceita as ações de uma janela** (`FloatingActionsProvider` e `useFloatingActionsRegistration`, em `components/layout/floating-actions/`, 2026-09-08, a pedido, acertado no mesmo dia): a gaveta da ficha do cliente pendura salvar e sair, e a barra troca a busca e o sino por eles, com o botão do menu onde sempre fica; sem ações, a barra é a de sempre. A barra mora em `--z-floating-bar` (60) e, com ações, sobe para cima das janelas, porque a bandeja cobriria o lugar dela; a página atrás continua bloqueada pelo fundo da janela. **A tela cheia do menu sobe com ela** (acerto de 2026-09-10, do relato de que o menu abria atrás de qualquer janela): ela vivia numa camada solta abaixo das janelas, então o menu chamado pela barra nascia atrás do formulário aberto e só a barra ficava à vista. Agora as três se empilham em ordem, janela, menu e barra (`--z-modal`, mais um, mais dois): o degrau entre menu e janela é obrigatório, e não empate, porque a janela é portada para o fim do corpo da página e com o mesmo valor venceria por ordem de irmão; a barra fica no topo porque é dela que sai o X que fecha o menu. Junto, **a tela do menu entrou na fila de camadas** (`useLayer`), como janela, bandeja e caixa colada no gatilho: aberta por cima de um formulário, é ela quem responde ao Escape, que antes fechava a janela por baixo dela. Descer as janelas para baixo da barra foi tentado por uma rodada em 2026-09-08 e saiu a pedido. O provedor vive na `AppFrame`; a janela registra a cada render e o provedor guarda as funções numa referência e só muda estado quando o que se desenha muda (rótulo, espera), para o menu não re-renderizar a cada tecla digitada. Menu aberto continua recolhendo o grupo até sobrar o X. **Regra para o conteúdo nessa situação** (2026-09-08): a folga fica **dentro do que rola**, abaixo do último item, e nunca na moldura da janela, porque na moldura ela virava uma faixa vazia à vista em toda bandeja curta. A medida é o token `--floating-bar-inset` (a altura da barra mais o recuo, um respiro e a área segura). Quem abre com ações na barra dá essa folga ao próprio corpo no celular (a ficha do cliente e criar equipe), e o menu de opções que abre por cima lê a marca `data-floating-actions` que o provedor põe no `html` e dá a folga à própria lista, então o menu de situação da ficha fecha acima da barra. Uma versão que pôs a folga na moldura de toda bandeja durou uma rodada e saiu a pedido. **A troca de modo é um fundido de verdade**: os modos ficam montados um sobre o outro e o que sai desbota e encolhe um fio enquanto o que entra aparece, com a curva que assenta, só em `opacity` e `transform`; o apagado fica `inert`. **Quem mede a barra é só o modo em vigor** (acerto de 2026-09-10): o apagado sai do fluxo, em posição absoluta, então a largura é a do que está à vista. Os três dividiam uma cela de grade e a caixa ficava do tamanho do maior, o que servia enquanto eles tinham medidas parecidas; com uma ação a mais no modo de janela, a barra da lista voltava do editor larga demais, com um vão vazio ao lado da busca (relato de 2026-09-10). O último modo de ações fica guardado para o fundido de saída ter o que desenhar, e o modo de ações existe desde o começo, apagado e inerte, com um rótulo de espera, senão ele montava já no estado final e entrava sem fundido (remontar o conteúdo, a versão anterior, piscava). **A gaveta de criar equipe segue a mesma dinâmica** (2026-09-08): registra criar e sair enquanto está aberta (com criar desligado até o formulário estar preenchido, pelo `disabled` das ações), some com o rodapé no celular e liga o escurecimento ali. Toda janela de criar ou editar da casa entra nesse contrato.
 
 ### Movimento das camadas
@@ -356,6 +361,7 @@ Moldura da casa para conteúdo que interrompe: caixa centralizada no desktop e b
 - **`surface="page"`** (2026-09-08, a pedido) usa o fundo da própria página, `--color-bg`, no lugar do cinza elevado do sólido: é a superfície das gavetas laterais, que são extensão da tela e não uma caixa sobre ela, e no escuro o cinza destoava. Passa sempre, também nas janelas pesadas; só o fio marca a borda. As duas gavetas da casa, a do cliente e a do item do catálogo, usam ela.
 - O vidro continua sendo a superfície padrão das camadas (`Dialog`, `DropdownMenu` e `HoverCard`), agora encorpado: 78% no vidro leve, 82% nas camadas com leitura e 90% na bandeja. O borrão preserva o contexto sem deixar texto e cartões de trás competirem; `surface="solid"` segue disponível para editores sobre uma folha ou qualquer contexto que exija opacidade total. A mesma receita nasce de `--color-bg`, portanto acompanha os temas claro e escuro.
 
+- **O cabeçalho e o rodapé são peça do primitivo** (`DialogHeader`, `DialogFooter`, 2026-09-22, na varredura das janelas). Trinta e nove arquivos montavam `<header className={styles.head}>` e `<footer className={styles.foot}>` à mão, e o CSS dos dois era o **mesmo palavra por palavra** em arquivo após arquivo: `space-between`, recuo assimétrico de 12 e 20 pixels, o fio de 0,6px, o rodapé alinhado à direita que some no celular porque lá as ações moram na barra flutuante. Um acerto de acabamento precisava ser feito trinta e nove vezes, e por isso nunca era feito em todas. O cabeçalho recebe `title`, `description`, `before` (uma foto, um glifo, um voltar), `actions` (um menu, uma etiqueta), `onClose` e `scale`: `form` põe o nome em `headline`, `record` em `title3`, que é a escala da ficha de um registro. O rodapé recebe os botões e `mobile="always"` para quem não registra ação flutuante.
 ### Troca de time
 
 A seta dupla no topo do menu abre uma caixa com busca, os times da pessoa e o convite de criar no rodapé, no formato da referência (a troca de projeto da Vercel).
@@ -513,6 +519,74 @@ requisições por endereço de origem: `anon` não tem select em tabela nenhuma.
 - Gamificação além dos pontos, do bônus diário e da constância: não há conquistas nomeadas nem quadro
   de posições, e a página `/conquistas` mostra só o que o banco já mede.
 
+## Peças da varredura de 2026-09-22
+
+Quatro problemas apareciam repetidos em muitos arquivos. Cada um virou uma peça só, e os lugares passaram a
+usá-la. É a mesma razão em todos os quatro: um defeito que mora em trinta lugares não se conserta trinta
+vezes, e enquanto ele é escrito à mão em cada tela ele volta na tela seguinte.
+
+### Janela pesada só desce quando alguém abre (`useOpenedOnce`)
+
+Cada prancha importava a janela dela de forma estática e a montava sempre, fechada, esperando. A ficha da
+tarefa tem mais de mil e seiscentas linhas, o formulário de projeto setecentas, o de cliente quinhentas: tudo
+isso descia no primeiro paint de quem só queria ler a lista. Trocar por `dynamic()` sozinho não resolve,
+porque o pedaço é buscado no momento em que o elemento é renderizado, e o elemento era renderizado sempre.
+E desmontar ao fechar não serve: a janela precisa continuar montada para a saída animar, o que está escrito
+no próprio prop da gaveta do cliente ("nulo mantém a gaveta montada e fechada, para a saída animar").
+
+`useOpenedOnce(aberta)` de `hooks/use-opened-once.ts` é verdadeiro desde a primeira vez que abriu e nunca mais
+falso. Com ele, `{pronta && <Janela ... />}` dá as duas coisas: nada no primeiro paint, e saída animada para
+sempre depois. Está na listagem de clientes, de cobranças, de contratos, de catálogo, de projetos, de
+automações, na visão geral do financeiro, no quadro de tarefas, no abridor de linha de tarefa e na busca da
+moldura, que descia em toda página da aplicação por morar no menu.
+
+### O teclado de uma fila de abas (`useTabList`)
+
+Sete lugares escreviam `role="tablist"` com `role="tab"` e `aria-selected`: clientes e fornecedores, o filtro
+de movimentações, o de notificações, as abas de dados e prévia do projeto e do orçamento, o seletor de metade
+da ficha e as categorias do aviso. Nenhum tratava seta, e todos deixavam as abas no fluxo normal do Tab.
+
+Isso é pior que não ter papel nenhum, porque o papel **promete** um comportamento: quem usa leitor de tela
+ouve "guia, 1 de 4", aperta a seta e nada acontece. `useTabList(valores, valor, aoTrocar)` de
+`hooks/use-tab-list.ts` devolve `listProps` para o container e `tabProps(valor)` para cada aba, com seta
+esquerda e direita (e cima e baixo), Home, End, volta na ponta e `tabindex` móvel, que é o que faz a fila
+inteira ser uma parada do Tab e não quatro. A troca é automática ao mover, que é o padrão do ARIA quando o
+conteúdo já está em memória, e é o caso das sete. A aparência fica em cada lugar: as sete filas são sete
+desenhos diferentes, e uni-las num visual só mudaria sete telas que ninguém pediu para mudar.
+
+### A mensagem de um erro do banco (`dbMessage`)
+
+Oitenta e três lugares nos serviços devolviam `error.message` para a tela. Isso funcionava para o caso que
+importava, porque as funções do banco da casa levantam exceção com texto em português e esse texto é a
+mensagem certa. O resto vazava o Postgres cru: `new row for relation "clients" violates check constraint
+"clients_website_check"`, `invalid input syntax for type uuid`. Não diz nada a quem usa e conta o nome da
+tabela, da coluna e da restrição a quem não precisa saber.
+
+`dbMessage(error, reserva)` de `lib/db/message.ts` deixa passar `P0001`, que é o código de `raise exception`
+em plpgsql e portanto o caminho das funções da casa, dá frase própria aos códigos de violação de restrição, de
+permissão e de tempo esgotado, e cai na reserva do domínio em qualquer outro. Um `if (error.code === ...)`
+antes da chamada continua valendo: o domínio sabe melhor o que uma chave estrangeira significa na tela dele.
+
+### Hoje é hoje em São Paulo (`houseDay`)
+
+O banco já decidia certo: `change_charge_payment` calcula a data com `(now() at time zone
+'America/Sao_Paulo')::date`. O TypeScript não: `new Date().toISOString().slice(0, 10)` é a data em UTC, e das
+21h à meia-noite de Brasília o UTC já virou o dia seguinte. Nessas três horas uma parcela que vence hoje era
+marcada como vencida, o cartão da cobrança dizia "em atraso" no selo e "vence hoje" no rodapé, e o HTML do
+servidor não batia com o da hidratação.
+
+`houseDay()` e `houseDayWithOffset(n)` de `lib/utils/day.ts` dão o dia no fuso da casa, sem dependência nova:
+`Intl` já converte, e `en-CA` é o idioma cujo formato curto é exatamente `YYYY-MM-DD`. O `todayIso()` do
+financeiro sai daqui, `dueLabel` e `dueTone` contam sobre o mesmo dia em texto, e a baixa de parcela deixou de
+mandar data quando a pessoa não escolheu uma, para o padrão da função do banco valer.
+
+### Conferência visual de tela autenticada (`scripts/probe-session.mjs`)
+
+`probe-application.mjs` prova que as 43 páginas renderizam, lendo o HTML, mas não deixa ninguém olhar: a
+aplicação só abre com sessão, e por isso a conferência visual parava em `/componentes`. O script novo cria uma
+conta e uma equipe descartáveis, semeia contatos, cobranças e movimentações, e imprime os cookies da sessão
+para colar no console do navegador. Com isso `/clientes` e `/financeiro` foram medidos de verdade, e foi
+assim que os alvos de toque de 36 e de 27 pixels apareceram. O modo `limpar` apaga a equipe e o usuário.
 ## O que é igual em toda tela
 
 O sistema é um só, então a mesma coisa se resolve do mesmo jeito em qualquer domínio. Quando duas telas
@@ -608,7 +682,7 @@ Regra que ficou: item sem regra **sai** do leque em vez de ficar de pé e mudo; 
 | Paginação | `Pagination` |
 | Identificador que a pessoa lê | `lib/utils/reference.ts` e o gatilho do banco |
 | Canto arredondado | `squircle()` de `lib/corners.ts` |
-| Aviso de sucesso e de erro | `useToast()` |
+| Retorno de sucesso, aviso e erro | `useToast()`; sucesso é promovido para `Celebration` pelo provedor |
 | Situação em etiqueta | `Badge` com o tom de `features/<dominio>/labels.ts` |
 | Quem responde por um registro | id do usuário, nunca o nome |
 
@@ -934,10 +1008,20 @@ Rota `/orcamentos`, página solta no menu como "Orçamentos" (2026-09-09, a pedi
 
 ### Tarefas
 
-**Tarefas é uma pasta no menu**, e não uma página solta (2026-09-10, a pedido, em duas rodadas do mesmo dia: entrou como página solta com o `ListChecksIcon` do bloco do painel e virou pasta na rodada seguinte). Escolher Tarefas abre, dentro do menu, a **arquitetura de pastas e projetos** com "Todas as tarefas" no topo, e é ali que a pessoa diz para onde vai. As páginas são duas: `/tarefas`, o quadro de tudo, e `/tarefas/<slug>`, o quadro de um projeto. As duas são a mesma tela (`TasksScreen`), com o topo padrão da aplicação e a `PageToolbar` de sempre, e **vão ter duas visões**: o quadro em kanban, que é o foco, e a lista, combinada para depois. Enquanto a lista não existe, a barra não mostra o seletor de visão: ele é opcional na `PageToolbar` de propósito, e um grupo de escolha com uma opção só não escolhe nada.
+**Tarefas é uma pasta no menu**, e não uma página solta (2026-09-10, a pedido, em duas rodadas do mesmo dia: entrou como página solta com o `ListChecksIcon` do bloco do painel e virou pasta na rodada seguinte). Escolher Tarefas abre a rota `/tarefas` como visão geral e mostra, dentro do menu, a **arquitetura de pastas e projetos** diretamente, sem uma linha “Todas as tarefas”. As páginas são duas: `/tarefas`, o quadro de tudo, e `/tarefas/<slug>`, o quadro de um projeto. As duas são a mesma tela (`TasksScreen`), com o topo padrão da aplicação e a `PageToolbar` de sempre, e **vão ter duas visões**: o quadro em kanban, que é o foco, e a lista, combinada para depois. Enquanto a lista não existe, a barra não mostra o seletor de visão: ele é opcional na `PageToolbar` de propósito, e um grupo de escolha com uma opção só não escolhe nada.
 
 - **A arquitetura** (`features/tasks/tree.ts`) é pasta dentro de pasta e, nas folhas, projeto. A pasta só organiza e **não é destino**: não tem endereço, e clicar nela abre e fecha o galho. Quem tem quadro é o projeto, com endereço próprio e as etapas dele. O projeto guarda o identificador do projeto (`PRJ-2026-0007`), o mesmo que a tarefa carrega, que é como as duas pontas se encontram; **identificador nulo é o balde "Sem projeto"**, para tarefa solta continuar tendo lugar na arquitetura em vez de existir só na lista de todas. `buildTaskTree` resolve a árvore com a contagem **do que está em aberto** em cada nó, somando os filhos nas pastas: no menu a contagem responde "quanto falta aqui", e zero não desenha etiqueta, porque um zero em cada linha é ruído.
-- **A árvore no menu** (`TasksTree`, sobre duas referências do usuário) veste a pele das linhas do menu e acrescenta três coisas. O **degrau** por nível, que acumula pelo aninhamento em vez de alguém contar a profundidade. O **cotovelo** que liga o filho ao pai: uma caixa sem fundo com a borda esquerda descendo até a meia altura da linha e a de baixo virando para a direita, com o canto arredondado ligando as duas, mais o fio que segue para o irmão de baixo em quem não é o último (o `├` e o `└` da referência), tudo desenhado no invólucro do galho para não atravessar o realce do hover, e em **1px cheio** em vez do `--menu-line` de 0,6px da casa, porque 0,6px em tela de duas vezes caía em pixel diferente da borda do cotovelo e o galho saía picado. E o **azulejo de cada projeto**, com glifo e matiz próprios, que é o que distingue um quadro do outro de relance, com a contagem no mesmo matiz; a pasta segue com o glifo solto e a contagem neutra, porque ela é o caminho e soma projetos de matizes diferentes. O glifo atravessa a fronteira do servidor **por chave**, e não como componente, porque a árvore é montada na concha e o menu é componente de cliente. **O caminho até o projeto aberto sai em fio mais forte** (`data-route`), que é a rota completa de onde a pessoa está; o resto fica no fio de estrutura, senão nada ficaria em evidência. Quem abre se mostra no próprio glifo, aberto ou fechado, e no `aria-expanded`: seta de abrir separada saiu porque roubava o lugar em que o cotovelo encosta. O galho do caminho nasce aberto e daí em diante quem manda é o clique, em estado de sessão e não em cookie, senão o menu abriria num galho e o servidor mandaria outro. Criar mora no cabeçalho do galho, no `+` ao lado do voltar, com "Novo projeto" e "Nova pasta" declarados e ainda sem regra.
+- **A árvore no menu** (`NavTree`, sobre duas referências do usuário) veste a pele das linhas do menu e
+  acrescenta três coisas. O **degrau** por nível acumula pelo aninhamento. O conector é um **SVG próprio por
+  filho**: o fio contínuo desce do nível do pai, faz uma curva suave e termina num pequeno círculo vazado
+  antes da marca do filho. O traço usa `vector-effect` para manter a espessura em telas densas e no alvo
+  maior do toque; por ser um caminho único, não há bordas sobrepostas, emenda escura nem linha picotada.
+  Tudo é desenhado no invólucro do galho para não atravessar o realce do hover. E o **azulejo de cada
+  projeto** tem glifo e matiz próprios, com a contagem no mesmo matiz; a pasta segue com glifo solto e
+  contagem neutra. O glifo atravessa a fronteira do servidor **por chave**, porque a árvore é montada na
+  concha e o menu é componente de cliente. **O caminho até o projeto aberto sai em fio mais forte**
+  (`data-route`); o resto fica em tinta estrutural. Quem abre se mostra no próprio glifo e no
+  `aria-expanded`. O galho da rota nasce aberto e depois responde ao clique em estado de sessão.
 - **O gancho no menu** é `tree?: "tarefas"` no `NavFolder`: pasta e projeto vêm do banco e têm endereço próprio, então não caberiam em `items`, que é a lista fixa de rotas. A árvore chega ao `Sidebar` por prop, resolvida no `AppShell`, como as notificações e o aviso. O `Sidebar` aceita também `taskRoute`, que só a prévia de front usa, porque ela mora em outro endereço e o menu não teria como saber qual projeto está aberto (mesma razão do `demo` da tela do painel).
 - **As etapas são linhas do banco, e o catálogo é da equipe** (2026-09-21, a pedido: "quero que tenha como
   definir as etapas personalizadas, editar, excluir adicionar"). Até aqui a etapa era o enum `task_stage`,
@@ -1037,7 +1121,7 @@ Rota `/orcamentos`, página solta no menu como "Orçamentos" (2026-09-09, a pedi
 
 ### Funil de vendas
 
-Rota `/crm`, "Todas as oportunidades" dentro da pasta **Funil de vendas** do menu, feita em 2026-09-15 a pedido ("praticamente na mesma pegada de tarefas"). E é isso que ela é: **a mesma arquitetura do quadro de tarefas, com outro assunto**. Quem aprendeu a se mover numa se move na outra sem reaprender nada, e o que muda é o que mora na folha da árvore (ali projeto, aqui funil) e o que a ficha aberta responde.
+Rota `/crm`, visão geral aberta por padrão ao entrar na pasta **Funil de vendas** do menu, sem uma linha “Todas as oportunidades” ocupando a árvore. Feita em 2026-09-15 a pedido ("praticamente na mesma pegada de tarefas"), ela é **a mesma arquitetura do quadro de tarefas, com outro assunto**. Quem aprendeu a se mover numa se move na outra sem reaprender nada, e o que muda é o que mora na folha da árvore (ali projeto, aqui funil) e o que a ficha aberta responde.
 
 - **A arquitetura** (`features/crm/tree.ts`): pastas dentro de pastas e, nas folhas, funis, com endereço próprio (`/crm/<slug>`) e a contagem do que está **em aberto** em cada nó. Pasta não é destino, e o balde de quem ainda não foi para funil nenhum continua tendo lugar nela. A pasta do menu abre essa árvore no lugar da lista, pelo mesmo `tree` do `NavFolder`, que passou a aceitar `"tarefas" | "funis"`.
 - **A árvore do menu virou uma peça só** (`NavTree`, em `components/layout/sidebar/`, 2026-09-15): tarefas e funil têm a mesma forma, e duas cópias divergiriam no primeiro acerto de cotovelo, que é a parte difícil daquele desenho. O componente recebe a forma sem domínio (`kind: "folder" | "leaf"`), o endereço base, o nome do grupo para leitor de tela, e dois conversores minúsculos (`fromTaskTree`, `fromCrmTree`) traduzem cada domínio. O glifo continua atravessando a fronteira do servidor **por chave**.
@@ -1302,3 +1386,50 @@ só desenha o que `gamification/summary.ts` já calcula.
 - O formulário não mostra asterisco: `required` vai direto no controle, e o `Field` só injeta `required` quando a prop dele é verdadeira (antes ele sobrescrevia com `false` o que o controle declarava).
 - O `matcher` do proxy não usa a cláusula `missing` do exemplo da doc do Next. Ela isenta requisição de prefetch, e isenção do proxy significa rota protegida respondendo 200 sem sessão e sem CSP para quem manda `purpose: prefetch` na mão. O gate roda em toda requisição.
 - Arquivo estático novo em `public/` precisa entrar no `matcher` do proxy (`logotipo`, `banners`, `bg`, `brands`, `3d-icons`). Sem isso o proxy trata a imagem como página protegida, responde redirect para `/login`, e o otimizador do `next/image`, que busca o arquivo por HTTP, recebe o redirect no lugar do PNG: a imagem quebra sem erro no console.
+
+## Páginas públicas de projeto e formulários
+
+- **Acompanhamento público de projeto** (2026-09-22): `/acompanhar/[token]` mostra a identidade do time e do
+  projeto, situação, progresso, datas e o caminho agregado das etapas. Títulos de tarefa, comentários,
+  valores e integrantes não atravessam a função pública. O link nasce no menu do projeto, vale 180 dias e
+  segue o contrato dos documentos: HMAC derivado no servidor, somente SHA-256 no banco, RPC exclusiva de
+  `service_role`, limite por IP, `noindex` e prefixo público no proxy. A telemetria do compartilhamento não
+  altera o `updated_at` editorial exibido no acompanhamento.
+- **Formulários de projeto** (2026-09-22): `/formularios` lista e conta respostas; `/formularios/novo` e
+  `/formularios/[id]` usam o editor em tela inteira com projeto, destinatário opcional, perguntas ordenáveis,
+  páginas com uma ou várias perguntas, tipos de resposta, vínculo opcional com campos do cliente, validade,
+  confirmação, consentimento e prévia responsiva. `/formularios/[id]/respostas` apresenta os envios e a prova
+  da concordância. `/formulario/[token]` é a página pública paginada, com progresso, validação por etapa,
+  máscaras e os componentes de campo da casa. Publicar grava o hash do token e uma validade de 90
+  dias por padrão. O envio valida somente as perguntas publicadas, exige consentimento literal e executa em
+  transação no banco: encontra ou cria o cliente pelo e-mail, atualiza apenas os campos mapeados e grava
+  respostas, texto aceito e horário. Acesso público passa por `service_role` e limite próprio de 8 envios a
+  cada 15 minutos por link e IP. Web e aplicativo compartilham `features/forms/service.ts`; a API fica em
+  `/api/v1/formularios` e os endpoints públicos em `/api/v1/formularios/publico/[token]`.
+
+## Aprovações, feedbacks e apontamento de tempo
+
+- **Feedbacks de projeto** (2026-09-22): `/feedbacks` reúne os pedidos de avaliação, permite escolher o
+  projeto, ajustar o título e a mensagem e copiar o link. `/avaliacao/[token]` oferece uma avaliação curta
+  com nota de 1 a 5, recomendação, comentário e nome opcional. Dar um projeto como concluído cria ou atualiza
+  automaticamente o pedido e entrega o mesmo link no aviso da ação. Há apenas um pedido por projeto, para a
+  conclusão repetida não gerar duplicidade.
+- **Aprovações de entregas** (2026-09-22): `/aprovacoes` lista os pedidos e `/aprovacoes/[id]` concentra a
+  entrega. Cada versão numerada aceita uma URL, exibida em `iframe` com atalho para nova aba, ou até doze
+  imagens PNG, JPEG, WebP ou AVIF de no máximo 10 MB cada. `/aprovacao/[token]` mostra a versão mais recente e
+  o histórico; o cliente pode aprovar, rejeitar ou solicitar alterações. Rejeição e alteração exigem uma
+  justificativa, e cada decisão permanece ligada à versão correspondente.
+- **Cronômetro de projeto e tarefa** (2026-09-22): os cabeçalhos das fichas de projeto e tarefa têm o botão de
+  iniciar ou parar. Enquanto roda, um contador fica preso à direita da aplicação e o `HoverCard` da casa
+  mostra o item, o identificador, o horário de início, o projeto e a duração. Parar grava o intervalo em
+  `time_entries`; iniciar outro item encerra o anterior, e o índice parcial do banco garante um único
+  cronômetro ativo por usuário.
+- **Persistência e acesso**: `client_feedback`, `approval_requests`, `approval_versions`, `approval_assets`,
+  `approval_decisions` e `time_entries` têm RLS e validação de organização nos vínculos. Feedbacks e
+  aprovações públicas usam tokens HMAC derivados, armazenam apenas o hash, expiram em 90 dias, passam por RPC
+  exclusiva de `service_role`, `noindex`, proxy público e limite por link e IP. Imagens usam o balde
+  `approval-files`, com tipo e tamanho fechados no Storage e no cliente.
+- **API compartilhada**: feedbacks usam `/api/v1/feedbacks` e `/api/v1/feedbacks/publico/[token]`; aprovações
+  usam `/api/v1/aprovacoes`, `/api/v1/aprovacoes/[id]`, `/api/v1/aprovacoes/arquivos` e
+  `/api/v1/aprovacoes/publico/[token]`; o cronômetro usa `/api/v1/tempo`. A interface e a API chamam os mesmos
+  serviços de domínio.

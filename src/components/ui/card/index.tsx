@@ -1,5 +1,5 @@
 import { useId, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from "react";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { Text } from "../text";
 import styles from "./card.module.css";
@@ -33,8 +33,8 @@ export function Card({
   const id = useId();
 
   return (
-    <Tag className={cx(styles.card, className)} aria-labelledby={id} {...squircle("xl", { clip: true })} {...props}>
-      <div className={styles.inner} {...squircleAuto({ clip: true })}>
+    <Tag className={cx(styles.card, className)} aria-labelledby={id} {...rounded("xl", { clip: true })} {...props}>
+      <div className={styles.inner} {...roundedAuto({ clip: true })}>
         <header className={styles.head}>
           {icon && (
             <span className={styles.icon} aria-hidden="true">

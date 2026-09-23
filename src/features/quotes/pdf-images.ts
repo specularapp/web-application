@@ -4,7 +4,7 @@ import { avatarHue } from "@/components/ui/avatar";
 import { avatarSvg } from "@/components/ui/avatar/shape";
 import { artworkSvg } from "@/lib/artwork";
 import { catalogHueFor } from "@/features/catalog/list-options";
-import { cornerRadius, iconButtonCornerRadius, squirclePath } from "@/lib/corners";
+import { cornerRadius, iconButtonCornerRadius, roundedRectPath } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
 import type { SysHue } from "@/lib/palette";
 import type { Quote, QuoteLine } from "./summary";
@@ -17,9 +17,7 @@ import type { Quote, QuoteLine } from "./summary";
  * O react-pdf só desenha PNG e JPEG, então tudo passa por aqui: o desenho gerado, e também a foto de fora,
  * que assim entra normalizada, sem depender do formato que o outro lado serviu.
  *
- * O recorte é a forma da casa, não um arredondamento qualquer: a máscara é o `squirclePath`, a mesma
- * superelipse que o `corner-shape: squircle` desenha na tela. No PDF não existe `corner-shape`, e o raio do
- * avatar é metade do lado, então sem a máscara o azulejo sairia redondo em vez de quadrado de canto macio.
+ * O recorte usa o mesmo arco circular do `border-radius` da tela por meio de `roundedRectPath`.
  */
 
 export type PdfImage = { data: Buffer; format: "png" };
@@ -76,18 +74,18 @@ async function rasterize(svg: string, px: number): Promise<PdfImage> {
 }
 
 /**
- * O azulejo quadrado de canto macio: o fundo, a imagem cobrindo o quadrado e a máscara do squircle por
+ * O azulejo quadrado de canto macio: o fundo, a imagem cobrindo o quadrado e a máscara do rounded por
  * cima, na ordem em que o `sharp` aplica as camadas. `dest-in` fica por último de propósito, porque ele
  * recorta o que já está desenhado.
  */
-async function squircleTile(image: Sharp, side: number, radius: number, background: string, ring = 0): Promise<PdfImage> {
+async function roundedTile(image: Sharp, side: number, radius: number, background: string, ring = 0): Promise<PdfImage> {
   /* O `sharp` só aceita pixel inteiro e recusa o resto com erro, então o arredondamento mora aqui, onde a
      medida da folha encontra o rasterizador: qualquer lado que venha de uma conta, e não de um número escrito
      à mão, chega fracionário mais cedo ou mais tarde, e um selo de 59,2 já derrubou a rota do PDF inteira
      (relato de 2026-09-10). Fração de pixel na folha não muda o desenho. */
   const px = Math.round(side * DENSITY);
   const shape = (size: number, corner: number, fill: string) =>
-    Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="${squirclePath(size, size, corner)}" fill="${fill}"/></svg>`);
+    Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><path d="${roundedRectPath(size, size, corner)}" fill="${fill}"/></svg>`);
 
   const content = await image.resize(px, px, { fit: "cover" }).png().toBuffer();
   const tile = await sharp({ create: { width: px, height: px, channels: 4, background } })
@@ -123,11 +121,11 @@ async function fetchImage(url: string) {
  */
 async function avatarTile(name: string, url: string | null, side: number, radius: number, ring = 0): Promise<PdfImage> {
   const photo = url ? await fetchImage(url) : null;
-  if (photo) return squircleTile(photo, side, radius, "#ffffff", ring);
+  if (photo) return roundedTile(photo, side, radius, "#ffffff", ring);
 
   const hue = avatarHue(name) as SysHue;
   const face = sharp(Buffer.from(sizedSvg(avatarSvg(svgToken(name)), side * DENSITY)));
-  return squircleTile(face, side, radius, avatarTiles[hue], ring);
+  return roundedTile(face, side, radius, avatarTiles[hue], ring);
 }
 
 /* A mesma semente da tela, para o desenho ser o mesmo: o matiz nasce do nome do item e o traço, do id. */
@@ -144,7 +142,7 @@ const artworkOf = (line: QuoteLine) => {
  */
 async function lineTile(line: QuoteLine): Promise<PdfImage> {
   const photo = line.imageUrl ? await fetchImage(line.imageUrl) : null;
-  if (photo) return squircleTile(photo, ARTWORK_SIDE, cornerRadius.sm, "#ffffff");
+  if (photo) return roundedTile(photo, ARTWORK_SIDE, cornerRadius.sm, "#ffffff");
 
   return rasterize(artworkOf(line), ARTWORK_SIDE * DENSITY);
 }
@@ -181,8 +179,8 @@ export async function quotePdfImages(quote: Quote): Promise<QuotePdfImages> {
     avatarTile(quote.issuer.name, quote.issuer.logoUrl, 52, iconButtonCornerRadius.lg, LOGO_RING),
     avatarTile(quote.client.name, quote.client.avatarUrl, 36, iconButtonCornerRadius.sm),
     avatarTile(quote.owner.name, quote.owner.avatarUrl, 36, iconButtonCornerRadius.sm),
-    /* O selo da assinatura é redondo, e não squircle: o raio é metade do lado, o que faz a superelipse do
-       `squirclePath` fechar num círculo, como o `Avatar` de forma redonda faz na tela. Sem foto vale o mesmo
+    /* O selo da assinatura é redondo, e não rounded: o raio é metade do lado, o que faz a superelipse do
+       `roundedRectPath` fechar num círculo, como o `Avatar` de forma redonda faz na tela. Sem foto vale o mesmo
        rosto desenhado do avatar, como em todo lugar da casa. */
     avatarTile(quote.owner.name, quote.owner.avatarUrl, SIGNATURE_SEAL, SIGNATURE_SEAL / 2),
     Promise.all(quote.lines.map(async (line) => [line.id, await lineTile(line)] as const)),

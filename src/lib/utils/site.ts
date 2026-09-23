@@ -24,3 +24,25 @@ export function siteUrl(raw: string) {
   const clean = siteValue(raw);
   return clean ? `https://${clean}` : "";
 }
+
+/**
+ * Só o domínio do endereço, sem protocolo nem "www": é o que cabe na linha de um cartão ou de uma ficha.
+ *
+ * A guarda não é zelo: um endereço sem protocolo faz `new URL` lançar, e num Server Component isso derruba a
+ * tela inteira, não só a linha do site (2026-09-22, na varredura). Existia copiada em projetos, em contratos
+ * e, sem a guarda, na ficha do cliente.
+ */
+export function siteLabel(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return siteValue(url) || url;
+  }
+}
+
+/** Verdadeiro para endereço absoluto em http ou https, que é o único que a casa guarda. */
+export function isSiteUrl(value: string) {
+  if (!URL.canParse(value)) return false;
+  const { protocol } = new URL(value);
+  return protocol === "http:" || protocol === "https:";
+}

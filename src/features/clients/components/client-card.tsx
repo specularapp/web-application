@@ -4,7 +4,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Text } from "@/components/ui/text";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import type { ClientListItem } from "../list-options";
 import { ClientMenu } from "./client-menu";
 import styles from "./client-card.module.css";
@@ -43,7 +43,7 @@ export function ClientCard({ client, selected, onSelectedChange, onOpen, onEdit 
   };
 
   return (
-    <li className={styles.card} data-selected={selected || undefined} {...squircle("xl", { clip: true })}>
+    <li className={styles.card} data-selected={selected || undefined} {...rounded("xl", { clip: true })}>
       <div
         role="button"
         tabIndex={0}
@@ -52,7 +52,7 @@ export function ClientCard({ client, selected, onSelectedChange, onOpen, onEdit 
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         <div className={styles.head}>
           <Checkbox

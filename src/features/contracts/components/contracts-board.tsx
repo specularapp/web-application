@@ -3,6 +3,7 @@
 import { ArrowCounterClockwiseIcon, PlusIcon, SignatureIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
@@ -44,9 +45,14 @@ import {
 } from "../list-options";
 import type { Contract } from "../summary";
 import { ContractCard } from "./contract-card";
-import { ContractDialog } from "./contract-dialog";
-import { NewContractDialog } from "./new-contract-dialog";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import styles from "./contracts-board.module.css";
+
+/* A ficha do contrato e o novo contrato entram por importação dinâmica, montados só na primeira abertura
+   (varredura de peso de 2026-09-21): a listagem não precisa do visualizador de documento para desenhar a
+   lista. */
+const ContractDialog = dynamic(() => import("./contract-dialog").then((module) => module.ContractDialog));
+const NewContractDialog = dynamic(() => import("./new-contract-dialog").then((module) => module.NewContractDialog));
 
 export type ContractsBoardProps = {
   page: ContractsListPage;
@@ -110,6 +116,9 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
   const [creating, setCreating] = useState(initialCreating);
   const initialRoute = `${initialCreating}:${initialViewing?.id ?? ""}`;
   const [seenRoute, setSeenRoute] = useState(initialRoute);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const viewReady = useOpenedOnce(viewing !== null);
+  const createReady = useOpenedOnce(creating);
   if (seenRoute !== initialRoute) {
     setSeenRoute(initialRoute);
     setViewing(initialViewing ?? null);
@@ -388,15 +397,19 @@ export function ContractsBoard({ page, query, viewing: initialViewing, creating:
         </div>
       )}
 
-      <ContractDialog
-        contract={viewing}
-        onClose={() => show(null, false)}
-        onEdit={() => viewing && edit(viewing)}
-        onSend={() => viewing && void send(viewing)}
-        onDownload={() => viewing && downloadPdf(viewing)}
-        onCancel={() => viewing && void cancel(viewing)}
-      />
-      <NewContractDialog open={creating} clientId={prefill?.clientId} onClose={() => show(viewing, false)} onCreated={created} />
+      {viewReady && (
+        <ContractDialog
+          contract={viewing}
+          onClose={() => show(null, false)}
+          onEdit={() => viewing && edit(viewing)}
+          onSend={() => viewing && void send(viewing)}
+          onDownload={() => viewing && downloadPdf(viewing)}
+          onCancel={() => viewing && void cancel(viewing)}
+        />
+      )}
+      {createReady && (
+        <NewContractDialog open={creating} clientId={prefill?.clientId} onClose={() => show(viewing, false)} onCreated={created} />
+      )}
     </div>
   );
 }

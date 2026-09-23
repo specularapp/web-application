@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { startSubscriptionAction } from "../actions";
 import { chargeCents, formatPrice, plans, type BillingCycle, type Plan, type PlanId } from "../plans";
 import type { BillingState } from "../service";
@@ -383,7 +383,7 @@ export function PlanChooser({ organizationId, billing, demo = false, onDone }: P
             key={plan.id}
             className={styles.card}
             data-boxed={plan.id !== current || undefined}
-            {...squircle("xl")}
+            {...rounded("xl")}
           >
             <div className={styles.cardHead}>
               <Text as="h3" variant="headline" weight="semibold">

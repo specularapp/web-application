@@ -6,6 +6,7 @@ import {
   CurrencyCircleDollarIcon,
   EyeIcon,
   KanbanIcon,
+  LinkIcon,
   PauseCircleIcon,
   PencilSimpleIcon,
   PlayCircleIcon,
@@ -17,7 +18,7 @@ import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { callAction } from "@/lib/action";
-import { setProjectStatusAction } from "../actions";
+import { projectTrackingLinkAction, setProjectStatusAction } from "../actions";
 import type { Project, ProjectStatus } from "../summary";
 
 /* A janela do histórico chega só quando alguém a abre: o leque aparece em cada cartão da grade. */
@@ -51,7 +52,31 @@ export function ProjectMenu({ project, onOpen, onEdit, onDelete }: ProjectMenuPr
       toast({ title: "Não deu para mudar a situação", description: result.error, tone: "danger" });
       return;
     }
+    if (result.feedbackUrl) {
+      try {
+        await navigator.clipboard.writeText(result.feedbackUrl);
+        toast({ title, description: "O link de avaliação do cliente foi criado e copiado.", tone: "success" });
+        return;
+      } catch {
+        toast({ title, description: `Link de avaliação: ${result.feedbackUrl}`, tone: "success" });
+        return;
+      }
+    }
     toast({ title, description: `${project.name} já está assim na lista e no menu.`, tone: "success" });
+  };
+
+  const copyTrackingLink = async () => {
+    const result = await callAction(projectTrackingLinkAction(project.id));
+    if (!result.ok) {
+      toast({ title: "Não deu para criar o link", description: result.error, tone: "danger" });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(result.url);
+      toast({ title: "Link de acompanhamento copiado", description: "O cliente verá o andamento, as datas e as etapas do projeto.", tone: "success" });
+    } catch {
+      toast({ title: "Link de acompanhamento", description: result.url, tone: "neutral" });
+    }
   };
 
   /* A cobrança nasce já com o cliente do projeto, quando ele tem um; projeto independente abre a gaveta em
@@ -77,7 +102,10 @@ export function ProjectMenu({ project, onOpen, onEdit, onDelete }: ProjectMenuPr
     {
       id: "tracking",
       label: "Acompanhamento",
-      items: [{ id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") }],
+      items: [
+        { id: "tracking-link", label: "Copiar link do cliente", icon: LinkIcon, onSelect: () => void copyTrackingLink() },
+        { id: "history", label: "Histórico", icon: ClockCounterClockwiseIcon, onSelect: () => setHistory("open") },
+      ],
     },
     {
       id: "status",

@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
+import { keepLocalFile } from "../files";
 import type { TaskAudio } from "../summary";
 import styles from "./chat-audio.module.css";
 
@@ -171,7 +172,7 @@ export function useVoiceRecorder(onRecorded: (audio: TaskAudio) => void) {
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: media.mimeType || "audio/webm" });
         const length = Math.max(1, Math.round((Date.now() - started.current) / 1000));
-        onRecorded({ url: URL.createObjectURL(blob), seconds: length });
+        onRecorded({ url: keepLocalFile(blob), seconds: length });
       };
       /* A leitura de volume corre em `requestAnimationFrame`, e não em temporizador: ela só desenha quando o
          navegador vai pintar, então a onda acompanha a fala sem custar quadro nenhum em aba oculta. O valor é
@@ -251,7 +252,7 @@ export function VoiceButton({ onRecorded }: VoiceButtonProps) {
   }
 
   return (
-    <span className={styles.recording} {...squircle("sm")}>
+    <span className={styles.recording} {...rounded("sm")}>
       <LiveWave level={level} />
       <Text as="span" variant="caption2" weight="medium" className={styles.clock}>
         {clock(seconds)}

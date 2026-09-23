@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text";
 import { CatalogArtwork } from "@/features/catalog/components/catalog-artwork";
 import { catalogHueFor } from "@/features/catalog/list-options";
 import type { CatalogUnit } from "@/features/catalog/summary";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { applyPattern } from "@/lib/masks";
 import { siteConfig } from "@/lib/metadata";
 import { cx } from "@/lib/utils/cx";
@@ -81,14 +81,14 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
       data-scheme="light"
       data-variant={variant}
       style={{ "--doc-hue": `var(--sys-${hue})` } as CSSProperties}
-      {...squircle("lg", { clip: true })}
+      {...rounded("lg", { clip: true })}
     >
       {/* A aura: quatro bolas de cor sangrando pelas quinas da folha, na receita do painel de planos. */}
       <div className={styles.aura} aria-hidden="true" />
 
       <header className={styles.masthead}>
         <div className={styles.brand}>
-          <Avatar name={quote.issuer.name} src={quote.issuer.logoUrl ?? undefined} size="lg" shape="squircle" className={styles.logo} />
+          <Avatar name={quote.issuer.name} src={quote.issuer.logoUrl ?? undefined} size="lg" shape="rounded" className={styles.logo} />
           <div className={styles.brandCopy}>
             <Text as="p" variant="title3" weight="semibold" truncate>
               {quote.issuer.name}
@@ -153,7 +153,7 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
             Cliente
           </Text>
           <div className={styles.person}>
-            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="rounded" />
             <div className={styles.personCopy}>
               <Text as="p" variant="headline" weight="semibold" truncate>
                 {quote.client.company ?? quote.client.name}
@@ -191,7 +191,7 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
             Vendedor
           </Text>
           <div className={styles.person}>
-            <Avatar name={quote.owner.name} src={quote.owner.avatarUrl ?? undefined} size="sm" shape="squircle" />
+            <Avatar name={quote.owner.name} src={quote.owner.avatarUrl ?? undefined} size="sm" shape="rounded" />
             <div className={styles.personCopy}>
               <Text as="p" variant="headline" weight="semibold" truncate>
                 {quote.owner.name}

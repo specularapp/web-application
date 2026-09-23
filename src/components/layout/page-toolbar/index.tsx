@@ -5,7 +5,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, type DropdownSection, type DropdownTrigger } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
-import { squircle } from "@/lib/corners";
+import { useTabList } from "@/hooks/use-tab-list";
+import { rounded } from "@/lib/corners";
 import styles from "./page-toolbar.module.css";
 
 export type PageToolbarSearch = {
@@ -85,11 +86,18 @@ export function PageToolbar({ search, filters, activeFilters = [], view, selecti
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  /* O teclado do grupo sai do gancho da casa, o mesmo das filas de aba: só a visão em vigor está na ordem de
+     tabulação, e seta, Home e End movem a marca e o foco. Escrito à mão aqui seria a mesma lógica pela nona
+     vez. O ouvinte mora em cada botão, e não no invólucro: papel de `radiogroup` em elemento não focável é
+     erro de lint, com razão, porque quem recebe o foco ali é o rádio. */
+  const viewValues = (view?.options ?? []).map((option) => option.value);
+  const viewTabs = useTabList(viewValues, view?.value ?? "", (next) => view?.onChange(next), { as: "radio" });
+
   return (
     <div className={styles.toolbar}>
       {/* O `label` é a caixa inteira, então clicar em qualquer ponto dela foca o campo, e o nome fica
           no `aria-label` porque o texto visível é só o placeholder. */}
-      <label className={styles.find} {...squircle("md")}>
+      <label className={styles.find} {...rounded("md")}>
         <MagnifyingGlassIcon aria-hidden="true" />
         <input
           ref={input}
@@ -141,13 +149,12 @@ export function PageToolbar({ search, filters, activeFilters = [], view, selecti
           preenchimento da casa. `radiogroup` porque é uma escolha entre jeitos de ver a mesma lista, e
           não duas ações. Só no desktop: no celular a grade é a única visão que serve. */}
       {view && (
-        <div className={styles.views} role="radiogroup" aria-label={view.label} {...squircle("md")}>
+        <div className={styles.views} aria-label={view.label} {...viewTabs.listProps} {...rounded("md")}>
           {view.options.map((option) => (
             <button
               key={option.value}
               type="button"
-              role="radio"
-              aria-checked={option.value === view.value}
+              {...viewTabs.tabProps(option.value)}
               aria-label={option.label}
               title={option.label}
               className={styles.view}

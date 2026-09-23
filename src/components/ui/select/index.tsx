@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import { useState, type ReactNode } from "react";
-import { Listbox, type ListboxAction, type ListboxOption, type ListboxValue } from "../listbox";
+import { Listbox, type ListboxAction, type ListboxOption, type ListboxProps, type ListboxValue } from "../listbox";
 import type { ControlSize } from "../styles";
 
 export type SelectOption<T extends ListboxValue> = ListboxOption<T>;
@@ -29,6 +29,8 @@ export type SelectProps<T extends ListboxValue> = {
   /** Quantos itens a lista mostra antes de alguém buscar; o resto chega pela busca. */
   visibleLimit?: number;
   emptyLabel?: string;
+  surface?: ListboxProps<T>["surface"];
+  indicator?: ListboxProps<T>["indicator"];
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 };
@@ -111,6 +113,8 @@ export function Select<T extends ListboxValue>({
   searchPlaceholder,
   visibleLimit,
   emptyLabel,
+  surface,
+  indicator,
   "aria-describedby": describedBy,
   "aria-invalid": ariaInvalid,
 }: SelectProps<T>) {
@@ -141,6 +145,8 @@ export function Select<T extends ListboxValue>({
         searchPlaceholder={searchPlaceholder}
         visibleLimit={visibleLimit}
         emptyLabel={emptyLabel}
+        surface={surface}
+        indicator={indicator}
       />
       {iconEnd && <Adornment>{iconEnd}</Adornment>}
       {name && <input type="hidden" name={name} value={current === undefined ? "" : String(current)} />}

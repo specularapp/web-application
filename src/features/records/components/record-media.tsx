@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { recordKinds, type RecordKind, type RecordMedia } from "../records";
 import styles from "./record-media.module.css";
 
@@ -29,12 +29,12 @@ export type RecordMediaProps = {
  *
  * A fila de artes é a receita da coluna de orçamentos da casa: bolinhas redondas com o véu do matiz do item,
  * a arte com folga dentro, sobreposição apertada, anel na cor do fundo e o total ao lado. Redonda, e não
- * squircle, porque círculo não passa pelo sistema de cantos, pela regra da casa.
+ * rounded, porque círculo não passa pelo sistema de cantos, pela regra da casa.
  */
 export function RecordMediaView({ kind, media, name, size = "md", total = true, single = false }: RecordMediaProps) {
   /* Quem tem foto mostra a foto; sem ela, o rosto desenhado a partir do nome, como antes. */
   if (media?.kind === "face") {
-    return <Avatar name={media.name} src={media.src ?? undefined} size={size === "lg" ? "md" : "sm"} shape={single ? "squircle" : undefined} />;
+    return <Avatar name={media.name} src={media.src ?? undefined} size={size === "lg" ? "md" : "sm"} shape={single ? "rounded" : undefined} />;
   }
 
   /* Projeto e contrato viram uma folha de documento (2026-09-21, a pedido, sobre referências de ícone de
@@ -65,7 +65,7 @@ export function RecordMediaView({ kind, media, name, size = "md", total = true, 
         data-art
         style={{ "--tile-hue": first?.hue ?? recordKinds[kind].hue } as CSSProperties}
         aria-hidden="true"
-        {...squircle(size === "lg" ? "lg" : "md", { clip: true })}
+        {...rounded(size === "lg" ? "lg" : "md", { clip: true })}
       >
         {first ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -99,7 +99,7 @@ export function RecordMediaView({ kind, media, name, size = "md", total = true, 
   const Glyph = meta.icon;
 
   return (
-    <span className={styles.tile} data-size={size} style={{ "--tile-hue": meta.hue } as CSSProperties} aria-label={`${meta.label}: ${name}`} {...squircle(size === "lg" ? "lg" : "md", { clip: true })}>
+    <span className={styles.tile} data-size={size} style={{ "--tile-hue": meta.hue } as CSSProperties} aria-label={`${meta.label}: ${name}`} {...rounded(size === "lg" ? "lg" : "md", { clip: true })}>
       <Glyph weight="bold" aria-hidden="true" />
     </span>
   );

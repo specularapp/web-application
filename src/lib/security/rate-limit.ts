@@ -20,6 +20,9 @@ export const rateLimitRules = {
   billing: { limit: 20, windowSeconds: 60 },
   ai: { limit: 20, windowSeconds: 60 },
   publicLink: { limit: 30, windowSeconds: 60 },
+  // Responder um formulário pode criar ou atualizar um cliente. O limite menor reduz envios repetidos sem
+  // atrapalhar quem corrige uma resposta e tenta novamente.
+  publicForm: { limit: 8, windowSeconds: 900 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof rateLimitRules;

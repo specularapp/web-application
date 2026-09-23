@@ -68,7 +68,7 @@ import {
   type CrmColumnSort,
   type CrmQuery,
 } from "../list-options";
-import { crmStageValues, type CrmStage } from "../stages";
+import { crmStageValues, type CrmStage, stageKind } from "../stages";
 import type { CrmClientOption, CrmPerson, Opportunity } from "../summary";
 import type { CrmFunnel } from "../tree";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -552,6 +552,10 @@ function CrmBoardContent({
     }
   };
 
+  /* A oportunidade que acabou de ser arrastada para ganha, enquanto o cartão dela mostra o check. */
+  const [celebrating, setCelebrating] = useState<string | null>(null);
+  const clearCelebrating = useCallback(() => setCelebrating(null), []);
+
   const onDragEnd = (event: DragEndEvent) => {
     const to = event.over?.id as CrmStage | undefined;
     const opportunity = dragging?.opportunity;
@@ -559,6 +563,8 @@ function CrmBoardContent({
     setDragging(null);
     setLanding(null);
     if (!opportunity || !to || !from) return;
+    /* Só o arraste até uma etapa de ganho acende o check no cartão; mover pelo menu ou pela ficha não. */
+    if (to !== from && stageKind(to) === "won" && stageKind(from) !== "won") setCelebrating(opportunity.id);
     moveOpportunity(opportunity, to, from);
   };
 
@@ -769,6 +775,8 @@ function CrmBoardContent({
             {columns.map((column) => (
               <OpportunityColumn
                 key={column.stage}
+                celebrating={celebrating}
+                onCelebrated={clearCelebrating}
                 stage={crmStageMeta[column.stage]}
                 opportunities={sortCrmColumn(
                   column.opportunities,

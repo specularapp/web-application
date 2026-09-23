@@ -1,6 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { Text } from "../text";
 import styles from "./empty-state.module.css";
 
@@ -38,7 +38,7 @@ export function EmptyState({ icon: Glyph, title, description, size = "md", child
     <div className={styles.empty} data-size={size}>
       <div className={styles.head}>
         {/* O canto só existe onde há azulejo: em cartão o glifo é solto e não tem caixa para arredondar. */}
-        <span className={styles.tile} aria-hidden="true" {...(size === "md" ? squircle("lg") : {})}>
+        <span className={styles.tile} aria-hidden="true" {...(size === "md" ? rounded("lg") : {})}>
           <Glyph />
         </span>
         <Text as="p" variant="callout" weight="semibold" className={styles.title}>

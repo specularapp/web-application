@@ -1,7 +1,22 @@
 "use client";
 
+import {
+  BinocularsIcon,
+  GlobeIcon,
+  KanbanIcon,
+  MegaphoneIcon,
+  PaletteIcon,
+  StorefrontIcon,
+  TrayIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { useToast } from "@/components/providers/toast-provider";
-import { AppearanceDialog, type AppearanceDialogProps } from "@/components/ui/stage-settings";
+import {
+  AppearanceDialog,
+  AppearancePopover,
+  type AppearanceDialogProps,
+  type AppearancePopoverProps,
+} from "@/components/ui/stage-settings";
 import { setProjectAppearanceAction } from "@/features/projects/actions";
 import type { ProjectHue } from "@/features/projects/summary";
 import { callAction } from "@/lib/action";
@@ -27,13 +42,30 @@ const glyphNames: Record<ProjectGlyph, string> = {
   tray: "Bandeja",
 };
 
+const glyphIcons: Record<ProjectGlyph, Icon> = {
+  kanban: KanbanIcon,
+  palette: PaletteIcon,
+  globe: GlobeIcon,
+  storefront: StorefrontIcon,
+  megaphone: MegaphoneIcon,
+  binoculars: BinocularsIcon,
+  tray: TrayIcon,
+};
+
 /* O glifo do projeto e o da pasta saem da mesma lista: são os mesmos sete desenhos, e uma lista por nível da
    árvore seria a mesma coisa escrita duas vezes. */
-export const projectGlyphOptions = projectGlyphs.map((value) => ({ value, label: glyphNames[value] }));
+export const projectGlyphOptions = projectGlyphs.map((value) => {
+  const Glyph = glyphIcons[value];
+  return { value, label: glyphNames[value], media: <Glyph /> };
+});
 
 /** A cara de um nó da árvore de tarefas, na mesma janela do funil de vendas. */
 export function TaskAppearanceDialog(props: Omit<AppearanceDialogProps, "colorOptions" | "glyphOptions">) {
   return <AppearanceDialog {...props} colorOptions={stageColorOptions} glyphOptions={projectGlyphOptions} />;
+}
+
+export function TaskAppearancePopover(props: Omit<AppearancePopoverProps, "colorOptions" | "glyphOptions">) {
+  return <AppearancePopover {...props} colorOptions={stageColorOptions} glyphOptions={projectGlyphOptions} />;
 }
 
 /** A cor e o glifo do quadro, que são os do projeto. O nome fica na ficha dele, e não aqui. */

@@ -5,6 +5,7 @@
   --card-corner: var(--radius-xl);
   --card-line: 1px;
 
+  position: relative;
   display: grid;
   min-width: 0;
   padding: var(--card-line);
@@ -225,3 +226,4 @@
     transform: none;
   }
 }
+

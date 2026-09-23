@@ -71,7 +71,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
           <DataTableTitle
             title={payer.company ?? payer.name}
             caption={payer.company ? payer.name : payer.standalone ? `${chargeDirections[charge.direction].label} avulsa` : undefined}
-            media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="squircle" />}
+            media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="rounded" />}
           />
         );
       },

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
 import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
@@ -33,10 +34,17 @@ export async function loadChargesScreenData(next = "/cobrancas"): Promise<Charge
   return { charges, lookups };
 }
 
-export async function getChargeById(id: string, next = "/cobrancas"): Promise<Charge | null> {
-  const { supabase, organizationId } = await requireOrganization(next);
-  return getCharge(supabase, organizationId, id);
-}
+/* Memorizada por requisição, na raiz e não em cada página: os metadados e a própria página pedem a mesma
+   cobrança na mesma renderização, e sem isto a segunda chamada refazia a leitura inteira, incluindo a busca
+   dos donos da equipe. A página de cobrança já memorizava por conta própria; a de despesa não, e era a mesma
+   leitura duas vezes (2026-09-22, na varredura). A chave inclui o caminho de volta, então os dois domínios
+   não se confundem. */
+export const getChargeById = cache(
+  async (id: string, next = "/cobrancas"): Promise<Charge | null> => {
+    const { supabase, organizationId } = await requireOrganization(next);
+    return getCharge(supabase, organizationId, id);
+  },
+);
 
 export async function getFinanceOverviewData(period: FinancePeriod, next = "/financeiro"): Promise<FinanceOverview> {
   const { supabase, organizationId } = await requireOrganization(next);

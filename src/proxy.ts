@@ -8,7 +8,7 @@ import { updateSession } from "@/lib/supabase/proxy";
 // A vitrine monta as telas de MFA de verdade, que chamam as actions: fora de homologação ela fica atrás do login.
 const openPaths = isHomologation() ? new Set(["/componentes"]) : new Set<string>();
 const authPaths = new Set<string>(publicAuthPaths);
-const sharedPrefixes = ["/p/", "/cv/", "/orcamento/", "/contrato/", "/cobranca/"];
+const sharedPrefixes = ["/p/", "/cv/", "/orcamento/", "/contrato/", "/cobranca/", "/acompanhar/", "/formulario/", "/avaliacao/", "/aprovacao/"];
 const openPrefixes = ["/auth/"];
 
 function isPublic(pathname: string) {

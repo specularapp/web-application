@@ -3,6 +3,7 @@
 import { ArrowCounterClockwiseIcon, BriefcaseIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
@@ -44,9 +45,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { deleteProjectAction } from "../actions";
 import { ProjectCard } from "./project-card";
-import { ProjectDialog } from "./project-dialog";
 import type { ProjectEditor } from "./project-form-dialog";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import styles from "./projects-board.module.css";
+
+/* A ficha do projeto entra por importação dinâmica, montada só na primeira abertura (varredura de peso de
+   2026-09-21): a grade desenha os cartões sem ela. */
+const ProjectDialog = dynamic(() => import("./project-dialog").then((module) => module.ProjectDialog));
 
 export type ProjectsBoardProps = {
   page: ProjectsListPage;
@@ -136,6 +141,8 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
   // da rota, que é a única fonte externa autorizada a trocar a janela.
   const initialRoute = `${initialEditing === "new" ? "new" : initialEditing?.id ?? ""}:${initialViewing?.id ?? ""}`;
   const [seenRoute, setSeenRoute] = useState(initialRoute);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const viewReady = useOpenedOnce(viewing !== null);
   if (seenRoute !== initialRoute) {
     setSeenRoute(initialRoute);
     setViewing(initialViewing ?? null);
@@ -401,12 +408,14 @@ export function ProjectsBoard({ page, query, viewing: initialViewing, editing: i
         </div>
       )}
 
-      <ProjectDialog
-        project={viewing}
-        onClose={() => show(null, null)}
-        onEdit={edit}
-        onDelete={setDeleting}
-      />
+      {viewReady && (
+        <ProjectDialog
+          project={viewing}
+          onClose={() => show(null, null)}
+          onEdit={edit}
+          onDelete={setDeleting}
+        />
+      )}
       <ConfirmDialog
         open={deleting !== null}
         pending={removing}

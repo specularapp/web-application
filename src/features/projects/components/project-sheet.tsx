@@ -31,12 +31,13 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { quoteStatuses } from "@/features/quotes/labels";
 import { priorityLabels, priorityTones } from "@/features/tasks/labels";
 import { stageIcon } from "@/features/tasks/stages";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { budgetLabel, dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../labels";
 import { projectArtworkUrl } from "../list-options";
 import { clientFace, type Project, type ProjectDetails } from "../summary";
 import { projectTagHue } from "../tags";
+import { TimeTrackerButton } from "@/features/time-tracking/components/time-tracker-button";
 import { ToolTile } from "./tool-tile";
 import styles from "./project-dialog.module.css";
 
@@ -90,7 +91,7 @@ export function ProjectSheet({ project, details = null, onEdit, preview = false 
     <section className={styles.main} aria-label="Ficha do projeto">
       {/* A capa como abertura da ficha, na mesma receita do cartão: a imagem anexada ou a arte gerada no
           matiz do projeto, numa faixa mais deitada que a do cartão porque aqui ela tem largura de sobra. */}
-      <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
+      <div className={styles.cover} style={hue} {...rounded("md", { clip: true })}>
         {project.coverUrl ? (
           <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 64rem) 48rem, 100vw" quality={90} className={styles.photo} />
         ) : (
@@ -104,9 +105,9 @@ export function ProjectSheet({ project, details = null, onEdit, preview = false 
           que é onde o trabalho acontece. */}
       <div className={styles.identity}>
         {project.client ? (
-          <Avatar name={project.client.name} src={clientFace(project.client)} size="lg" shape="squircle" />
+          <Avatar name={project.client.name} src={clientFace(project.client)} size="lg" shape="rounded" />
         ) : (
-          <span className={styles.own} aria-hidden="true" {...squircle("lg")}>
+          <span className={styles.own} aria-hidden="true" {...rounded("lg")}>
             <FolderSimpleIcon />
           </span>
         )}
@@ -134,6 +135,7 @@ export function ProjectSheet({ project, details = null, onEdit, preview = false 
             a lugar nenhum, e editar é justamente o que a pessoa já está fazendo. */}
         {!preview && (
           <div className={styles.shortcuts}>
+            <TimeTrackerButton projectId={project.id} label={project.name} />
             {site && (
               <Tooltip content={`Abrir ${siteLabel(site)}`}>
                 <IconButton label={`Abrir ${siteLabel(site)}`} variant="outline" size="sm" radius="md" href={site} {...external}>

@@ -51,7 +51,6 @@
   background-color: transparent;
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
@@ -97,7 +96,6 @@
   color: var(--color-accent);
   background-color: light-dark(color-mix(in oklab, var(--color-accent) 14%, transparent), color-mix(in oklab, var(--color-accent) 20%, transparent));
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .blankGlyph svg {

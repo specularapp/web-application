@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { ChargePublicView } from "@/features/finance/components/charge-public-view";
 import { loadPublicCharge, markPublicChargeViewed } from "@/features/finance/public";
 import { createMetadata } from "@/lib/metadata";
@@ -6,9 +7,14 @@ import { formatMoney } from "@/lib/utils/format";
 
 type Params = { token: string };
 
+/* Memorizada por requisição: os metadados e a página abrem a mesma cobrança, e cada leitura gastava uma vaga
+   do teto por endereço de origem. Com duas vagas por abertura, uma empresa atrás de um único IP de saída
+   chegava ao teto na metade das aberturas e recebia "não encontrada" com o token válido. */
+const loadCharge = cache(loadPublicCharge);
+
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { token } = await params;
-  const found = await loadPublicCharge(token);
+  const found = await loadCharge(token);
   if (!found) return createMetadata({ title: "Cobrança", description: "Esta cobrança não está mais disponível.", noIndex: true });
 
   const { charge, issuer } = found;
@@ -28,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 // Abrir registra a visualização na linha do tempo da cobrança.
 export default async function PublicChargePage({ params }: { params: Promise<Params> }) {
   const { token } = await params;
-  const found = await loadPublicCharge(token);
+  const found = await loadCharge(token);
   if (!found) notFound();
 
   await markPublicChargeViewed(token);

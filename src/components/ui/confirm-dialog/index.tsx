@@ -2,6 +2,8 @@
 
 import { TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
+import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -34,6 +36,24 @@ export type ConfirmDialogProps = {
   /** O nome que o leitor de tela ouve ao abrir; sem ele vale o título. */
   label?: string;
 };
+
+/**
+ * No celular a resposta mora na barra flutuante, como em toda janela da casa (2026-09-22, a pedido): confirmar
+ * é a principal e o X é o não. Fica num componente de dentro da janela para registrar um degrau acima de
+ * quem a abriu, senão a barra continuaria mostrando as ações da tela de baixo.
+ */
+function ConfirmBar({ label, pending, danger, onConfirm, onClose }: { label: string; pending: boolean; danger: boolean; onConfirm: () => void; onClose: () => void }) {
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  useFloatingActionsRegistration(
+    mobile
+      ? {
+          primary: { label, icon: danger ? <TrashIcon weight="bold" /> : undefined, loading: pending, onClick: onConfirm },
+          cancel: { label: "Fechar", onClick: onClose },
+        }
+      : null,
+  );
+  return null;
+}
 
 /** Quantos rostos aparecem na fila; o resto vira "+N". */
 const SHOWN_FACES = 5;
@@ -77,6 +97,7 @@ export function ConfirmDialog({
       /* O foco não vai para o botão de confirmar ao abrir: a janela pergunta, e a resposta padrão é não. */
       focusOnOpen={false}
     >
+      <ConfirmBar label={pending ? pendingLabel : confirmLabel} pending={pending} danger={tone === "danger"} onConfirm={onConfirm} onClose={pending ? () => undefined : onClose} />
       <div className={styles.dialog}>
         {shown.length > 0 ? (
           <div className={styles.faces}>
@@ -88,7 +109,7 @@ export function ConfirmDialog({
                   src={face.avatarUrl ?? undefined}
                   seed={face.seed ?? face.name}
                   size="md"
-                  shape="squircle"
+                  shape="rounded"
                 />
               ))}
             </AvatarGroup>

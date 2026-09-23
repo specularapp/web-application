@@ -19,6 +19,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   Fragment,
   useEffect,
@@ -42,9 +43,9 @@ import { useCommandKey } from "@/hooks/use-command-key";
 import { isTopLayer, useLayer } from "@/hooks/use-layer";
 import { usePresence } from "@/hooks/use-presence";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { squircle } from "@/lib/corners";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
+import { rounded } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
-import { CommandPalette } from "../command-palette";
 import { useFloatingActions } from "../floating-actions";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
 import { markNotificationsReadAction } from "@/features/organizations/actions";
@@ -55,6 +56,10 @@ import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "..
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import { NavTree, fromCrmTree, fromTaskTree } from "./nav-tree";
 import styles from "./sidebar.module.css";
+
+/* A busca entra por importação dinâmica, montada só na primeira abertura (varredura de peso de 2026-09-21):
+   ela desce em toda página da aplicação por morar na moldura, e quase ninguém a abre na primeira visita. */
+const CommandPalette = dynamic(() => import("../command-palette").then((module) => module.CommandPalette));
 
 export type SidebarTeam = {
   name: string;
@@ -138,7 +143,7 @@ function Row({ item, active, onNavigate }: { item: NavLink; active: boolean; onN
       className={styles.row}
       data-active={active || undefined}
       onClick={onNavigate}
-      {...squircle("md")}
+      {...rounded("md")}
     >
       <item.icon aria-hidden="true" />
       <span className={styles.label}>{item.label}</span>
@@ -210,6 +215,7 @@ export function SidebarPanel({
   const openFolder = (entry: NavFolder) => {
     setFolder(entry);
     setMotion("forward");
+    if (entry.tree && entry.items[0]) router.push(entry.items[0].href);
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -234,7 +240,7 @@ export function SidebarPanel({
   const extraFaces = alert ? alert.people.length - faces.length : 0;
   const external = alert?.action.href.startsWith("http");
   const planCard = alert && alertVisible && (
-    <section className={styles.promo} {...squircle("lg")} aria-label={`${alertKindLabels[alert.kind]}: ${alert.title}`}>
+    <section className={styles.promo} {...rounded("lg")} aria-label={`${alertKindLabels[alert.kind]}: ${alert.title}`}>
       {/* Um dos dois, nunca os dois (2026-09-20, a pedido): quem está envolvido, quando há alguém, e a
           etiqueta do tipo quando não há. Os rostos dizem de quem é o aviso melhor que a palavra, e a
           palavra só é necessária quando não há rosto para dizê-la. Lado a lado, os dois competiam pela
@@ -300,7 +306,7 @@ export function SidebarPanel({
           name={team.name}
           src={team.logoUrl ?? undefined}
           size={mobile ? "sm" : "xs"}
-          shape="squircle"
+          shape="rounded"
         />
         <Text
           variant={mobile ? "callout" : "subheadline"}
@@ -334,7 +340,7 @@ export function SidebarPanel({
         type="button"
         className={styles.find}
         onClick={onSearch}
-        {...squircle("md")}
+        {...rounded("md")}
       >
         <MagnifyingGlassIcon aria-hidden="true" />
         <span className={styles.findLabel}>Buscar</span>
@@ -366,7 +372,7 @@ export function SidebarPanel({
                   type="button"
                   className={styles.back}
                   onClick={closeFolder}
-                  {...squircle("md")}
+                  {...rounded("md")}
                 >
                   <CaretLeftIcon aria-hidden="true" />
                   <span className={styles.label}>{folder.label}</span>
@@ -381,39 +387,28 @@ export function SidebarPanel({
                   />
                 )}
               </div>
-              {folder.items.map((item) => (
-                <Row
-                  key={item.href}
-                  item={item}
-                  active={isCurrent(pathname, item.href)}
-                  onNavigate={onNavigate}
-                />
+              {!folder.tree && folder.items.map((item) => (
+                <Row key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
               ))}
               {folder.tree === "tarefas" && (
-                <>
-                  <span className={styles.divider} />
-                  <NavTree
-                    items={fromTaskTree(tasks)}
-                    basePath="/tarefas"
-                    current={currentProject}
-                    openFolders={openBranch}
-                    label="Pastas e projetos"
-                    onNavigate={onNavigate}
-                  />
-                </>
+                <NavTree
+                  items={fromTaskTree(tasks)}
+                  basePath="/tarefas"
+                  current={currentProject}
+                  openFolders={openBranch}
+                  label="Pastas e projetos"
+                  onNavigate={onNavigate}
+                />
               )}
               {folder.tree === "funis" && (
-                <>
-                  <span className={styles.divider} />
-                  <NavTree
-                    items={fromCrmTree(funnels)}
-                    basePath="/crm"
-                    current={currentFunnel}
-                    openFolders={funnelBranch}
-                    label="Pastas e funis"
-                    onNavigate={onNavigate}
-                  />
-                </>
+                <NavTree
+                  items={fromCrmTree(funnels)}
+                  basePath="/crm"
+                  current={currentFunnel}
+                  openFolders={funnelBranch}
+                  label="Pastas e funis"
+                  onNavigate={onNavigate}
+                />
               )}
               {creating && folder?.tree === "funis" ? (
                 <CrmAppearanceDialog title={creating === "folder" ? "Nova pasta" : "Novo funil"} folder={creating === "folder"} onClose={() => setCreating(null)} onSave={creating === "funnel" ? createFunnel : async (value) => { const result = await saveCrmFolderAction({ ...value, parentId: null }); return result.ok ? undefined : result.error; }} />
@@ -449,7 +444,7 @@ export function SidebarPanel({
                           folderIsCurrent(pathname, entry) || undefined
                         }
                         onClick={() => openFolder(entry)}
-                        {...squircle("md")}
+                        {...rounded("md")}
                       >
                         <entry.icon aria-hidden="true" />
                         <span className={styles.label}>{entry.label}</span>
@@ -521,7 +516,7 @@ export function SidebarPanel({
                 href={action.href}
                 onClick={onNavigate}
                 className={styles.row}
-                {...squircle("md")}
+                {...rounded("md")}
               >
                 <action.icon aria-hidden="true" />
                 <span className={styles.label}>{action.label}</span>
@@ -541,7 +536,7 @@ export function SidebarPanel({
               <ThemePicker />
             </div>
 
-            <a href="/auth/sair" className={styles.row} {...squircle("md")}>
+            <a href="/auth/sair" className={styles.row} {...rounded("md")}>
               <SignOutIcon aria-hidden="true" />
               <span className={styles.label}>Sair da conta</span>
             </a>
@@ -593,6 +588,14 @@ export function Sidebar(props: SidebarProps) {
     if (read.length > 0) void markNotificationsReadAction(read.map((item) => item.id)).catch(() => undefined);
   };
   const screen = usePresence(open);
+  /* O menu só sobe acima das janelas quando foi aberto por cima de uma que já estava com ações. A janela que
+     nasce de dentro do menu (etapas, cor do quadro, pasta) é a camada nova, e precisa ficar na frente dele. */
+  const [overWindow, setOverWindow] = useState(false);
+  if (overWindow && !actions) setOverWindow(false);
+  /* A janela aberta de dentro do menu é quem manda na barra: ela sai do modo bolinha e mostra as ações da
+     janela, e o X dela fecha a janela, e não o menu que ficou por baixo. */
+  const overMenu = open && Boolean(actions) && !overWindow;
+  const collapsed = open && !overMenu;
 
   const openSearch = () => {
     setSearchKey((current) => current + 1);
@@ -631,13 +634,8 @@ export function Sidebar(props: SidebarProps) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const search = (
-    <CommandPalette
-      key={searchKey}
-      open={searching}
-      onClose={() => setSearching(false)}
-    />
-  );
+  const searchReady = useOpenedOnce(searching);
+  const search = searchReady ? <CommandPalette key={searchKey} open={searching} onClose={() => setSearching(false)} /> : null;
   const panel = {
     ...props,
     notifications,
@@ -661,7 +659,7 @@ export function Sidebar(props: SidebarProps) {
           data-state={screen.state}
           // Com ações penduradas, o menu sobe junto com a barra para cima da janela aberta: sem isso ele
           // nascia atrás dela, e só a barra ficava à vista (relato de 2026-09-10).
-          data-actions={actions ? "" : undefined}
+          data-actions={actions && overWindow ? "" : undefined}
           onAnimationEnd={screen.onAnimationEnd}
         >
           <SidebarPanel {...panel} variant="mobile" onSearch={openSearch} onNavigate={() => setOpen(false)} />
@@ -671,8 +669,13 @@ export function Sidebar(props: SidebarProps) {
       {/* Menu aberto encolhe a barra até sobrar só o X: o grupo de busca e sino recolhe pela trilha da
           grade, que anima de 1fr a 0fr, e a barra vira bolinha. A chave no botão remonta o glifo a cada
           troca, e a entrada dele gira, porque X e três linhas não se transformam um no outro. */}
-      <div className={styles.bar} data-collapsed={open || undefined} data-actions={actions ? "" : undefined}>
-        <div className={styles.barGroup} inert={open || undefined}>
+      <div
+        className={styles.bar}
+        data-collapsed={collapsed || undefined}
+        data-actions={actions ? "" : undefined}
+        data-over-menu={overMenu || undefined}
+      >
+        <div className={styles.barGroup} inert={collapsed || undefined}>
           <div className={styles.barGroupInner}>
             <span className={styles.barMode} data-active={mode === "browse" ? "" : undefined} inert={mode === "browse" ? undefined : true}>
               <button type="button" className={styles.search} onClick={openSearch}>
@@ -772,7 +775,10 @@ export function Sidebar(props: SidebarProps) {
           // Bolinha por fora pede círculo por dentro: com a barra fechada em pílula, o canto de 12px do
           // botão aparecia no hover como um quadrado dentro da bola.
           radius={open ? "full" : "md"}
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => {
+            if (!open) setOverWindow(Boolean(actions));
+            setOpen(!open);
+          }}
         >
           {open ? <XIcon /> : <ListIcon />}
         </IconButton>

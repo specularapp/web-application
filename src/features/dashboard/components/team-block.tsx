@@ -157,7 +157,6 @@ const Focused = styled(DetailsTrigger)`
   padding: var(--space-2) var(--space-4);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--card-inner);
-  corner-shape: squircle;
 `;
 
 const Fading = styled.span`

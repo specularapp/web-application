@@ -76,7 +76,7 @@ Aprovadas na tabela, sem `npm install` até a feature entrar.
 
 ## Cantos: sem lib
 
-O canto squircle é do sistema de cantos da casa (`src/lib/corners.ts` e `src/lib/squircle/`), documentado na seção Cantos de `structure.md`. Nativo por `corner-shape` onde existe, recorte próprio por `clip-path` no fallback, sem dependência.
+Os cantos usam apenas `border-radius` e os tokens da casa, com os helpers leves de `src/lib/corners.ts`, conforme a seção Cantos de `structure.md`. Não existe biblioteca, motor ou fallback próprio.
 
 `@cornerkit/core` foi usada de 2026-08-28 a 2026-08-29 e saiu. O que aprendemos com ela e vale para qualquer lib de canto que apareça:
 

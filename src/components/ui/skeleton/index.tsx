@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, CSSProperties } from "react";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import styles from "./skeleton.module.css";
 
@@ -17,7 +17,7 @@ export function Skeleton({ shape = "text", width, height, className, style, ...p
       className={cx(styles.skeleton, className)}
       data-shape={shape}
       style={size}
-      {...(shape === "circle" ? {} : squircle(shape === "text" ? "sm" : "md", { clip: true }))}
+      {...(shape === "circle" ? {} : rounded(shape === "text" ? "sm" : "md", { clip: true }))}
       {...props}
     />
   );

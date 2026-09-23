@@ -63,7 +63,7 @@ import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { tagSections } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { compactMoney, formatMoney } from "@/lib/utils/format";
 import { saveOpportunityAction } from "../actions";
@@ -313,6 +313,7 @@ export function OpportunityDialog(props: OpportunityDialogProps) {
           : "Oportunidade"
       }
       size="xl"
+      surface="workspace"
       focusOnOpen={false}
       above={
         props.opportunity && (
@@ -714,7 +715,7 @@ function OpportunityDetail({
           </div>
 
           <div className={styles.numbers}>
-            <div className={styles.number} {...squircle("lg")}>
+            <div className={styles.number} {...rounded("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Valor
               </Text>
@@ -730,7 +731,7 @@ function OpportunityDetail({
                 weight="semibold"
               />
             </div>
-            <div className={styles.number} {...squircle("lg")}>
+            <div className={styles.number} {...rounded("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Chance
               </Text>
@@ -749,7 +750,7 @@ function OpportunityDetail({
                 maxLength={3}
               />
             </div>
-            <div className={styles.number} {...squircle("lg")}>
+            <div className={styles.number} {...rounded("lg")}>
               <Text as="p" variant="caption1" tone="secondary">
                 Previsto
               </Text>
@@ -775,7 +776,7 @@ function OpportunityDetail({
             aria-label={`Chance de fechar: ${values.probability}%`}
           />
 
-          <div className={styles.step} {...squircle("lg")}>
+          <div className={styles.step} {...rounded("lg")}>
             <span className={styles.stepGlyph} aria-hidden="true">
               <SignpostIcon weight="bold" />
             </span>
@@ -1081,7 +1082,7 @@ function OpportunityDetail({
           </ProfileSection>
 
           <ProfileSection title="Link deste card">
-            <div className={styles.link} {...squircle("md")}>
+            <div className={styles.link} {...rounded("md")}>
               <LinkSimpleIcon aria-hidden="true" />
               <span className={styles.linkText}>{link}</span>
               <IconButton
@@ -1173,7 +1174,7 @@ function OpportunityDetail({
                       aria-current={current ? "step" : undefined}
                       disabled={saving}
                       onClick={() => changeAndSave({ stage: id })}
-                      {...squircle("md")}
+                      {...rounded("md")}
                     >
                       <span className={styles.pathGlyph} aria-hidden="true">
                         {done ? (

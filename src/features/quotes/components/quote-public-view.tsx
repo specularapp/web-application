@@ -9,7 +9,7 @@ import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { respondToQuoteAction } from "../actions";
 import { paymentMethods } from "../labels";
@@ -144,7 +144,7 @@ export function QuotePublicView({ quote }: QuotePublicViewProps) {
       {/* O container flutuante das ações, no vidro e no raio das camadas da casa. Ele não entra na
           impressão: o que sai no papel é só a folha. São cinco ações e nada além (pedido de 2026-09-10):
           baixar, os detalhes, aprovar, recusar e voltar. */}
-      <div className={styles.toolbar} role="toolbar" aria-label="Ações do orçamento" {...squircle("lg")}>
+      <div className={styles.toolbar} role="toolbar" aria-label="Ações do orçamento" {...rounded("lg")}>
         {/* No celular baixar entrega o arquivo à folha de compartilhar do sistema, que é de onde ele vai para
             Arquivos, WhatsApp ou impressora; no desktop é a âncora com `download`, que o navegador resolve
             direto. O giro aparece enquanto o PDF é montado no servidor. */}

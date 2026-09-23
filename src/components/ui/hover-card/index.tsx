@@ -164,7 +164,6 @@ const Card = styled.div`
   background-color: var(--glass-layer-bg);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-xl);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);

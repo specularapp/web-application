@@ -143,7 +143,6 @@ const Calendar = styled.div`
   padding: var(--space-4);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 `;
 
 const MonthBar = styled.div`
@@ -178,7 +177,6 @@ const Day = styled.li`
   font-weight: var(--weight-medium);
   color: var(--color-label);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 
   &[data-state="upcoming"],
   &[data-state="none"] {

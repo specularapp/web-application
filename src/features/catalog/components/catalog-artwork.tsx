@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { StoredImage } from "@/components/ui/stored-image";
 import { cx } from "@/lib/utils/cx";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { catalogArtworkUrl } from "../list-options";
 import type { CatalogItem } from "../summary";
 import styles from "./catalog-artwork.module.css";
@@ -34,7 +34,7 @@ export function CatalogArtwork({ item, size = "md", className }: CatalogArtworkP
       data-size={size}
       style={{ "--item-hue": `var(--sys-${item.hue})` } as CSSProperties}
       aria-hidden="true"
-      {...squircle(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
+      {...rounded(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
     >
       {item.imageUrl ? (
         <StoredImage src={item.imageUrl} alt="" width={side} height={side} className={styles.photo} />

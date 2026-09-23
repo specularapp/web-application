@@ -9,7 +9,7 @@ import type { TeamSummary } from "@/features/organizations/summary";
 import type { ProjectsSummary } from "@/features/projects/summary";
 import type { QuotesSummary } from "@/features/quotes/summary";
 import type { TasksSummary } from "@/features/tasks/summary";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { dashboardBlocks, type DashboardBlockId } from "../blocks";
 import { isDefaultLayout, packDashboard, type DashboardLayout } from "../layout";
 import { AchievementsBlock } from "./achievements-block";
@@ -93,7 +93,7 @@ export function DashboardGrid({
         } as CSSProperties;
 
         return block.bare ? (
-          <div key={block.id} className={styles.bare} data-block={block.id} style={vars} {...squircle("xl", { clip: true })}>
+          <div key={block.id} className={styles.bare} data-block={block.id} style={vars} {...rounded("xl", { clip: true })}>
             {content[block.id]}
           </div>
         ) : (

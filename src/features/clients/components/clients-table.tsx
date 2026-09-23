@@ -50,7 +50,7 @@ export function ClientsTable({ clients, group, selected, onSelectedChange, onOpe
           <DataTableTitle
             title={client.name}
             caption={client.company ?? client.email ?? undefined}
-            media={<Avatar name={client.name} src={client.avatarUrl ?? undefined} size="sm" shape="squircle" />}
+            media={<Avatar name={client.name} src={client.avatarUrl ?? undefined} size="sm" shape="rounded" />}
             onClick={() => onOpen(client)}
           />
         </ClientHoverCard>

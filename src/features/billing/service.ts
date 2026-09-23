@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { organizationOf } from "@/features/organizations/service";
@@ -353,7 +354,7 @@ async function ensureCustomer(
 
   if (error || !data) {
     await stripe.customers.del(customer.id).catch(() => null);
-    return { ok: false, error: error?.message || NO_PERMISSION };
+    return { ok: false, error: dbMessage(error, NO_PERMISSION) };
   }
 
   // Perdeu a corrida: o cliente que acabou de nascer não vale mais nada e sairia como cliente órfão

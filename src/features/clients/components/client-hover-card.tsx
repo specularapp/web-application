@@ -34,7 +34,7 @@ export function ClientHoverCard({ client, children }: ClientHoverCardProps) {
       content={
         <>
           <HoverCardHead>
-            <Avatar name={client.name} src={client.avatarUrl ?? undefined} shape="squircle" />
+            <Avatar name={client.name} src={client.avatarUrl ?? undefined} shape="rounded" />
             <HoverCardNaming>
               <Text as="span" variant="headline" weight="semibold" truncate>
                 {client.name}

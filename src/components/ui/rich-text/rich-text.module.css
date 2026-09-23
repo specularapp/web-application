@@ -115,7 +115,6 @@
   background-color: var(--color-bg-grouped-secondary);
   border: 1.5px solid var(--color-label-tertiary);
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
@@ -214,7 +213,6 @@
   width: 100%;
   height: auto;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .body figcaption {
@@ -290,7 +288,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  corner-shape: squircle;
 }
 
 @media (max-width: 47.9375rem) {
@@ -367,7 +364,6 @@
   background-color: var(--code-surface);
   border: 1px solid var(--code-line);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 /* O copiar na quina de cima, por cima do código e fora do fluxo dele. Ele aparece ao apontar ou ao chegar
@@ -389,7 +385,6 @@
   padding-inline-start: var(--space-2);
   background-color: var(--code-surface);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .codeLanguage {
@@ -519,5 +514,4 @@
   background-color: var(--code-surface);
   border: 1px solid var(--code-line);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }

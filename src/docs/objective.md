@@ -31,6 +31,15 @@ E-mails de cobrança, lembretes ao cliente e outros fluxos automáticos.
 ### Projetos
 Registro dos projetos executados. Base para o portfólio e para o currículo.
 
+### Aprovações
+Envio de sites, protótipos e imagens para decisão do cliente, com versões, aprovação, rejeição e pedido de alterações rastreáveis.
+
+### Feedbacks
+Avaliação curta da experiência ao concluir um projeto, com nota, recomendação e comentário do cliente.
+
+### Apontamento de tempo
+Registro individual do tempo gasto em projetos e tarefas, com um cronômetro ativo por pessoa.
+
 ### Portfólio
 Gerado a partir dos projetos, pessoal ou da agência, publicado em URL própria com domínio personalizado.
 

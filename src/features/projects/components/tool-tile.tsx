@@ -1,6 +1,6 @@
 import { QuestionIcon } from "@phosphor-icons/react/ssr";
 import type { CSSProperties } from "react";
-import { cornerRadius, squirclePx } from "@/lib/corners";
+import { cornerRadius, roundedPx } from "@/lib/corners";
 import { cx } from "@/lib/utils/cx";
 import { projectToolBrands, projectTools } from "../labels";
 import type { ProjectTool } from "../summary";
@@ -21,9 +21,9 @@ export type ToolTileProps = {
 
 // O azulejo de uma ferramenta (2026-09-13, a pedido, sobre uma referência de fila de aplicativos): o fundo na
 // cor oficial da marca e a marca por cima, do jeito que o arquivo dela pede (`fit` em `labels.ts`: azulejo
-// que cobre a peça, máscara na tinta da marca ou glifo centrado com folga). **Quadrado de canto squircle, e
+// que cobre a peça, máscara na tinta da marca ou glifo centrado com folga). **Quadrado de canto rounded, e
 // não círculo** (acerto do mesmo dia, a pedido): as marcas que já são azulejo, como as da Adobe, são
-// quadradas, e o círculo cortava as quinas delas e apertava a letra contra a borda; no squircle a marca
+// quadradas, e o círculo cortava as quinas delas e apertava a letra contra a borda; no rounded a marca
 // encaixa inteira, e a peça passa pelo sistema de cantos da casa, com raio concêntrico ao de quem a monta.
 //
 // A marca entra por CSS, como imagem de fundo, e **não** pelo `BrandIcon`: os três jeitos de encaixar são
@@ -35,7 +35,7 @@ export function ToolTile({ tool, size = "sm", radius = cornerRadius.sm, classNam
 
   if (!tool) {
     return (
-      <span className={cx(styles.tile, styles.empty, className)} data-size={size} style={corner} title="Ferramentas não informadas" aria-hidden="true" {...squirclePx(radius, { clip: true })}>
+      <span className={cx(styles.tile, styles.empty, className)} data-size={size} style={corner} title="Ferramentas não informadas" aria-hidden="true" {...roundedPx(radius, { clip: true })}>
         <QuestionIcon weight="bold" />
       </span>
     );
@@ -45,7 +45,7 @@ export function ToolTile({ tool, size = "sm", radius = cornerRadius.sm, classNam
   const vars = { ...corner, "--tool-bg": brand.background, "--tool-mark": `url(/brands/${tool}.svg)`, ...(brand.ink && { "--tool-ink": brand.ink }) } as CSSProperties;
 
   return (
-    <span className={cx(styles.tile, className)} data-size={size} style={vars} title={projectTools[tool]} aria-hidden="true" {...squirclePx(radius, { clip: true })}>
+    <span className={cx(styles.tile, className)} data-size={size} style={vars} title={projectTools[tool]} aria-hidden="true" {...roundedPx(radius, { clip: true })}>
       <span className={styles.mark} data-fit={brand.fit} />
     </span>
   );

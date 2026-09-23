@@ -16,7 +16,7 @@ import { SignaturePad } from "@/components/ui/signature-pad";
 import { Text } from "@/components/ui/text";
 import { signatureStamp } from "@/features/quotes/signature";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { signContractAction } from "../actions";
 import { ContractDocument, partyRoles } from "../document";
 import { contractLimits } from "../schemas";
@@ -200,7 +200,7 @@ function SignSheet({ titleId, party, name, pending, onName, onTrace, onClose, on
 
       <SignaturePad onChange={onTrace} disabled={pending} />
 
-      <div className={styles.terms} {...squircle("md")}>
+      <div className={styles.terms} {...rounded("md")}>
         <Text variant="caption1" tone="secondary">
           Ao confirmar, você declara que leu o documento e concorda com ele. O registro guarda a data e a hora ({signatureStamp(new Date().toISOString())}) e o endereço pessoal deste convite.
           {signedAtPreview ? ` A outra parte assinou em ${signatureStamp(signedAtPreview)}.` : ""}

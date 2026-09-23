@@ -15,7 +15,6 @@
   background-color: #ffffff;
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   box-shadow: var(--shadow-sm);
 }
 

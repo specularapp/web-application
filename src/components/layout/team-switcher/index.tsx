@@ -13,7 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
-import { hoverMotion, layerMotion } from "@/components/ui/styles";
+import { hoverMotion, layerMotion, verticalScrollFade } from "@/components/ui/styles";
 import { Text } from "@/components/ui/text";
 import { planBadges } from "@/features/billing/plans";
 import { switchTeamAction } from "@/features/organizations/actions";
@@ -50,7 +50,7 @@ const PANEL_WIDTH = 320;
 const PANEL_HEIGHT = 340;
 const EDGE = 16;
 
-/* Canto declarado direto, sem `data-squircle`: a caixa guarda o anel de foco do campo de busca, e o
+/* Canto declarado direto, sem `data-rounded`: a caixa guarda o anel de foco do campo de busca, e o
    recorte do fallback cortaria ele. Mesma escolha do Listbox e do Tooltip. */
 const Popover = styled.div`
   --genie-y: calc(var(--space-2) * -1);
@@ -65,7 +65,6 @@ const Popover = styled.div`
   background-color: var(--color-bg-tertiary);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   transform-origin: top left;
 
@@ -123,6 +122,7 @@ const Body = styled.div`
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  ${verticalScrollFade};
 
   &[data-empty] {
     align-content: center;
@@ -153,7 +153,6 @@ const Option = styled.li`
   letter-spacing: var(--tracking-tight);
   color: var(--color-label);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   cursor: pointer;
 
   ${hoverMotion};
@@ -221,7 +220,6 @@ const EmptyIcon = styled.span`
   color: var(--color-label-secondary);
   border: var(--panel-line, 0.0375rem) solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 
   & svg {
     width: 1.25rem;
@@ -249,7 +247,6 @@ const Create = styled.button`
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   cursor: pointer;
 
   ${hoverMotion};
@@ -480,7 +477,7 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
                 onPointerMove={() => setActive(index)}
                 onClick={() => void choose(team)}
               >
-                <Avatar name={team.name} src={team.logoUrl ?? undefined} size="xs" shape="squircle" />
+                <Avatar name={team.name} src={team.logoUrl ?? undefined} size="xs" shape="rounded" />
                 <Name>{team.name}</Name>
                 <Badge tone="neutral" variant="soft" size="sm">
                   {team.plan}
@@ -594,7 +591,11 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
       )}
 
       <CreateTeamPanel open={creating} owner={owner} onClose={() => setCreating(false)} />
-      <CreateTeamPanel open={editing !== null} teamId={editing} owner={owner} onClose={() => setEditing(null)} />
+      {/* Uma chave por equipe editada: a gaveta guarda a leitura da equipe e a gente dela em estado, e sem a
+          chave reabrir a mesma equipe reaproveitava a lista da abertura anterior, com quem já tinha sido
+          removido de volta nela (2026-09-22, na varredura). Fechar não basta, porque o guarda de "já li esta"
+          é justamente o que evita reler a cada abertura. */}
+      <CreateTeamPanel key={editing ?? "nenhuma"} open={editing !== null} teamId={editing} owner={owner} onClose={() => setEditing(null)} />
 
       <ArchiveTeamDialog team={archiving} onClose={() => setArchiving(null)} />
     </>

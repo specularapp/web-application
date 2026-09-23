@@ -63,7 +63,6 @@ const Bubble = styled.div`
   background-color: var(--glass-sheet-bg);
   border: var(--panel-line) solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);

@@ -12,7 +12,7 @@ import type { OrganizationIndustry } from "@/features/organizations/schemas";
 import { ToolTile } from "@/features/projects/components/tool-tile";
 import { projectArtworkUrl } from "@/features/projects/list-options";
 import { siteConfig } from "@/lib/metadata";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import type { Portfolio, PortfolioProject } from "../service";
 import styles from "./portfolio-public.module.css";
 
@@ -32,12 +32,12 @@ export function PortfolioPublic({ team, projects }: Portfolio) {
     <main className={styles.page}>
       <header className={styles.hero}>
         {team.bannerUrl && (
-          <div className={styles.banner} {...squircle("xl", { clip: true })}>
+          <div className={styles.banner} {...rounded("xl", { clip: true })}>
             <StoredImage src={team.bannerUrl} alt="" fill sizes="(min-width: 64rem) 64rem, 100vw" quality={90} className={styles.bannerImage} priority />
           </div>
         )}
         <div className={styles.identity}>
-          <Avatar name={team.name} src={team.logoUrl ?? undefined} size="lg" shape="squircle" />
+          <Avatar name={team.name} src={team.logoUrl ?? undefined} size="lg" shape="rounded" />
           <div className={styles.copy}>
             <Text as="h1" variant="title1" weight="semibold">
               {team.name}
@@ -89,8 +89,8 @@ export function PortfolioCard({ project }: { project: PortfolioProject }) {
   const restTools = project.tools.length - shownTools.length;
 
   return (
-    <li className={styles.card} {...squircle("xl", { clip: true })}>
-      <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
+    <li className={styles.card} {...rounded("xl", { clip: true })}>
+      <div className={styles.cover} style={hue} {...rounded("md", { clip: true })}>
         {project.coverUrl ? (
           <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" quality={90} className={styles.photo} />
         ) : (

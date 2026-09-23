@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { StoredImage } from "@/components/ui/stored-image";
 import { cx } from "@/lib/utils/cx";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { projectArtworkUrl } from "../list-options";
 import { projectFace, type Project, type ProjectHue } from "../summary";
 import styles from "./project-mark.module.css";
@@ -48,7 +48,7 @@ export function ProjectMark({ project, size = "md", className }: ProjectMarkProp
       data-size={size}
       style={{ "--project-hue": `var(--sys-${project.hue})` } as CSSProperties}
       aria-hidden="true"
-      {...squircle(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
+      {...rounded(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
     >
       {borrowed ? (
         <StoredImage src={borrowed} alt="" width={side} height={side} className={styles.photo} />

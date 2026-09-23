@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { grantingStatuses, type BillingPlan } from "@/features/billing/schemas";
 import type { Database, TablesUpdate } from "@/types/database";
@@ -59,6 +60,9 @@ export type TeamOption = {
   plan: BillingPlan;
 };
 
+/** Quem está numa equipe e quem foi convidado, com o papel de quem pede. */
+export type TeamPeople = { members: TeamMember[]; invites: TeamInvite[]; viewer: TeamMember };
+
 export type TeamState = {
   team: Team | null;
   members: TeamMember[];
@@ -109,11 +113,28 @@ function toTeam(row: TeamRow): Team {
   };
 }
 
-// A mensagem do Postgres já chega pronta e em português das funções do banco; só o erro de
-// unicidade precisa de tradução, porque ali o texto do driver é o nome do índice.
+/* O texto das funções do banco chega pronto e em português, e é o `dbMessage` que o deixa passar;
+   a unicidade é traduzida aqui porque neste domínio ela significa endereço de equipe repetido. */
 function messageOf(error: { code?: string; message: string }, fallback: string) {
   if (error.code === "23505") return SLUG_TAKEN;
-  return error.message || fallback;
+  return dbMessage(error, fallback);
+}
+
+/**
+ * Uma escrita de uma linha só, conferida pelo retorno (2026-09-22, na varredura). Escrita que não casa
+ * nenhuma linha não é erro no Supabase: `update` e `delete` voltam sem `error` e com dado nulo, e é assim
+ * que a RLS recusa (a policy de update de membro é só de dono) e é assim que responde a linha que outra
+ * pessoa já removeu. Olhando só o `error`, as quatro escritas de equipe devolviam sucesso, a tela mostrava
+ * aviso verde e o banco continuava igual. O `updateTeam` aqui embaixo já trata `!error && !data` assim.
+ */
+function confirmWrite(
+  result: { data: unknown; error: { code?: string; message: string } | null },
+  failed: string,
+  missing: string,
+): ServiceResult<undefined> {
+  if (result.error) return { ok: false, error: messageOf(result.error, failed) };
+  if (!result.data) return { ok: false, error: missing };
+  return { ok: true, data: undefined };
 }
 
 export async function organizationOf(client: TeamClient, userId: string, current: string | null) {
@@ -178,7 +199,61 @@ export async function getTeamState(client: TeamClient, userId: string): Promise<
       email: invite.email,
       role: invite.role,
     })),
-    viewer: people.find((person) => person.userId === userId) ?? viewer,
+    /* Com equipe em mãos e sem a própria linha entre os membros, o papel de reserva é o mais restrito
+       (2026-09-22, na varredura): é o caso de quem criou a equipe e foi removida dela, que a policy de
+       select de `organizations` ainda deixa ler. Com `owner` ali, a página acendia o formulário de
+       convidar de uma equipe que recusa toda escrita. O `owner` de reserva continua valendo para quem
+       ainda não tem equipe nenhuma, que é quem a configuração inicial espera. */
+    viewer: people.find((person) => person.userId === userId) ?? { ...viewer, role: "member" },
+  };
+}
+
+/**
+ * As pessoas de uma equipe qualquer de que quem pede participa, para a gaveta de editar equipe mostrar quem
+ * está dentro e convidar mais gente (2026-09-21, a pedido). O `getTeamState` acima serve a equipe em uso, que
+ * é o caso da página de configurações; aqui a equipe vem por id, porque o seletor edita qualquer uma da lista.
+ *
+ * Quem pode ler é a RLS: um id de equipe de fora devolve nada, e sem o próprio nome na lista de membros a
+ * resposta é a mesma de equipe inexistente, para o id não servir de sonda.
+ */
+export async function getTeamPeople(
+  client: TeamClient,
+  organizationId: string,
+  userId: string,
+): Promise<ServiceResult<TeamPeople>> {
+  const [{ data: members }, { data: invites }] = await Promise.all([
+    client.rpc("team_members", { p_organization_id: organizationId }),
+    client
+      .from("organization_invites")
+      .select("id, name, email, role")
+      .eq("organization_id", organizationId)
+      .is("accepted_at", null)
+      .order("created_at"),
+  ]);
+
+  const people: TeamMember[] = (members ?? []).map((member) => ({
+    userId: member.user_id,
+    name: member.name,
+    email: member.email,
+    avatarUrl: member.avatar_url,
+    role: member.role,
+  }));
+
+  const viewer = people.find((person) => person.userId === userId);
+  if (!viewer) return { ok: false, error: "Equipe não encontrada." };
+
+  return {
+    ok: true,
+    data: {
+      members: people,
+      invites: (invites ?? []).map((invite) => ({
+        id: invite.id,
+        name: invite.name,
+        email: invite.email,
+        role: invite.role,
+      })),
+      viewer,
+    },
   };
 }
 
@@ -363,11 +438,69 @@ export async function saveTeam(client: TeamClient, input: SaveTeamInput): Promis
     : createTeam(client, values, slugs);
 }
 
+const LIMIT_UNKNOWN = "Não foi possível conferir o limite de pessoas do plano.";
+
+/**
+ * O teto de pessoas do plano (`team_members` em `plan_entitlements`: uma no gratuito, cinco no Pro), que
+ * nenhum ponto do convite conferia (2026-09-22, na varredura). O que já ocupa lugar são os membros mais os
+ * convites pendentes: sem somar o pendente, vinte convites saem de uma vez e o teto só seria furado na
+ * aceitação, quando não há mais o que recusar. Quem compara é o banco, na mesma `plan_within_limit` que o
+ * resto do mapa de recursos usa.
+ *
+ * O e-mail que está sendo convidado entra aqui porque o convite pendente dele não ocupa lugar novo: o
+ * `create_invite` apaga o pendente daquele endereço antes de gravar o outro, então reenviar deixa o total de
+ * gente igual. Contando o próprio pendente, uma equipe no teto recusava o reenvio de um convite que ela
+ * mesma já tinha mandado. O endereço chega normalizado pelo esquema, do mesmo jeito que a coluna o guarda.
+ *
+ * Fica aqui, e não na action, para a rota de `api/v1` e o aplicativo herdarem a regra. Devolve a mensagem
+ * do bloqueio, ou nulo quando ainda cabe gente.
+ */
+async function memberLimitBlock(client: TeamClient, organizationId: string, email: string): Promise<string | null> {
+  const [members, invites] = await Promise.all([
+    client
+      .from("organization_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("organization_id", organizationId),
+    client
+      .from("organization_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .is("accepted_at", null)
+      .neq("email", email),
+  ]);
+
+  /* Sem conseguir conferir, o convite não sai: deixar passar por engano do banco é justamente como o teto
+     deixou de existir. Contagem que falhou volta com `count` nulo e sem lançar, então ela precisa ser lida
+     aqui: somada como zero, ela fazia o teto liberar tudo, o contrário do que esta função existe para fazer. */
+  if (members.error) return messageOf(members.error, LIMIT_UNKNOWN);
+  if (invites.error) return messageOf(invites.error, LIMIT_UNKNOWN);
+
+  const { data: fits, error } = await client.rpc("plan_within_limit", {
+    p_organization_id: organizationId,
+    p_feature_key: "team_members",
+    p_count: (members.count ?? 0) + (invites.count ?? 0),
+  });
+
+  if (error) return messageOf(error, LIMIT_UNKNOWN);
+  if (fits) return null;
+
+  const { data: limit } = await client.rpc("plan_limit", {
+    p_organization_id: organizationId,
+    p_feature_key: "team_members",
+  });
+
+  const room = limit === 1 ? "uma pessoa" : `${limit ?? 0} pessoas`;
+  return `O plano em vigor é de ${room} na equipe, contando os convites pendentes. Mude de plano para convidar mais gente.`;
+}
+
 export async function inviteMember(
   client: TeamClient,
   input: CreateInviteInput,
   context: { origin: string; teamName: string; inviterName: string | null },
 ): Promise<ServiceResult<TeamInvite>> {
+  const blocked = await memberLimitBlock(client, input.organizationId, input.email);
+  if (blocked) return { ok: false, error: blocked };
+
   const { data: token, error } = await client.rpc("create_invite", {
     p_organization_id: input.organizationId,
     p_email: input.email,
@@ -403,57 +536,77 @@ export async function changeMemberRole(
   client: TeamClient,
   input: { organizationId: string; userId: string; role: MemberRole },
 ): Promise<ServiceResult<undefined>> {
-  const { error } = await client
+  const result = await client
     .from("organization_members")
     .update({ role: input.role })
     .eq("organization_id", input.organizationId)
-    .eq("user_id", input.userId);
+    .eq("user_id", input.userId)
+    .select("user_id")
+    .maybeSingle();
 
-  if (error) return { ok: false, error: messageOf(error, "Não foi possível trocar o papel dessa pessoa.") };
-  return { ok: true, data: undefined };
+  return confirmWrite(
+    result,
+    "Não foi possível trocar o papel dessa pessoa.",
+    "Só quem é dono da equipe troca papéis, e a pessoa precisa continuar nela.",
+  );
 }
 
 export async function removeMember(
   client: TeamClient,
   input: { organizationId: string; userId: string },
 ): Promise<ServiceResult<undefined>> {
-  const { error } = await client
+  const result = await client
     .from("organization_members")
     .delete()
     .eq("organization_id", input.organizationId)
-    .eq("user_id", input.userId);
+    .eq("user_id", input.userId)
+    .select("user_id")
+    .maybeSingle();
 
-  if (error) return { ok: false, error: messageOf(error, "Não foi possível remover essa pessoa.") };
-  return { ok: true, data: undefined };
+  return confirmWrite(
+    result,
+    "Não foi possível remover essa pessoa.",
+    "Essa pessoa já não está mais na equipe, ou você não pode removê-la.",
+  );
 }
 
 export async function changeInviteRole(
   client: TeamClient,
   input: { organizationId: string; inviteId: string; role: InvitableRole },
 ): Promise<ServiceResult<undefined>> {
-  const { error } = await client
+  const result = await client
     .from("organization_invites")
     .update({ role: input.role })
     .eq("organization_id", input.organizationId)
     .eq("id", input.inviteId)
-    .is("accepted_at", null);
+    .is("accepted_at", null)
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { ok: false, error: messageOf(error, "Não foi possível trocar o papel do convite.") };
-  return { ok: true, data: undefined };
+  return confirmWrite(
+    result,
+    "Não foi possível trocar o papel do convite.",
+    "Esse convite já não está mais pendente, ou você não pode mudá-lo.",
+  );
 }
 
 export async function cancelInvite(
   client: TeamClient,
   input: { organizationId: string; inviteId: string },
 ): Promise<ServiceResult<undefined>> {
-  const { error } = await client
+  const result = await client
     .from("organization_invites")
     .delete()
     .eq("organization_id", input.organizationId)
-    .eq("id", input.inviteId);
+    .eq("id", input.inviteId)
+    .select("id")
+    .maybeSingle();
 
-  if (error) return { ok: false, error: messageOf(error, "Não foi possível cancelar o convite.") };
-  return { ok: true, data: undefined };
+  return confirmWrite(
+    result,
+    "Não foi possível cancelar o convite.",
+    "Esse convite já saiu da lista de pendentes.",
+  );
 }
 
 export async function createImageUpload(

@@ -61,7 +61,13 @@ try {
   check("Edição pela API atualiza a página em cache", refreshedClients.includes("Contato revisado"));
   const item = await api("catalogo", "POST", { kind: "service", name: "Serviço da auditoria", description: "Descrição de teste do serviço", category: "Sites", price: 10000, unit: "project", cost: null, maxDiscount: 0, supportDays: null, duration: null, revisions: null, stock: null, deliverables: [], requirements: [], tags: [], notes: "", active: true });
   const project = await api("projetos", "POST", { name: "Projeto da auditoria", url: "", description: "", clientId: contactId, ownerId: userId, memberIds: [], status: "active", isPublic: false, tags: [], tools: [], budgetMin: null, budgetMax: null, startedAt: "2026-09-20", dueAt: "", progress: 0, coverUrl: "" });
-  const task = await api("tarefas", "POST", { projectId: project?.id ?? null, title: "Tarefa da auditoria", description: "", dueDate: "2026-10-20", startDate: "", estimate: null, stage: "todo", priority: "normal", ownerId: userId, tags: [], alert: "" });
+  // A etapa da tarefa e linha de tabela da equipe desde 2026-09-21: a sonda le o id em vez de mandar o codigo antigo.
+  const stages = await api(`tarefas/etapas?projeto=${project?.id ?? ""}`);
+  const stageId = stages?.stages?.[0]?.id ?? null;
+  check("Etapas do quadro listadas", Boolean(stageId), stageId ? "" : "A lista de etapas veio vazia");
+  const task = stageId
+    ? await api("tarefas", "POST", { projectId: project?.id ?? null, title: "Tarefa da auditoria", description: null, dueDate: "2026-10-20", startDate: "", estimate: null, stageId, priority: "normal", ownerId: userId, tags: [], alert: "" })
+    : null;
   const quote = await api("orcamentos", "POST", { title: "Orçamento da auditoria", clientId: contactId, issuedAt: "2026-09-20", validUntil: "2026-10-20", lines: [{ id: randomUUID(), catalogItemId: item?.id ?? null, name: "Serviço de teste", description: "", quantity: 1, unitPrice: 10000, unit: "project", courtesy: "no" }], discount: null, installments: 1, paymentMethods: ["pix"], cashDiscount: 0, notes: "", intent: "draft" });
   const contract = await api("contratos", "POST", { source: "scratch", clientId: contactId });
   const opportunity = await api("crm", "POST", { funnelId: null, title: "Oportunidade da auditoria", description: "", clientId: contactId, clientName: "Contato revisado", clientCompany: "", contactName: "", contactEmail: "", contactPhone: "", stage: "lead", value: 10000, temperature: "warm", probability: 50, city: "", state: "", expectedAt: "", ownerId: userId, tags: [], source: "outro", partnerCode: "", nextStepLabel: "", nextStepAt: "" });
@@ -121,9 +127,10 @@ try {
   check("Tarefa persistida", Boolean(task?.id));
   check("Oportunidade persistida", Boolean(opportunity?.id));
   if (task?.id) {
-    await api(`tarefas/${task.id}`, "PATCH", { id: task.id, stage: "done", position: 0 });
+    const target = stages?.stages?.find((entry) => entry.kind === "done") ?? stages?.stages?.[stages.stages.length - 1];
+    await api(`tarefas/${task.id}`, "PATCH", { id: task.id, stageId: target?.id, position: 0 });
     const done = await api(`tarefas/${task.id}`);
-    check("Mudança de etapa persiste", done?.stage === "done");
+    check("Mudança de etapa persiste", done?.stage?.id === target?.id);
     await api(`tarefas/${task.id}`, "DELETE");
     await api(`tarefas/${task.id}`, "GET", undefined, 404);
   }

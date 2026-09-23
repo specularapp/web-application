@@ -3,6 +3,7 @@
 import { ArrowCounterClockwiseIcon, ListBulletsIcon, MinusCircleIcon, PlusIcon, SquaresFourIcon, TagIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
@@ -42,10 +43,15 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { deleteCatalogItemsAction } from "../actions";
 import { CatalogCard } from "./catalog-card";
-import { CatalogDrawer } from "./catalog-drawer";
-import { CatalogFormDialog, type CatalogEditor } from "./catalog-form-dialog";
+import type { CatalogEditor } from "./catalog-form-dialog";
 import { CatalogTable } from "./catalog-table";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import styles from "./catalog-board.module.css";
+
+/* A ficha do item e o formulário entram por importação dinâmica, montados só na primeira abertura
+   (varredura de peso de 2026-09-21): o catálogo abre para ler a lista, e não para editar um item. */
+const CatalogDrawer = dynamic(() => import("./catalog-drawer").then((module) => module.CatalogDrawer));
+const CatalogFormDialog = dynamic(() => import("./catalog-form-dialog").then((module) => module.CatalogFormDialog));
 
 export type CatalogBoardProps = {
   page: CatalogListPage;
@@ -123,6 +129,9 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   const [deleting, setDeleting] = useState<CatalogItem | null>(null);
   const [removing, setRemoving] = useState(false);
   const [hidden, setHidden] = useState<string[]>([]);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const drawerReady = useOpenedOnce(open !== null);
+  const editorReady = useOpenedOnce(editor !== null);
   const items = page.items.filter((item) => !hidden.includes(item.id));
   const total = Math.max(0, page.total - (page.items.length - items.length));
 
@@ -146,14 +155,25 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
   };
 
   useEffect(() => {
+    /* O id do item também tem ramo, como nas pranchas de contrato e de projeto: sem ele, o voltar depois de
+       fechar a janela levava a URL para /catalogo/<id> sem nada aberto na tela, e um F5 nesse estado abria
+       uma janela que ninguém pediu (2026-09-22, na varredura). Um id que não está na página em vigor fecha,
+       em vez de abrir a ficha errada. */
     const onPopState = () => {
       const [, , segment] = window.location.pathname.split("/");
-      if (!segment) setEditor(null);
-      else if (segment === "novo") setEditor("new");
+      if (!segment) {
+        setEditor(null);
+        return;
+      }
+      if (segment === "novo") {
+        setEditor("new");
+        return;
+      }
+      setEditor(page.items.find((item) => item.id === segment) ?? null);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [page.items]);
 
   const editorPath = (next: CatalogEditor) => (next === null ? "/catalogo" : next === "new" ? "/catalogo/novo" : `/catalogo/${next.id}`);
 
@@ -441,14 +461,16 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
         </div>
       )}
 
-      <CatalogDrawer
-        item={open}
-        active={open ? isActive(open) : true}
-        onActiveChange={open ? setActive(open) : () => undefined}
-        onClose={() => setOpen(null)}
-        onEdit={() => open && editItem(open)}
-        onDelete={() => open && setDeleting(open)}
-      />
+      {drawerReady && (
+        <CatalogDrawer
+          item={open}
+          active={open ? isActive(open) : true}
+          onActiveChange={open ? setActive(open) : () => undefined}
+          onClose={() => setOpen(null)}
+          onEdit={() => open && editItem(open)}
+          onDelete={() => open && setDeleting(open)}
+        />
+      )}
       <ConfirmDialog
         open={deleting !== null}
         pending={removing}
@@ -457,14 +479,16 @@ export function CatalogBoard({ page, query, view: saved, editing }: CatalogBoard
         onClose={() => setDeleting(null)}
         onConfirm={() => void removeItem()}
       />
-      <CatalogFormDialog
-        editor={editor}
-        categories={page.categories}
-        onClose={() => openEditor(null)}
-        onSaved={() => {
-          openEditor(null);
-        }}
-      />
+      {editorReady && (
+        <CatalogFormDialog
+          editor={editor}
+          categories={page.categories}
+          onClose={() => openEditor(null)}
+          onSaved={() => {
+            openEditor(null);
+          }}
+        />
+      )}
     </div>
   );
 }

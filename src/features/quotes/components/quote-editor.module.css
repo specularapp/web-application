@@ -117,7 +117,6 @@
   padding: var(--space-half);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .tab {
@@ -131,7 +130,6 @@
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);
@@ -250,7 +248,6 @@
   background-color: var(--color-fill-quaternary);
   border: 0;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 /* Fechado dentro da parte aberta, o cartão é o botão que reabre aquele item. */
@@ -329,7 +326,6 @@
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 /* O cabeçalho da linha: a contagem à esquerda, os dois botões miúdos na ponta e o fio separando dos campos

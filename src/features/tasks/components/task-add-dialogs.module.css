@@ -40,8 +40,10 @@
 }
 
 .head {
-  display: grid;
-  gap: var(--space-half);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
   min-width: 0;
 }
 
@@ -140,6 +142,11 @@
   justify-content: end;
 }
 
+/* Excluir, ao lado do salvar, no tom de perigo. */
+.danger {
+  color: var(--color-danger);
+}
+
 /**
  * A área de soltar arquivo: a caixa tracejada com o azulejo, o convite e o campo escondido por dentro. O
  * tracejado é o que diz "solte aqui" sem precisar de texto, e acende no arrasto e ao apontar.
@@ -220,7 +227,6 @@
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .pickedMark {

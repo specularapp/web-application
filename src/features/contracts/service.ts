@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { addDays, format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dispatchAutomationEvent } from "@/features/automations/service";
@@ -330,7 +331,7 @@ export async function createContract(
     expires_in_days: 15,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const issuerError = await createIssuerParty(client, organizationId, id, userId);
   if (issuerError) {
@@ -404,7 +405,7 @@ export async function createPdfContract(
 
   if (error) {
     await client.storage.from(CONTRACT_BUCKET).remove([path]);
-    return { ok: false, error: error.message };
+    return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   }
 
   const issuerError = await createIssuerParty(client, organizationId, id, userId);
@@ -487,7 +488,7 @@ export async function saveContract(
     .eq("id", input.id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   /* O editor grava a cada pausa, então o histórico registra a edição sem o campo a campo, que aqui seria o
      documento inteiro a cada tecla. */
@@ -643,7 +644,7 @@ export async function sendContract(
     .eq("id", id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await client.from("contract_events").insert({
     organization_id: organizationId,
@@ -679,7 +680,7 @@ export async function cancelContract(
     .eq("id", id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await client.from("contract_events").insert({ organization_id: organizationId, contract_id: id, kind: "cancelled", actor });
   await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "archived", summary: "Cancelou o contrato" });

@@ -38,7 +38,6 @@ const Row = styled.li`
   padding: var(--space-1) var(--space-2);
   color: var(--color-label);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     box-shadow var(--duration-fast) var(--ease-standard);

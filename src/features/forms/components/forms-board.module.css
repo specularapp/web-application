@@ -1,0 +1,13 @@
+.board { min-height: 0; overflow: auto; padding: var(--space-4) var(--space-6) var(--space-8); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--space-4); margin-top: var(--space-5); }
+.card { min-width: 0; }
+.cardMain { width: 100%; min-width: 0; padding: 0; text-align: left; color: inherit; background: transparent; border: 0; cursor: pointer; }
+.cardMain:hover { background: var(--color-fill-quaternary); }
+.cardHead { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.names { display: grid; flex: 1; min-width: 0; }
+.names strong, .names span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.names span, .meta { color: var(--color-secondary-label); font-size: var(--text-caption-1); }
+.cardMain p { display: -webkit-box; min-height: 2.8em; margin: var(--space-4) 0; overflow: hidden; color: var(--color-secondary-label); font-size: var(--text-footnote); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.meta { display: flex; justify-content: space-between; gap: var(--space-3); }
+.meta span { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+@media (max-width: 47.9375rem) { .board { overflow: visible; padding: var(--space-3) var(--space-4) var(--space-8); } .grid { grid-template-columns: 1fr; } }

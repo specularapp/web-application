@@ -3,6 +3,7 @@
 import { ArrowCounterClockwiseIcon, FlowArrowIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { useToast } from "@/components/providers/toast-provider";
@@ -16,9 +17,13 @@ import { automationStatuses } from "../labels";
 import { QUERY_PARAM, STATUS_PARAM, activeAutomationsFilters, clearedFilters, defaultQuery, statusFilterLabels, statusFilterValues, type AutomationsListPage, type AutomationsQuery } from "../list-options";
 import type { Automation, AutomationRun } from "../summary";
 import { AutomationCard } from "./automation-card";
-import { NewAutomationDialog } from "./new-automation-dialog";
-import { RunLogDialog } from "./run-log-dialog";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import styles from "./automations-board.module.css";
+
+/* A automação nova e o registro de execuções entram por importação dinâmica, montados só na primeira
+   abertura (varredura de peso de 2026-09-21). */
+const NewAutomationDialog = dynamic(() => import("./new-automation-dialog").then((module) => module.NewAutomationDialog));
+const RunLogDialog = dynamic(() => import("./run-log-dialog").then((module) => module.RunLogDialog));
 import { callAction } from "@/lib/action";
 
 export type AutomationsBoardProps = {
@@ -134,6 +139,9 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
 
   const [deleting, setDeleting] = useState<Automation | null>(null);
   const [removing, setRemoving] = useState(false);
+  /* As janelas pesadas nascem só na primeira abertura, e seguem montadas depois, para a saída animar. */
+  const createReady = useOpenedOnce(creating);
+  const logReady = useOpenedOnce(log !== null);
   const remove = async () => {
     if (!deleting) return;
     const target = deleting;
@@ -257,9 +265,13 @@ export function AutomationsBoard({ page, query, creating: initialCreating = fals
         )}
       </div>
 
-      <NewAutomationDialog open={creating} installed={page.installed} onClose={() => show(false)} onCreated={created} />
+      {createReady && (
+        <NewAutomationDialog open={creating} installed={page.installed} onClose={() => show(false)} onCreated={created} />
+      )}
 
-      <RunLogDialog open={log !== null} onClose={() => setLog(null)} name={log?.automation.name ?? ""} runs={log?.automation.runs ?? []} highlight={log?.highlight} />
+      {logReady && (
+        <RunLogDialog open={log !== null} onClose={() => setLog(null)} name={log?.automation.name ?? ""} runs={log?.automation.runs ?? []} highlight={log?.highlight} />
+      )}
 
       <ConfirmDialog
         open={deleting !== null}

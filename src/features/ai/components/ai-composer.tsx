@@ -27,7 +27,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "@/features/tasks/components/chat-audio";
 import { acceptAny, acceptDocuments, acceptImages, sizeLabel } from "@/features/tasks/files";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { aiModel, aiModels, defaultAiModel, type AiModelId } from "../models";
 import { aiScopeIds, aiScopeLabel, aiScopeLabels, defaultAiScope, type AiScopeId } from "../scope";
 import { aiRemaining, type AiAttachment, type AiUsage, type AiVoice } from "../summary";
@@ -208,13 +208,13 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
 
   return (
     <form className={styles.composer} data-sheet={sheet || undefined} onSubmit={submit}>
-      <div className={styles.card} {...squircle("lg")}>
+      <div className={styles.card} {...rounded("lg")}>
         {/* O que vai junto da pergunta sem ninguém pedir: a tela aberta atrás, numa linha fina no alto do
             cartão, separada do campo pelo mesmo fio da casa. Sem caixa dentro de caixa (2026-09-14): a tira
             com fundo e fio próprios dentro de um cartão que já tem os dois lia como um aviso colado ali. Some
             no × e volta sozinha na próxima tela, porque lá o que vai junto é outro. */}
         {sharing && PageGlyph && (
-          <div className={styles.context} {...squircle("md")}>
+          <div className={styles.context} {...rounded("md")}>
             <PageGlyph className={styles.contextGlyph} />
             <Text as="span" variant="caption2" tone="secondary" truncate className={styles.contextName}>
               Ativo em {sharing.trail}
@@ -239,7 +239,7 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
 
         {voice && (
           <div className={styles.pending}>
-            <span className={styles.audio} {...squircle("md")}>
+            <span className={styles.audio} {...rounded("md")}>
               <AudioBubble audio={voice} />
             </span>
             <IconButton label="Tirar o áudio" variant="ghost" size="sm" onClick={() => setVoice(null)}>
@@ -251,7 +251,7 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
         {files.length > 0 && (
           <ul className={styles.files}>
             {files.map((file) => (
-              <li key={file.id} className={styles.file} {...squircle("sm")}>
+              <li key={file.id} className={styles.file} {...rounded("sm")}>
                 <Text as="span" variant="caption2" weight="medium" truncate>
                   {file.name}
                 </Text>
@@ -304,7 +304,7 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
               triggerLabel={"Modo de resposta: " + chosen.label}
               sections={modelSections}
               triggerContent={
-                <span className={styles.pill} title={chosen.hint} {...squircleAuto()}>
+                <span className={styles.pill} title={chosen.hint} {...roundedAuto()}>
                   <Text as="span" variant="caption2" weight="medium">
                     {chosen.label}
                   </Text>
@@ -320,7 +320,7 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
                 triggerLabel={"Fontes da resposta: " + aiScopeLabel(scope.chosen)}
                 sections={scopeSections}
                 triggerContent={
-                  <span className={styles.pill} {...squircleAuto()}>
+                  <span className={styles.pill} {...roundedAuto()}>
                     <BooksIcon />
                     <Text as="span" variant="caption2" weight="medium">
                       {aiScopeLabel(scope.chosen)}

@@ -24,11 +24,28 @@ import {
   setProjectStatus,
 } from "./service";
 import type { ProjectDetails } from "./summary";
+import { enableProjectTracking } from "./tracking";
+import { siteConfig } from "@/lib/metadata";
+import { ensureClientFeedback } from "@/features/feedbacks/service";
+import { feedbackUrl } from "@/features/feedbacks/share";
 
 export type ProjectSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
 export type ProjectDeleteResult = { ok: true } | { ok: false; error: string };
 export type FolderSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
 export type FolderResult = { ok: true } | { ok: false; error: string };
+export type ProjectStatusResult = { ok: true; feedbackUrl?: string } | { ok: false; error: string };
+
+/** Ativa ou renova por 180 dias o endereço que o cliente usa para acompanhar o projeto. */
+export async function projectTrackingLinkAction(input: unknown) {
+  const guard = await guardAction("project-tracking-link");
+  if (!guard.ok) return { ok: false as const, error: guard.error };
+  const parsed = projectIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Projeto inválido." };
+  const result = await enableProjectTracking(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!result.ok) return result;
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos"]);
+  return { ok: true as const, url: `${siteConfig.url}/acompanhar/${result.token}`, expiresAt: result.expiresAt };
+}
 
 /**
  * A ficha completa de um projeto, buscada quando a janela abre. É buscada, e não mandada junto da listagem,
@@ -133,18 +150,33 @@ export async function moveProjectAction(input: unknown): Promise<FolderResult> {
  * A situação pelo leque: pausar, retomar, concluir. Derruba `projects`, que leva tarefas e concha na
  * cascata: o projeto concluído sai da árvore do menu, e o quadro dele passa a mostrar isso.
  */
-export async function setProjectStatusAction(input: unknown): Promise<FolderResult> {
+export async function setProjectStatusAction(input: unknown): Promise<ProjectStatusResult> {
   const guard = await guardAction("project-status");
   if (!guard.ok) return { ok: false, error: guard.error };
 
   const parsed = projectStatusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Situação inválida." };
 
+  let publicFeedbackUrl: string | undefined;
+  if (parsed.data.status === "done") {
+    const feedback = await ensureClientFeedback(guard.context.supabase, guard.context.organizationId, guard.context.user.id, {
+      projectId: parsed.data.id,
+      title: "Como foi trabalhar conosco?",
+      prompt: "Sua avaliação nos ajuda a melhorar as próximas entregas.",
+    }, { updateExisting: false });
+    if (!feedback.ok) return { ok: false, error: `Não foi possível preparar a avaliação: ${feedback.error}` };
+    publicFeedbackUrl = feedbackUrl(feedback.data.feedback.shareToken);
+  }
+
   const saved = await setProjectStatus(guard.context.supabase, guard.context.organizationId, parsed.data.id, parsed.data.status);
   if (!saved.ok) return { ok: false, error: saved.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/tarefas"]);
-  return { ok: true };
+  await revalidateDomain(
+    guard.context.organizationId,
+    parsed.data.status === "done" ? [cacheTags.projects, cacheTags.feedbacks] : [cacheTags.projects],
+    parsed.data.status === "done" ? ["/projetos", "/tarefas", "/feedbacks"] : ["/projetos", "/tarefas"],
+  );
+  return { ok: true, feedbackUrl: publicFeedbackUrl };
 }
 
 /**

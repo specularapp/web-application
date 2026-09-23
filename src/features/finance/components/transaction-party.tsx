@@ -2,7 +2,7 @@ import type { Icon } from "@phosphor-icons/react";
 import { ArrowDownLeftIcon, ArrowUpRightIcon, CalendarCheckIcon } from "@phosphor-icons/react/ssr";
 import { Avatar } from "@/components/ui/avatar";
 import { BrandIcon } from "@/components/ui/brand-icon";
-import { iconButtonCornerRadius, squirclePx } from "@/lib/corners";
+import { iconButtonCornerRadius, roundedPx } from "@/lib/corners";
 import type { Transaction, TransactionKind } from "../summary";
 import styles from "./transaction-party.module.css";
 
@@ -15,9 +15,9 @@ const icons: Record<TransactionKind, Icon> = {
 };
 
 /* Chip no raio de metade do lado, a escala do botão de ícone, recortado no fallback porque não tem borda. */
-const corners: Record<TransactionPartySize, ReturnType<typeof squirclePx>> = {
-  sm: squirclePx(iconButtonCornerRadius.sm, { clip: true }),
-  lg: squirclePx(iconButtonCornerRadius.lg, { clip: true }),
+const corners: Record<TransactionPartySize, ReturnType<typeof roundedPx>> = {
+  sm: roundedPx(iconButtonCornerRadius.sm, { clip: true }),
+  lg: roundedPx(iconButtonCornerRadius.lg, { clip: true }),
 };
 
 // Quem está do outro lado da movimentação: a pessoa pelo `Avatar` (foto, ou o rosto gerado), o serviço
@@ -27,7 +27,7 @@ export function TransactionParty({ transaction, size = "sm" }: { transaction: Tr
   const { visual } = transaction;
 
   if (visual?.type === "person") {
-    return <Avatar name={transaction.title} src={visual.avatarUrl ?? undefined} size={size} shape="squircle" />;
+    return <Avatar name={transaction.title} src={visual.avatarUrl ?? undefined} size={size} shape="rounded" />;
   }
 
   if (visual?.type === "brand") {

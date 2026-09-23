@@ -1,0 +1,75 @@
+/* A vida inteira do aviso num quadro só: o véu e o cartão entram, seguram e saem juntos. */
+@keyframes layerLife {
+  0% {
+    opacity: 0;
+  }
+  10%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cardEnter {
+  from {
+    scale: 0.94;
+  }
+}
+
+/* O véu cobre a tela e centra o cartão nos dois tamanhos, acima da barra flutuante do celular. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  pointer-events: none;
+  background-color: var(--color-scrim-soft);
+  animation: layerLife 1900ms var(--ease-standard) both;
+}
+
+.card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  width: min(20rem, 100%);
+  padding: var(--space-8) var(--space-6);
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  animation: cardEnter var(--duration-slow) var(--ease-spring);
+}
+
+/* Duas bolas de cor em quinas opostas, na mesma técnica da boas-vindas: gradiente radial em vez de filtro de
+   desfoque, que custaria uma camada do tamanho do cartão. */
+.glow {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(14rem 10rem at 0% 0%, color-mix(in oklab, var(--sys-indigo) 85%, transparent), transparent 62%),
+    radial-gradient(14rem 10rem at 100% 100%, color-mix(in oklab, var(--sys-mint) 70%, transparent), transparent 62%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.copy {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.reference {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}

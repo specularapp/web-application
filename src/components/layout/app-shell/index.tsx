@@ -5,7 +5,9 @@ import { AiPanelProvider, type AiPanelData } from "@/features/ai/components/ai-p
 import { PlanGateProvider } from "@/features/billing/components/plan-gate";
 import type { PlanId } from "@/features/billing/plans";
 import { getShellData } from "@/features/organizations/shell-data";
-import { FloatingActionsProvider } from "../floating-actions";
+import { getTimeTrackerData } from "@/features/time-tracking/queries";
+import { TimeTrackerProvider } from "@/features/time-tracking/components/time-tracker-provider";
+import { DEFAULT_TIMER_POSITION, type TimeEntry, type TimerPosition } from "@/features/time-tracking/summary";
 import { Sidebar } from "../sidebar";
 import styles from "./app-shell.module.css";
 
@@ -18,10 +20,10 @@ import styles from "./app-shell.module.css";
  * a coluna abre. Elas chegam por action na primeira abertura.
  */
 export async function AppShell({ children }: { children: ReactNode }) {
-  const shell = await getShellData();
+  const [shell, tracker] = await Promise.all([getShellData(), getTimeTrackerData()]);
 
   return (
-    <AppFrame ai={{ usage: shell.ai, viewer: shell.user.name }} plan={shell.effectivePlan} sidebar={
+    <AppFrame activeTime={tracker.active} timerPosition={tracker.position} ai={{ usage: shell.ai, viewer: shell.user.name }} plan={shell.effectivePlan} sidebar={
         <Sidebar
           team={shell.team}
           user={shell.user}
@@ -45,15 +47,18 @@ export type AppFrameProps = {
   ai?: AiPanelData;
   /** O plano em vigor, para o portão que toda ação bloqueada consulta. */
   plan?: PlanId;
+  activeTime?: TimeEntry | null;
+  /** Onde a ilha do cronômetro ficou da última vez que a pessoa a arrastou. */
+  timerPosition?: TimerPosition;
 };
 
 /** A moldura: trilha do menu, coluna que rola e a coluna do assistente. */
-export function AppFrame({ sidebar, children, ai, plan = "free" }: AppFrameProps) {
+export function AppFrame({ sidebar, children, ai, plan = "free", activeTime = null, timerPosition = DEFAULT_TIMER_POSITION }: AppFrameProps) {
   return (
     /* O portão de plano abraça tudo: qualquer ação da aplicação pode esbarrar num bloqueio, e o modal
        central precisa abrir por cima da tela em que a pessoa está, e não em outra. */
     <PlanGateProvider plan={plan}>
-      <FloatingActionsProvider>
+      <TimeTrackerProvider initialEntry={activeTime} initialPosition={timerPosition}>
         {/* Quem abre o assistente é o widget do topo, lá dentro da página, e quem aparece é uma coluna irmã
             do conteúdo: os dois só se encontram aqui em cima. */}
         <AiPanelProvider data={ai}>
@@ -67,7 +72,7 @@ export function AppFrame({ sidebar, children, ai, plan = "free" }: AppFrameProps
             <AiPanel />
           </div>
         </AiPanelProvider>
-      </FloatingActionsProvider>
+      </TimeTrackerProvider>
     </PlanGateProvider>
   );
 }

@@ -190,18 +190,24 @@
   justify-content: space-between;
 }
 
+/* "1 de 2" e a barra lado a lado e numa linha só: sem isso a conta quebrava no meio. */
 .count {
   display: inline-flex;
+  flex-shrink: 0;
   gap: var(--space-2);
   align-items: center;
+  white-space: nowrap;
 }
 
 .progress {
   width: 4rem;
 }
 
+/* Uma coluna que não cresce além da ficha: sem o piso zero, um título comprido esticava a lista, e a ficha
+   inteira rolava para o lado no celular. */
 .list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   padding: 0;
   margin: 0;
@@ -210,44 +216,106 @@
 
 /* Subtarefa: a caixa da casa com o título como rótulo, e quem cuida na ponta; marcada fica riscada e
    apagada. As duas classes vencem o estilo da caixa, que entra depois na folha. */
+/* Subtarefa: a alça de arrastar, a caixa de marcar, o título numa linha só e as atribuições na ponta.
+   Tocar no título abre a subtarefa inteira para ver e editar. */
 .subtask {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
+  min-width: 0;
   min-height: 1.5rem;
+  padding-inline-end: var(--space-1);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* O realce da linha inteira ao apontar, para o olho seguir a subtarefa até as atribuições da ponta. */
+@media (hover: hover) {
+  .subtask:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.subtask[data-dragging] {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-md);
+}
+
+/* A alça é discreta: o glifo apagado, que acende ao apontar, e o gesto de pegar no ponteiro. */
+.handle.handle {
+  flex-shrink: 0;
+  color: var(--color-label-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:active {
+  cursor: grabbing;
 }
 
 .subtask .check {
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
-.subtask[data-done] .check {
+.subtaskTitle {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: var(--text-subheadline);
+  color: var(--color-label);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.subtaskTitle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.subtask[data-done] .subtaskTitle {
   color: var(--color-label-secondary);
   text-decoration: line-through;
 }
 
 /* Anexo num cartão no preenchimento da casa, que é um botão e abre o arquivo na própria tela: o ícone do
    tipo num chip, nome e formato, a situação e a seta na ponta. */
+/**
+ * O anexo é só a prévia num quadrado (2026-09-22, a pedido: "apenas a imagem em um quadrado, para ficar
+ * organizado e minimalista"): a imagem cobre o quadrado, e o que não é imagem mostra a marca do serviço ou o
+ * glifo do formato no meio. O nome sai da vista e fica para a dica e para a leitura de tela; o resto mora no
+ * visualizador, que abre no toque.
+ */
 .file {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 100%;
-  padding: var(--space-3);
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
   font: inherit;
-  color: inherit;
-  text-align: start;
+  color: var(--color-label-secondary);
   appearance: none;
   cursor: pointer;
-  border: 0;
   background-color: var(--color-fill-quaternary);
+  border: 0;
   border-radius: var(--radius-md);
-  transition: background-color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
 }
 
 .file:active {
-  background-color: var(--color-fill-secondary);
+  opacity: 0.8;
 }
 
 @media (hover: hover) {
@@ -261,30 +329,11 @@
   }
 }
 
-.open {
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  color: var(--color-label-tertiary);
-}
-
 .fileIcon {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: grid;
-  flex-shrink: 0;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  overflow: hidden;
-  color: var(--color-label-secondary);
-  background-color: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-/* Com prévia de imagem, o azulejo é a moldura dela: a imagem preenche cobrindo, e o fundo passa a ser o
-   preenchimento da casa, que é o que aparece enquanto ela carrega. */
-.fileIcon[data-preview] {
-  background-color: var(--color-fill-quaternary);
 }
 
 .fileIcon[data-preview] img {
@@ -292,52 +341,31 @@
 }
 
 .fileIcon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 /* A marca do serviço no lugar do glifo: o `BrandIcon` mede 1.2em, então quem dá o tamanho é a fonte. */
 .fileBrand {
-  font-size: 1.0625rem;
+  font-size: 1.75rem;
 }
 
-.fileCopy {
-  display: grid;
-  flex: 1;
-  gap: var(--space-half);
-  min-width: 0;
-}
-
+/* A situação do arquivo, quando há, pousa no canto do quadrado. */
 .fileLabel {
-  flex-shrink: 0;
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-start: var(--space-1);
 }
 
-/* No celular o cartão vira grade e a etiqueta desce para a coluna do texto, embaixo do nome e do formato
-   (ajuste de 2026-09-08): na mesma linha ela roubava a largura do nome, que sobrava com um punhado de
-   pixels e virava reticência quase inteira. Ícone e seta ficam na linha do nome e se centram por ela. */
-@media (max-width: 47.9375rem) {
-  .file {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: var(--space-2) var(--space-3);
-    align-items: start;
-  }
-
-  .fileIcon,
-  .open {
-    grid-row: 1;
-    align-self: center;
-  }
-
-  .fileCopy {
-    grid-row: 1;
-  }
-
-  .fileLabel {
-    grid-row: 2;
-    grid-column: 2 / -1;
-    justify-self: start;
-  }
+/* Anexos e vínculos em grade (2026-09-22, a pedido): vários por linha, cada um na largura que o conteúdo
+   pede, em vez de uma faixa de largura cheia por item. No celular cabem dois lado a lado. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.5rem), 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 /* Atividade: a bolinha de quem fez, o que fez em uma linha e quando, embaixo. */

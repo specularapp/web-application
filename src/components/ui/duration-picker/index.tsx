@@ -9,7 +9,7 @@ import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { Dialog } from "../dialog";
 import { FieldAdornment, FieldShell } from "../field-shell";
 import { IconButton } from "../icon-button";
-import { popIn, type ControlSize } from "../styles";
+import { popIn, wheelFade, type ControlSize } from "../styles";
 import { Text } from "../text";
 
 export type DurationPickerProps = {
@@ -283,7 +283,7 @@ export function DurationPicker({
       )}
       {name && <input type="hidden" name={name} value={value} readOnly />}
       {sheet && (
-        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface="solid" scrim={false} focusOnOpen={false}>
+        <Dialog open={open} onClose={() => setOpen(false)} label={label} surface="glass" scrim={false} focusOnOpen={false}>
           <SheetBody ref={popoverRef} id={dialogId}>
             {wheels}
           </SheetBody>
@@ -361,13 +361,13 @@ const Popover = styled.div`
   position: fixed;
   z-index: var(--z-popover);
   padding: var(--space-3);
-  background-color: var(--color-bg-tertiary);
+  /* O vidro escuro das outras camadas da casa, como o calendário. */
+  background-color: var(--glass-layer-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
   transform-origin: var(--origin);
   animation: ${popIn} var(--duration-fast) var(--ease-standard);
 
@@ -420,7 +420,6 @@ const Lane = styled.div`
     content: "";
     background-color: var(--color-fill-quaternary);
     border-radius: var(--radius-md);
-    corner-shape: squircle;
   }
 `;
 
@@ -462,6 +461,7 @@ const Track = styled.div`
   overscroll-behavior: contain;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
+  ${wheelFade};
 
   &::-webkit-scrollbar {
     width: 0;

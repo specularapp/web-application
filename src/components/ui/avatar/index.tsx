@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { ComponentPropsWithoutRef, CSSProperties } from "react";
-import { squircleAuto } from "@/lib/corners";
+import { roundedAuto } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
 import { cx } from "@/lib/utils/cx";
 import { hashString } from "@/lib/utils/hash";
@@ -8,7 +8,7 @@ import styles from "./avatar.module.css";
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg";
 
-export type AvatarShapeName = "circle" | "squircle" | "hexagon";
+export type AvatarShapeName = "circle" | "rounded" | "hexagon";
 
 export type AvatarProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
   name: string;
@@ -47,7 +47,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
       data-shape={shape}
       data-generated={src ? undefined : ""}
       style={vars}
-      {...(shape === "squircle" && squircleAuto())}
+      {...(shape === "rounded" && roundedAuto())}
       {...props}
     >
       {src ? (

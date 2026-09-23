@@ -143,7 +143,6 @@
   padding: var(--space-3);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .fact[data-tone="success"] > :nth-child(2) {
@@ -181,7 +180,6 @@
   padding: var(--space-2) var(--space-3);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .installment[data-status="paid"] {
@@ -269,7 +267,6 @@
   padding: var(--space-3);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .paymentHead {

@@ -17,7 +17,7 @@ import { StoredImage } from "@/components/ui/stored-image";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
@@ -33,10 +33,11 @@ import { useToast } from "@/components/providers/toast-provider";
 import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
-import { loadClientAction, saveClientAction } from "../actions";
+import { saveClientAction } from "../actions";
+import { ClientLoadFailure, useFullClient } from "../load-client";
 import { clientTagCatalog } from "../tags";
 import type { ClientListItem } from "../list-options";
 import { clientLimits, MAX_TAGS, type ClientFormInput } from "../schemas";
@@ -80,6 +81,16 @@ function valuesOf(client?: Client, defaultKind: ClientKind = "customer") {
 
 type Values = ReturnType<typeof valuesOf>;
 
+/**
+ * O `https://` que o campo mostra à esquerda e que `siteUrl` soma ao salvar.
+ *
+ * O teto do campo desconta estes oito caracteres (2026-09-22, na varredura): o `clientLimits.website` vale
+ * para o endereço já normalizado, que é o que o zod mede e o banco guarda, e o campo guarda o endereço nu.
+ * Sem o desconto, o campo aceitava 120 caracteres e o salvamento devolvia "Endereço longo demais" num campo
+ * que aparentava ainda ter folga.
+ */
+const SITE_PREFIX = "https://";
+
 /* Só o que foi criado aqui é desfeito: o endereço que veio da ficha é de fora. */
 function revokeLocal(url: string | null) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
@@ -119,7 +130,7 @@ function ImageField({
 
   return (
     <div className={styles.image}>
-      <span className={styles.imageFrame} {...squircle("lg", { clip: true })}>
+      <span className={styles.imageFrame} {...rounded("lg", { clip: true })}>
         {preview ? <StoredImage src={preview} alt="" fill sizes="3.5rem" className={styles.imagePreview} /> : fallback}
       </span>
       <div className={styles.imageCopy}>
@@ -166,19 +177,33 @@ function ImageField({
 // na hora; o envio do arquivo chega com o storage. Ativo e favorito ficam no menu do chevron duplo do topo.
 export function ClientFormDialog({ editor, defaultKind = "customer", onClose, onSaved }: ClientFormDialogProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
-  // O que está desenhado dentro da gaveta: segue o editor enquanto ele existe e fica quando ele zera, para
-  // o conteúdo não sumir antes de a gaveta terminar de sair (a `Dialog` só desmonta os filhos no fim da
-  // animação). Ajustado durante o render, que é como o React pede para reagir a prop nova.
-  const [shown, setShown] = useState<ClientEditor>(editor);
-  if (editor !== null && editor !== shown) setShown(editor);
+  // O que está desenhado dentro da gaveta e em que abertura. `shown` segue o editor enquanto ele existe e
+  // fica quando ele zera, para o conteúdo não sumir antes de a gaveta terminar de sair (a `Dialog` só
+  // desmonta os filhos no fim da animação). `round` conta as aberturas e entra na chave do formulário, e
+  // `last` é o editor do render anterior, que é como se sabe que a gaveta abriu de novo. Ajustado durante o
+  // render, que é como o React pede para reagir a prop nova.
+  //
+  // A chave é o que faz o formulário nascer limpo (2026-09-22, na varredura): sem ela o React reaproveitava
+  // a instância, porque o tipo e a posição na árvore são os mesmos, e o estado inicial não rodava de novo.
+  // Fechar e, dentro da animação de saída, abrir a edição de outro contato trazia os valores do anterior e
+  // salvava os dados de um na ficha do outro; reabrir "Novo cliente" trazia o texto já digitado.
+  const [drawn, setDrawn] = useState<{ shown: ClientEditor; last: ClientEditor; round: number }>(() => ({ shown: editor, last: editor, round: 0 }));
+  if (editor !== drawn.last) {
+    setDrawn((previous) => ({
+      shown: editor ?? previous.shown,
+      last: editor,
+      round: editor !== null && previous.last === null ? previous.round + 1 : previous.round,
+    }));
+  }
+  const { shown, round } = drawn;
 
   return (
     // Sem escurecimento no desktop, como a gaveta de criar equipe: a página segue viva atrás. No celular
     // o escurecimento entra, senão o toque na barra flutuante, que fica acima da bandeja, fecharia a janela
     // como toque fora.
     <Dialog open={editor !== null} onClose={onClose} label={editor === "new" ? (defaultKind === "supplier" ? "Novo fornecedor" : "Novo cliente") : "Editar contato"} size="md" placement="end" surface="glass" scrim={mobile} focusOnOpen={false}>
-      {shown === "new" && <ClientForm defaultKind={defaultKind} onClose={onClose} onSaved={onSaved} />}
-      {shown !== null && shown !== "new" && (isFull(shown) ? <ClientForm client={shown} onClose={onClose} onSaved={onSaved} /> : <ClientLoader item={shown} onClose={onClose} onSaved={onSaved} />)}
+      {shown === "new" && <ClientForm key={`${round}:novo`} defaultKind={defaultKind} onClose={onClose} onSaved={onSaved} />}
+      {shown !== null && shown !== "new" && (isFull(shown) ? <ClientForm key={`${round}:${shown.id}`} client={shown} onClose={onClose} onSaved={onSaved} /> : <ClientLoader key={`${round}:${shown.id}`} item={shown} onClose={onClose} onSaved={onSaved} />)}
     </Dialog>
   );
 }
@@ -187,39 +212,23 @@ export function ClientFormDialog({ editor, defaultKind = "customer", onClose, on
    enquanto a ficha completa chega, e aí o formulário entra já preenchido. É o mesmo desenho da gaveta de
    ficha, e é o que dá resposta ao clique na hora. */
 function ClientLoader({ item, onClose, onSaved }: { item: ClientListItem; onClose: () => void; onSaved: () => void }) {
-  const [full, setFull] = useState<Client | null>(null);
+  const { client, error: failed, retry } = useFullClient(item.id);
 
-  useEffect(() => {
-    let current = true;
-    void loadClientAction(item.id).then((data) => {
-      if (current) setFull(data);
-    });
-    return () => {
-      current = false;
-    };
-  }, [item.id]);
-
-  if (full) return <ClientForm client={full} onClose={onClose} onSaved={onSaved} />;
+  if (client) return <ClientForm client={client} onClose={onClose} onSaved={onSaved} />;
 
   return (
     <div className={styles.dialog}>
-      <header className={styles.head}>
-        <Text as="h2" variant="headline" weight="semibold" truncate>
-          Editar cliente
-        </Text>
-        <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
-          <XIcon />
-        </IconButton>
-      </header>
+      <DialogHeader title="Editar cliente" onClose={onClose} />
       <div className={styles.loading}>
-        <Spinner size="md" label={`Carregando a ficha de ${item.name}`} />
+        {/* A ficha que não vem tem recado e saída, e não um giro sem fim numa gaveta sem campo nenhum. */}
+        {failed ? <ClientLoadFailure error={failed} onRetry={retry} /> : <Spinner size="md" label={`Carregando a ficha de ${item.name}`} />}
       </div>
     </div>
   );
 }
 
-/* O formulário nasce de novo a cada abertura, porque a janela só monta o conteúdo aberta: o estado começa
-   limpo sem precisar zerar nada. */
+/* O formulário nasce de novo a cada abertura e a cada troca de contato, porque a chave que a janela lhe dá
+   muda nas duas: o estado começa limpo sem precisar zerar nada. */
 function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { client?: Client; defaultKind?: ClientKind; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
   const [values, setValues] = useState<Values>(() => valuesOf(client, defaultKind));
@@ -312,8 +321,18 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
 
     /* As imagens vão depois do salvamento, e não junto: o arquivo mora numa pasta com o id do registro, e na
        criação esse id só existe agora. Falha de imagem não desfaz o cliente, que já está gravado; ela vira
-       um aviso, porque o resto do trabalho não se perde por causa de uma foto. */
-    const images = await saveImages(result.id);
+       um aviso, porque o resto do trabalho não se perde por causa de uma foto.
+
+       A guarda é o que tira o botão do "Salvando" (2026-09-22, na varredura): `removeImage` e o
+       `attachUploadAction` de `uploadImage` não passam pelo teto de tempo da casa e rejeitam quando o
+       transporte cai, e sem tratamento a rejeição deixava o giro para sempre, a gaveta aberta e a lista sem
+       atualizar, com o contato já gravado no banco. */
+    let images: string | undefined;
+    try {
+      images = await saveImages(result.id);
+    } catch {
+      images = "A imagem não foi enviada. Abra a ficha e tente de novo.";
+    }
     setSaving(false);
 
     if (images) {
@@ -326,6 +345,18 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
       title: editing ? "Contato atualizado" : values.kind === "supplier" ? "Fornecedor criado" : "Cliente criado",
       description: `${values.name.trim()} já está na base.`,
       tone: "success",
+      feedback: {
+        visual: (
+          <Avatar
+            name={values.name.trim()}
+            src={photoUrl ?? logoUrl ?? undefined}
+            seed={seed}
+            size="lg"
+            shape="rounded"
+          />
+        ),
+        confetti: !editing,
+      },
     });
     onSaved();
   };
@@ -336,13 +367,14 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
 
   return (
     <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
-      <header className={styles.head}>
-        <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-          {editing ? "Editar contato" : values.kind === "supplier" ? "Novo fornecedor" : "Novo cliente"}
-        </Text>
-        <div className={styles.headActions}>
-          {/* Ativo e favorito são situação, e não dado da ficha: moram no menu de opções da própria
-              janela, no chevron duplo das listas, como interruptores, para não tomar linha do formulário. */}
+      <DialogHeader
+        id={titleId}
+        title={editing ? "Editar contato" : values.kind === "supplier" ? "Novo fornecedor" : "Novo cliente"}
+        onClose={onClose}
+        closeDisabled={saving}
+        actions={
+          /* Ativo e favorito são situação, e não dado da ficha: moram no menu de opções da própria
+             janela, no chevron duplo das listas, como interruptores, para não tomar linha do formulário. */
           <DropdownMenu
             label="Situação do contato"
             triggerLabel="Situação do contato"
@@ -357,11 +389,8 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
               },
             ]}
           />
-          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-            <XIcon />
-          </IconButton>
-        </div>
-      </header>
+        }
+      />
 
       <div className={styles.body}>
         <Section icon={IdentificationCardIcon} title="Identidade">
@@ -383,7 +412,7 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
             <ImageField
               label="Foto"
               preview={photoUrl}
-              fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" shape="squircle" className={styles.avatar} />}
+              fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" shape="rounded" className={styles.avatar} />}
               onSelect={pickImage(setPhotoUrl, setPhotoFile)}
             />
             <ImageField
@@ -427,13 +456,13 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
                 type="text"
                 name="website"
                 value={values.website}
-                maxLength={clientLimits.website}
+                maxLength={clientLimits.website - SITE_PREFIX.length}
                 placeholder="empresa.com.br"
                 autoComplete="url"
                 inputMode="url"
                 spellCheck={false}
                 disabled={saving}
-                iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
+                iconStart={<FieldAffix data-tone="muted">{SITE_PREFIX}</FieldAffix>}
                 onChange={(event) => set("website", siteValue(event.target.value))}
               />
             </Field>
@@ -461,14 +490,14 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
         )}
       </div>
 
-      <footer className={styles.foot}>
+      <DialogFooter>
         <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
           Cancelar
         </Button>
         <Button type="submit" size="sm" radius="md" iconStart={<CheckIcon />} loading={saving}>
           {saving ? "Salvando" : editing ? "Salvar" : "Criar cliente"}
         </Button>
-      </footer>
+      </DialogFooter>
     </form>
   );
 }

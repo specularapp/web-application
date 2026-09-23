@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import styles from "./page-skeleton.module.css";
 
 /**
@@ -52,7 +52,7 @@ function GridBones({ count }: { count: number }) {
   return (
     <div className={styles.grid}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className={styles.card} {...squircle("lg")}>
+        <div key={index} className={styles.card} {...rounded("lg")}>
           <div className={styles.cardHead}>
             <Skeleton shape="circle" width="2.5rem" height="2.5rem" />
             <div className={styles.cardLines}>
@@ -78,7 +78,7 @@ function BoardBones() {
         <div key={column} className={styles.column}>
           <Skeleton width="7rem" height="1rem" />
           {Array.from({ length: total }, (_, index) => (
-            <div key={index} className={styles.card} {...squircle("lg")}>
+            <div key={index} className={styles.card} {...rounded("lg")}>
               <Skeleton width="80%" height="0.9rem" />
               <Skeleton width="55%" height="0.75rem" />
             </div>
@@ -93,7 +93,7 @@ function RowBones({ count }: { count: number }) {
   return (
     <div className={styles.rows}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className={styles.row} {...squircle("md")}>
+        <div key={index} className={styles.row} {...rounded("md")}>
           <Skeleton shape="circle" width="2rem" height="2rem" />
           <Skeleton width="12rem" height="0.9rem" />
           <span className={styles.spacer} />

@@ -9,7 +9,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
 import { Tooltip } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { dueOf, projectStatuses, projectTools, shortDate, siteLabel } from "../labels";
 import { projectArtworkUrl } from "../list-options";
 import { clientFace, type Project } from "../summary";
@@ -78,7 +78,7 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
   };
 
   return (
-    <li className={styles.card} data-status={project.status} {...squircle("xl", { clip: true })}>
+    <li className={styles.card} data-status={project.status} {...rounded("xl", { clip: true })}>
       <div
         role="button"
         tabIndex={0}
@@ -87,15 +87,15 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         <header className={styles.head}>
           {/* Sem cliente, o projeto é independente e o lugar do rosto fica com o glifo do que ele é: estudo,
               projeto próprio, protótipo. O bloco não some, senão a linha do cartão dançaria de um para outro. */}
           {project.client ? (
-            <Avatar name={project.client.name} src={clientFace(project.client)} size="sm" shape="squircle" />
+            <Avatar name={project.client.name} src={clientFace(project.client)} size="sm" shape="rounded" />
           ) : (
-            <span className={styles.own} aria-hidden="true" {...squircle("sm")}>
+            <span className={styles.own} aria-hidden="true" {...rounded("sm")}>
               <FolderSimpleIcon />
             </span>
           )}
@@ -118,7 +118,7 @@ export function ProjectCard({ project, onOpen, onEdit, onDelete }: ProjectCardPr
         {/* A capa é a imagem que a pessoa anexa, no canto `md` pelo sistema de cantos; sem ela, a arte
             gerada no estilo Waves, preenchendo a capa sobre o véu do matiz do projeto. `<img>` cru para o
             SVG, como no avatar. */}
-        <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
+        <div className={styles.cover} style={hue} {...rounded("md", { clip: true })}>
           {project.coverUrl ? (
             <StoredImage src={project.coverUrl} alt="" fill sizes="(min-width: 48rem) 22rem, 100vw" quality={90} className={styles.photo} />
           ) : (

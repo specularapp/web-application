@@ -78,7 +78,6 @@
   padding: var(--space-3);
   border: var(--dialog-line) solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }
 
 .value {

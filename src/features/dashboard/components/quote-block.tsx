@@ -20,14 +20,14 @@ import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { quoteStatuses } from "@/features/quotes/labels";
 import type { LatestQuote, QuotePerson, QuotesSummary } from "@/features/quotes/summary";
-import { iconButtonCornerRadius, squirclePx } from "@/lib/corners";
+import { iconButtonCornerRadius, roundedPx } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import styles from "./quote-block.module.css";
 
 export type QuoteBlockProps = { summary: QuotesSummary };
 
 
-const chipCorner = squirclePx(iconButtonCornerRadius.sm, { clip: true });
+const chipCorner = roundedPx(iconButtonCornerRadius.sm, { clip: true });
 
 const dayLabel = (date: string) => format(parseISO(date), "d MMM. yyyy", { locale: ptBR });
 

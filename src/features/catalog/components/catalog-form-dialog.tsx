@@ -4,7 +4,7 @@ import { CheckCircleIcon, CheckIcon, CoinsIcon, ListChecksIcon, TagIcon, UploadS
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
@@ -256,13 +256,14 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
 
   return (
     <form ref={form} className={styles.dialog} onSubmit={submit} noValidate aria-labelledby={titleId}>
-      <header className={styles.head}>
-        <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-          {editing ? "Editar item" : "Novo item"}
-        </Text>
-        <div className={styles.headActions}>
-          {/* Ativo é situação, e não dado da ficha: mora no menu de opções da própria janela, no chevron
-              duplo das listas, como interruptor, para não tomar linha do formulário. */}
+      <DialogHeader
+        id={titleId}
+        title={editing ? "Editar item" : "Novo item"}
+        onClose={onClose}
+        closeDisabled={saving}
+        actions={
+          /* Ativo é situação, e não dado da ficha: mora no menu de opções da própria janela, no chevron
+             duplo das listas, como interruptor, para não tomar linha do formulário. */
           <DropdownMenu
             label="Situação do item"
             triggerLabel="Situação do item"
@@ -274,11 +275,8 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
               },
             ]}
           />
-          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-            <XIcon />
-          </IconButton>
-        </div>
-      </header>
+        }
+      />
 
       <div className={styles.body}>
         <Section icon={TagIcon} title="O item">
@@ -414,14 +412,14 @@ function CatalogForm({ item, categories, onClose, onSaved }: { item?: CatalogIte
         )}
       </div>
 
-      <footer className={styles.foot}>
+      <DialogFooter>
         <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
           Cancelar
         </Button>
         <Button type="submit" size="sm" radius="md" iconStart={<CheckIcon />} loading={saving}>
           {saving ? "Salvando" : editing ? "Salvar" : "Criar item"}
         </Button>
-      </footer>
+      </DialogFooter>
     </form>
   );
 }

@@ -25,7 +25,6 @@
   background-color: var(--color-bg);
   border: var(--doc-line) solid var(--color-border);
   border-radius: var(--radius-lg);
-  corner-shape: squircle;
 }
 
 .sheet[data-theme="blue"] {

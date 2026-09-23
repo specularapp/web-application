@@ -9,7 +9,7 @@ import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -107,11 +107,13 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
 
   const quoteOptions = [{ value: NO_QUOTE, label: "Sem orçamento", caption: "Cobrança avulsa" }, ...lookups.quotes.map((quote) => ({ value: quote.id, label: quote.number, caption: `${quote.title}, ${formatMoney(quote.amount)}` }))];
   const outgoing = values.direction === "outgoing";
-  const clientOptions = (outgoing ? lookups.suppliers : lookups.customers).map((client) => ({
+  const availableClients = outgoing ? lookups.suppliers : lookups.customers;
+  const selectedClient = availableClients.find((client) => client.id === values.clientId);
+  const clientOptions = availableClients.map((client) => ({
     value: client.id,
     label: client.company ?? client.name,
     caption: client.company ? client.name : (client.email ?? undefined),
-    media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="squircle" />,
+    media: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" shape="rounded" />,
   }));
 
   /* Escolher o orçamento preenche o que ele sabe; trocar para "sem orçamento" só solta o vínculo. */
@@ -175,7 +177,17 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
 
     savingRef.current = false;
     setSaving(false);
-    toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada`, description: outgoing ? `${result.charge.reference} já está no controle de contas a pagar.` : `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`, tone: "success" });
+    toast({
+      title: `${outgoing ? "Despesa" : "Cobrança"} criada`,
+      description: outgoing ? `${result.charge.reference} já está no controle de contas a pagar.` : `${result.charge.reference} nasceu em aberto. Envie por e-mail quando quiser.`,
+      tone: "success",
+      feedback: selectedClient
+        ? {
+            visual: <Avatar name={selectedClient.name} src={selectedClient.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+            confetti: true,
+          }
+        : undefined,
+    });
     onCreated(result.charge);
   };
 
@@ -324,14 +336,14 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
         )}
       </div>
 
-      <footer className={styles.foot}>
+      <DialogFooter>
         <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={close}>
           Cancelar
         </Button>
         <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>
           {saving ? "Criando" : `Criar ${outgoing ? "despesa" : "cobrança"}`}
         </Button>
-      </footer>
+      </DialogFooter>
     </div>
   );
 }

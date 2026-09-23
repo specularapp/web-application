@@ -54,6 +54,8 @@ export default async function TaskProjectPage({ params, searchParams }: PageProp
       title={data.project.name}
       basePath={`/tarefas/${projeto}`}
       team={data.team}
+      viewer={data.viewer}
+      openTask={first(search.tarefa)}
       records={data.records}
       projectId={data.project.id}
       stages={data.stages}

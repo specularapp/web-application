@@ -4,7 +4,7 @@ import { DotsSixVerticalIcon, MagnifyingGlassIcon } from "@phosphor-icons/react"
 import { useState, type CSSProperties, type DragEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { categories, nodesOf, type NodeSpec } from "../catalog";
 import type { NodeCategory, NodeKind } from "../summary";
 import styles from "./automation-editor.module.css";
@@ -88,9 +88,9 @@ export function NodePalette({ onPick, only, hasTrigger, draggable = false, searc
                       draggable={draggable && !blocked}
                       onDragStart={(event) => onDragStart(event, spec.kind)}
                       onClick={() => onPick(spec.kind)}
-                      {...squircle("md")}
+                      {...rounded("md")}
                     >
-                      <span className={styles.paletteGlyph} aria-hidden="true" {...squircle("sm")}>
+                      <span className={styles.paletteGlyph} aria-hidden="true" {...rounded("sm")}>
                         <spec.icon weight="duotone" />
                       </span>
                       <span className={styles.paletteCopy}>

@@ -98,7 +98,6 @@
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 

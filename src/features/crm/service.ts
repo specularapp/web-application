@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers } from "@/features/organizations/service";
@@ -365,7 +366,7 @@ export async function saveOpportunity(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
     const changes = diffFields(before, values, opportunityHistoryLabels);
     if (changes.length > 0) {
@@ -383,7 +384,7 @@ export async function saveOpportunity(
   }
 
   const { data, error } = await client.from("opportunities").insert(values).select("id").single();
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: data.id, action: "created", summary: `Abriu a oportunidade ${input.title}` });
 
@@ -436,7 +437,7 @@ export async function moveOpportunity(
     .eq("id", id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   /* Só os desfechos entram no histórico: mover de coluna é o gesto mais frequente do funil e encheria a linha
      do tempo com o que a própria coluna já conta. Ganhar e perder são a coisa mais decisiva que se faz. */
@@ -459,7 +460,7 @@ export async function deleteOpportunity(
   id: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("opportunities").delete().eq("organization_id", organizationId).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   await logRecordEvent(client, organizationId, { recordType: "opportunity", recordId: id, action: "deleted", summary: "Excluiu a oportunidade" });
 
@@ -530,7 +531,7 @@ export async function duplicateOpportunity(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: { id: data.id } };
 }
 
@@ -553,7 +554,7 @@ export async function saveCrmFolder(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
     return { ok: true, data: { id: data.id } };
   }
 
@@ -567,14 +568,14 @@ export async function saveCrmFolder(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: { id: data.id } };
 }
 
 /** Apaga a pasta. Os funis dentro dela voltam para a raiz: o vínculo é `set null`, pasta é só organização. */
 export async function deleteCrmFolder(client: CrmClient, organizationId: string, id: string): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("crm_folders").delete().eq("id", id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -596,7 +597,7 @@ export async function saveFunnel(
       .select("id, slug")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
     return { ok: true, data: { id: data.id, slug: data.slug } };
   }
 
@@ -617,7 +618,7 @@ export async function saveFunnel(
     .select("id, slug")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
   return { ok: true, data: { id: data.id, slug: data.slug } };
 }
 
@@ -627,7 +628,7 @@ export async function saveFunnel(
  */
 export async function deleteFunnel(client: CrmClient, organizationId: string, id: string): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("crm_funnels").delete().eq("id", id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -648,7 +649,7 @@ export async function setFunnelStages(
 /** Move um funil para uma pasta, ou para a raiz quando ela é nula. */
 export async function moveFunnel(client: CrmClient, organizationId: string, input: { id: string; folderId: string | null }): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("crm_funnels").update({ folder_id: input.folderId }).eq("id", input.id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 
@@ -669,5 +670,5 @@ export async function configureFunnelStages(client: CrmClient, organizationId: s
   const replacements = Object.fromEntries(Object.entries(input.replacements).map(([from, to]) => [from, renamed.get(to) ?? to]));
   for (const [from, to] of renamed) replacements[from] = to;
   const { error } = await client.rpc("configure_funnel_stages", { p_organization_id: organizationId, p_funnel_id: input.id, p_stages: stages, p_replacements: replacements });
-  return error ? { ok: false, error: error.message } : { ok: true, data: undefined };
+  return error ? { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") } : { ok: true, data: undefined };
 }

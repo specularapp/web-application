@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getIssuer } from "@/features/organizations/service";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -123,7 +124,7 @@ export async function createAutomation(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || "Não foi possível criar a automação." };
+  if (error || !data) return { ok: false, error: dbMessage(error, "Não foi possível criar a automação.") };
 
   const created = await getAutomation(client, organizationId, data.id);
   return created ? { ok: true, data: created } : { ok: false, error: "Não foi possível criar a automação." };
@@ -147,7 +148,7 @@ export async function saveAutomation(
     .eq("id", input.id)
     .eq("organization_id", organizationId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const saved = await getAutomation(client, organizationId, input.id);
   return saved ? { ok: true, automation: saved } : { ok: false, error: "Não foi possível salvar a automação." };
@@ -166,7 +167,7 @@ export async function setAutomationStatus(
   }
 
   const { error } = await client.from("automations").update({ status }).eq("id", id).eq("organization_id", organizationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   const saved = await getAutomation(client, organizationId, id);
   return saved ? { ok: true, automation: saved } : { ok: false, error: "Não foi possível mudar a situação." };
@@ -196,7 +197,7 @@ export async function duplicateAutomation(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || "Não foi possível duplicar." };
+  if (error || !data) return { ok: false, error: dbMessage(error, "Não foi possível duplicar.") };
 
   const copy = await getAutomation(client, organizationId, data.id);
   return copy ? { ok: true, data: copy } : { ok: false, error: "Não foi possível duplicar." };
@@ -208,7 +209,7 @@ export async function deleteAutomation(
   id: string,
 ): Promise<ServiceResult<undefined>> {
   const { error } = await client.from("automations").delete().eq("organization_id", organizationId).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 

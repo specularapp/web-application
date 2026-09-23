@@ -1,15 +1,16 @@
 "use client";
 
 import styled from "@emotion/styled";
-import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, UsersThreeIcon, XIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
 import { IconButton } from "@/components/ui/icon-button";
@@ -20,11 +21,13 @@ import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { planBadges } from "@/features/billing/plans";
 import { ImageGroup, ImagePicker } from "@/features/onboarding/components/image-picker";
-import { industryOptions, invitableRoleOptions, roleLabels } from "@/features/onboarding/labels";
-import { inviteMemberAction, loadTeamAction, saveTeamAction, switchTeamAction } from "../actions";
+import { industryOptions, roleLabels } from "@/features/onboarding/labels";
+import { loadTeamAction, loadTeamPeopleAction, saveTeamAction, switchTeamAction } from "../actions";
 import { CREATE_TEAM_PLAN } from "../constants";
-import { organizationLimits, type ImageKind, type InvitableRole, type OrganizationIndustry } from "../schemas";
+import { organizationLimits, type ImageKind, type OrganizationIndustry } from "../schemas";
+import type { TeamPeople } from "../service";
 import { uploadTeamImage } from "../upload";
+import { TeamPeoplePanel, type TeamSectionProps } from "./team-people";
 import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
 import { siteValue } from "@/lib/utils/site";
@@ -38,24 +41,36 @@ export type CreateTeamPanelProps = {
   owner: TeamOwner;
   /**
    * O id da equipe que está sendo editada; ausente, a gaveta cria uma nova (2026-09-16, a pedido de editar
-   * equipe pelo menu do seletor). Editando, a gaveta abre preenchida, some a parte de convidar gente, que
-   * mora na página da equipe, e salvar não troca de contexto: quem edita já está onde quer estar.
+   * equipe pelo menu do seletor). Editando, a gaveta abre preenchida, mostra a gente de verdade da equipe com
+   * o convite que sai na hora, e salvar não troca de contexto: quem edita já está onde quer estar.
    */
   teamId?: string | null;
 };
 
 type Picked = { file: File | null; preview: string | null };
 
-type Guest = { id: string; email: string; name: string; role: InvitableRole };
-
 const empty: Picked = { file: null, preview: null };
+
+/** O formulário sem nada: é o que a gaveta mostra enquanto a equipe pedida está sendo lida. */
+const blank = {
+  name: "",
+  website: "",
+  email: "",
+  phone: "",
+  city: "",
+  state: "",
+  industry: undefined as OrganizationIndustry | undefined,
+  logo: empty,
+  banner: empty,
+};
 
 /** Plano que libera criar equipe. A etiqueta sai daqui no topo da gaveta e no convite que a abre. */
 /* O código do plano mora em `../constants`, que não carrega componente nenhum: quem só quer o código
    não precisa levar esta gaveta junto. Segue exportado aqui para quem já o importava daqui. */
 export { CREATE_TEAM_PLAN };
 
-const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/** O recado da falha de leitura da gente: sai no aviso e na moldura de erro, então é o mesmo texto nos dois. */
+const PEOPLE_FAILED = "Não deu para ler quem está na equipe";
 
 /* Fio da casa, o mesmo do menu: 0,6px na cor mais discreta da paleta. A variável nasce na janela e
    desce por cascata para o cabeçalho, o divisor e o rodapé, então os três nunca saem de sincronia. */
@@ -170,11 +185,6 @@ const PersonText = styled.div`
   min-width: 0;
 `;
 
-const PersonRole = styled.span`
-  flex-shrink: 0;
-  width: 9rem;
-`;
-
 /* No celular o rodapé some: criar e sair moram na barra flutuante do menu, e a folga para ela vem da
    própria bandeja, pela regra geral do `Dialog`. */
 const Footer = styled.footer`
@@ -189,6 +199,33 @@ const Footer = styled.footer`
     display: none;
   }
 `;
+
+const SectionHead = styled.div`
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+`;
+
+/* A moldura de um bloco de pessoas dentro da gaveta: o `TeamPeoplePanel` é o mesmo da página da equipe, e o
+   que muda entre os dois é só isto, a caixa em volta. */
+function DrawerSection({ title, aside, children }: TeamSectionProps) {
+  /* O nome da região sai do próprio título, como no `Card` da página: repetir o texto num `aria-label` faria
+     o leitor de tela anunciar a mesma palavra duas vezes para a mesma seção. */
+  const id = useId();
+
+  return (
+    <Section aria-labelledby={id}>
+      <SectionHead>
+        <Text as="h3" id={id} variant="subheadline" weight="semibold">
+          {title}
+        </Text>
+        {aside}
+      </SectionHead>
+      {children}
+    </Section>
+  );
+}
 
 // Criar equipe numa gaveta à direita: identidade, dados e pessoas numa lista só, do jeito que os
 // primeiros passos já pedem, mas sem etapas, porque aqui quem cria já conhece o produto. A equipe
@@ -205,29 +242,87 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
   const [industry, setIndustry] = useState<OrganizationIndustry | undefined>(undefined);
   const [logo, setLogo] = useState<Picked>(empty);
   const [banner, setBanner] = useState<Picked>(empty);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
   /* Qual equipe já foi lida. Guardando o id, e não um "carregando" ligado na hora, o efeito não escreve
      estado de forma síncrona, que é o que a regra de hooks da casa barra, e reabrir a gaveta na mesma equipe
      não pede o dado de novo. */
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [people, setPeople] = useState<TeamPeople | null>(null);
+  /** Por que não há bloco de gente: sem isto a falha de leitura sumia com a lista sem dizer nada. */
+  const [peopleError, setPeopleError] = useState<string | null>(null);
+  const [reading, setReading] = useState(false);
 
   const editing = Boolean(teamId);
   const loading = editing && loadedFor !== teamId;
+  /* Enquanto a equipe não chega, o formulário fica desligado: a leitura escreve em cima dos campos, então o
+     que fosse digitado aqui seria apagado quando o dado aparecesse. */
+  const locked = saving || loading;
+
+  /* Carregando, o formulário aparece vazio em vez de mostrar a equipe anterior: o seletor mantém esta gaveta
+     montada de uma edição para a outra, então o estado sobrevive ao fechar. Limpar o estado aqui seria
+     escrever de dentro do efeito, que a regra de hooks da casa barra, então quem decide o que aparece é a
+     leitura, e não o que sobrou. */
+  const shown = loading ? blank : { name, website, email, phone, city, state, industry, logo, banner };
+
+  /* Relê só a gente, e não a equipe toda: quem chega a esta moldura pode já ter corrigido os campos, e uma
+     segunda leitura da equipe escreveria em cima do que ele digitou. */
+  const readPeople = async () => {
+    if (!teamId || reading) return;
+    setReading(true);
+    const crew = await callAction(loadTeamPeopleAction({ organizationId: teamId }));
+    setReading(false);
+    if (!crew.ok) {
+      setPeople(null);
+      setPeopleError(crew.error);
+      toast({ title: PEOPLE_FAILED, description: crew.error, tone: "danger" });
+      return;
+    }
+    setPeopleError(null);
+    setPeople(crew.data);
+  };
+
+  const reset = () => {
+    setPeople(null);
+    setPeopleError(null);
+    setName("");
+    setWebsite("");
+    setEmail("");
+    setPhone("");
+    setCity("");
+    setState("");
+    setIndustry(undefined);
+    setLogo(empty);
+    setBanner(empty);
+  };
 
   /* Editando, a gaveta lê a equipe ao abrir: o seletor só conhece nome e logo, e o resto (o ramo, o site, a
-     capa) está no banco. Enquanto não chega, os campos ficam desligados em vez de vazios e editáveis, senão
-     salvar cedo gravaria em cima do que ainda não apareceu. */
+     capa) está no banco. Enquanto não chega, os campos ficam vazios e desligados por `locked`, senão salvar
+     cedo gravaria em cima do que ainda não apareceu. */
   useEffect(() => {
     if (!open || !teamId || loadedFor === teamId) return;
     let live = true;
-    void loadTeamAction({ organizationId: teamId }).then((result) => {
+    /* A equipe e a gente dela na mesma abertura: sem a segunda leitura o bloco de pessoas nasceria vazio e
+       encheria depois, e o convite precisa do papel de quem está olhando para aparecer. */
+    void Promise.all([
+      loadTeamAction({ organizationId: teamId }),
+      loadTeamPeopleAction({ organizationId: teamId }),
+    ]).then(([result, crew]) => {
       if (!live) return;
       if (!result.ok) {
+        /* Sem gravar `loadedFor`: a gaveta segue desligada, e reabri-la tenta a leitura de novo. */
         toast({ title: "Não deu para abrir a equipe", description: result.error, tone: "danger" });
         return;
+      }
+      /* A lista velha sai junto com o erro novo: `getTeam` lê `organizations` e `getTeamPeople` exige o nome
+         de quem pede entre os membros, então a equipe abre e a gente dela falha. Guardando a lista anterior,
+         a gaveta desenhava o time de antes com o id do time de agora, e a moldura de erro nunca aparecia. */
+      if (crew.ok) {
+        setPeopleError(null);
+        setPeople(crew.data);
+      } else {
+        setPeople(null);
+        setPeopleError(crew.error);
+        toast({ title: PEOPLE_FAILED, description: crew.error, tone: "danger" });
       }
       setLoadedFor(teamId);
       setName(result.data.name);
@@ -246,7 +341,6 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
   }, [open, teamId, loadedFor, toast]);
 
   const filled = name.trim().length >= 2 && Boolean(industry);
-  const canAddGuest = emailPattern.test(guestEmail.trim()) && guestName.trim().length >= 2;
 
   // Revogar em limpeza de efeito quebraria no modo estrito, que desmonta e remonta: o endereço seria
   // descartado com a imagem ainda na tela. Aqui o anterior sai quando deixa de ser usado.
@@ -257,52 +351,10 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
 
   const reject = (message: string) => toast({ title: "Arquivo recusado", description: message, tone: "danger" });
 
-  const addGuest = () => {
-    if (!canAddGuest) return;
-    const email = guestEmail.trim().toLowerCase();
-    setGuests((current) => [
-      ...current.filter((guest) => guest.email !== email),
-      { id: crypto.randomUUID(), email, name: guestName.trim(), role: "member" },
-    ]);
-    setGuestEmail("");
-    setGuestName("");
-  };
-
   const sendImage = async (organizationId: string, picked: Picked, kind: ImageKind) => {
     if (!picked.file) return;
     const result = await uploadTeamImage(organizationId, picked.file, kind);
     if (!result.ok) toast({ title: "A imagem não subiu", description: result.error, tone: "warning" });
-  };
-
-  const sendInvites = async (organizationId: string) => {
-    for (const guest of guests) {
-      const result = await callAction(
-        inviteMemberAction({
-          organizationId,
-          email: guest.email,
-          name: guest.name,
-          role: guest.role,
-        }),
-      );
-      if (!result.ok) {
-        toast({ title: `Convite para ${guest.email} falhou`, description: result.error, tone: "warning" });
-      }
-    }
-  };
-
-  const reset = () => {
-    setName("");
-    setWebsite("");
-    setEmail("");
-    setPhone("");
-    setCity("");
-    setState("");
-    setIndustry(undefined);
-    setLogo(empty);
-    setBanner(empty);
-    setGuests([]);
-    setGuestEmail("");
-    setGuestName("");
   };
 
   const close = () => {
@@ -340,11 +392,9 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
       return;
     }
 
-    // Imagem e convite não seguram a gaveta: a equipe já existe e cada envio custa uma ida ao servidor,
-    // em série, porque o Next despacha uma Server Action por vez. Falha avisa por toast.
-    void Promise.all([sendImage(team.id, logo, "logo"), sendImage(team.id, banner, "banner")])
-      .then(() => sendInvites(team.id))
-      .catch(() => null);
+    // As imagens não seguram a gaveta: a equipe já existe e cada envio custa uma ida ao servidor. Falha
+    // avisa por toast.
+    void Promise.all([sendImage(team.id, logo, "logo"), sendImage(team.id, banner, "banner")]).catch(() => null);
 
     const entered = await callAction(switchTeamAction({ organizationId: team.id }));
     setSaving(false);
@@ -405,8 +455,8 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
             variant="banner"
             label="o banner da equipe"
             hint="1200 × 300"
-            preview={banner.preview}
-            disabled={saving}
+            preview={shown.banner.preview}
+            disabled={locked}
             onSelect={choose(banner, setBanner)}
             onReject={reject}
           />
@@ -414,8 +464,8 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
             variant="logo"
             label="a logo da equipe"
             hint="512 × 512"
-            preview={logo.preview}
-            disabled={saving}
+            preview={shown.logo.preview}
+            disabled={locked}
             onSelect={choose(logo, setLogo)}
             onReject={reject}
           />
@@ -426,12 +476,12 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
             <Input
               type="text"
               name="name"
-              value={name}
+              value={shown.name}
               maxLength={organizationLimits.name}
               placeholder="Como a equipe se chama"
               autoComplete="organization"
               required
-              disabled={saving}
+              disabled={locked}
               onChange={(event) => setName(event.target.value)}
             />
           </Field>
@@ -441,12 +491,12 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
               <Input
                 type="text"
                 name="website"
-                value={website}
+                value={shown.website}
                 placeholder="seusite.com.br"
                 autoComplete="url"
                 inputMode="url"
                 spellCheck={false}
-                disabled={saving}
+                disabled={locked}
                 iconStart={<FieldAffix data-tone="muted">https://</FieldAffix>}
                 onChange={(event) => setWebsite(siteValue(event.target.value))}
               />
@@ -456,9 +506,9 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
               <Select
                 label="Área de atuação"
                 options={industryOptions}
-                value={industry}
+                value={shown.industry}
                 placeholder="Escolha a área"
-                disabled={saving}
+                disabled={locked}
                 onChange={setIndustry}
               />
             </Field>
@@ -469,12 +519,12 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
               <Input
                 type="email"
                 name="email"
-                value={email}
+                value={shown.email}
                 maxLength={organizationLimits.email}
                 placeholder="contato@empresa.com.br"
                 autoComplete="email"
                 inputMode="email"
-                disabled={saving}
+                disabled={locked}
                 onChange={(event) => setEmail(event.target.value)}
               />
             </Field>
@@ -484,10 +534,10 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
                 type="tel"
                 name="phone"
                 mask="phone"
-                value={phone}
+                value={shown.phone}
                 placeholder="(11) 99999-9999"
                 autoComplete="tel-national"
-                disabled={saving}
+                disabled={locked}
                 onChange={(event) => setPhone(onlyDigits(event.target.value))}
               />
             </Field>
@@ -498,11 +548,11 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
               <Input
                 type="text"
                 name="city"
-                value={city}
+                value={shown.city}
                 maxLength={organizationLimits.city}
                 placeholder="São Paulo"
                 autoComplete="address-level2"
-                disabled={saving}
+                disabled={locked}
                 onChange={(event) => setCity(event.target.value)}
               />
             </Field>
@@ -511,117 +561,93 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
               <Input
                 type="text"
                 name="state"
-                value={state}
+                value={shown.state}
                 maxLength={2}
                 placeholder="SP"
                 autoComplete="address-level1"
-                disabled={saving}
+                disabled={locked}
                 onChange={(event) => setState(event.target.value.replace(/[^a-z]/gi, "").slice(0, 2).toUpperCase())}
               />
             </Field>
           </Pair>
         </Fields>
 
-        {/* Convidar gente só existe ao criar: numa equipe que já anda, quem entra e quem sai é assunto da
-            página da equipe, com papel e convite pendente, e não de uma gaveta de ajustar o nome. */}
+        {/* Editando, entra a gente de verdade da equipe (2026-09-21, a pedido): quem está dentro, com o papel
+            de cada um, os convites pendentes e o convite novo, que sai na hora. É o mesmo bloco da página da
+            equipe, com a moldura da gaveta. Criando, não há convite: a equipe ainda não existe para convidar
+            para, e o plano em que ela nasce não tem lugar para uma segunda pessoa. */}
+        {teamId && !loading && people && (
+          <>
+            <Divider />
+
+            {/* Uma chave por equipe: trocando de equipe no seletor, a lista e o campo de convite nascem de
+                novo em vez de herdarem o que estava escrito para a anterior. */}
+            <TeamPeoplePanel
+              key={teamId}
+              organizationId={teamId}
+              members={people.members}
+              invites={people.invites}
+              viewer={people.viewer}
+              section={DrawerSection}
+              busy={saving}
+            />
+          </>
+        )}
+
+        {/* A leitura da gente falhou: o bloco continua na tela dizendo por que, em vez de desaparecer e
+            deixar a gaveta parecendo uma equipe sem ninguém, que é o que ela parecia até aqui. */}
+        {teamId && !loading && !people && peopleError !== null && (
+          <>
+            <Divider />
+
+            <DrawerSection title="Pessoas">
+              <EmptyState size="sm" icon={UsersThreeIcon} title={PEOPLE_FAILED} description={peopleError}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  radius="md"
+                  loading={reading}
+                  iconStart={<ArrowClockwiseIcon />}
+                  onClick={() => void readPeople()}
+                >
+                  {reading ? "Lendo" : "Tentar de novo"}
+                </Button>
+              </EmptyState>
+            </DrawerSection>
+          </>
+        )}
+
         {!editing && (
           <>
             <Divider />
 
-        <Section aria-label="Pessoas da equipe">
-          <Text as="h3" variant="subheadline" weight="semibold">
-            Membros
-          </Text>
+            {/* Criando, a gaveta diz quem vai estar dentro e não pede convite (2026-09-22, na varredura):
+                equipe nova nasce no plano gratuito, que é de uma pessoa, e o dono já ocupa esse lugar, então
+                todo convite recolhido aqui voltava recusado pelo teto depois de a equipe existir. Quem quer
+                gente convida pelo bloco de pessoas, ao editar a equipe, com o plano dela já escolhido. */}
+            <DrawerSection title="Pessoas">
+              <People>
+                <Person>
+                  <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} seed={owner.email ?? owner.name} size="md" />
+                  <PersonText>
+                    <Text variant="subheadline" weight="medium" truncate>
+                      {owner.name}
+                    </Text>
+                    <Text variant="footnote" tone="secondary" truncate>
+                      {owner.email ?? "Quem está criando"}
+                    </Text>
+                  </PersonText>
+                  <Badge tone="neutral" variant="soft" size="sm">
+                    {roleLabels.owner}
+                  </Badge>
+                </Person>
+              </People>
 
-          <Pair>
-            <Field label="E-mail">
-              <Input
-                type="email"
-                name="guest-email"
-                value={guestEmail}
-                placeholder="pessoa@dominio.com"
-                autoComplete="off"
-                inputMode="email"
-                disabled={saving}
-                onChange={(event) => setGuestEmail(event.target.value)}
-              />
-            </Field>
-
-            <Field label="Nome">
-              <Input
-                type="text"
-                name="guest-name"
-                value={guestName}
-                placeholder="Nome da pessoa"
-                autoComplete="off"
-                disabled={saving}
-                onChange={(event) => setGuestName(event.target.value)}
-              />
-            </Field>
-          </Pair>
-
-          <Button
-            variant="secondary"
-            size="md"
-            fullWidth
-            disabled={!canAddGuest || saving}
-            iconStart={<PlusIcon />}
-            onClick={addGuest}
-          >
-            Convidar
-          </Button>
-
-          <People>
-            <Person>
-              <Avatar name={owner.name} src={owner.avatarUrl ?? undefined} seed={owner.email ?? owner.name} size="md" />
-              <PersonText>
-                <Text variant="subheadline" weight="medium" truncate>
-                  {owner.name}
-                </Text>
-                <Text variant="footnote" tone="secondary" truncate>
-                  {owner.email ?? "Quem está criando"}
-                </Text>
-              </PersonText>
-              <Badge tone="neutral" variant="soft" size="sm">
-                {roleLabels.owner}
-              </Badge>
-            </Person>
-
-            {guests.map((guest) => (
-              <Person key={guest.id}>
-                <Avatar name={guest.name} seed={guest.email} size="md" />
-                <PersonText>
-                  <Text variant="subheadline" weight="medium" truncate>
-                    {guest.name}
-                  </Text>
-                  <Text variant="footnote" tone="secondary" truncate>
-                    {guest.email}
-                  </Text>
-                </PersonText>
-                <PersonRole>
-                  <Select
-                    label={`Papel de ${guest.name}`}
-                    options={invitableRoleOptions}
-                    value={guest.role}
-                    size="sm"
-                    disabled={saving}
-                    onChange={(role) =>
-                      setGuests((current) => current.map((item) => (item.id === guest.id ? { ...item, role } : item)))
-                    }
-                    actions={[
-                      {
-                        label: "Tirar da lista",
-                        tone: "danger",
-                        icon: <TrashIcon weight="bold" aria-hidden="true" />,
-                        onSelect: () => setGuests((current) => current.filter((item) => item.id !== guest.id)),
-                      },
-                    ]}
-                  />
-                </PersonRole>
-              </Person>
-            ))}
-          </People>
-            </Section>
+              <Text variant="footnote" tone="secondary">
+                A equipe nasce no plano gratuito, que é de uma pessoa. Mude o plano dela para convidar mais
+                gente, pelo bloco de pessoas ao editar a equipe.
+              </Text>
+            </DrawerSection>
           </>
         )}
       </Scroll>
@@ -630,7 +656,9 @@ export function CreateTeamPanel({ open, onClose, owner, teamId = null }: CreateT
         <Button variant="ghost" size="md" disabled={saving} onClick={close}>
           Cancelar
         </Button>
-        <Button size="md" loading={saving} disabled={!filled} onClick={() => void create()}>
+        {/* O mesmo desligar da barra flutuante do celular: com a equipe ainda sendo lida `create()` sai
+            calado, e um botão que aceita o clique e não faz nada não explica nada. */}
+        <Button size="md" loading={saving} disabled={!filled || loading} onClick={() => void create()}>
           {saving ? "Salvando" : editing ? "Salvar equipe" : "Criar equipe"}
         </Button>
       </Footer>

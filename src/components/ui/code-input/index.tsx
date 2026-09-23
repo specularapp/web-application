@@ -2,7 +2,7 @@
 
 import styled from "@emotion/styled";
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from "react";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 
 export type CodeInputProps = {
   label: string;
@@ -167,7 +167,7 @@ export function CodeInput({
         <Fragment key={index}>
           {index > 0 && groupSize > 0 && index % groupSize === 0 && <Dash aria-hidden="true" />}
           <Box
-            {...squircle("lg")}
+            {...rounded("lg")}
             ref={(node) => {
               boxes.current[index] = node;
             }}

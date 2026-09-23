@@ -147,7 +147,6 @@
   background-color: transparent;
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
@@ -222,7 +221,6 @@
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-sm);
-  corner-shape: squircle;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);

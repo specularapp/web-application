@@ -4,8 +4,9 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
+import { chargeDirections, transactionKinds } from "../labels";
 import { statusOf, type PaymentMethod, type Transaction, type TransactionKind, type TransactionStatus } from "../summary";
 import { TransactionParty } from "./transaction-party";
 import styles from "./transaction-receipt.module.css";
@@ -18,18 +19,32 @@ const statusMeta: Record<TransactionStatus, { label: string; tone: BadgeTone; ic
   cancelled: { label: "Cancelada", tone: "danger", icon: XIcon },
 };
 
-/* O título do recibo cruza tipo e situação: o que aconteceu, dito em uma linha. */
+/* O título do recibo cruza tipo e situação: o que aconteceu, dito em uma linha.
+
+   A previsão fala em "movimentação", e não em recebimento (2026-09-22, na varredura): a lista de parcelas que
+   virá aqui mistura as duas pontas, então a parcela de uma despesa também abre este recibo, e dizer
+   "Recebimento previsto" no aluguel que a equipe paga afirma o lado errado. Para o recibo poder dizer
+   "Pagamento previsto", a `Transaction` precisa carregar a direção da parcela, o que fica em `summary.ts`. */
 const titles: Record<TransactionKind, Record<TransactionStatus, string>> = {
   income: { confirmed: "Recebimento confirmado", pending: "Recebimento aguardando", cancelled: "Recebimento cancelado" },
   expense: { confirmed: "Pagamento realizado", pending: "Pagamento agendado", cancelled: "Pagamento cancelado" },
-  scheduled: { confirmed: "Recebimento confirmado", pending: "Recebimento previsto", cancelled: "Recebimento cancelado" },
+  scheduled: { confirmed: "Movimentação confirmada", pending: "Movimentação prevista", cancelled: "Movimentação cancelada" },
 };
 
-const categories: Record<NonNullable<Transaction["visual"]>["type"] | "none", string> = {
-  person: "Cliente",
-  brand: "Assinatura de serviço",
-  none: "Conta",
+/* Quem está do outro lado troca de nome conforme o lado (2026-09-22, na varredura): a mesma foto é cliente no
+   que entra e fornecedor no que sai, e o rótulo fixo "Cliente" escrevia "Categoria: Cliente" no recibo de toda
+   despesa, inclusive na baixa do aluguel do fornecedor. Na previsão o lado ainda não se sabe, porque a lista de
+   parcelas mistura as duas pontas e a `Transaction` não carrega a direção, então ali o texto é neutro. */
+const personLabels: Record<TransactionKind, string> = {
+  income: chargeDirections.incoming.partyLabel,
+  expense: chargeDirections.outgoing.partyLabel,
+  scheduled: "Contraparte",
 };
+
+function categoryOf(transaction: Transaction) {
+  if (!transaction.visual) return "Conta";
+  return transaction.visual.type === "person" ? personLabels[transaction.kind] : "Assinatura de serviço";
+}
 
 const methodIcons: Record<PaymentMethod["type"], Icon> = {
   pix: PixLogoIcon,
@@ -37,8 +52,6 @@ const methodIcons: Record<PaymentMethod["type"], Icon> = {
   boleto: BarcodeIcon,
   transfer: BankIcon,
 };
-
-const signs: Record<TransactionKind, string> = { income: "+", expense: "-", scheduled: "+" };
 
 function whenOf(transaction: Transaction) {
   const date = parseISO(transaction.time ? `${transaction.date}T${transaction.time}` : transaction.date);
@@ -59,7 +72,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 // O recibo de uma movimentação, na pegada da referência: em cima quem está do outro lado com o selo da
 // situação na quina, o que aconteceu em uma linha e do que se trata; depois identificador e data e hora;
-// a linha tracejada de recibo; categoria, valor com sinal (sempre neutro, como na lista) e situação; e, no fim, a forma de pagamento
+// a linha tracejada de recibo; categoria, valor com o sinal de `transactionKinds`, o mesmo da linha que abriu
+// o recibo (e portanto neutro na previsão, que pode ser dos dois lados), e situação; e, no fim, a forma de pagamento
 // num cartão. É Server Component: quem abre é a linha do bloco, que passa o recibo pronto à janela.
 export function TransactionReceipt({ transaction }: TransactionReceiptProps) {
   const status = statusOf(transaction);
@@ -101,7 +115,7 @@ export function TransactionReceipt({ transaction }: TransactionReceiptProps) {
       <dl className={styles.rows}>
         <Row label="Categoria">
           <Text as="span" variant="footnote" weight="medium">
-            {categories[transaction.visual?.type ?? "none"]}
+            {categoryOf(transaction)}
           </Text>
         </Row>
         <Row label="Descrição">
@@ -111,7 +125,7 @@ export function TransactionReceipt({ transaction }: TransactionReceiptProps) {
         </Row>
         <Row label="Valor">
           <Text as="span" variant="subheadline" weight="semibold">
-            {signs[transaction.kind]}
+            {transactionKinds[transaction.kind].sign}
             {formatMoney(transaction.amount)}
           </Text>
         </Row>
@@ -123,7 +137,7 @@ export function TransactionReceipt({ transaction }: TransactionReceiptProps) {
       </dl>
 
       {transaction.method && Method && (
-        <div className={styles.method} {...squircle("md", { clip: true })}>
+        <div className={styles.method} {...rounded("md", { clip: true })}>
           <Text variant="caption1" tone="secondary">
             Forma de pagamento
           </Text>

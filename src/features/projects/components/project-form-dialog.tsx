@@ -9,7 +9,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { FieldAffix } from "@/components/ui/field-shell";
@@ -25,7 +25,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { onlyDigits } from "@/lib/masks";
 import { removeImage, uploadImage } from "@/features/uploads/upload";
 import { compressImage, SOURCE_MAX_BYTES } from "@/lib/images/compress";
@@ -341,6 +341,12 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
       title: editing ? "Projeto atualizado" : "Projeto criado",
       description: `${values.name.trim()} já está na lista.`,
       tone: "success",
+      feedback: shownClient
+        ? {
+            visual: <Avatar name={shownClient.name} src={clientFace(shownClient)} size="lg" shape="rounded" />,
+            confetti: !editing,
+          }
+        : undefined,
     });
     onSaved(result.id);
   };
@@ -373,7 +379,7 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
       value: client.id,
       label: client.company ?? client.name,
       caption: client.company ? client.name : undefined,
-      media: <Avatar name={client.name} src={clientFace(client)} size="xs" shape="squircle" />,
+      media: <Avatar name={client.name} src={clientFace(client)} size="xs" shape="rounded" />,
     })),
   ];
 
@@ -388,14 +394,7 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
     <form ref={form} className={styles.dialog} data-frame={frame} onSubmit={submit} noValidate aria-labelledby={titleId}>
       {/* Na tela do editor o título e o sair moram na barra de cima; o formulário entra só com os campos. */}
       {frame === "drawer" ? (
-        <header className={styles.head}>
-          <Text as="h2" id={titleId} variant="headline" weight="semibold" truncate>
-            {editing ? "Editar projeto" : "Novo projeto"}
-          </Text>
-          <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-            <XIcon />
-          </IconButton>
-        </header>
+        <DialogHeader id={titleId} title={editing ? "Editar projeto" : "Novo projeto"} onClose={onClose} closeDisabled={saving} />
       ) : (
         <VisuallyHidden>
           <h2 id={titleId}>{editing ? "Editar projeto" : "Novo projeto"}</h2>
@@ -407,7 +406,7 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
           {/* A capa como vai aparecer no cartão, já no matiz do nome, com os botões só em glifo ao lado: sem
               imagem vale a arte gerada. A imagem é redimensionada aqui antes de subir. */}
           <div className={styles.artwork}>
-            <div className={styles.cover} style={hue} {...squircle("md", { clip: true })}>
+            <div className={styles.cover} style={hue} {...rounded("md", { clip: true })}>
               {shownCover ? (
                 <StoredImage src={shownCover} alt="" fill sizes="9rem" className={styles.photo} />
               ) : (
@@ -573,14 +572,14 @@ export function ProjectForm({ project, clients, owners, onClose, onSaved, frame 
       </div>
 
       {frame === "drawer" && (
-        <footer className={styles.foot}>
+        <DialogFooter>
           <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} disabled={reading}>
             {saving ? "Salvando" : editing ? "Salvar" : "Criar projeto"}
           </Button>
-        </footer>
+        </DialogFooter>
       )}
     </form>
   );
@@ -615,7 +614,7 @@ function MemberPicker({
         if (!person) return null;
 
         return (
-          <span key={memberId} className={styles.chip} {...squircle("md")}>
+          <span key={memberId} className={styles.chip} {...rounded("md")}>
             <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
             <Text as="span" variant="footnote" weight="medium" truncate>
               {person.name}
@@ -665,7 +664,7 @@ function ToolPicker({ id, value, disabled, onChange }: { id?: string; value: Pro
   return (
     <div id={id} className={styles.picker}>
       {value.map((tool) => (
-        <span key={tool} className={styles.chip} {...squircle("md")}>
+        <span key={tool} className={styles.chip} {...rounded("md")}>
           <ToolTile tool={tool} />
           <Text as="span" variant="footnote" weight="medium" truncate>
             {projectTools[tool]}

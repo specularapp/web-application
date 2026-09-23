@@ -17,6 +17,7 @@ import type { Route } from "next";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
+import { Avatar } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { deleteClientsAction, setClientFlagAction } from "../actions";
@@ -93,7 +94,15 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
       return;
     }
 
-    toast({ title: `${supplierOnly ? "Fornecedor" : "Cliente"} excluído`, description: `${client.name} saiu da base.`, tone: "success" });
+    toast({
+      title: `${supplierOnly ? "Fornecedor" : "Cliente"} excluído`,
+      description: `${client.name} saiu da base.`,
+      tone: "success",
+      feedback: {
+        visual: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+        confetti: false,
+      },
+    });
     onDeleted?.();
   };
 

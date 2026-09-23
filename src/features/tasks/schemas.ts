@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { countNodes, docNodeSchemaFor, type DocNode } from "@/lib/rich-doc";
-import { MAX_TAGS } from "@/lib/tags";
 import { stageGlyphValues, stageKindValues } from "./stages";
 import { taskTagValues } from "./tags";
 
@@ -21,7 +20,9 @@ export const taskLimits = {
   subtask: 200,
 } as const;
 
-export { MAX_TAGS };
+/** Quantas etiquetas uma tarefa leva (2026-09-22, a pedido): menos que a regra geral da casa, porque o cartão
+ *  e a ficha as mostram inteiras, e acima disso a etiqueta deixa de separar uma tarefa da outra. */
+export const TASK_MAX_TAGS = 8;
 
 export const priorityValues = ["low", "normal", "high", "urgent"] as const;
 export const attachmentTypeValues = ["pdf", "image", "figma", "link", "file"] as const;
@@ -100,7 +101,7 @@ export const taskFormSchema = z
     ownerId: z.uuid().nullable(),
     /* Etiqueta é escolha da gama do domínio, e não texto livre (regra de `lib/tags.ts`): o leque só oferece
        essas, e o servidor recusa o resto, que é o que mantém nome e cor iguais em toda a base. */
-    tags: z.array(z.enum(taskTagValues, { message: "Escolha uma etiqueta da lista" })).max(MAX_TAGS, `No máximo ${MAX_TAGS} etiquetas`),
+    tags: z.array(z.enum(taskTagValues, { message: "Escolha uma etiqueta da lista" })).max(TASK_MAX_TAGS, `No máximo ${TASK_MAX_TAGS} etiquetas`),
     alert: z.union([blank, z.string().trim().max(taskLimits.alert, "Aviso longo demais")]),
   })
   .superRefine((data, ctx) => {
@@ -120,7 +121,8 @@ export const taskMoveSchema = z.object({
 
 export const taskIdSchema = z.uuid();
 
-export const subtaskToggleSchema = z.object({ id: z.uuid(), done: z.boolean() });
+/** O identificador que a pessoa lê, como vem no endereço: `TAR-2026-0005`. */
+export const taskReferenceSchema = z.string().trim().regex(/^[A-Z]{3}-\d{4}-\d{4,}$/);
 
 /** Uma marcação dentro de um comentário: o sinal digitado e o que ele aponta. */
 const mentionSchema = z.object({
@@ -129,15 +131,10 @@ const mentionSchema = z.object({
   name: z.string().trim().min(1).max(120),
   reference: z.string().trim().max(40).optional(),
   recordKey: z.string().trim().max(120).optional(),
+  /** O rosto de quem foi marcado, guardado junto para a conversa desenhar a pessoa e não só o nome. */
+  avatarUrl: z.url().max(800).nullable().optional(),
 });
 
-export const taskCommentSchema = z.object({
-  taskId: z.uuid(),
-  text: z.string().trim().min(1, "Escreva alguma coisa").max(taskLimits.comment, "Comentário longo demais"),
-  mentions: z.array(mentionSchema).max(30),
-});
-
-export type TaskCommentInput = z.infer<typeof taskCommentSchema>;
 
 /* As etapas da equipe (2026-09-21). O teto do nome bate com o `check` da coluna, e a cor e o glifo são
    listas fechadas, as mesmas dos enums do banco: é o que impede uma cor inventada de virar um quadrado sem
@@ -191,7 +188,13 @@ export const projectStagesSchema = z.object({
  * A tarefa que nasce já aberta (2026-09-22, a pedido: "ao invés de abrir um modal independente, ele já abrir
  * a visualização de uma tarefa mesmo"). Só o lugar dela; o resto se preenche na ficha, que grava sozinha.
  */
-export const createTaskSchema = z.object({ projectId: z.uuid().nullable().default(null), stageId: z.uuid() });
+export const createTaskSchema = z.object({
+  /* O id nasce na tela (2026-09-22, a pedido de tudo responder no mesmo segundo): a ficha abre com ele antes
+     de o banco responder, e a gravação chega depois sem precisar trocar de tarefa no meio. */
+  id: z.uuid().optional(),
+  projectId: z.uuid().nullable().default(null),
+  stageId: z.uuid(),
+});
 
 /** Salvar só a descrição, que é o que a ficha grava sozinha enquanto a pessoa escreve. */
 export const saveTaskDescriptionSchema = z.object({ id: z.uuid(), description: taskDescriptionSchema });
@@ -227,3 +230,83 @@ export const configureStagesSchema = z.object({
 });
 
 export type ConfigureStagesInput = z.infer<typeof configureStagesSchema>;
+
+/* ---------------------------------- o que muda dentro da ficha ---------------------------------- */
+
+/** Um arquivo que já subiu para o Storage: o caminho dele e o que a lista mostra. */
+const storedFileSchema = z.object({
+  path: z.string().trim().min(1).max(600),
+  name: z.string().trim().min(1).max(200),
+  type: z.enum(attachmentTypeValues),
+  sizeBytes: z.number().int().positive().max(26214400).nullable().default(null),
+});
+
+export const linkKindOptions = ["client", "quote", "project", "contract"] as const;
+
+/**
+ * Tudo o que se mexe dentro da ficha e não é campo do formulário (2026-09-22, a pedido: "os dados precisam
+ * propagar na tarefa de fato e não sumir"). Uma entrada só, com a operação no `op`, para a web e o
+ * aplicativo passarem pela mesma regra: comentário com áudio e arquivos, subtarefas, envolvidos, vínculos,
+ * anexos e o envio de arquivo. Os ids novos nascem na tela, para a lista mostrar a linha antes de o banco
+ * responder e continuar falando da mesma linha depois.
+ */
+export const taskChangeSchema = z.discriminatedUnion("op", [
+  z
+    .object({
+      op: z.literal("comment"),
+      text: z.string().trim().max(taskLimits.comment, "Comentário longo demais"),
+      mentions: z.array(mentionSchema).max(30).default([]),
+      audio: z.object({ path: z.string().trim().min(1).max(600), seconds: z.number().int().min(1).max(7200) }).nullable().default(null),
+      files: z.array(storedFileSchema).max(10).default([]),
+    })
+    .refine((value) => value.text.length > 0 || value.audio !== null || value.files.length > 0, "Escreva, grave ou anexe alguma coisa"),
+  z.object({
+    op: z.literal("subtask-add"),
+    id: z.uuid(),
+    title: z.string().trim().min(1, "Dê um nome à subtarefa").max(200),
+    assigneeId: z.uuid().nullable().default(null),
+    priority: z.enum(priorityValues).nullable().default(null),
+    dueDate: isoDay.nullable().default(null),
+  }),
+  z.object({
+    op: z.literal("subtask-update"),
+    id: z.uuid(),
+    title: z.string().trim().min(1).max(200).optional(),
+    done: z.boolean().optional(),
+    assigneeId: z.uuid().nullable().optional(),
+    priority: z.enum(priorityValues).nullable().optional(),
+    dueDate: isoDay.nullable().optional(),
+  }),
+  z.object({ op: z.literal("subtask-remove"), id: z.uuid() }),
+  /* A ordem da lista inteira, depois de a pessoa arrastar uma subtarefa para outro lugar. */
+  z.object({
+    op: z.literal("subtask-order"),
+    ids: z
+      .array(z.uuid())
+      .min(1)
+      .max(200)
+      .refine((list) => new Set(list).size === list.length, "Subtarefa repetida"),
+  }),
+  z.object({ op: z.literal("people"), userIds: z.array(z.uuid()).max(30) }),
+  z.object({ op: z.literal("link-add"), kind: z.enum(linkKindOptions), recordId: z.uuid() }),
+  z.object({ op: z.literal("link-remove"), kind: z.enum(linkKindOptions), recordId: z.uuid() }),
+  z
+    .object({
+      op: z.literal("attachment-add"),
+      id: z.uuid(),
+      name: z.string().trim().min(1).max(200),
+      type: z.enum(attachmentTypeValues),
+      path: z.string().trim().min(1).max(600).optional(),
+      url: z.url().max(800).optional(),
+      sizeBytes: z.number().int().positive().max(26214400).nullable().default(null),
+    })
+    .refine((value) => Boolean(value.path) !== Boolean(value.url), "Mande o arquivo ou o endereço"),
+  z.object({ op: z.literal("attachment-remove"), id: z.uuid() }),
+  z.object({ op: z.literal("upload"), name: z.string().trim().min(1).max(200), contentType: z.string().trim().max(120).default("") }),
+]);
+
+export type TaskChangeInput = z.infer<typeof taskChangeSchema>;
+/** A mesma mudança como a tela a monta, com os campos que têm padrão ainda opcionais. */
+export type TaskChangeDraft = z.input<typeof taskChangeSchema>;
+
+export const taskChangeRequestSchema = z.object({ taskId: z.uuid(), change: taskChangeSchema });

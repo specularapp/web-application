@@ -40,7 +40,7 @@ function Featured({ client }: { client: Client }) {
         src={client.avatarUrl ?? undefined}
         seed={client.email ?? client.name}
         size="lg"
-        shape="squircle"
+        shape="rounded"
         className={styles.photo}
       />
       <div className={styles.sheet}>
@@ -91,7 +91,7 @@ function Row({ client }: { client: Client }) {
       label={`Ver detalhes de ${client.name}`}
       className={list.row}
     >
-      <Avatar name={client.name} src={client.avatarUrl ?? undefined} seed={client.email ?? client.name} size="sm" shape="squircle" />
+      <Avatar name={client.name} src={client.avatarUrl ?? undefined} seed={client.email ?? client.name} size="sm" shape="rounded" />
       <span className={list.copy}>
         <Text as="span" variant="subheadline" weight="medium" truncate>
           {client.name}

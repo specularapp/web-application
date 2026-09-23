@@ -1,4 +1,5 @@
 import "server-only";
+import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { QuoteStatus } from "@/features/quotes/summary";
 import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
@@ -281,7 +282,7 @@ export async function saveCatalogItem(
       .select("id")
       .maybeSingle();
 
-    if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
     const changes = diffFields(before, values, historyLabels);
     if (changes.length > 0) {
@@ -303,7 +304,7 @@ export async function saveCatalogItem(
     .select("id")
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message || SAVE_FAILED };
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
 
   await logRecordEvent(client, organizationId, { recordType: "catalog", recordId: data.id, action: "created", summary: `Cadastrou ${input.name}` });
 
@@ -322,7 +323,7 @@ export async function deleteCatalogItems(
     .in("id", ids)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
   for (const row of data ?? []) {
     await logRecordEvent(client, organizationId, { recordType: "catalog", recordId: row.id, action: "deleted", summary: "Excluiu o item" });

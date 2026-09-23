@@ -88,5 +88,4 @@
   padding: var(--space-3);
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-md);
-  corner-shape: squircle;
 }

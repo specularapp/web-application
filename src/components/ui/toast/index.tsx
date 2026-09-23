@@ -60,7 +60,6 @@ const Root = styled.div`
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
   border-radius: var(--toast-radius);
-  corner-shape: squircle;
   box-shadow: var(--shadow-lg);
   pointer-events: auto;
   animation: ${enter} var(--duration-slow) var(--ease-spring) both;

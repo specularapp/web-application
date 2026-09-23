@@ -4,7 +4,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Text } from "@/components/ui/text";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { formatMoney } from "@/lib/utils/format";
 import { kindLabels, kindTones, readStock, unitLabels } from "../list-options";
 import type { CatalogItem } from "../summary";
@@ -70,7 +70,7 @@ export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit, onDe
   };
 
   return (
-    <li className={styles.card} data-inactive={!active || undefined} {...squircle("xl", { clip: true })}>
+    <li className={styles.card} data-inactive={!active || undefined} {...rounded("xl", { clip: true })}>
       <div
         role="button"
         tabIndex={0}
@@ -79,7 +79,7 @@ export function CatalogCard({ item, active, onActiveChange, onOpen, onEdit, onDe
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         <div className={styles.head}>
           <CatalogArtwork item={item} />

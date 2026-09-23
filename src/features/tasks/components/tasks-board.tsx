@@ -19,10 +19,13 @@ import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { ArrowCounterClockwiseIcon, ListChecksIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import dynamic from "next/dynamic";
 import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
@@ -34,6 +37,7 @@ import {
   OVERDUE_PARAM,
   PRIORITY_PARAM,
   QUERY_PARAM,
+  TASK_PARAM,
   activeTasksFilters,
   clearedFilters,
   columnSortIcons,
@@ -51,18 +55,24 @@ import type { AppRecord } from "@/features/records/records";
 import type { Task, TaskPerson } from "../summary";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
-import { createTaskAction, deleteTaskAction, loadTaskAction } from "../actions";
-import { setProjectStagesAction } from "../actions";
+import { createTaskAction, deleteTaskAction, loadTaskAction, moveTaskAction, setProjectStagesAction } from "../actions";
+import { trackCreation } from "../changes";
+import { DEFAULT_TASK_TITLE } from "../schemas";
 import type { ProjectHue } from "@/features/projects/summary";
 import type { ProjectGlyph } from "../tree";
 import { BoardLookDialog } from "./appearance-dialog";
 import { StagesDialog } from "./stages-dialog";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
-
-import { TaskDialog, type TaskProjectOption } from "./task-dialog";
+import { TaskCreated } from "./task-created";
+import type { TaskProjectOption } from "./task-dialog";
 import styles from "./tasks-board.module.css";
 import { callAction } from "@/lib/action";
+import { randomId } from "@/lib/utils/id";
+
+/* A janela da tarefa entra por importação dinâmica, montada só na primeira abertura (varredura de peso de
+   2026-09-21): o quadro desenha as colunas e os cartões sem ela. */
+const TaskDialog = dynamic(() => import("./task-dialog").then((module) => module.TaskDialog));
 
 export type TasksBoardProps = {
   board: TasksBoardData;
@@ -73,6 +83,10 @@ export type TasksBoardProps = {
   basePath: string;
   /** Quem pode assumir uma tarefa, para os seletores da janela; sem a equipe, valem as pessoas da tarefa. */
   team?: TaskPerson[];
+  /** Quem está vendo, para a ficha. */
+  viewer?: TaskPerson;
+  /** A tarefa que o endereço pede aberta (`?tarefa=`), pelo identificador ou pelo id. */
+  openTask?: string;
   /** O índice do que existe na aplicação, para vincular e para marcar no comentário. */
   records?: AppRecord[];
   /** O projeto deste quadro; nulo no balde de tarefas soltas, que é o que `/tarefas` mostra. */
@@ -144,7 +158,7 @@ type ColumnSorts = Record<TaskStageId, TasksColumnSort>;
 // A ficha da tarefa é **uma só para o quadro inteiro**, guardando quem está aberto, e não uma por cartão:
 // com vinte e quatro cartões seriam vinte e quatro janelas montadas, que é a mesma decisão da gaveta da base
 // de clientes.
-export function TasksBoard({ board, query, collapsed: saved, basePath, team, records, projectId = null, projects, stages, projectStages, project }: TasksBoardProps) {
+export function TasksBoard({ board, query, collapsed: saved, basePath, team, viewer, openTask, records, projectId = null, projects, stages, projectStages, project }: TasksBoardProps) {
   const dragContextId = useId();
   const router = useRouter();
   const { toast } = useToast();
@@ -161,7 +175,42 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
   }
   const [overrides, setOverrides] = useState<StageOverrides>(saved);
   const [sorts, setSorts] = useState<ColumnSorts>({});
-  const [open, setOpen] = useState<Task | null>(null);
+  /* A ficha que o endereço pede já nasce aberta, se a tarefa está no quadro; se não está (outro filtro, outro
+     quadro), ela é buscada pelo id logo abaixo. */
+  const [open, setOpen] = useState<Task | null>(() =>
+    openTask ? (board.columns.flatMap((column) => column.tasks).find((task) => task.reference === openTask || task.id === openTask) ?? null) : null,
+  );
+
+  useEffect(() => {
+    if (!openTask || open) return;
+    let alive = true;
+    void loadTaskAction(openTask).then((task) => {
+      if (alive && task) setOpen(task);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Cada tarefa tem endereço (2026-09-22, a pedido): abrir a ficha escreve `?tarefa=` com o identificador que a
+   * pessoa lê, e fechar tira. É o histórico do navegador, e não uma navegação: a ficha abre na hora e o quadro
+   * não é pedido de novo ao servidor. O link copiado da barra abre a mesma tarefa em outra aba ou aparelho.
+   */
+  const writeTaskParam = (value: string | null) => {
+    const url = new URL(window.location.href);
+    if (value) url.searchParams.set(TASK_PARAM, value);
+    else url.searchParams.delete(TASK_PARAM);
+    window.history.replaceState(window.history.state, "", url);
+  };
+
+  const showTask = (task: Task) => {
+    openId.current = task.id;
+    setOpen(task);
+    writeTaskParam(task.reference && task.reference !== "Nova" ? task.reference : task.id);
+  };
+  /* A janela nasce só na primeira abertura, e segue montada depois, para a saída animar. */
+  const taskReady = useOpenedOnce(open !== null);
 
   /* A exclusão, no desenho das outras telas: o leque do cartão pede, a janela da casa pergunta, e só então a
      action grava. */
@@ -175,32 +224,105 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    *
    * A tarefa nasce com o nome padrão e o prazo de hoje, e a ficha grava sozinha o que for preenchido.
    */
-  const [creating, setCreating] = useState(false);
+  /* As tarefas criadas nesta tela que o servidor ainda não mandou de volta: o cartão aparece na coluna na
+     hora, e some daqui quando o quadro se refaz com ele dentro. */
+  const [added, setAdded] = useState<Task[]>([]);
+  /* O retorno de tarefa criada, com o código que o banco deu a ela. */
+  const [celebrated, setCelebrated] = useState<{ id: string; reference: string } | null>(null);
+  const clearCelebrated = useCallback(() => setCelebrated(null), []);
+  /* A tarefa que acabou de ser arrastada para uma etapa que conclui, enquanto o cartão dela mostra o check. */
+  const [finished, setFinished] = useState<string | null>(null);
+  const clearFinished = useCallback(() => setFinished(null), []);
+  const pendingCelebration = useRef<{ id: string; reference: string } | null>(null);
+  /* Qual ficha está aberta, lida fora do desenho: a confirmação da criação chega depois, por promessa. */
+  const openId = useRef<string | null>(null);
+  /* Algo foi gravado desde a última vez que o quadro veio do servidor: ele se refaz quando a ficha fecha. */
+  const dirty = useRef(false);
+  const markDirty = useCallback(() => {
+    dirty.current = true;
+  }, []);
 
-  const createTask = async (stage: TaskStage) => {
-    if (creating) return;
-    setCreating(true);
-    const created = await callAction(createTaskAction({ projectId, stageId: stage.id }));
+  /**
+   * O que a ficha aberta mudou, por tarefa, até o quadro voltar do servidor (2026-09-22, a pedido de o cartão
+   * refletir na hora): título, etiquetas, prazo, responsável, vínculos e subtarefas aparecem no cartão
+   * enquanto a pessoa mexe. Quando o quadro novo chega, ele já traz tudo isso, e a camada sai.
+   */
+  const [edited, setEdited] = useState<Record<string, Task>>({});
+  const [seenBoard, setSeenBoard] = useState(board);
+  if (seenBoard !== board) {
+    setSeenBoard(board);
+    setEdited({});
+  }
+  const trackDraft = useCallback((task: Task) => setEdited((current) => (current[task.id] === task ? current : { ...current, [task.id]: task })), []);
 
-    if (!created.ok) {
-      setCreating(false);
-      toast({ title: "Não deu para criar a tarefa", description: created.error, tone: "danger" });
-      return;
-    }
+  /**
+   * A tarefa nasce **na hora** (2026-09-22, a pedido de tudo responder no mesmo segundo): o id sai daqui, a
+   * ficha abre com a tarefa montada na tela, e o banco grava por trás. As gravações da ficha esperam essa
+   * criação terminar, então nada se perde se a pessoa sair digitando antes da resposta.
+   */
+  const createTask = (stage: TaskStage) => {
+    const id = randomId();
+    const slug = basePath.split("/").at(2);
+    const task: Task = {
+      id,
+      reference: "Nova",
+      title: DEFAULT_TASK_TITLE,
+      description: "",
+      descriptionDoc: null,
+      dueDate: format(new Date(), "yyyy-MM-dd"),
+      stage,
+      priority: "normal",
+      owner: { name: "Sem responsável", avatarUrl: null },
+      people: [],
+      project: projectId && project && slug ? { id: projectId, name: project.name, reference: "", slug } : undefined,
+      links: [],
+      tags: [],
+      subtasks: [],
+      attachments: [],
+      activity: [],
+      loaded: true,
+    };
 
-    /* A ficha abre com a tarefa que o banco acabou de devolver, e não com uma montada aqui: é ela que tem o
-       identificador, a etapa resolvida e os campos que o gatilho preencheu. */
-    const task = await loadTaskAction(created.id);
-    setCreating(false);
+    setAdded((current) => [...current, task]);
+    showTask(task);
+    dirty.current = true;
+    if (overrides[stage.id] === true || (overrides[stage.id] === undefined && countOf(stage.id) === 0)) changeCollapsed(stage.id, false);
 
-    if (!task) {
-      toast({ title: "A tarefa foi criada", description: "Atualize o quadro para abri-la.", tone: "warning" });
-      router.refresh();
-      return;
-    }
+    const created = callAction(createTaskAction({ id, projectId, stageId: stage.id }));
+    trackCreation(id, created);
+    void created.then((result) => {
+      if (!result.ok) {
+        setAdded((current) => current.filter((entry) => entry.id !== id));
+        setOpen((current) => (current?.id === id ? null : current));
+        toast({ title: "Não deu para criar a tarefa", description: result.error, tone: "danger" });
+        return;
+      }
+      const reference = result.reference ?? task.reference;
+      /* O aviso espera a ficha da tarefa nova fechar, para não atrapalhar quem está preenchendo; se ela já
+         fechou, ele aparece agora. */
+      if (openId.current === id) pendingCelebration.current = { id, reference };
+      else setCelebrated({ id, reference });
+      setAdded((current) => current.map((entry) => (entry.id === id ? { ...entry, reference } : entry)));
+      setOpen((current) => {
+        if (current?.id !== id) return current;
+        writeTaskParam(reference);
+        return { ...current, reference };
+      });
+    });
+  };
 
-    setOpen(task);
-    router.refresh();
+  /* Ao fechar a ficha, o quadro vem de novo do servidor só se algo mudou, e em transição: a tela segue
+     respondendo enquanto a resposta chega. */
+  const closeTask = () => {
+    const waiting = pendingCelebration.current;
+    if (waiting && waiting.id === openId.current) setCelebrated(waiting);
+    pendingCelebration.current = null;
+    openId.current = null;
+    setOpen(null);
+    writeTaskParam(null);
+    if (!dirty.current) return;
+    dirty.current = false;
+    startTransition(() => router.refresh());
   };
   /* A etapa que vai sair do quadro, esperando a confirmação: as tarefas dela ficam no banco e voltam quando a
      etapa voltar, mas somem da vista, e isso merece a pergunta. */
@@ -326,7 +448,17 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * é ela quem manda na pilha; arrastar muda a etapa, e não o lugar na fila.
    */
   const columns = useMemo(() => {
-    const visibleColumns = board.columns.filter((column) => !hiddenStages.includes(column.stage.id));
+    const served = new Set(board.columns.flatMap((column) => column.tasks.map((task) => task.id)));
+    const fresh = added.filter((task) => !served.has(task.id));
+    const visibleColumns = board.columns
+      .filter((column) => !hiddenStages.includes(column.stage.id))
+      .map((column) => {
+        const mine = fresh.filter((task) => task.stage.id === column.stage.id);
+        const tasks = mine.length > 0 ? [...column.tasks, ...mine] : column.tasks;
+        /* A coluna é a do servidor; o conteúdo do cartão é o que a ficha mudou. */
+        const shown = Object.keys(edited).length > 0 ? tasks.map((task) => (edited[task.id] ? { ...edited[task.id], stage: task.stage } : task)) : tasks;
+        return shown === column.tasks ? column : { ...column, tasks: shown };
+      });
     if (Object.keys(moved).length === 0 && hidden.length === 0) return visibleColumns;
     const known = new Map(visibleColumns.map((column) => [column.stage.id, column.stage]));
     const piles = new Map<TaskStageId, Task[]>(visibleColumns.map((column) => [column.stage.id, []]));
@@ -341,7 +473,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
       }
     }
     return visibleColumns.map((column) => ({ ...column, tasks: piles.get(column.stage.id) ?? [] }));
-  }, [board.columns, moved, hidden, hiddenStages]);
+  }, [board.columns, moved, hidden, hiddenStages, added, edited]);
 
   /**
    * Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/8" e as setas andam a
@@ -402,10 +534,19 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
    * cartão ou da ficha. Fica num lugar só porque a etapa de destino recolhida precisa abrir nos três casos,
    * senão a tarefa some no trilho fechado logo depois de a pessoa mandar ela para lá.
    */
-  const moveTask = (task: Task, to: TaskStage, from: TaskStage) => {
+  const moveTask = (task: Task, to: TaskStage, from: TaskStage, persist = true) => {
     if (to.id === from.id) return;
     setMoved((current) => ({ ...current, [task.id]: to.id }));
     if (overrides[to.id] === true || (overrides[to.id] === undefined && countOf(to.id) === 0)) changeCollapsed(to.id, false);
+    dirty.current = true;
+    /* Da ficha quem grava é o salvar dela, que já leva a etapa; do quadro, grava aqui, e o cartão volta para
+       onde estava se o banco recusar. */
+    if (!persist) return;
+    void callAction(moveTaskAction({ id: task.id, stageId: to.id, position: countOf(to.id) })).then((result) => {
+      if (result.ok) return;
+      setMoved((current) => ({ ...current, [task.id]: from.id }));
+      toast({ title: "Não deu para mover a tarefa", description: result.error, tone: "danger" });
+    });
   };
 
   const stageOf = (id: string | number | undefined) => columns.find((column) => column.stage.id === id)?.stage;
@@ -417,6 +558,8 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
     setDragging(null);
     setLanding(null);
     if (!task || !to || !from) return;
+    /* Só o arraste até uma etapa que conclui acende o check no cartão; mover pelo menu ou pela ficha não. */
+    if (to.id !== from.id && to.kind === "done" && from.kind !== "done") setFinished(task.id);
     moveTask(task, to, from);
   };
 
@@ -514,12 +657,12 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
         action={
           <>
             <span className={styles.wide}>
-              <Button size="sm" radius="md" iconStart={<PlusIcon />} loading={creating} onClick={() => void createTask(columns[0]?.stage ?? stages[0])}>
+              <Button size="sm" radius="md" iconStart={<PlusIcon />} onClick={() => createTask(columns[0]?.stage ?? stages[0])}>
                 Nova tarefa
               </Button>
             </span>
             <span className={styles.narrow}>
-              <IconButton label="Nova tarefa" size="sm" radius="md" loading={creating} onClick={() => void createTask(columns[0]?.stage ?? stages[0])}>
+              <IconButton label="Nova tarefa" size="sm" radius="md" onClick={() => createTask(columns[0]?.stage ?? stages[0])}>
                 <PlusIcon />
               </IconButton>
             </span>
@@ -562,14 +705,16 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
             {columns.map((column) => (
               <TaskColumn
                 key={column.stage.id}
+                celebrating={finished}
+                onCelebrated={clearFinished}
                 stage={column.stage}
                 tasks={sortColumn(column.tasks, sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT)}
                 collapsed={isCollapsed(column.stage.id, column.tasks.length)}
                 onCollapsedChange={(on) => changeCollapsed(column.stage.id, on)}
                 sort={sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT}
                 onSortChange={(sort) => changeSort(column.stage.id, sort)}
-                onOpen={setOpen}
-                onAdd={() => void createTask(column.stage)}
+                onOpen={showTask}
+                onAdd={() => createTask(column.stage)}
                 onRemoveStage={projectId && columns.length > 1 ? () => setRemovingStage(column.stage) : undefined}
                 onEditStage={() => setArranging(true)}
                 landing={landing === column.stage.id}
@@ -596,20 +741,26 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, rec
       {/* Fica montada e vazia depois de fechar, para a saída animar. As etapas que a janela oferece são as
           deste quadro, e não as do catálogo: mover a tarefa para uma etapa que o projeto não tem a deixaria
           sem coluna onde cair. */}
-      <TaskDialog
-        task={open}
-        projects={projects ?? []}
-        open={Boolean(open)}
-        onClose={() => setOpen(null)}
-        stages={board.columns.map((column) => column.stage)}
-        team={team}
-        records={records}
-        onStageChange={(stage) => {
-          if (!open) return;
-          moveTask(open, stage, open.stage);
-          setOpen({ ...open, stage });
-        }}
-      />
+      {taskReady && (
+        <TaskDialog
+          task={open}
+          projects={projects ?? []}
+          open={Boolean(open)}
+          onClose={closeTask}
+          stages={board.columns.map((column) => column.stage)}
+          team={team}
+          viewer={viewer}
+          records={records}
+          onChanged={markDirty}
+          onDraftChange={trackDraft}
+          onStageChange={(stage) => {
+            if (!open) return;
+            moveTask(open, stage, open.stage, false);
+            setOpen({ ...open, stage });
+          }}
+        />
+      )}
+      {celebrated && <TaskCreated key={celebrated.id} reference={celebrated.reference} onDone={clearCelebrated} />}
       <ConfirmDialog
         open={removingStage !== null}
         pending={removingStageBusy}

@@ -1,11 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { loadBillingStateAction } from "../actions";
 import type { PlanId } from "../plans";
 import type { BillingState } from "../service";
-import { PlanDialog } from "./plan-dialog";
+
+/* O modal carrega o carrossel de planos e o checkout do Stripe por dentro: quem nunca esbarra num bloqueio
+   não paga por esse peso no pacote inicial (varredura de peso de 2026-09-22). */
+const PlanDialog = dynamic(() => import("./plan-dialog").then((module) => module.PlanDialog));
 
 /**
  * O portão de plano da aplicação inteira.
@@ -40,6 +45,7 @@ export function PlanGateProvider({ plan, children }: { plan: PlanId; children: R
   const [asking, setAsking] = useState(false);
   const [state, setState] = useState<BillingState | null>(null);
   const asked = useRef(false);
+  const ready = useOpenedOnce(asking);
 
   const allows = useCallback((required: PlanId) => tiers[plan] >= tiers[required], [plan]);
 
@@ -70,20 +76,22 @@ export function PlanGateProvider({ plan, children }: { plan: PlanId; children: R
   return (
     <PlanGateContext.Provider value={value}>
       {children}
-      <PlanDialog
-        open={asking}
-        state={state}
-        onClose={() => setAsking(false)}
-        onSubscribed={() => {
-          /* O plano em vigor vem da concha, que é servidor: sem refazer a rota, a mesma ação continuaria
-             bloqueada logo depois de a pessoa assinar. O estado de cobrança também é largado, para a
-             próxima abertura ler o novo em vez do de antes. */
-          setAsking(false);
-          setState(null);
-          asked.current = false;
-          router.refresh();
-        }}
-      />
+      {ready && (
+        <PlanDialog
+          open={asking}
+          state={state}
+          onClose={() => setAsking(false)}
+          onSubscribed={() => {
+            /* O plano em vigor vem da concha, que é servidor: sem refazer a rota, a mesma ação continuaria
+               bloqueada logo depois de a pessoa assinar. O estado de cobrança também é largado, para a
+               próxima abertura ler o novo em vez do de antes. */
+            setAsking(false);
+            setState(null);
+            asked.current = false;
+            router.refresh();
+          }}
+        />
+      )}
     </PlanGateContext.Provider>
   );
 }

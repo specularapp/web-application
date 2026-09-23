@@ -11,14 +11,24 @@
   gap: var(--space-3);
   padding: var(--space-4);
 }
+/* O cabeçalho é rente ao botão de fechar: só o título e o X, sem o respiro do corpo. */
 .head {
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 .head > :first-child {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.head > button {
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+}
+.headActions > button {
   flex-shrink: 0;
 }
 .body {
@@ -72,10 +82,12 @@
   .stagesPanel.stagesPanel[data-size="lg"] {
     max-width: 46rem;
   }
-  .head,
   .foot,
   .body {
     padding: var(--space-6);
+  }
+  .head {
+    padding-inline-start: var(--space-6);
   }
   .pair {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -95,6 +107,34 @@
     display: none;
   }
   .body {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+/* A edição da pasta mora colada no chevron da árvore. A mesma ficha do modal central perde os grandes
+   respiros, com o cabeçalho rente aos botões dele; no celular as ações vão para a barra flutuante. */
+.appearanceCompact .head {
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+}
+.appearanceCompact .body,
+.appearanceCompact .foot {
+  padding: var(--space-3);
+}
+.appearanceCompact .body {
+  gap: var(--space-3);
+  padding-block-end: var(--space-3);
+}
+.appearanceCompact .pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+@media (min-width: 48rem) {
+  .appearanceCompact .foot {
+    display: flex;
+  }
+}
+@media (max-width: 47.9375rem) {
+  .appearanceCompact .body {
     padding-block-end: var(--floating-bar-inset);
   }
 }
@@ -184,7 +224,9 @@
   }
 }
 
-.stagesPanel .head,
+.stagesPanel .head {
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+}
 .stagesPanel .foot {
   padding: var(--space-3) var(--space-4);
 }
@@ -253,5 +295,90 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+}
+
+/* No celular cada etapa é uma linha: a alça de arrastar e o resumo, que abre a bandeja da etapa. */
+.mobileRow {
+  display: grid;
+  grid-template-columns: var(--touch-target) minmax(0, 1fr);
+  grid-template-areas: "drag summary";
+  align-items: center;
+  gap: var(--space-1);
+  position: relative;
+}
+.mobileRow + .mobileRow {
+  border-top: 1px solid var(--color-border);
+}
+.mobileRow[data-dragging] {
+  z-index: 1;
+  box-shadow: var(--shadow-md);
+}
+.stageSummary {
+  grid-area: summary;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+  color: var(--color-label);
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.stageSummary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+.stageSummary > svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+.stageSummaryText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.stageSummaryName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* No celular o cabeçalho não tem o X, que mora na barra: sobra só o título, e ele ganha respiro para não
+   ficar espremido no topo da bandeja. */
+@media (max-width: 47.9375rem) {
+  .head,
+  .appearanceCompact .head,
+  .stagesPanel .head {
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* As janelas de etapas e de cor do quadro nas medidas da edição de pasta (2026-09-23, a pedido): o mesmo
+   cabeçalho rente, o mesmo pé e o mesmo canto, para as três lerem como a mesma família. No celular a
+   bandeja segue com as medidas dela. */
+@media (min-width: 48rem) {
+  .stagesPanel.stagesPanel,
+  .appearancePanel.appearancePanel {
+    border-radius: var(--radius-lg);
+  }
+
+  .stagesPanel .head,
+  .appearancePanel .head {
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  }
+
+  .stagesPanel .foot,
+  .appearancePanel .foot {
+    padding: var(--space-3);
+  }
+
+  .appearancePanel .body {
+    padding: var(--space-3);
   }
 }

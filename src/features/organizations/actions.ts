@@ -3,9 +3,11 @@
 import { refresh, revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { requireUser } from "@/features/auth/session";
+import { cacheTags } from "@/lib/cache/tags";
 import { siteConfig } from "@/lib/metadata";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { revalidateDomain } from "./context";
 import { markNotificationsRead } from "./notifications";
 import {
   archiveTeamSchema,
@@ -31,7 +33,7 @@ import {
   changeMemberRole,
   completeOnboarding,
   createImageUpload,
-  getTeamState,
+  getTeamPeople,
   inviteMember,
   removeMember,
   saveTeam,
@@ -39,6 +41,7 @@ import {
   type ServiceResult,
   type Team,
   type TeamInvite,
+  type TeamPeople,
 } from "./service";
 
 const DASHBOARD_PATH = "/dashboard";
@@ -54,6 +57,19 @@ const INVALID = "Confira os dados informados.";
 async function withinActionLimit(operation: string, userId: string) {
   const { allowed } = await checkRateLimit("action", `${operation}:${userId}`, crypto.randomUUID());
   return allowed;
+}
+
+/**
+ * O que toda escrita de pessoa ou de convite faz depois de gravar (2026-09-22, na varredura): derruba a tag
+ * `organization` no Redis. A lista de membros alimenta o seletor de responsável do projeto e a lista de
+ * pessoas do CRM, guardadas por um minuto; sem isto, quem acabou de ser removido continuava sendo oferecido
+ * e o projeto saía com responsável que não é mais da equipe.
+ *
+ * Sem `refresh` aqui, pelo mesmo motivo do bloco acima: a tela de equipe já atualiza a própria lista com o
+ * que a ação devolveu, e re-renderizar o painel dentro desta resposta era o que fazia cada clique demorar.
+ */
+async function dropTeamCache(organizationId: string) {
+  await revalidateDomain(organizationId, [cacheTags.organization], [], false);
 }
 
 export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team>> {
@@ -105,17 +121,21 @@ export async function inviteMemberAction(input: unknown): Promise<ServiceResult<
   const perTarget = await checkRateLimit("authEmail", `invite:${parsed.data.email}`, crypto.randomUUID());
   if (!perTarget.allowed) return { ok: false, error: TOO_MANY };
 
+  /* A equipe vem por id, e não da em uso: a gaveta do seletor convida por qualquer equipe da lista. Quem
+     pode convidar é o banco, no `create_invite`, que exige papel de proprietário ou administrador; aqui a
+     leitura serve só para o nome do time no e-mail, e a RLS já devolve nada para quem não participa. */
   const supabase = await createClient();
-  const state = await getTeamState(supabase, user.id);
-  if (!state.team || state.team.id !== parsed.data.organizationId) {
-    return { ok: false, error: "Time não encontrado." };
-  }
+  const team = await getTeam(supabase, parsed.data.organizationId);
+  if (!team) return { ok: false, error: "Time não encontrado." };
 
-  return inviteMember(supabase, parsed.data, {
+  const result = await inviteMember(supabase, parsed.data, {
     origin: siteConfig.url,
-    teamName: state.team.name,
+    teamName: team.name,
     inviterName: user.fullName,
   });
+
+  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  return result;
 }
 
 export async function changeMemberRoleAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -126,7 +146,9 @@ export async function changeMemberRoleAction(input: unknown): Promise<ServiceRes
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  return changeMemberRole(supabase, parsed.data);
+  const result = await changeMemberRole(supabase, parsed.data);
+  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  return result;
 }
 
 export async function removeMemberAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -137,7 +159,9 @@ export async function removeMemberAction(input: unknown): Promise<ServiceResult<
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  return removeMember(supabase, parsed.data);
+  const result = await removeMember(supabase, parsed.data);
+  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  return result;
 }
 
 export async function changeInviteRoleAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -148,7 +172,9 @@ export async function changeInviteRoleAction(input: unknown): Promise<ServiceRes
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  return changeInviteRole(supabase, parsed.data);
+  const result = await changeInviteRole(supabase, parsed.data);
+  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  return result;
 }
 
 export async function cancelInviteAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -159,7 +185,9 @@ export async function cancelInviteAction(input: unknown): Promise<ServiceResult<
   if (!parsed.success) return { ok: false, error: INVALID };
 
   const supabase = await createClient();
-  return cancelInvite(supabase, parsed.data);
+  const result = await cancelInvite(supabase, parsed.data);
+  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  return result;
 }
 
 export async function createImageUploadAction(input: unknown): Promise<ServiceResult<{ path: string; token: string }>> {
@@ -211,6 +239,17 @@ export async function loadTeamAction(input: unknown): Promise<ServiceResult<Team
   const supabase = await createClient();
   const team = await getTeam(supabase, parsed.data.organizationId);
   return team ? { ok: true, data: team } : { ok: false, error: "Equipe não encontrada." };
+}
+
+/** Quem está numa equipe e quem foi convidado, para a gaveta de editar equipe. A RLS limita a quem participa. */
+export async function loadTeamPeopleAction(input: unknown): Promise<ServiceResult<TeamPeople>> {
+  const user = await requireUser(DASHBOARD_PATH);
+
+  const parsed = organizationIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: INVALID };
+
+  const supabase = await createClient();
+  return getTeamPeople(supabase, parsed.data.organizationId, user.id);
 }
 
 export async function acceptInviteAction(token: unknown): Promise<ServiceResult<string>> {

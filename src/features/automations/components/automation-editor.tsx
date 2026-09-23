@@ -6,6 +6,7 @@ import { Background, BackgroundVariant, ReactFlow, ReactFlowProvider, addEdge, u
 import { format } from "date-fns";
 import type { Route } from "next";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
@@ -20,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { callAction } from "@/lib/action";
 import { cx } from "@/lib/utils/cx";
 import { saveAutomationAction, setAutomationStatusAction, testAutomationAction } from "../actions";
@@ -31,8 +33,11 @@ import { EditorActionsContext, type Branch, type EditorActions } from "./editor-
 import { FlowNode, type FlowNodeType, type NodeRunState } from "./flow-node";
 import { NODE_DRAG_TYPE, NodePalette } from "./node-palette";
 import { NodeConfigPanel } from "./node-config-panel";
-import { RunLogDialog } from "./run-log-dialog";
 import styles from "./automation-editor.module.css";
+
+/* O registro de execuções entra por importação dinâmica, montado só na primeira abertura, como o mesmo
+   componente já faz em `automations-board.tsx` (varredura de peso de 2026-09-22). */
+const RunLogDialog = dynamic(() => import("./run-log-dialog").then((module) => module.RunLogDialog));
 
 export type AutomationEditorProps = {
   automation: Automation;
@@ -124,6 +129,7 @@ function Editor({ automation }: AutomationEditorProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+  const logReady = useOpenedOnce(logOpen);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [replay, setReplay] = useState<Replay | null>(null);
   const replayToken = useRef(0);
@@ -582,7 +588,9 @@ function Editor({ automation }: AutomationEditorProps) {
           </PanelSheet>
         </Dialog>
 
-        <RunLogDialog open={logOpen} onClose={() => setLogOpen(false)} name={name} runs={runs} highlight={highlight} />
+        {logReady && (
+          <RunLogDialog open={logOpen} onClose={() => setLogOpen(false)} name={name} runs={runs} highlight={highlight} />
+        )}
       </div>
     </EditorActionsContext.Provider>
   );

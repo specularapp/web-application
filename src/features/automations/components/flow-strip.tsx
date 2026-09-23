@@ -2,7 +2,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/ssr";
 import type { CSSProperties } from "react";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { categories, nodeCatalog } from "../catalog";
 import type { AutomationEdge, AutomationNode } from "../summary";
 import { orderedNodes } from "../templates";
@@ -39,7 +39,7 @@ export function FlowStrip({ nodes, edges, limit = 5, className }: FlowStripProps
         return (
           <li key={node.id} className={styles.step}>
             {index > 0 && <CaretRightIcon className={styles.arrow} weight="bold" aria-hidden="true" />}
-            <span className={styles.tile} style={{ "--tile-hue": categories[spec.category].hue } as CSSProperties} title={spec.label} {...squircle("sm")}>
+            <span className={styles.tile} style={{ "--tile-hue": categories[spec.category].hue } as CSSProperties} title={spec.label} {...rounded("sm")}>
               <spec.icon weight="duotone" aria-hidden="true" />
             </span>
             <VisuallyHidden>{spec.label}</VisuallyHidden>

@@ -5,7 +5,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { AudioBubble } from "@/features/tasks/components/chat-audio";
 import { AI_STEP_MS, aiBlocks, aiWords, type AiMessage } from "../conversation";
 import { AiMark } from "./ai-mark";
@@ -54,7 +54,7 @@ export function AiThread({ messages, onRetry }: AiThreadProps) {
               {/* O que foi junto fica **acima** do balão, e não dentro: o balão é a fala, e o anexo é o que
                   a acompanha, como em qualquer conversa com arquivo. */}
               {message.voice && (
-                <span className={styles.sentAudio} {...squircle("md")}>
+                <span className={styles.sentAudio} {...rounded("md")}>
                   <AudioBubble audio={message.voice} />
                 </span>
               )}
@@ -62,7 +62,7 @@ export function AiThread({ messages, onRetry }: AiThreadProps) {
               {message.files && message.files.length > 0 && (
                 <ul className={styles.sentFiles}>
                   {message.files.map((file) => (
-                    <li key={file.id} className={styles.sentFile} {...squircle("sm")}>
+                    <li key={file.id} className={styles.sentFile} {...rounded("sm")}>
                       <PaperclipIcon />
                       <Text as="span" variant="caption2" weight="medium" truncate>
                         {file.name}
@@ -75,7 +75,7 @@ export function AiThread({ messages, onRetry }: AiThreadProps) {
                 </ul>
               )}
 
-              <div className={styles.bubble} {...squircle("lg")}>
+              <div className={styles.bubble} {...rounded("lg")}>
                 <Text as="p" variant="subheadline">
                   {message.text}
                 </Text>
@@ -99,7 +99,7 @@ export function AiThread({ messages, onRetry }: AiThreadProps) {
               {(message.state === "done" || message.state === "stopped") && message.sources && message.sources.length > 0 && (
                 <ul className={styles.sources}>
                   {message.sources.map((source) => (
-                    <li key={source.id} className={styles.source} {...squircleAuto()}>
+                    <li key={source.id} className={styles.source} {...roundedAuto()}>
                       <Text as="span" variant="caption2" weight="medium" truncate>
                         {source.label}
                       </Text>

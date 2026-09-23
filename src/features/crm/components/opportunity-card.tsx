@@ -12,11 +12,12 @@ import {
 import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SuccessOverlay } from "@/components/ui/success-mark";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { compactMoney } from "@/lib/utils/format";
-import { squircle, squircleAuto } from "@/lib/corners";
+import { rounded, roundedAuto } from "@/lib/corners";
 import { expectedOf, isStale, sourceLabels, temperatureLabels, temperatureTones, touchLabel } from "../labels";
 import type { CrmStage } from "../stages";
 import type { Opportunity } from "../summary";
@@ -33,6 +34,10 @@ export type OpportunityCardDrag = {
 
 export type OpportunityCardProps = {
   opportunity: Opportunity;
+  /** A oportunidade acabou de ser arrastada para ganha: o cartão mostra o check de feito e depois volta. */
+  celebrating?: boolean;
+  /** Avisa que o check terminou, para o quadro tirar a marca. */
+  onCelebrated?: () => void;
   /**
    * Abre a ficha. Recebe a oportunidade em vez de fechar sobre ela (2026-09-17, na rodada de velocidade):
    * assim quem lista passa a mesma função para todos os cartões e o `memo` daqui embaixo tem o que segurar.
@@ -67,7 +72,17 @@ const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunctio
 // que se está vendendo, para quem, o que é, como está classificada, quanto vale e qual a chance, e por fim
 // quem cuida e quando deve fechar. Etiquetas e as contagens do pé só aparecem quando existem, então venda
 // nova tem cartão curto e venda madura tem cartão cheio.
-export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOpen, drag, overlay = false, stages, onMove, onDelete }: OpportunityCardProps) {
+export const OpportunityCard = memo(function OpportunityCard({
+  opportunity,
+  onOpen,
+  drag,
+  overlay = false,
+  stages,
+  onMove,
+  onDelete,
+  celebrating = false,
+  onCelebrated,
+}: OpportunityCardProps) {
   const expected = expectedOf(opportunity);
   const faces = opportunity.people.slice(0, SHOWN_FACES);
   const restFaces = opportunity.people.length - faces.length;
@@ -101,7 +116,8 @@ export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOp
       className={styles.card}
       data-dragging={drag?.dragging || undefined}
       data-overlay={overlay || undefined}
-      {...squircle("xl", { clip: true })}
+      data-celebrating={celebrating || undefined}
+      {...rounded("xl", { clip: true })}
     >
       <div
         {...drag?.attributes}
@@ -114,7 +130,7 @@ export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOp
         data-grab={drag ? "" : undefined}
         onClick={onClick}
         onKeyDown={onKeyDown}
-        {...squircleAuto({ clip: true })}
+        {...roundedAuto({ clip: true })}
       >
         {/* O topo: a temperatura, o aviso de venda parada, e o leque na outra ponta. O aviso é só glifo,
             porque o "há quantos dias" mora na dica e na ficha; aqui ele avisa que existe. */}
@@ -142,7 +158,7 @@ export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOp
             assina e embaixo com quem se fala, ou de onde o lead veio quando não há empresa. Uma linha só com
             bolinha separando saiu: a casa não separa dado com ponto, ela empilha. */}
         <div className={styles.client}>
-          <Avatar name={opportunity.client.name} src={opportunity.client.avatarUrl ?? undefined} size="sm" shape="squircle" />
+          <Avatar name={opportunity.client.name} src={opportunity.client.avatarUrl ?? undefined} size="sm" shape="rounded" />
           <span className={styles.who}>
             <Text as="span" variant="footnote" weight="semibold" truncate>
               {opportunity.client.company ?? opportunity.client.name}
@@ -248,6 +264,11 @@ export const OpportunityCard = memo(function OpportunityCard({ opportunity, onOp
           </span>
         </div>
       </div>
+      {/* O ganho, só como efeito (2026-09-23, a pedido): ao soltar o cartão numa etapa de ganho, um véu verde
+          cobre o cartão com o anel se fechando no check, e some sozinho. Não muda nada no cartão. */}
+      {celebrating && (
+        <SuccessOverlay onDone={onCelebrated} />
+      )}
     </li>
   );
 });

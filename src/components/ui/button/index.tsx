@@ -9,8 +9,8 @@ import {
   cornerRadius,
   controlCornerRadius,
   iconButtonCornerRadius,
-  squircle,
-  squirclePx,
+  rounded,
+  roundedPx,
 } from "@/lib/corners";
 import { matchIconWeight } from "../icons";
 import { Spinner } from "../spinner";
@@ -69,8 +69,8 @@ function planCorner(radius: ButtonRadius, size: ControlSize) {
 
 function cornerAttributes(radius: ButtonRadius, size: ControlSize, iconOnly: boolean) {
   if (radius === "full") return {};
-  if (radius !== "auto") return squircle(radius);
-  return squirclePx(autoCorner(size, iconOnly));
+  if (radius !== "auto") return rounded(radius);
+  return roundedPx(autoCorner(size, iconOnly));
 }
 
 const Root = styled.button`
@@ -344,7 +344,7 @@ export function Button({
       {iconOnly ? !busy && <span data-button-icon>{matchTextWeight(children)}</span> : children}
       {iconEnd && <span data-button-icon>{matchTextWeight(iconEnd)}</span>}
       {locked && (
-        <Plan style={planStyle} {...squirclePx(planCorner(radius, size))}>
+        <Plan style={planStyle} {...roundedPx(planCorner(radius, size))}>
           <LockIcon weight={iconWeight} aria-hidden="true" />
           <VisuallyHidden>{plan ? "Disponível no plano" : "Recurso bloqueado"}</VisuallyHidden>
           {plan}

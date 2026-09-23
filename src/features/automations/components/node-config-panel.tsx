@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { categories, nodeCatalog, settingsFields } from "../catalog";
 import { automationLimits } from "../schemas";
 import type { NodeConfig } from "../summary";
@@ -33,7 +33,7 @@ export function NodeConfigPanel({ node, onChange, onRename, onRemove }: NodeConf
   return (
     <div className={styles.config}>
       <header className={styles.configHead}>
-        <span className={styles.configGlyph} style={{ "--item-hue": category.hue } as CSSProperties} aria-hidden="true" {...squircle("md")}>
+        <span className={styles.configGlyph} style={{ "--item-hue": category.hue } as CSSProperties} aria-hidden="true" {...rounded("md")}>
           <spec.icon weight="duotone" />
         </span>
         <span className={styles.configCopy}>

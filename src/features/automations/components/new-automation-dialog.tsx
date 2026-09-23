@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRightIcon, CheckIcon, FlowArrowIcon, XIcon } from "@phosphor-icons/react";
-import { useId, useState } from "react";
+import { useId, useRef, useState, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { callAction } from "@/lib/action";
-import { squircle } from "@/lib/corners";
+import { rounded } from "@/lib/corners";
 import { createAutomationAction } from "../actions";
 import { nodeCatalog } from "../catalog";
 import { automationTemplates } from "../templates";
@@ -32,23 +32,43 @@ export type NewAutomationDialogProps = {
 // trilha do fluxo, o gatilho, o nome e a descrição. Escolher cria na hora e abre o editor. No celular é a
 // bandeja da casa. Tem endereço (`/automacoes/nova`).
 export function NewAutomationDialog({ open, installed, onClose, onCreated }: NewAutomationDialogProps) {
+  /* Escape e o clique fora chamam o mesmo onClose do Dialog: sem essa trava, fechar durante a criação
+     deixa a promessa correndo, e quando ela volta a pessoa é levada para o editor de uma automação que
+     achava ter cancelado (padrão de `new-contract-dialog.tsx`). */
+  const workingRef = useRef(false);
+  const close = () => {
+    if (!workingRef.current) onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} label="Nova automação" size="lg" focusOnOpen={false}>
-      <Chooser installed={installed} onClose={onClose} onCreated={onCreated} />
+    <Dialog open={open} onClose={close} label="Nova automação" size="lg" focusOnOpen={false}>
+      <Chooser installed={installed} onClose={onClose} onCreated={onCreated} workingRef={workingRef} />
     </Dialog>
   );
 }
 
-function Chooser({ installed, onClose, onCreated }: Omit<NewAutomationDialogProps, "open">) {
+function Chooser({
+  installed,
+  onClose,
+  onCreated,
+  workingRef,
+}: Omit<NewAutomationDialogProps, "open"> & { workingRef: RefObject<boolean> }) {
   const { toast } = useToast();
   const titleId = useId();
   const [busy, setBusy] = useState<string | null>(null);
 
-  useFloatingActionsRegistration({ cancel: { label: "Fechar", onClick: onClose } });
+  const close = () => {
+    if (!workingRef.current) onClose();
+  };
+
+  useFloatingActionsRegistration({ cancel: { label: "Fechar", onClick: close } });
 
   const create = async (templateId: string | null) => {
+    if (workingRef.current) return;
+    workingRef.current = true;
     setBusy(templateId ?? "blank");
     const result = await callAction(createAutomationAction({ templateId }));
+    workingRef.current = false;
     setBusy(null);
     if (!result.ok) {
       toast({ title: "Não deu para criar", description: result.error, tone: "danger" });
@@ -68,14 +88,14 @@ function Chooser({ installed, onClose, onCreated }: Omit<NewAutomationDialogProp
             Comece por um modelo da casa e mude o que quiser, ou monte o fluxo do zero.
           </Text>
         </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={busy !== null} onClick={onClose}>
+        <IconButton label="Fechar" variant="ghost" size="sm" disabled={busy !== null} onClick={close}>
           <XIcon />
         </IconButton>
       </header>
 
       <div className={styles.body}>
-        <button type="button" className={styles.blank} disabled={busy !== null} aria-busy={busy === "blank" || undefined} onClick={() => void create(null)} {...squircle("lg")}>
-          <span className={styles.blankGlyph} aria-hidden="true" {...squircle("md")}>
+        <button type="button" className={styles.blank} disabled={busy !== null} aria-busy={busy === "blank" || undefined} onClick={() => void create(null)} {...rounded("lg")}>
+          <span className={styles.blankGlyph} aria-hidden="true" {...rounded("md")}>
             {busy === "blank" ? <Spinner size="sm" label="" /> : <FlowArrowIcon weight="duotone" />}
           </span>
           <span className={styles.blankCopy}>
@@ -99,7 +119,7 @@ function Chooser({ installed, onClose, onCreated }: Omit<NewAutomationDialogProp
             const creating = busy === template.id;
             return (
               <li key={template.id}>
-                <button type="button" className={styles.template} disabled={busy !== null} aria-busy={creating || undefined} aria-label={`Usar o modelo ${template.name}`} onClick={() => void create(template.id)} {...squircle("lg")}>
+                <button type="button" className={styles.template} disabled={busy !== null} aria-busy={creating || undefined} aria-label={`Usar o modelo ${template.name}`} onClick={() => void create(template.id)} {...rounded("lg")}>
                   <span className={styles.templateHead}>
                     <FlowStrip nodes={template.nodes} edges={template.edges} limit={4} />
                     {creating ? (

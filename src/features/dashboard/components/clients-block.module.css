@@ -27,7 +27,7 @@
 /* Retrato em destaque, e não bolinha de lista: largura fixa e altura da pilha ao lado, então a foto sai
    em pé, com a imagem cobrindo e o rosto gerado centrado no pastel, num canto de cartão. Três classes
    para vencer `.avatar[data-size]`, de onde saem o tamanho e o raio. O motor lê o raio do
-   `border-radius`, então o squircle segue junto. */
+   `border-radius`, então o rounded segue junto. */
 .block .featured .photo {
   --avatar-radius: var(--radius-lg);
   width: 5.5rem;
@@ -74,7 +74,6 @@
   margin: 0;
   background-color: var(--color-fill-quaternary);
   border-radius: var(--card-inner);
-  corner-shape: squircle;
 
   /* Uma coluna no celular: com a foto mais larga sobra pouca largura ao lado, e dois fatos lado a lado
      viravam duas reticências. Empilhados, cada valor aproveita a faixa inteira. */
