@@ -323,10 +323,15 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
                 id: "look",
                 label: "Cor do quadro",
                 icon: PaletteIcon,
-                /* Abre por cima do leque, colada na linha do quadro, como a edição da pasta: o leque fica aberto
-                   por baixo e volta a valer quando a cor fecha. */
+                /* Abre por cima do leque, ancorada no mesmo chevron que o abriu, como a edição da pasta: cai no
+                   lugar do leque, que fica aberto por baixo e volta a valer quando a cor fecha. */
                 keepOpen: true,
-                onSelect: () => setOpened({ kind: "look", node, anchor: { current: document.querySelector<HTMLElement>(`[data-leaf="${node.id}"]`) } }),
+                onSelect: () =>
+                  setOpened({
+                    kind: "look",
+                    node,
+                    anchor: { current: document.querySelector<HTMLElement>(`[data-leaf="${node.id}"] button[aria-haspopup]`) },
+                  }),
               },
             ],
           },
