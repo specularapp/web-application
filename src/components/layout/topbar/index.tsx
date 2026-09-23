@@ -1,5 +1,6 @@
 "use client";
 
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { usePathname } from "next/navigation";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -50,24 +51,26 @@ export function Topbar({ title, ai }: TopbarProps) {
 
   return (
     <header className={styles.topbar}>
-      {/* Só os nomes separados por barra, sem glifo, sem link e sem menu: a rota diz onde a pessoa está,
-          e quem leva a outro lugar é o menu lateral. Lista ordenada porque é isso que uma rota é, e o
-          leitor de tela anuncia a ordem dos degraus. */}
+      {/* Cada degrau com o glifo do menu e o nome, separados por seta, e o último na tinta do texto: é o mais
+          perto de onde a pessoa está. Sem link nem menu, porque quem leva a outro lugar é o menu lateral.
+          Lista ordenada porque é isso que uma rota é, e o leitor de tela anuncia a ordem dos degraus. */}
       {crumbs.length > 0 && (
         <nav className={styles.route} aria-label="Rota da página">
           <ol className={styles.crumbs}>
-            {crumbs.map((crumb, index) => (
-              <li key={`${index}:${crumb.label}`} className={styles.crumb}>
-                {index > 0 && (
-                  <span className={styles.separator} aria-hidden="true">
-                    /
-                  </span>
-                )}
-                <Text as="span" variant="footnote" tone="secondary" truncate>
-                  {crumb.label}
-                </Text>
-              </li>
-            ))}
+            {crumbs.map((crumb, index) => {
+              const Glyph = crumb.icon;
+              const last = index === crumbs.length - 1;
+
+              return (
+                <li key={`${index}:${crumb.label}`} className={styles.crumb}>
+                  {index > 0 && <CaretRightIcon className={styles.separator} aria-hidden="true" />}
+                  <Glyph className={styles.glyph} aria-hidden="true" />
+                  <Text as="span" variant="footnote" tone={last ? "default" : "secondary"} truncate>
+                    {crumb.label}
+                  </Text>
+                </li>
+              );
+            })}
           </ol>
         </nav>
       )}

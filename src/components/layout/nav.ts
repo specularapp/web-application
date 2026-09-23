@@ -59,8 +59,8 @@ export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Um degrau da rota que o topo mostra. Só o nome: a rota é contexto, e glifo ali só fazia barulho. */
-export type NavCrumb = { label: string };
+/** Um degrau da rota que o topo mostra: o nome e o glifo com que o menu o desenha. */
+export type NavCrumb = { label: string; icon: Icon };
 
 /** Onde a página mora no menu: a rota até ela à esquerda do topo e o nome dela no meio. */
 export type NavLocation = {
@@ -83,13 +83,13 @@ export function navLocation(pathname: string): NavLocation | null {
   const found: NavLocation[] = [];
 
   for (const group of navGroups) {
-    const crumb: NavCrumb = { label: group.title };
+    const crumb: NavCrumb = { label: group.title, icon: group.icon };
 
     for (const entry of group.entries) {
       if (isFolder(entry)) {
         for (const item of entry.items) {
           if (isCurrent(pathname, item.href)) {
-            found.push({ group: crumb, folder: { label: entry.label }, page: item });
+            found.push({ group: crumb, folder: { label: entry.label, icon: entry.icon }, page: item });
           }
         }
       } else if (isCurrent(pathname, entry.href)) {
