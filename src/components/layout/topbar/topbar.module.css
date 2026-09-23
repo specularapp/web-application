@@ -58,17 +58,27 @@
 
 /* A seta separa sem pesar: um degrau mais apagada que o texto dos degraus. */
 .separator {
+  display: block;
   flex-shrink: 0;
   width: 0.875rem;
   height: 0.875rem;
   color: var(--color-label-tertiary);
 }
 
+/* O nome do degrau centrado pela altura da maiúscula, e não pela entrelinha: a caixa da linha sobra mais
+   embaixo que em cima, e o centro do flex deixava o texto fora da linha do glifo. O recuo igual dos dois
+   lados devolve espaço à perna do "g" sem tirar o centro do lugar, senão o corte das reticências a comia. */
+.label {
+  padding-block: 0.25em;
+  text-box: trim-both cap alphabetic;
+}
+
 /* O glifo do degrau, do tamanho do texto e na tinta secundária, como o nome ao lado. */
 .glyph {
+  display: block;
   flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
+  width: 0.875rem;
+  height: 0.875rem;
   color: var(--color-label-secondary);
 }
 

@@ -154,7 +154,7 @@ type Opened =
   | { kind: "new-leaf"; parentId: string | null; parentName?: string }
   | { kind: "rename-leaf"; node: Leaf }
   | { kind: "stages"; node: Leaf }
-  | { kind: "look"; node: Leaf; anchor: { current: HTMLElement | null } }
+  | { kind: "look"; node: Leaf; parentId: string | null; anchor: { current: HTMLElement | null } }
   | { kind: "delete-folder"; node: Folder }
   | { kind: "delete-leaf"; node: Leaf };
 
@@ -323,13 +323,13 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
                 id: "look",
                 label: "Cor do quadro",
                 icon: PaletteIcon,
-                /* Abre por cima do leque, ancorada no mesmo chevron que o abriu, como a edição da pasta: cai no
-                   lugar do leque, que fica aberto por baixo e volta a valer quando a cor fecha. */
-                keepOpen: true,
+                /* Abre no lugar do leque, ancorada no mesmo chevron, como a edição da pasta: o leque fecha e volta
+                   no cabeçalho da caixa, no mesmo botão que a pasta tem ali. */
                 onSelect: () =>
                   setOpened({
                     kind: "look",
                     node,
+                    parentId,
                     anchor: { current: document.querySelector<HTMLElement>(`[data-leaf="${node.id}"] button[aria-haspopup]`) },
                   }),
               },
@@ -537,6 +537,17 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           anchor={opened.anchor}
           withName={false}
           title="Cor do quadro"
+          renderHeaderAction={() => (
+            <DropdownMenu
+              label={`Outras ações de ${opened.node.name}`}
+              triggerLabel={`Outras ações de ${opened.node.name}`}
+              sections={leafSections(opened.node, opened.parentId)
+                .map((section) => ({ ...section, items: section.items.filter((item) => item.id !== "look") }))
+                .filter((section) => section.items.length > 0)}
+              icon={<CaretUpDownIcon weight="bold" />}
+              size="sm"
+            />
+          )}
           initial={{ hue: opened.node.paletteHue ?? "blue", glyph: opened.node.glyph }}
           onClose={() => setOpened(null)}
           onSave={async (value: { hue: string; glyph: string }) => {

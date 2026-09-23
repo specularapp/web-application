@@ -65,7 +65,7 @@ export function Topbar({ title, ai }: TopbarProps) {
                 <li key={`${index}:${crumb.label}`} className={styles.crumb}>
                   {index > 0 && <CaretRightIcon className={styles.separator} aria-hidden="true" />}
                   <Glyph className={styles.glyph} aria-hidden="true" />
-                  <Text as="span" variant="footnote" tone={last ? "default" : "secondary"} truncate>
+                  <Text as="span" variant="footnote" tone={last ? "default" : "secondary"} truncate className={styles.label}>
                     {crumb.label}
                   </Text>
                 </li>
