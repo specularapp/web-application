@@ -21,7 +21,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import dynamic from "next/dynamic";
-import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -56,7 +56,9 @@ import type { Task, TaskPerson } from "../summary";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { createTaskAction, deleteTaskAction, loadTaskAction, moveTaskAction, setProjectStagesAction } from "../actions";
-import { trackCreation } from "../changes";
+import { changeTask, trackCreation } from "../changes";
+import { searchTerms, taskMatches } from "../search";
+import { CardEditContext, type CardEdit, type CardPatch } from "./card-edit";
 import { DEFAULT_TASK_TITLE } from "../schemas";
 import type { ProjectHue } from "@/features/projects/summary";
 import type { ProjectGlyph } from "../tree";
@@ -256,6 +258,28 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
   const trackDraft = useCallback((task: Task) => setEdited((current) => (current[task.id] === task ? current : { ...current, [task.id]: task })), []);
 
   /**
+   * A troca feita no próprio cartão (2026-09-23, a pedido): aparece na hora pela mesma camada da ficha, e a
+   * mudança vai ao servidor por trás. Recusada, o cartão volta ao que era e o aviso diz por quê.
+   */
+  const editCard = useCallback(
+    (task: Task, patch: CardPatch) => {
+      trackDraft({ ...task, ...patch });
+      const change = patch.priority
+        ? ({ op: "priority", priority: patch.priority } as const)
+        : patch.tags
+          ? ({ op: "tags", tags: patch.tags } as const)
+          : ({ op: "people", userIds: (patch.people ?? []).flatMap((person) => (person.id && person.id !== task.owner.id ? [person.id] : [])) } as const);
+      void changeTask(task.id, change).then((result) => {
+        if (result.ok) return router.refresh();
+        trackDraft(task);
+        toast({ title: "Não deu para salvar a tarefa", description: result.error, tone: "danger" });
+      });
+    },
+    [router, toast, trackDraft],
+  );
+  const cardEdit = useMemo<CardEdit>(() => ({ team: team ?? [], edit: editCard }), [team, editCard]);
+
+  /**
    * A tarefa nasce **na hora** (2026-09-22, a pedido de tudo responder no mesmo segundo): o id sai daqui, a
    * ficha abre com a tarefa montada na tela, e o banco grava por trás. As gravações da ficha esperam essa
    * criação terminar, então nada se perde se a pessoa sair digitando antes da resposta.
@@ -432,7 +456,9 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
    * decide no clique vale mais que o padrão e vai para o cookie, então abrir uma vazia sobrevive à recarga e
    * fechar uma cheia também.
    */
-  const isCollapsed = (stage: TaskStageId, count: number) => overrides[stage] ?? count === 0;
+  /* Desde 2026-09-23 a vazia nasce **aberta**, como na referência: é nela que o "Adicionar tarefa" mora, e
+     fechada ela escondia justamente o convite. Quem fechou uma continua com ela fechada, pelo cookie. */
+  const isCollapsed = (stage: TaskStageId) => overrides[stage] ?? false;
 
   const changeCollapsed = (stage: TaskStageId, on: boolean) => {
     const next = { ...overrides, [stage]: on };
@@ -447,7 +473,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
    * na coluna de destino e sai da de origem, e a ordem de dentro segue sendo a que a coluna escolheu, porque
    * é ela quem manda na pilha; arrastar muda a etapa, e não o lugar na fila.
    */
-  const columns = useMemo(() => {
+  const arranged = useMemo(() => {
     const served = new Set(board.columns.flatMap((column) => column.tasks.map((task) => task.id)));
     const fresh = added.filter((task) => !served.has(task.id));
     const visibleColumns = board.columns
@@ -474,6 +500,19 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
     }
     return visibleColumns.map((column) => ({ ...column, tasks: piles.get(column.stage.id) ?? [] }));
   }, [board.columns, moved, hidden, hiddenStages, added, edited]);
+
+  /* A busca filtra na tela enquanto a pessoa digita (2026-09-23), com a mesma regra do servidor: o quadro
+     encolhe na hora, e a volta do servidor só completa o que o recorte anterior não tinha. O valor adiado
+     deixa a tecla responder antes de a lista redesenhar. */
+  const typed = useDeferredValue(search);
+  const columns = useMemo(() => {
+    const terms = searchTerms(typed);
+    if (terms.length === 0) return arranged;
+    return arranged.map((column) => {
+      const tasks = column.tasks.filter((task) => taskMatches(task, terms));
+      return tasks.length === column.tasks.length ? column : { ...column, tasks };
+    });
+  }, [arranged, typed]);
 
   /**
    * Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/8" e as setas andam a
@@ -649,6 +688,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
   ];
 
   return (
+    <CardEditContext.Provider value={cardEdit}>
     <div className={styles.board}>
       <PageToolbar
         search={{ value: search, onChange: onSearch, placeholder: "Buscar tarefas", label: "Buscar tarefa" }}
@@ -709,7 +749,7 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
                 onCelebrated={clearFinished}
                 stage={column.stage}
                 tasks={sortColumn(column.tasks, sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT)}
-                collapsed={isCollapsed(column.stage.id, column.tasks.length)}
+                collapsed={isCollapsed(column.stage.id)}
                 onCollapsedChange={(on) => changeCollapsed(column.stage.id, on)}
                 sort={sorts[column.stage.id] ?? DEFAULT_COLUMN_SORT}
                 onSortChange={(sort) => changeSort(column.stage.id, sort)}
@@ -789,5 +829,6 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
         onConfirm={() => void removeTask()}
       />
     </div>
+    </CardEditContext.Provider>
   );
 }

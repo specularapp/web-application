@@ -1,8 +1,8 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { z } from "zod";
-import { slugify } from "@/lib/utils/slug";
 import { statusOf } from "./labels";
 import type { StageOverrides } from "./board-cookie";
+import { searchTerms, taskMatches } from "./search";
 import { deadlineValues, defaultQuery, priorityFilterValues, sortColumn, type TasksBoardData, type TasksQuery } from "./list-options";
 import type { TaskStage } from "./stages";
 import type { Task } from "./summary";
@@ -64,25 +64,6 @@ export function parseStageOverrides(raw: string | undefined): StageOverrides {
   return overrides;
 }
 
-/* A busca compara pelo mesmo formato dos dois lados, então acento e maiúscula não atrapalham. Ela varre o
-   que identifica a tarefa numa lista: o título, a descrição, o identificador que a pessoa lê e fala, as
-   etiquetas, o projeto e quem está envolvido, porque procurar pelo nome de alguém é o jeito mais comum de
-   achar a tarefa da pessoa. */
-function matches(task: Task, search: string) {
-  if (!search) return true;
-  const needle = slugify(search, 80);
-  const haystack = [
-    task.title,
-    task.description,
-    task.reference,
-    task.project?.name ?? "",
-    ...task.tags,
-    task.owner.name,
-    ...task.people.map((person) => person.name),
-  ];
-  return haystack.some((entry) => slugify(entry, 200).includes(needle));
-}
-
 function withinDeadline(task: Task, deadline: TasksQuery["deadline"]) {
   if (deadline === "sempre") return true;
   /* Passado conta como dentro da janela: o que já venceu é o mais urgente que existe, e esconder isso num
@@ -100,9 +81,11 @@ const isOverdue = (task: Task) => differenceInCalendarDays(parseISO(task.dueDate
  * continua no quadro: coluna é lugar, e não conteúdo, então ela existe mesmo vazia.
  */
 export function buildTasksBoard(tasks: Task[], query: TasksQuery, stages: TaskStage[]): TasksBoardData {
+  /* A busca mora em `search.ts`, que o quadro também usa para filtrar enquanto a pessoa digita. */
+  const terms = searchTerms(query.search);
   const filtered = tasks.filter(
     (task) =>
-      matches(task, query.search) &&
+      taskMatches(task, terms) &&
       withinDeadline(task, query.deadline) &&
       (query.priority === "todas" || task.priority === query.priority) &&
       (!query.overdue || isOverdue(task)),

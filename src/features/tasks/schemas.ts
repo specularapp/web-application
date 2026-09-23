@@ -288,6 +288,12 @@ export const taskChangeSchema = z.discriminatedUnion("op", [
       .refine((list) => new Set(list).size === list.length, "Subtarefa repetida"),
   }),
   z.object({ op: z.literal("people"), userIds: z.array(z.uuid()).max(30) }),
+  /* A prioridade e as etiquetas trocadas do próprio cartão do quadro (2026-09-23), sem abrir a ficha. */
+  z.object({ op: z.literal("priority"), priority: z.enum(priorityValues) }),
+  z.object({
+    op: z.literal("tags"),
+    tags: z.array(z.enum(taskTagValues, { message: "Escolha uma etiqueta da lista" })).max(TASK_MAX_TAGS, `No máximo ${TASK_MAX_TAGS} etiquetas`),
+  }),
   z.object({ op: z.literal("link-add"), kind: z.enum(linkKindOptions), recordId: z.uuid() }),
   z.object({ op: z.literal("link-remove"), kind: z.enum(linkKindOptions), recordId: z.uuid() }),
   z

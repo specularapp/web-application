@@ -66,10 +66,15 @@
   margin-inline-start: auto;
 }
 
-/* O título em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. Cola na linha de
-   contexto, que é continuação dele, e não uma faixa nova. */
+/* O título em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. Entrelinha
+   justa e quebra equilibrada (2026-09-23, a pedido de um título melhor): as duas linhas leem como um bloco
+   só, sem palavra sozinha na segunda, e a descrição vem logo abaixo, colada, porque continua o assunto. */
 .title {
   margin-block-end: calc(var(--space-2) * -1 + var(--space-half));
+  line-height: 1.3;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -91,7 +96,16 @@
   color: var(--color-label-secondary);
 }
 
+/* O texto da rota centrado pela altura da maiúscula, e não pela entrelinha, para ficar na linha do glifo da
+   pasta (2026-09-23): a caixa da linha sobra mais embaixo, e o centro do flex tirava o glifo do lugar. O
+   recuo igual nos dois lados devolve à perna do "g" o que o corte das reticências comeria. */
+.context > span {
+  padding-block: 0.25em;
+  text-box: trim-both cap alphabetic;
+}
+
 .contextIcon {
+  display: block;
   flex-shrink: 0;
   width: 0.875rem;
   height: 0.875rem;
@@ -126,6 +140,26 @@
 
 /* As etiquetas numa linha só, sem quebrar: as duas primeiras cedem por reticências e o resto vira "+N". Duas
    classes para vencer o `flex-shrink: 0` que o `Badge` declara, que aqui empurraria o "+N" para fora. */
+/* A linha das etiquetas: no quadro ela é o gatilho do menu delas, e sem nenhuma vira o convite apagado. */
+.tagLine {
+  display: flex;
+  min-width: 0;
+}
+
+.empty {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+.empty svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
 .tags {
   display: flex;
   gap: var(--space-1);

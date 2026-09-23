@@ -12,6 +12,15 @@
   width: var(--column-width);
   min-width: var(--column-width);
   min-height: 0;
+  /* O fundo da etapa (2026-09-23, a pedido): um véu do matiz dela, quase invisível, só para cada coluna ter
+     cor de canto de olho. A coluna mede o que tem, e não a altura do quadro, como na referência; passando
+     da tela, a pilha rola por dentro. */
+  align-self: flex-start;
+  max-height: 100%;
+  padding: var(--space-2);
+  background-color: color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 4%, transparent);
+  border-radius: var(--radius-xl);
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
 /* No celular a coluna para **no centro** da tela (2026-09-11, a pedido), com a mesma espiada da vizinha dos
@@ -201,13 +210,47 @@
   list-style: none;
 }
 
-/* Etapa sem tarefa continua no quadro, com a frase no lugar da pilha: coluna é lugar, e não conteúdo. */
-.empty {
-  display: grid;
-  place-content: center;
-  min-height: 5rem;
-  padding: var(--space-4);
-  text-align: center;
+/* O "Adicionar tarefa" no pé da etapa, na tinta dela, como na referência (2026-09-23): na etapa vazia ele é o
+   que ocupa o lugar da pilha, e na cheia fica logo depois do último cartão. */
+.add {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-2);
+  margin-block-start: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: color-mix(in oklab, var(--stage-hue) 72%, var(--color-label));
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.list:empty + .add {
+  margin-block-start: 0;
+}
+
+.add svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (hover: hover) {
+  .add:hover {
+    background-color: color-mix(in oklab, var(--stage-hue) 10%, transparent);
+    transition-duration: var(--duration-base);
+  }
+
+  .add:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
 /**
@@ -218,7 +261,7 @@
  * Vale enquanto o cartão está sobre ela (`data-landing`), e não no `:hover`: é o gesto que manda aqui.
  */
 .column[data-landing] {
-  background-color: color-mix(in oklab, var(--stage-hue) 6%, transparent);
+  background-color: color-mix(in oklab, var(--stage-hue) 9%, transparent);
   border-radius: var(--radius-xl);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--stage-hue) 24%, transparent);
 }

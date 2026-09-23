@@ -988,6 +988,18 @@ export async function applyTaskChange(
       return done(insertError);
     }
 
+    case "priority": {
+      const { error } = await client.from("tasks").update({ priority: change.priority }).eq("organization_id", organizationId).eq("id", taskId);
+      if (!error) await note(`mudou a prioridade para ${priorityLabels[change.priority]}`);
+      return done(error);
+    }
+
+    case "tags": {
+      const { error } = await client.from("tasks").update({ tags: [...new Set(change.tags)] }).eq("organization_id", organizationId).eq("id", taskId);
+      if (!error) await note("atualizou as etiquetas");
+      return done(error);
+    }
+
     case "link-add": {
       const { count } = await client.from("task_links").select("id", { count: "exact", head: true }).eq("task_id", taskId);
       const { error } = await client.from("task_links").insert({

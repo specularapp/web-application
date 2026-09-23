@@ -1,10 +1,12 @@
 "use client";
 
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
-import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, LinkSimpleIcon, PaperclipIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, ClockCounterClockwiseIcon, FlagIcon, FolderIcon, LinkSimpleIcon, PaperclipIcon, TagIcon, TimerIcon, WarningIcon } from "@phosphor-icons/react";
 import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import { tagSections } from "@/components/ui/tag-picker";
 import { SuccessOverlay } from "@/components/ui/success-mark";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
@@ -12,8 +14,11 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { rounded, roundedAuto } from "@/lib/corners";
 import { dueOf, estimateLabel, priorityLabels, priorityTones, subtasksDone } from "../labels";
 import type { TaskStage } from "../stages";
-import { tagHue } from "../tags";
-import type { Task } from "../summary";
+import { TASK_MAX_TAGS } from "../schemas";
+import { tagHue, taskTagCatalog } from "../tags";
+import type { Task, TaskPriority } from "../summary";
+import { useCardEdit } from "./card-edit";
+import { priorityMark } from "./priority-mark";
 import { TaskMenu } from "./task-menu";
 import styles from "./task-card.module.css";
 
@@ -64,6 +69,8 @@ const SHOWN_TAGS = 2;
 /* Controles com ação própria dentro do cartão: clique que nasce neles não abre a ficha. */
 const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']";
 
+const priorities: TaskPriority[] = ["low", "normal", "high", "urgent"];
+
 /* Os nomes ligados por "e" para a leitura por voz, como no cartão de tarefa do painel. */
 const nameList = new Intl.ListFormat("pt-BR", { style: "long", type: "conjunction" });
 
@@ -98,6 +105,96 @@ export const TaskCard = memo(function TaskCard({
   const restTags = task.tags.length - tags.length;
   const done = subtasksDone(task);
   const hasWork = task.subtasks.length > 0 || task.estimate !== undefined;
+  /* A troca direto no cartão (2026-09-23, a pedido): prioridade, envolvidos e etiquetas abrem o mesmo menu da
+     ficha no lugar onde estão. Só no quadro, que é quem grava, e nunca no cartão que flutua no arraste. */
+  const editor = useCardEdit();
+  const edit = overlay ? null : editor;
+
+  const prioritySections: DropdownSection[] = edit
+    ? [
+        {
+          id: "priority",
+          label: "Prioridade",
+          items: priorities.map((priority) => ({
+            id: `priority-${priority}`,
+            label: priorityLabels[priority],
+            media: priorityMark(priority),
+            selected: task.priority === priority,
+            onSelect: () => priority !== task.priority && edit.edit(task, { priority }),
+          })),
+        },
+      ]
+    : [];
+
+  /* O responsável fica sempre de fora da escolha: ele é o primeiro rosto, e troca na ficha. */
+  const candidates = edit
+    ? [...task.people, ...edit.team].filter(
+        (person, index, list) => person.name !== task.owner.name && list.findIndex((entry) => entry.name === person.name) === index,
+      )
+    : [];
+
+  const peopleSections: DropdownSection[] = [
+    {
+      id: "people",
+      label: "Quem está envolvido",
+      items: candidates.map((person) => ({
+        kind: "toggle" as const,
+        id: `person-${person.name}`,
+        label: person.name,
+        media: <Avatar name={person.name} src={person.avatarUrl ?? undefined} size="xs" />,
+        checked: task.people.some((entry) => entry.name === person.name),
+        onChange: (on: boolean) =>
+          edit?.edit(task, { people: on ? [...task.people, person] : task.people.filter((entry) => entry.name !== person.name) }),
+      })),
+    },
+  ];
+
+  const tagOptions = edit ? tagSections(taskTagCatalog, task.tags, (next) => edit.edit(task, { tags: next }), TASK_MAX_TAGS) : [];
+
+  const priorityBadge = (
+    <Badge tone={priorityTones[task.priority]} size="sm" icon={<FlagIcon />}>
+      {priorityLabels[task.priority]}
+    </Badge>
+  );
+
+  const tagRow =
+    tags.length > 0 ? (
+      <span className={styles.tags}>
+        {tags.map((tag) => (
+          <Badge key={tag} size="sm" hue={tagHue(tag)} className={styles.tag}>
+            {tag}
+          </Badge>
+        ))}
+        {restTags > 0 && (
+          <Badge size="sm" variant="outline" title={task.tags.slice(SHOWN_TAGS).join(", ")}>
+            +{restTags}
+          </Badge>
+        )}
+      </span>
+    ) : (
+      <span className={styles.empty}>
+        <TagIcon aria-hidden="true" />
+        Etiquetas
+      </span>
+    );
+
+  const faceRow = (
+    <span className={styles.people}>
+      <AvatarGroup className={styles.faces}>
+        {faces.map((person) => (
+          <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
+        ))}
+      </AvatarGroup>
+      {restFaces > 0 && (
+        <Text as="span" variant="caption1" tone="secondary" className={styles.more}>
+          +{restFaces}
+        </Text>
+      )}
+      <VisuallyHidden>
+        Responsável: {task.owner.name}. Envolvidos: {nameList.format(task.people.map((person) => person.name))}
+      </VisuallyHidden>
+    </span>
+  );
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
     const control = (event.target as HTMLElement).closest(INTERACTIVE);
@@ -147,9 +244,16 @@ export const TaskCard = memo(function TaskCard({
         {/* O topo: a prioridade, o aviso quando há, e o leque na outra ponta. O aviso é só glifo, porque o
             texto dele mora na ficha; aqui ele avisa que existe. */}
         <div className={styles.head}>
-          <Badge tone={priorityTones[task.priority]} size="sm" icon={<FlagIcon />}>
-            {priorityLabels[task.priority]}
-          </Badge>
+          {edit ? (
+            <DropdownMenu
+              label="Prioridade"
+              triggerLabel={`Prioridade: ${priorityLabels[task.priority]}. Trocar`}
+              sections={prioritySections}
+              triggerContent={priorityBadge}
+            />
+          ) : (
+            priorityBadge
+          )}
           {task.alert && <Badge tone="warning" size="sm" icon={<WarningIcon weight="fill" />} label="Tem um aviso para ler antes de mexer" />}
           {!overlay && (
             <span className={styles.menu}>
@@ -187,19 +291,13 @@ export const TaskCard = memo(function TaskCard({
           {task.description}
         </Text>
 
-        {tags.length > 0 && (
-          <div className={styles.tags}>
-            {tags.map((tag) => (
-              <Badge key={tag} size="sm" hue={tagHue(tag)} className={styles.tag}>
-                {tag}
-              </Badge>
-            ))}
-            {restTags > 0 && (
-              <Badge size="sm" variant="outline" title={task.tags.slice(SHOWN_TAGS).join(", ")}>
-                +{restTags}
-              </Badge>
-            )}
+        {/* Sem etiqueta, o quadro que edita mostra o convite apagado; o que só lê não mostra nada. */}
+        {edit ? (
+          <div className={styles.tagLine}>
+            <DropdownMenu label="Etiquetas da tarefa" triggerLabel="Escolher etiquetas" sections={tagOptions} triggerContent={tagRow} />
           </div>
+        ) : (
+          tags.length > 0 && <div className={styles.tagLine}>{tagRow}</div>
         )}
 
         {/* Quanto falta: a barra com um segmento por subtarefa, a conta ao lado, e a estimativa na outra
@@ -238,21 +336,11 @@ export const TaskCard = memo(function TaskCard({
             quem responde pela tarefa, e os nomes inteiros seguem na leitura por voz, porque na tela são só
             bolinhas. */}
         <div className={styles.foot}>
-          <span className={styles.people}>
-            <AvatarGroup className={styles.faces}>
-              {faces.map((person) => (
-                <Avatar key={person.name} name={person.name} src={person.avatarUrl ?? undefined} size="xs" />
-              ))}
-            </AvatarGroup>
-            {restFaces > 0 && (
-              <Text as="span" variant="caption1" tone="secondary" className={styles.more}>
-                +{restFaces}
-              </Text>
-            )}
-            <VisuallyHidden>
-              Responsável: {task.owner.name}. Envolvidos: {nameList.format(task.people.map((person) => person.name))}
-            </VisuallyHidden>
-          </span>
+          {edit && candidates.length > 0 ? (
+            <DropdownMenu label="Envolvidos" triggerLabel="Escolher quem está envolvido" sections={peopleSections} triggerContent={faceRow} />
+          ) : (
+            faceRow
+          )}
 
           {/* As contagens do que a tarefa carrega, no canto e apagadas: vínculos, anexos e conversa. Só
               aparece a que existe, então o pé de uma tarefa simples fica só com o prazo. */}

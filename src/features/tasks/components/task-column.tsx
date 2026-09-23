@@ -232,14 +232,7 @@ export function TaskColumn({
         )}
       </header>
 
-      {!collapsed &&
-        (count === 0 && !landing ? (
-          <div className={styles.empty}>
-            <Text variant="footnote" tone="tertiary">
-              Nada nesta etapa
-            </Text>
-          </div>
-        ) : (
+      {!collapsed && (
           <div className={styles.body}>
             <ul className={styles.list}>
               {/* O lugar do cartão que vem: tracejado no matiz da etapa, **no topo** da pilha, que é a parte
@@ -271,8 +264,14 @@ export function TaskColumn({
                 ),
               )}
             </ul>
+            {/* Sem cartão nenhum, é ele que ocupa a etapa; com cartões, fica no pé da pilha. */}
+            <button type="button" className={styles.add} onClick={onAdd}>
+              <PlusIcon aria-hidden="true" weight="bold" />
+              Adicionar tarefa
+              <VisuallyHidden>em {stage.name}</VisuallyHidden>
+            </button>
           </div>
-        ))}
+        )}
     </section>
   );
 }
