@@ -1,0 +1,546 @@
+/*
+ * A caixa de entrada do WhatsApp: lista à esquerda, conversa no meio sobre o fundo pontilhado e ficha do contato à
+ * direita. Os tons dos balões nascem aqui, misturados dos tokens, para valerem nos dois temas. No celular, um painel
+ * por vez: a lista ou a conversa.
+ */
+.screen {
+  --line: 0.0375rem solid var(--color-border);
+  --list-width: 22rem;
+  --panel-width: 23rem;
+  --tone-contact: var(--color-bg-tertiary);
+  --tone-agent: color-mix(in oklab, var(--sys-blue) 14%, var(--color-bg-tertiary));
+  --tone-template: color-mix(in oklab, var(--sys-green) 16%, var(--color-bg-tertiary));
+  --tone-note: color-mix(in oklab, var(--sys-yellow) 20%, var(--color-bg-tertiary));
+  --tick-read: var(--sys-blue);
+  --unread-ink: color-mix(in oklab, var(--sys-green) 70%, var(--color-label));
+
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--list-width) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  transition: grid-template-columns var(--duration-slow) var(--ease-settle);
+}
+
+.screen[data-panel] {
+  grid-template-columns: var(--list-width) minmax(0, 1fr) var(--panel-width);
+}
+
+/* Recolhida, a lista vira um trilho só com as fotos, o não lido num selo no canto e o nome no título */
+.screen[data-list="closed"] {
+  --list-width: calc(var(--control-height-sm) + var(--space-8));
+}
+
+/* ---------- Lista ---------- */
+
+.list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--color-bg);
+  border-inline-end: var(--line);
+}
+
+.listHead {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.titleRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.filterButton {
+  position: relative;
+  display: inline-flex;
+}
+
+.filterCount {
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  inset-inline-end: calc(var(--space-2) * -1);
+  pointer-events: none;
+}
+
+/* Os recortes em chip: fio fino, canto `md`, o em vigor preenchido. Uma linha só, que rola de lado se não couber; a
+   margem negativa com o recuo devolve o espaço do anel de foco, que a rolagem cortaria. */
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips > * {
+  flex-shrink: 0;
+}
+
+.chipGroup {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: calc(var(--control-height-sm) - var(--space-1));
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  background-color: transparent;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.chip svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.chip:has(> svg:only-child) {
+  padding-inline: var(--space-2);
+}
+
+.chip[data-pressed] {
+  color: var(--color-label);
+  background-color: var(--color-fill-secondary);
+  border-color: transparent;
+}
+
+@media (hover: hover) {
+  .chip:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .chip[data-pressed]:hover {
+    background-color: var(--color-fill-secondary);
+  }
+
+  .chip:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+}
+
+@media (pointer: coarse) {
+  .chip {
+    min-height: var(--touch-target);
+  }
+}
+
+.chipCount {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.listBody {
+  min-height: 0;
+  padding: 0 var(--space-2) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.listEmpty {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  margin: 0;
+  padding: var(--space-8) var(--space-4);
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-align: center;
+}
+
+.linkButton {
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  color: var(--color-link);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+@media (hover: hover) {
+  .linkButton:hover {
+    text-decoration: underline;
+  }
+}
+
+.groupTitle {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-3) var(--space-2) var(--space-1);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-half);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Entrada em cascata: cada linha sobe 24 ms depois da anterior, e a espera para na 12ª */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+.itemEnter,
+.groupTitle {
+  animation: rise 260ms var(--ease-standard) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 24ms);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  width: 100%;
+  padding: var(--space-2);
+  font: inherit;
+  color: var(--color-label);
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-lg);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.item[data-selected] {
+  background-color: var(--color-fill-tertiary);
+}
+
+@media (hover: hover) {
+  .item:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .item[data-selected]:hover {
+    background-color: var(--color-fill-tertiary);
+  }
+
+  .item:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.itemAvatar {
+  position: relative;
+  display: inline-flex;
+}
+
+.itemText {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.itemRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.itemName {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+.itemName > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item[data-unread] .itemName {
+  font-weight: var(--weight-semibold);
+}
+
+.itemRow time {
+  flex-shrink: 0;
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.item[data-unread] .itemRow time {
+  font-weight: var(--weight-semibold);
+  color: var(--unread-ink);
+}
+
+.preview {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+.preview > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview svg {
+  flex-shrink: 0;
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.preview svg[data-read] {
+  color: var(--tick-read);
+}
+
+.preview svg[data-failed] {
+  color: var(--color-danger);
+}
+
+.preview svg[data-note] {
+  color: color-mix(in oklab, var(--sys-yellow) 60%, var(--color-label));
+}
+
+.item[data-unread] .preview {
+  color: var(--color-label);
+}
+
+.draftLabel {
+  font-style: normal;
+  font-weight: var(--weight-semibold);
+  color: var(--color-link);
+}
+
+.itemFlags {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-label-tertiary);
+}
+
+.itemFlags svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.itemFlags svg[data-star] {
+  color: color-mix(in oklab, var(--sys-yellow) 60%, var(--color-label));
+}
+
+/* ---------- Trilho ---------- */
+
+.railHead {
+  display: grid;
+  place-items: center;
+  padding: var(--space-3) 0 var(--space-2);
+  border-block-end: var(--line);
+}
+
+.list[data-rail] {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.list[data-rail] .listHead,
+.list[data-rail] .itemText,
+.list[data-rail] .groupTitle,
+.list[data-rail] .listEmpty {
+  display: none;
+}
+
+.list[data-rail] .listBody {
+  padding: var(--space-2) var(--space-1) var(--space-4);
+  scrollbar-width: none;
+}
+
+.list[data-rail] .item {
+  grid-template-columns: auto;
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+
+.railUnread {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  inset-inline-end: calc(var(--space-2) * -1);
+  min-width: 1.125rem;
+  padding-inline: var(--space-1);
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  line-height: 1.125rem;
+  color: var(--color-bg);
+  text-align: center;
+  background-color: var(--unread-ink);
+  border: 0.125rem solid var(--color-bg);
+  border-radius: var(--radius-full);
+}
+
+/* ---------- Conversa e ficha ---------- */
+
+.thread {
+  position: relative;
+  container: thread / inline-size;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--color-bg-secondary);
+  background-image: radial-gradient(color-mix(in oklab, var(--color-label) 7%, transparent) 0.0625rem, transparent 0.0625rem);
+  background-size: 1.125rem 1.125rem;
+}
+
+.panel {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.threadEmpty {
+  display: grid;
+  grid-row: 1 / -1;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+/* ---------- Esqueleto ---------- */
+
+.listSkeleton {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listSkeleton li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2);
+}
+
+.listSkeleton li > span:last-child {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.threadSkeleton {
+  display: flex;
+  grid-row: 1 / -1;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) clamp(var(--space-4), 5%, var(--space-12)) var(--space-4);
+}
+
+.skeletonBubble {
+  display: block;
+  max-width: 70%;
+}
+
+.skeletonBubble[data-out] {
+  align-self: flex-end;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    transition: none;
+  }
+
+  .itemEnter,
+  .groupTitle {
+    animation: none;
+  }
+}
+
+/* ---------- Telas menores ---------- */
+
+/* Sem largura para três colunas, a ficha flutua sobre a conversa, presa na lateral */
+@media (max-width: 90rem) {
+  .screen[data-panel] {
+    grid-template-columns: var(--list-width) minmax(0, 1fr);
+  }
+
+  .screen[data-panel] .panel {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: 5;
+    width: min(var(--panel-width), 100%);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+@media (max-width: 75rem) {
+  .screen {
+    --list-width: 18.5rem;
+  }
+}
+
+/* Abaixo disto a conversa não cabe ao lado da lista: um painel por vez, como no celular */
+@media (max-width: 63.9375rem) {
+  .screen,
+  .screen[data-panel] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .screen[data-open] .list,
+  .screen:not([data-open]) .thread {
+    display: none;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .screen[data-panel] .panel {
+    width: 100%;
+  }
+}

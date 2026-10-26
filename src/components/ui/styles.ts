@@ -125,17 +125,37 @@ const scrollFadeOut = keyframes`
   }
 `;
 
+const scrollFadeIn = keyframes`
+  from {
+    --scroll-fade-top: 0px;
+  }
+  to {
+    --scroll-fade-top: var(--space-6);
+  }
+`;
+
 /**
- * O degradê de lista que rola, **só embaixo e só quando há o que rolar** (2026-09-22, a pedido): ele avisa
- * que tem mais lista abaixo, então some em lista que cabe inteira e ao chegar no fim. Quem mede é a própria
- * rolagem (`animation-timeline`): sem rolagem a linha do tempo fica inativa e a máscara não corta nada, e o
- * navegador sem suporte fica sem degradê, que é o lado seguro.
+ * O degradê de lista que rola, **só onde ainda há lista escondida** (2026-10-25, a pedido): parada no topo, só
+ * embaixo; no meio, nas duas pontas; no fim, só em cima. Quem mede é a própria rolagem (`animation-timeline`),
+ * e cada ponta acende ou apaga nos primeiros e nos últimos 2rem: sem rolagem a linha do tempo fica inativa e a
+ * máscara não corta nada, e o navegador sem suporte fica sem degradê, que é o lado seguro.
  */
 export const verticalScrollFade = css`
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
-  animation: ${scrollFadeOut} linear both;
-  animation-timeline: scroll(self);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--scroll-fade-top),
+    #000 calc(100% - var(--scroll-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--scroll-fade-top), #000 calc(100% - var(--scroll-fade)), transparent);
+  animation:
+    ${scrollFadeIn} linear both,
+    ${scrollFadeOut} linear both;
+  animation-timeline: scroll(self), scroll(self);
+  animation-range:
+    0 var(--space-8),
+    calc(100% - var(--space-8)) 100%;
 `;
 
 export const controlMetrics = (size: ControlSize) => css`

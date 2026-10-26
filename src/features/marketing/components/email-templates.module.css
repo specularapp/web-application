@@ -1,0 +1,151 @@
+/* A vitrine: quantos cartões couberem, no piso de 14rem, com a miniatura em pé em cima e a marca embaixo. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.grid > li {
+  display: grid;
+  min-width: 0;
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto auto;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    translate var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--color-separator);
+    box-shadow: var(--shadow-md);
+    translate: 0 -0.125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    translate: none;
+  }
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.thumb {
+  display: block;
+  height: 13rem;
+  overflow: hidden;
+  background-color: var(--color-bg-grouped);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.blank {
+  display: grid;
+  place-items: center;
+  height: 13rem;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-bg-grouped);
+  border-block-end: 0.0375rem dashed var(--color-border);
+}
+
+.blank svg {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.meta {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+.mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--hue);
+  background-color: color-mix(in oklab, var(--hue) 16%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.mark svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.copy {
+  display: grid;
+  min-width: 0;
+}
+
+.copy strong {
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy small {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+/* A janela da prévia: o cabeçalho e o palco que rola por dentro. */
+.dialog {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+.stage {
+  min-height: 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.wide {
+  display: contents;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .stage {
+    padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
+  }
+}

@@ -74,38 +74,6 @@
   height: 0;
 }
 
-/* A pilha é o que troca quando uma pasta abre ou fecha. Ela repete a coluna do nav para o desenho não
-   mudar, e entra deslizando na direção do movimento: para dentro vem da direita, para fora volta da
-   esquerda. Movimento reduzido já zera a duração pelo reset. */
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-height: 0;
-}
-
-.stack[data-motion="forward"] {
-  animation: stackForward var(--duration-base) var(--ease-standard) both;
-}
-
-.stack[data-motion="back"] {
-  animation: stackBack var(--duration-base) var(--ease-standard) both;
-}
-
-@keyframes stackForward {
-  from {
-    opacity: 0;
-    transform: translateX(var(--space-4));
-  }
-}
-
-@keyframes stackBack {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--space-4) * -1));
-  }
-}
-
 .group {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -157,7 +125,6 @@
 /* Hover das linhas do menu, na receita da casa: entra macio no tempo base, sai rápido no tempo curto,
    e o clique afunda um fio. */
 .row,
-.back,
 .find,
 .search {
   transition:
@@ -168,7 +135,6 @@
 
 @media (hover: hover) {
   .row:hover,
-  .back:hover,
   .find:hover,
   .search:hover {
     transition-duration: var(--duration-base);
@@ -176,7 +142,6 @@
 }
 
 .row:active,
-.back:active,
 .find:active,
 .search:active {
   transform: scale(0.985);
@@ -185,8 +150,7 @@
 
 /* Aperta a linha, mas não o alvo de toque: em ponteiro grosso ela volta para os 44px da regra. */
 @media (pointer: coarse) {
-  .row,
-  .back {
+  .row {
     min-height: var(--touch-target);
   }
 }
@@ -205,46 +169,115 @@
   width: 0.875rem;
   height: 0.875rem;
   color: var(--color-label-tertiary);
+  transition: rotate var(--duration-fast) var(--ease-standard);
 }
 
-/* O cabeçalho do galho: o voltar tomando a linha e, na pasta que abre árvore, o criar na ponta. Sem o criar
-   a caixa não muda nada, porque o voltar já ocupava a largura toda. */
+.row .chevron[data-open] {
+  rotate: 180deg;
+}
+
+/* A pasta da página em vigor, aberta, fica em peso médio: o fundo marca a página, não a pasta. */
+.row[data-parent] {
+  font-weight: var(--weight-medium);
+  color: var(--color-label);
+}
+
+/* As páginas de dentro, recuadas até o começo do rótulo da pasta, entrando com um fade curto (2026-10-25, no
+   padrão do app-le-ange). A ligação com a pasta é feita de bordas, as mesmas das divisórias do menu: o tronco
+   desce do centro do ícone dela (--trunk-x) e cada galho dobra reto até a sua linha. */
+.sub {
+  --trunk-x: calc(var(--space-2) + 0.5rem);
+  /* O meio da linha de dentro: 1px de folga do galho mais metade dos 36px da linha. */
+  --elbow-y: 1.1875rem;
+  --branch-line: var(--color-border);
+  --branch-line-active: var(--color-label-secondary);
+
+  position: relative;
+  display: grid;
+  animation: subEnter var(--duration-base) var(--ease-standard) both;
+}
+
+.stem,
+.trunk,
+.elbow {
+  position: absolute;
+  box-sizing: border-box;
+  inset-inline-start: var(--trunk-x);
+  pointer-events: none;
+  border: 0 solid var(--branch-line);
+}
+
+/* Do pé do ícone da pasta até o começo da primeira página. */
+.stem {
+  inset-block-start: calc(var(--space-1) * -1 - 0.5rem);
+  height: calc(var(--space-1) + 0.5rem);
+  border-inline-start-width: var(--menu-line);
+}
+
+.branch {
+  position: relative;
+  padding-block: 1px;
+  padding-inline-start: calc(var(--space-2) + 1.125rem);
+}
+
+.trunk {
+  inset-block: 0;
+  border-inline-start-width: var(--menu-line);
+}
+
+/* A árvore de projetos ou de funis dentro da pasta: os galhos são dela (`limb` em nav-tree.module.css), e o
+   recuo é o mesmo do `.branch`, para o fio dela cair no tronco da pasta. */
+.treeBranch {
+  padding-block: 1px;
+  padding-inline-start: calc(var(--space-2) + 1.125rem);
+}
+
+/* No galho ativo o tronco neutro segue só abaixo da dobra escura, sem passar por baixo dela. */
+.trunk[data-below] {
+  inset-block-start: calc(var(--elbow-y) + var(--menu-line));
+}
+
+/* A dobra até a borda da linha. Com tronco ao lado ela é só o braço, que começa onde o tronco termina; no
+   último galho e no ativo ela desce do topo e faz o canto. */
+.elbow {
+  inset-block-start: 0;
+  inset-inline-start: calc(var(--trunk-x) + var(--menu-line));
+  width: calc(1.125rem - 0.5rem - var(--menu-line));
+  height: calc(var(--elbow-y) + var(--menu-line));
+  border-block-end-width: var(--menu-line);
+}
+
+.elbow[data-descends] {
+  inset-inline-start: var(--trunk-x);
+  width: calc(1.125rem - 0.5rem);
+  border-inline-start-width: var(--menu-line);
+}
+
+.stem[data-tone],
+.trunk[data-tone],
+.elbow[data-tone] {
+  border-color: var(--branch-line-active);
+}
+
+@keyframes subEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* A pasta: a linha dela e, aberta, as páginas de dentro logo abaixo. */
+.folder {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* A linha da pasta e, na que abre árvore, o criar na ponta. */
 .folderHead {
   display: flex;
   gap: var(--space-1);
   align-items: center;
   min-width: 0;
-}
-
-.back {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 2.25rem;
-  padding-block: var(--space-1);
-  padding-inline: var(--space-2);
-  font-family: var(--font-body);
-  font-size: var(--text-subheadline);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label);
-  text-align: start;
-  background-color: transparent;
-  border: 0;
-  border-radius: var(--radius-md);
-}
-
-@media (hover: hover) {
-  .back:hover {
-    background-color: var(--color-fill-quaternary);
-  }
-}
-
-.back svg {
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
 }
 
 .foot {
@@ -697,24 +730,16 @@
   overflow-y: visible;
 }
 
-/* Com pasta aberta o piso sobe para mais da metade da tela: a lista curta fica no alto, e o perfil
-   fica onde sempre esteve, lá embaixo, sem subir para encostar nela. */
-.screen .nav[data-folder] {
-  min-height: 60dvh;
-}
-
 /* Em tela cheia tudo sobe um degrau: altura de toque, texto de callout e ícone maior. No tamanho do
    desktop as linhas ficavam perdidas na largura do celular. */
 .screen .row,
-.screen .back,
 .screen .find {
   min-height: var(--touch-target);
   padding-inline: var(--space-3);
   font-size: var(--text-callout);
 }
 
-.screen .row svg,
-.screen .back svg {
+.screen .row svg {
   width: 1.375rem;
   height: 1.375rem;
 }

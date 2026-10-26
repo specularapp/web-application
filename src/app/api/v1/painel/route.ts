@@ -5,6 +5,8 @@
  */
 import { getClientsSummary } from "@/features/clients/service";
 import { getFinanceSummary } from "@/features/finance/service";
+import { dailyMissions } from "@/features/gamification/missions";
+import { getPointsSummary, getWeeklyChallenge } from "@/features/gamification/service";
 import { getTeamSummary } from "@/features/organizations/service";
 import { getProjectsSummary } from "@/features/projects/service";
 import { getQuotesSummary } from "@/features/quotes/service";
@@ -16,14 +18,17 @@ export async function GET(request: Request) {
   if ("response" in auth) return auth.response;
 
   const { supabase, organizationId, userId } = auth.session;
-  const [projects, finance, clients, tasks, team, quotes] = await Promise.all([
+  const [projects, finance, clients, tasks, team, quotes, points, challenge] = await Promise.all([
     getProjectsSummary(supabase, organizationId),
     getFinanceSummary(supabase, organizationId),
     getClientsSummary(supabase, organizationId),
     getTasksSummary(supabase, organizationId),
     getTeamSummary(supabase, organizationId),
     getQuotesSummary(supabase, organizationId, userId),
+    getPointsSummary(supabase),
+    getWeeklyChallenge(supabase),
   ]);
 
-  return Response.json({ projects, finance, clients, tasks, team, quotes });
+  const missions = dailyMissions(points, challenge);
+  return Response.json({ projects, finance, clients, tasks, team, quotes, missions });
 }

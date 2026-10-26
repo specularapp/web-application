@@ -1,0 +1,16 @@
+/* O topo padrão da aplicação e, embaixo, a prancha tomando o que sobra, na moldura das listas da casa. No
+   celular a tela não tem altura fixa: quem rola é a coluna de conteúdo da concha, e o topo segue grudado. */
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+@media (max-width: 47.9375rem) {
+  .screen {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100%;
+  }
+}

@@ -13,7 +13,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/link";
-import { ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileSection, ProfileTags } from "@/components/ui/profile";
+import { PROFILE_RECENT, ProfileFact, ProfileFacts, ProfileList, ProfileProgress, ProfileRow, ProfileSection, ProfileTags } from "@/components/ui/profile";
 import { Text } from "@/components/ui/text";
 import { quoteStatuses } from "@/features/quotes/labels";
 import { applyPattern } from "@/lib/masks";
@@ -129,7 +129,7 @@ export function ClientSections({ client }: ClientSectionsProps) {
           </Text>
         ) : (
           <ProfileList>
-            {client.quotes.map((quote) => {
+            {client.quotes.slice(0, PROFILE_RECENT).map((quote) => {
               const status = quoteStatuses[quote.status];
               return (
                 <ProfileRow
@@ -155,14 +155,23 @@ export function ClientSections({ client }: ClientSectionsProps) {
         )}
       </ProfileSection>
 
-      <ProfileSection title="Projetos">
+      <ProfileSection
+        title="Projetos"
+        aside={
+          client.projects.length > PROFILE_RECENT && (
+            <TextLink href={`/projetos?busca=${encodeURIComponent(client.name)}` as Route} className={styles.more}>
+              Ver todos
+            </TextLink>
+          )
+        }
+      >
         {client.projects.length === 0 ? (
           <Text variant="footnote" tone="secondary">
             Nenhum projeto por aqui
           </Text>
         ) : (
           <ProfileList>
-            {client.projects.map((project) => {
+            {client.projects.slice(0, PROFILE_RECENT).map((project) => {
               const status = projectStatuses[project.status];
               return (
                 <ProfileRow

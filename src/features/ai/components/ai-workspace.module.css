@@ -1,18 +1,24 @@
-/**
- * A página do assistente: a trilha de conversas à esquerda e a conversa tomando o resto. Altura fixa, como
- * o quadro do funil, porque nada aqui cresce em fluxo: quem rola é a lista de um lado e a conversa do
- * outro, cada uma por dentro, e o compositor fica preso no pé.
- */
+/* A página do SpeculAI: o histórico numa coluna à esquerda e a conversa ao lado. A coluna recolhe deslizando
+   (a largura da trilha anima) e o histórico tem largura fixa por dentro, para o texto não quebrar no caminho.
+   Altura fixa: quem rola é o histórico de um lado e a conversa do outro, cada um por dentro. */
 .workspace {
+  --rail-width: 16.5rem;
+
   display: grid;
-  grid-template-columns: 17rem minmax(0, 1fr);
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
   min-width: 0;
-  min-height: 0;
   height: 100%;
+  min-height: 0;
+  transition: grid-template-columns var(--duration-slow) var(--ease-settle);
+}
+
+.workspace[data-history="closed"] {
+  grid-template-columns: 0rem minmax(0, 1fr);
 }
 
 @media (max-width: 63.9375rem) {
-  .workspace {
+  .workspace,
+  .workspace[data-history="closed"] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -20,162 +26,318 @@
 .rail {
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  background-color: var(--color-bg);
   border-inline-end: 0.0375rem solid var(--color-border);
+  transition:
+    opacity var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
 }
 
-/* A mancha de cor por trás do vidro, a mesma receita da coluna lateral: as manchas ficam **atrás** e quem
-   borra é a camada de cima. Aqui elas moram no pé da conversa, que é de onde o assistente fala. */
-.main {
-  position: relative;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-width: 0;
+.workspace[data-history="closed"] .rail {
+  border-inline-end-color: transparent;
+  opacity: 0;
+}
+
+.railInner {
+  width: var(--rail-width);
+  height: 100%;
   min-height: 0;
 }
 
-.main::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: 0;
-  height: 50%;
-  pointer-events: none;
-  background:
-    radial-gradient(60% 60% at 18% 100%, color-mix(in oklab, var(--sys-cyan) 16%, transparent), transparent 70%),
-    radial-gradient(70% 70% at 82% 100%, color-mix(in oklab, var(--color-ai) 20%, transparent), transparent 72%);
-}
-
-.main > * {
+/* A conversa, com o brilho nas quinas por trás. */
+.main {
   position: relative;
-  z-index: 1;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Sem a trilha à vista, a linha que abre as conversas, diz em qual se está e começa outra. */
-.bar {
+/* O brilho nas quatro quinas, nas quatro cores da marca na ordem do degradê dela: azul no alto à esquerda,
+   ciano no alto à direita, verde embaixo à esquerda e amarelo embaixo à direita. Gradiente radial no lugar de
+   filtro de desfoque, que daria o mesmo resultado compondo uma camada do tamanho da tela. */
+.glow {
+  --glow-wide: 34rem 22rem;
+  --glow-short: 28rem 20rem;
+
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(var(--glow-wide) at 0% 0%, color-mix(in oklab, var(--sys-blue) 34%, transparent), transparent 62%),
+    radial-gradient(var(--glow-wide) at 100% 0%, color-mix(in oklab, var(--sys-cyan) 26%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 0% 100%, color-mix(in oklab, var(--sys-green) 22%, transparent), transparent 62%),
+    radial-gradient(var(--glow-short) at 100% 100%, color-mix(in oklab, var(--sys-yellow) 22%, transparent), transparent 62%);
+  animation: glow-in calc(var(--duration-slow) * 2) var(--ease-standard) backwards;
+}
+
+@keyframes glow-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* O canto de cima: mostrar o histórico e começar outra conversa, e o nome da conversa aberta. A faixa não toma
+   cliques, só os botões. */
+.top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
   display: flex;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  border-block-end: 0.0375rem solid var(--color-border);
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-4);
+  pointer-events: none;
 }
 
-.barName {
+.top > * {
+  pointer-events: auto;
+}
+
+.main[data-view="chat"] .top {
+  background: linear-gradient(to bottom, var(--color-bg) 55%, transparent);
+}
+
+.topTools {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+}
+
+.topTitle {
   flex: 1;
   min-width: 0;
-  text-align: center;
+  max-width: 36rem;
 }
 
-@media (max-width: 63.9375rem) {
-  .main {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-  }
-}
-
-/* A conversa rola por dentro e pousa no pé: ela cresce de baixo para cima, como na coluna. Quem empurra
-   para baixo é a margem automática do conteúdo, e não um alinhamento do container, que deixaria o começo do
-   que transborda fora do alcance da rolagem. */
 .scroller {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding-block: var(--space-6);
+  padding-inline: var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
-/**
- * A coluna de leitura no meio da tela. Quarenta e oito rem é a largura em que a linha de texto fica com uns
- * setenta e cinco caracteres, que é onde o olho ainda acha a linha seguinte sozinho; esticada de ponta a
- * ponta numa tela larga, a resposta viraria uma faixa que se lê varrendo a cabeça.
- */
-.column {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-  max-width: 48rem;
-  min-width: 0;
-  padding-inline: var(--space-5);
+/* Na abertura o conjunto fica centrado na altura; quem centra são as margens automáticas, para o começo do que
+   transborda continuar ao alcance da rolagem. */
+.main[data-view="empty"] .scroller {
+  padding-block: var(--space-12) var(--space-8);
+}
+
+.main[data-view="empty"] .stage {
+  margin-block-start: auto;
+}
+
+.main[data-view="empty"] .dock {
+  margin-block-end: auto;
+}
+
+/* A coluna de leitura: a mesma largura para as mensagens e para o compositor, que ficam alinhados. */
+.stage,
+.dock {
+  width: min(100%, 47.5rem);
   margin-inline: auto;
 }
 
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.main[data-view="chat"] .stage {
+  flex: 1;
+  padding-block: var(--space-16) var(--space-6);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  margin-block-end: var(--space-6);
+}
+
+/* A marca viva sobre um halo largo, que dá à abertura o mesmo brilho das quinas, concentrado nela. */
+.aura {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  margin-block-end: var(--space-2);
+  background-image: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--color-ai) 22%, transparent),
+    transparent
+  );
+  border-radius: var(--radius-full);
+}
+
+.greeting {
+  text-wrap: balance;
+}
+
+.lead {
+  max-width: 32rem;
+  text-wrap: pretty;
+}
+
+/* Na conversa o compositor fica preso no pé, com um véu da cor do fundo sobre o que rola atrás dele. */
+.main[data-view="chat"] .dock {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 1;
+  padding-block: var(--space-3) var(--space-4);
+  background: linear-gradient(to top, var(--color-bg) 78%, transparent);
+}
+
+.dock {
+  --ai-composer-padding: 0;
+}
+
+/* Os começos de conversa, com espaço para dizer o que cada um faz. */
+.starters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  list-style: none;
+}
+
+.starters > li {
+  min-width: 0;
+}
+
+.starter {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: 4.25rem;
+  padding: var(--space-3);
+  font-family: var(--font-body);
+  color: var(--color-label);
+  text-align: start;
+  cursor: pointer;
+  background-color: color-mix(in oklab, var(--color-bg-tertiary) 72%, transparent);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .starter:hover {
+    background-color: var(--color-bg-tertiary);
+    border-color: color-mix(in oklab, var(--color-ai) 35%, var(--color-border));
+  }
+
+  .starter:hover .starterArrow {
+    color: var(--color-ai);
+    translate: 0.125rem -0.125rem;
+  }
+}
+
+.starter:active {
+  transform: scale(0.99);
+}
+
+.starter:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.starterGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--starter-hue);
+  background-color: color-mix(in oklab, var(--starter-hue) 12%, var(--color-bg));
+  border-radius: var(--radius-md);
+}
+
+.starterGlyph svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.starterText {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.starterArrow {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    translate var(--duration-fast) var(--ease-standard);
+}
+
+@media (max-width: 30rem) {
+  .starters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 47.9375rem) {
-  .column {
+  .scroller {
     padding-inline: var(--space-3);
   }
 
-  .scroller {
-    padding-block: var(--space-4);
+  .top {
+    padding-inline: var(--space-2);
+  }
+
+  .main[data-view="empty"] .scroller {
+    padding-block: var(--space-16) var(--space-4);
+  }
+
+  .main[data-view="chat"] .stage {
+    padding-block-start: var(--space-12);
+  }
+
+  .glow {
+    --glow-wide: 14rem 10rem;
+    --glow-short: 12rem 9rem;
   }
 }
 
-/* O vazio no meio do que rola, e não encostado no compositor: é a tela de abertura do SpeculAI, e tela de
-   abertura mora no centro. */
-.empty {
-  display: grid;
-  gap: var(--space-1);
-  justify-items: center;
-  width: 100%;
-  min-width: 0;
-  margin-block: auto;
-  text-align: center;
-}
-
-.greetingMark {
-  margin-block-end: var(--space-4);
-}
-
-.greetingLine {
-  max-width: 30rem;
-}
-
-/**
- * O compositor no pé, na mesma coluna de leitura da conversa: alinhado com o texto acima dele, e não com a
- * borda da tela, senão a pergunta e a resposta pareceriam de telas diferentes.
- *
- * E é aqui que o vidro da casa aparece nesta página, na receita das camadas: as manchas de cor ficam atrás,
- * na camada de baixo, e este pé as borra. É o mesmo par da coluna lateral e da janela de plano, e o motivo
- * de ele ficar no pé é que é de lá que o assistente fala.
- */
-.foot {
-  display: flex;
-  min-width: 0;
-  background-color: var(--glass-layer-bg);
-  -webkit-backdrop-filter: var(--glass-layer-blur);
-  backdrop-filter: var(--glass-layer-blur);
-}
-
-/* O recuo do pé é o da conversa menos o que o compositor já abre por dentro, para o cartão nascer na mesma
-   linha vertical em que o texto acima dele começa. */
-.foot .column {
-  flex: 0 0 auto;
-  padding-inline: var(--space-1);
-}
-
-@media (max-width: 47.9375rem) {
-  .foot .column {
-    padding-inline: 0;
-  }
-}
-
-/* A gaveta das conversas no lugar da trilha, em tela estreita: o mesmo conteúdo, com um título e o fechar
-   em cima, porque a janela da casa não desenha cabeçalho nenhum. */
+/* A gaveta do histórico em tela estreita: a lista ocupa a altura que a janela dá. */
 .drawer {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
-  min-height: 0;
   height: 100%;
+  min-height: 0;
 }
 
-.drawerHead {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
-  border-block-end: 0.0375rem solid var(--color-border);
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .rail,
+  .starter,
+  .starterArrow {
+    transition: none;
+  }
+
+  .glow {
+    animation: none;
+  }
 }

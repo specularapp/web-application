@@ -1,0 +1,63 @@
+/* A citação na cor de quem falou: azul para a equipe, verde para o contato, com um véu da mesma cor ao fundo. */
+.quote {
+  --quote: color-mix(in oklab, var(--sys-green) 70%, var(--color-label));
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--quote) 9%, var(--color-fill-quaternary));
+  border-inline-start: var(--space-1) solid var(--quote);
+  border-radius: var(--radius-md);
+}
+
+.quote[data-author="agent"] {
+  --quote: color-mix(in oklab, var(--sys-blue) 70%, var(--color-label));
+}
+
+.quote[data-in-field] {
+  padding-block: var(--space-2);
+}
+
+.copy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.copy > strong {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--quote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  line-height: var(--leading-tight);
+  color: var(--color-label-secondary);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.body[data-kind="media"] {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  white-space: nowrap;
+}
+
+.body svg {
+  flex-shrink: 0;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--color-label-tertiary);
+}

@@ -27,6 +27,24 @@ export type AiMessage = {
   /** O que ela está fazendo antes da primeira palavra sair, um passo por vez. */
   steps?: readonly string[];
   state?: AiAnswerState;
+  /** A resposta é um aviso de que não deu para responder, e não uma resposta. */
+  failed?: boolean;
+  /** O que a resposta propõe fazer na conta. O servidor ainda não manda: a tela já sabe desenhar. */
+  actions?: readonly AiAction[];
+};
+
+/** Em que pé está uma ação proposta pela resposta. */
+export type AiActionState = "pending" | "done" | "failed" | "canceled";
+
+/** Uma ação que a resposta propõe, com o que muda e onde conferir. */
+export type AiAction = {
+  id: string;
+  title: string;
+  summary?: string;
+  state: AiActionState;
+  fields: readonly { label: string; value: string }[];
+  /** A tela onde a ação se confere, com o nome dela para o botão. */
+  screen: { label: string; href: string };
 };
 
 /** Uma conversa guardada, para a pessoa poder voltar nela. */

@@ -20,6 +20,43 @@ Registro por dia do que foi feito e do tempo investido. Atualizar ao encerrar ca
 | 2026-09-17 (qui) | em andamento | Toda opção da aplicação funcionando: mapa de item morto por script, leque do cliente inteiro (histórico e mapa de relação em janela), orçamento (marcar, duplicar, excluir), tarefa (criar com responsável, duplicar, concluir), funil (criar, duplicar, orçamento), projeto (situação, mover para pasta), colunas tiram etapa do quadro; histórico gravado em todos os domínios; modal central de plano é o mesmo dos primeiros passos; cobrança avulsa com foto e recorrência; chevron da árvore do menu com renomear, etapas e excluir; editor de projeto em tela cheia com prévia; auditoria dos primitivos (camadas, toque, bandejas); onze páginas que devolviam nulo agora existem (conta, equipe, segurança, notificações, domínio, integrações, conquistas, portfólio e currículo, com as duas vitrines públicas); encerrar recorrência, mover funil, projeto público; primeira entrada de conta nova destravada (painel abre vazio com a configuração inicial por cima) e os seis pedidos do dia: colaboradores no projeto, teto de etiquetas no cartão, logo da marca na frente do rosto, foto do item na folha de orçamento, mapa de relação com campos e nós que se movem, e o acerto de velocidade dos quadros longos |
 | 2026-09-20 (dom) | dia inteiro, em andamento, em paralelo com o Codex no mesmo repositório | Pull com merge do trabalho de dois lados e o servidor aberto para a rede local; imagem reduzida e em WebP no envio e otimizada na tela (`lib/images`, `StoredImage`); etapas sempre no quadro de tarefas, marca do projeto redonda no menu, nova tarefa em quatro blocos com projeto, descrição, começo, estimativa e etiquetas; a prévia do editor de projeto virou a ficha inteira (`ProjectSheet`, extraída da janela) na largura toda; campo é rótulo e controle, sem observação, em toda a casa; a **despesa**, que é a cobrança virada para o outro lado (`charges.direction`), com o segmento a receber / a pagar; o aviso do menu com rosto ou etiqueta, nunca os dois, e o rosto sozinho em círculo; as páginas de configuração, conquistas, portfólio, currículo e plano refeitas sobre a moldura de toda tela (`Topbar` e `Card`) |
 | 2026-09-21 (seg) | sessão de tarefas, em paralelo com o Codex | Etapas do quadro viraram tabela da equipe: criar, renomear, escolher cor e glifo, dizer o que a etapa significa, ordenar, tirar do quadro e excluir dizendo para onde vão as tarefas; cor e glifo do projeto editáveis pelo próprio quadro; o cinza entrou na paleta; contadores do menu refeitos sobre a junção; fundo de janela mais leve (4px) e janela sólida em vez de vidro; vincular registro com a foto de verdade do cliente e projeto e contrato em folha de documento |
+| 2026-10-25 (dom) | noite, em andamento | Conta do proprietário com tudo liberado no banco, logout causado pelo prefetch do "Sair da conta", seletor de equipe enxuto, painel com missões no lugar de projetos, avatar Notionists e equipe atual em Redis |
+
+## 2026-10-25
+
+Feito:
+
+- **Proprietário com tudo liberado.** `platform_owners` (por e-mail confirmado) e `organization_plan` devolvendo
+  `alliance` para a sessão dessa conta em qualquer equipe e para a equipe de que ela é dona. A troca de equipe
+  passou a ler o plano por `organization_plans`, a mesma regra. Migração `billing/20261026010914_add_platform_owner`.
+- **Logout sozinho.** O "Sair da conta" do menu da conta é um `Link`, e o prefetch do Link chamava o GET de
+  `/auth/sair`, que encerrava a sessão sem clique. A rota agora ignora busca antecipada, e sair encerra só o
+  navegador atual (`scope: "local"`), não todos os aparelhos. O cliente do navegador, que só sobe arquivo, não
+  renova mais o token, para não gastar o mesmo refresh token que o proxy.
+- Seletor de equipe: a coluna da lista ficou presa à largura do painel, então o nome longo encurta por
+  reticências em vez de abrir rolagem lateral. O leque de ações de cada equipe é o `DropdownMenu` padrão, sem
+  tamanho próprio, e só aparece no hover, no foco ou com o menu aberto.
+- Painel: bloco de projetos removido, conquistas no lugar com as três missões de hoje, clientes só com
+  telefone e cards mais juntos.
+- Degradê de lista que rola acompanha a rolagem nas duas pontas: nada em cima parado no topo, nada embaixo no fim.
+- Avatar gerado passou do Lorelei para o Notionists, com o estilo no endereço para o cache de um ano não
+  segurar o desenho antigo.
+- **Velocidade.** Cada ida ao Supabase (us-west-2) leva de 300 a 550ms daqui, e toda tela e toda action
+  resolviam a equipe atual no banco antes de qualquer leitura. A equipe atual agora fica em Redis por 120s
+  (`organizations/current-cache.ts`), derrubada ao trocar, criar, arquivar, aceitar convite e remover pessoa.
+  O "refresh" ao abrir janela visto nos logs é do `next dev`, que compila a janela na primeira abertura.
+
+- Menu: pasta abre no lugar, como acordeão, com o fio das subpáginas do app-le-ange; a raiz da árvore de
+  projetos e funis ganhou um galho por item.
+- Interfaces novas, só com dados de exemplo (a funcionalidade vem depois): WhatsApp (`/whatsapp`), E-mail
+  marketing (`/marketing/email`), Fluxos, o ManyAnge renomeado (`/marketing/fluxos`), e NPS (`/nps/*`, cinco
+  telas e o editor de pesquisa). A tela `/ia` foi refeita no modelo da Leainge, sem mascote: a identidade é o
+  símbolo da Specular com um reflexo de luz.
+- Varredura de janelas no build de produção: nenhuma recarrega. O "refresh" visto era do `next dev`.
+
+Pendências:
+
+- Aplicar a migração com `npm run db:push`. A de `quote_client_buys` também está pendente e sobe junto.
 
 ## 2026-09-21
 

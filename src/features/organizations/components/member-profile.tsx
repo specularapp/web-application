@@ -18,6 +18,7 @@ import type { Route } from "next";
 import { avatarHue } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import {
+  PROFILE_RECENT,
   Profile,
   ProfileEvent,
   ProfileEvents,
@@ -31,6 +32,7 @@ import {
   ProfileTags,
   type ProfileAction,
 } from "@/components/ui/profile";
+import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { applyPattern } from "@/lib/masks";
 import { compactMoney } from "@/lib/utils/format";
@@ -170,14 +172,23 @@ export function MemberProfile({ member }: MemberProfileProps) {
       {!pending && (
         <>
           <ProfileRule />
-          <ProfileSection title="Projetos">
+          <ProfileSection
+            title="Projetos"
+            aside={
+              member.projects.length > PROFILE_RECENT && (
+                <Text as="span" variant="footnote">
+                  <TextLink href="/projetos">Ver todos</TextLink>
+                </Text>
+              )
+            }
+          >
           {member.projects.length === 0 ? (
             <Text variant="footnote" tone="secondary">
               Nenhum projeto no momento
             </Text>
           ) : (
             <ProfileList>
-              {member.projects.map((project) => {
+              {member.projects.slice(0, PROFILE_RECENT).map((project) => {
                 const status = memberProjectStatuses[project.status];
                 return (
                   <ProfileRow

@@ -5,37 +5,47 @@ import {
   BooksIcon,
   BrainIcon,
   BriefcaseIcon,
+  CaretDownIcon,
   CurrencyCircleDollarIcon,
-  FunnelIcon,
-  ListChecksIcon,
-  ReceiptIcon,
-  SignatureIcon,
   FileTextIcon,
-  ImageIcon,
+  FunnelIcon,
   LightningIcon,
+  ListChecksIcon,
   MicrophoneIcon,
   PaperclipIcon,
-  PaperPlaneTiltIcon,
+  ArrowUpIcon,
+  PlusIcon,
+  ReceiptIcon,
+  SignatureIcon,
   StopIcon,
   XIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { useRef, useState, type FormEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type FormEvent,
+  type RefObject,
+} from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Text } from "@/components/ui/text";
+import { Tooltip } from "@/components/ui/tooltip";
 import { AudioBubble, LiveWave, VoiceButton, clock, useVoiceRecorder } from "@/features/tasks/components/chat-audio";
-import { acceptAny, acceptDocuments, acceptImages, sizeLabel } from "@/features/tasks/files";
+import { acceptAny, sizeLabel } from "@/features/tasks/files";
 import { rounded, roundedAuto } from "@/lib/corners";
 import { aiModel, aiModels, defaultAiModel, type AiModelId } from "../models";
 import { aiScopeIds, aiScopeLabel, aiScopeLabels, defaultAiScope, type AiScopeId } from "../scope";
 import { aiRemaining, type AiAttachment, type AiUsage, type AiVoice } from "../summary";
 import styles from "./ai-composer.module.css";
 
-/* O glifo de cada fonte mora aqui, e não em `scope.ts`: aquele arquivo é lido pelo zod, que é lido pela
-   action e pela rota de `api/v1`, e um mapa de ícones ali arrastava a biblioteca inteira para o servidor.
-   Os glifos são os mesmos do menu, para a fonte aqui e a página lá serem lidas como a mesma coisa. */
+/* O glifo de cada fonte mora aqui, e não em `scope.ts`: aquele arquivo é lido pelo zod do servidor, e um mapa
+   de ícones ali arrastava a biblioteca inteira para a rota. */
 const scopeGlyphs: Record<AiScopeId, Icon> = {
   crm: FunnelIcon,
   orcamentos: ReceiptIcon,
@@ -48,68 +58,78 @@ const scopeGlyphs: Record<AiScopeId, Icon> = {
 
 const scopeSources = aiScopeIds.map((id) => ({ id, label: aiScopeLabels[id], icon: scopeGlyphs[id] }));
 
+const modelIcons: Record<AiModelId, Icon> = { fast: LightningIcon, deep: BrainIcon };
+
 export type AiComposerProps = {
   value: string;
   onChange: (value: string) => void;
-  /** Mandar a pergunta com o que ela leva junto. Ela sempre lê os registros da conta: é para isso que o
-   *  assistente mora aqui dentro. */
   onSend: (question: string, carried: { files: readonly AiAttachment[]; voice: AiVoice | null }) => void;
-  /** Interromper a resposta que está saindo. */
   onStop: () => void;
   answering: boolean;
-  /** No modo bandeja as ações saem do pé do cartão e vão para a barra flutuante do celular. */
+  /** No modo bandeja o anexo, a voz e o enviar saem do cartão e vão para a barra flutuante do celular. */
   sheet: boolean;
-  /** Fechar o assistente, que no celular é o sair da barra flutuante. */
   onClose: () => void;
   /** Onde a pessoa está, na rota do menu ("Área de trabalho/Projetos"), com o glifo da página. */
   context?: { trail: string; icon: Icon };
-  /**
-   * O que o assistente pode ler, quando quem chama deixa escolher: a pílula das fontes entra ao lado da do
-   * modo. É da página cheia, e não da coluna: lá o que vai junto da pergunta é a tela aberta atrás, que já
-   * diz o assunto, e a pílula seria uma escolha a mais numa barra que já está cheia.
-   */
+  /** O que o assistente pode ler, quando quem chama deixa escolher. */
   scope?: { chosen: readonly AiScopeId[]; onChange: (scope: readonly AiScopeId[]) => void };
-  /** O uso do ciclo, para o saldo aparecer no pé do cartão. */
   usage?: AiUsage;
-  /** O campo, para a sugestão clicada no vazio cair aqui com o cursor dentro. */
   fieldRef: RefObject<HTMLTextAreaElement | null>;
 };
 
-const modelIcons: Record<AiModelId, Icon> = { fast: LightningIcon, deep: BrainIcon };
-
 /**
- * O compositor do assistente: o cartão **é** o campo, como o da conversa da tarefa, e no pé dele ficam o
- * clipe, o que muda o modo da resposta, a voz e o enviar. Acima do cartão, o aviso do que vai junto da
- * pergunta (a tela aberta atrás, com o glifo dela) e o que já foi pendurado nela.
- *
- * No celular o clipe, a voz e o enviar viram glifos da barra flutuante; o que sobra no pé do cartão é o que
- * é ajuste, e não ação: o modo da resposta.
+ * O compositor do SpeculAI: um cartão só, com o que vai junto da pergunta no alto, o campo que cresce com o
+ * texto e, no pé, anexar, o modo da resposta, as fontes, a voz e o enviar. Arrastar um arquivo para o cartão
+ * ou colar uma imagem também anexa. Enter manda e Shift+Enter quebra a linha.
  */
 export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, onClose, context, scope, usage, fieldRef }: AiComposerProps) {
   const [model, setModel] = useState<AiModelId>(defaultAiModel);
   const [files, setFiles] = useState<AiAttachment[]>([]);
   const [voice, setVoice] = useState<AiVoice | null>(null);
-  /* Qual tela a pessoa já dispensou. Guardando o nome, e não um sim ou não, o aviso volta sozinho quando ela
-     muda de página, que é quando o que vai junto da pergunta muda de verdade. */
   const [dismissed, setDismissed] = useState<string | null>(null);
-  const imagePicker = useRef<HTMLInputElement>(null);
-  const filePicker = useRef<HTMLInputElement>(null);
-  const anyPicker = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
+  const form = useRef<HTMLFormElement>(null);
   const nextId = useRef(0);
   const recorder = useVoiceRecorder(setVoice);
 
   const sharing = context && dismissed !== context.trail ? context : null;
   const ready = value.trim().length > 0 || files.length > 0 || voice !== null;
 
-  const take = (chosen: FileList | null) => {
-    if (!chosen?.length) return;
+  const fit = useCallback(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight}px`;
+  }, [fieldRef]);
+
+  useLayoutEffect(fit, [value, fit]);
+
+  /* A largura muda sem o texto mudar (a coluna abrindo, a janela redimensionada), e o texto quebra em outras
+     linhas: medir só ao digitar deixaria a altura errada. */
+  useEffect(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+    let width = -1;
+    const observer = new ResizeObserver(() => {
+      if (field.offsetWidth === width) return;
+      width = field.offsetWidth;
+      fit();
+    });
+    observer.observe(field);
+    return () => observer.disconnect();
+  }, [fit, fieldRef]);
+
+  const take = (chosen: readonly File[]) => {
+    if (chosen.length === 0) return;
     setFiles((current) => [
       ...current,
-      ...Array.from(chosen).map((file) => {
+      ...chosen.map((file) => {
         nextId.current += 1;
-        return { id: "arquivo-" + nextId.current, name: file.name, size: sizeLabel(file.size) };
+        return { id: "arquivo-" + nextId.current, name: file.name || "Imagem colada", size: sizeLabel(file.size) };
       }),
     ]);
+    fieldRef.current?.focus();
   };
 
   const send = () => {
@@ -125,14 +145,56 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
     send();
   };
 
+  const paste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = Array.from(event.clipboardData.files);
+    if (pasted.length === 0) return;
+    event.preventDefault();
+    take(pasted);
+  };
+
+  /* Arrastar um arquivo para o cartão é atalho do ponteiro: o caminho de teclado é o "+". Por isso a escuta é
+     do próprio elemento, e não um alvo de clique a mais. */
+  const taking = useRef(take);
+  useEffect(() => {
+    taking.current = take;
+  });
+
+  useEffect(() => {
+    const target = form.current;
+    if (!target) return;
+    const carriesFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
+    const over = (event: DragEvent) => {
+      if (!carriesFiles(event)) return;
+      event.preventDefault();
+      setDragging(true);
+    };
+    const leave = (event: DragEvent) => {
+      if (!target.contains(event.relatedTarget as Node | null)) setDragging(false);
+    };
+    const drop = (event: DragEvent) => {
+      if (!carriesFiles(event)) return;
+      event.preventDefault();
+      setDragging(false);
+      taking.current(Array.from(event.dataTransfer?.files ?? []));
+    };
+    target.addEventListener("dragover", over);
+    target.addEventListener("dragleave", leave);
+    target.addEventListener("drop", drop);
+    return () => {
+      target.removeEventListener("dragover", over);
+      target.removeEventListener("dragleave", leave);
+      target.removeEventListener("drop", drop);
+    };
+  }, []);
+
   useFloatingActionsRegistration(
     sheet
       ? {
           primary: answering
             ? { label: "Parar a resposta", icon: <StopIcon weight="fill" />, iconOnly: true, onClick: onStop }
-            : { label: "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, iconOnly: true, disabled: !ready, onClick: send },
+            : { label: "Enviar", icon: <ArrowUpIcon weight="bold" />, iconOnly: true, disabled: !ready, onClick: send },
           extras: [
-            { label: "Anexar à pergunta", icon: <PaperclipIcon weight="bold" />, onClick: () => anyPicker.current?.click() },
+            { label: "Anexar à pergunta", icon: <PaperclipIcon weight="bold" />, onClick: () => picker.current?.click() },
             recorder.recording
               ? { label: "Encerrar a gravação", icon: <StopIcon weight="fill" />, onClick: recorder.stop }
               : { label: "Ditar a pergunta", icon: <MicrophoneIcon weight="bold" />, onClick: () => void recorder.start() },
@@ -141,19 +203,6 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
         }
       : null,
   );
-
-  /* O clipe abre o menu com os dois tipos, como o da conversa da tarefa: o seletor do sistema não separa
-     imagem de documento, e quem escolhe antes é a pessoa. */
-  const attachSections: DropdownSection[] = [
-    {
-      id: "anexo",
-      label: "Anexar à pergunta",
-      items: [
-        { id: "imagem", label: "Imagem", icon: ImageIcon, onSelect: () => imagePicker.current?.click() },
-        { id: "documento", label: "Documento", icon: FileTextIcon, onSelect: () => filePicker.current?.click() },
-      ],
-    },
-  ];
 
   const modelSections: DropdownSection[] = [
     {
@@ -169,9 +218,6 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
     },
   ];
 
-  /* As fontes em interruptores, e não em escolha única: ler o funil e os orçamentos juntos é o caso comum, e
-     um menu que fecha a cada toque faria a pessoa reabrir para cada fonte. A linha do fim liga tudo de uma
-     vez, que é como se desfaz um recorte sem tocar em sete interruptores. */
   const scopeSections: DropdownSection[] = scope
     ? [
         {
@@ -205,16 +251,18 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
 
   const chosen = aiModel(model);
   const PageGlyph = sharing?.icon;
+  const ModelGlyph = modelIcons[chosen.id];
 
   return (
-    <form className={styles.composer} data-sheet={sheet || undefined} onSubmit={submit}>
-      <div className={styles.card} {...rounded("lg")}>
-        {/* O que vai junto da pergunta sem ninguém pedir: a tela aberta atrás, numa linha fina no alto do
-            cartão, separada do campo pelo mesmo fio da casa. Sem caixa dentro de caixa (2026-09-14): a tira
-            com fundo e fio próprios dentro de um cartão que já tem os dois lia como um aviso colado ali. Some
-            no × e volta sozinha na próxima tela, porque lá o que vai junto é outro. */}
+    <form
+      className={styles.composer}
+      data-sheet={sheet || undefined}
+      ref={form}
+      onSubmit={submit}
+    >
+      <div className={styles.card} data-dragging={dragging || undefined} {...rounded("2xl")}>
         {sharing && PageGlyph && (
-          <div className={styles.context} {...rounded("md")}>
+          <div className={styles.context} {...rounded("lg")}>
             <PageGlyph className={styles.contextGlyph} />
             <Text as="span" variant="caption2" tone="secondary" truncate className={styles.contextName}>
               Ativo em {sharing.trail}
@@ -225,10 +273,38 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
           </div>
         )}
 
+        {files.length > 0 && (
+          <ul className={styles.files} aria-label="Arquivos anexados">
+            {files.map((file) => (
+              <li key={file.id} className={styles.file} {...rounded("lg")}>
+                <span className={styles.fileGlyph} {...rounded("md")}>
+                  <FileTextIcon weight="duotone" />
+                </span>
+                <span className={styles.fileText}>
+                  <Text as="span" variant="caption1" weight="medium" truncate title={file.name}>
+                    {file.name}
+                  </Text>
+                  <Text as="span" variant="caption2" tone="secondary" numeric>
+                    {file.size}
+                  </Text>
+                </span>
+                <IconButton
+                  label={"Tirar " + file.name}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFiles((current) => current.filter((entry) => entry.id !== file.id))}
+                >
+                  <XIcon />
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {recorder.recording && (
           <div className={styles.recording}>
             <LiveWave level={recorder.level} />
-            <Text as="span" variant="caption2" weight="medium" className={styles.clock}>
+            <Text as="span" variant="caption2" weight="medium" numeric>
               {clock(recorder.seconds)}
             </Text>
             <Text as="span" variant="caption2" tone="secondary">
@@ -248,55 +324,30 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
           </div>
         )}
 
-        {files.length > 0 && (
-          <ul className={styles.files}>
-            {files.map((file) => (
-              <li key={file.id} className={styles.file} {...rounded("sm")}>
-                <Text as="span" variant="caption2" weight="medium" truncate>
-                  {file.name}
-                </Text>
-                <Text as="span" variant="caption2" tone="tertiary" numeric>
-                  {file.size}
-                </Text>
-                <IconButton
-                  label={"Tirar " + file.name}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFiles((current) => current.filter((entry) => entry.id !== file.id))}
-                >
-                  <XIcon />
-                </IconButton>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className={styles.body}>
+          <textarea
+            ref={fieldRef}
+            className={styles.field}
+            value={value}
+            rows={1}
+            placeholder="Pergunte ao SpeculAI"
+            aria-label="Pergunte ao SpeculAI"
+            onChange={(event) => onChange(event.target.value)}
+            onPaste={paste}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              send();
+            }}
+          />
 
-        <textarea
-          ref={fieldRef}
-          className={styles.field}
-          value={value}
-          rows={2}
-          placeholder="Pergunte qualquer coisa"
-          aria-label="Pergunte ao SpeculAI"
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter" || event.shiftKey) return;
-            /* Enter manda e Shift+Enter quebra a linha, como em toda conversa. */
-            event.preventDefault();
-            send();
-          }}
-        />
-
-        <div className={styles.bar}>
-          <span className={styles.tools}>
+          <div className={styles.tools}>
             <span className={styles.attach}>
-              <DropdownMenu
-                label="Anexar"
-                triggerLabel="Anexar à pergunta"
-                sections={attachSections}
-                icon={<PaperclipIcon />}
-                size="sm"
-              />
+              <Tooltip content="Anexar imagem ou documento" align="start">
+                <IconButton label="Anexar à pergunta" variant="outline" size="sm" radius="full" onClick={() => picker.current?.click()}>
+                  <PlusIcon />
+                </IconButton>
+              </Tooltip>
             </span>
 
             <DropdownMenu
@@ -305,15 +356,15 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
               sections={modelSections}
               triggerContent={
                 <span className={styles.pill} title={chosen.hint} {...roundedAuto()}>
-                  <Text as="span" variant="caption2" weight="medium">
+                  <ModelGlyph />
+                  <Text as="span" variant="caption1" weight="medium">
                     {chosen.label}
                   </Text>
+                  <CaretDownIcon className={styles.caret} />
                 </span>
               }
             />
 
-            {/* De onde a resposta sai. A pílula diz o recorte em uma palavra, porque na maior parte do tempo
-                ele é "toda a conta" e só interessa quando deixa de ser. */}
             {scope && (
               <DropdownMenu
                 label="O que eu posso ler"
@@ -322,87 +373,63 @@ export function AiComposer({ value, onChange, onSend, onStop, answering, sheet, 
                 triggerContent={
                   <span className={styles.pill} {...roundedAuto()}>
                     <BooksIcon />
-                    <Text as="span" variant="caption2" weight="medium">
+                    <Text as="span" variant="caption1" weight="medium">
                       {aiScopeLabel(scope.chosen)}
                     </Text>
+                    <CaretDownIcon className={styles.caret} />
                   </span>
                 }
               />
             )}
-          </span>
 
-          {/* O saldo e as ações andam juntos na ponta, num invólucro só: numa tela estreita a barra quebra,
-              e soltos eles quebravam entre si, deixando o enviar sozinho no começo da linha de baixo. */}
-          <span className={styles.end}>
-            {/* O saldo do ciclo à vista enquanto se escreve (a pedido, 2026-09-14): sem ele a pessoa só
-                descobre que acabou quando a resposta não vem. O número por extenso fica na dica e na voz. */}
-            {usage && (
-              <Text
-                as="span"
-                variant="caption2"
-                tone="tertiary"
-                numeric
-                className={styles.balance}
-                title={`${aiRemaining(usage)} de ${usage.limit} ações de IA disponíveis neste ciclo`}
-              >
-                {aiRemaining(usage)} restantes
-              </Text>
-            )}
-
-            <span className={styles.send}>
-              <VoiceButton onRecorded={setVoice} />
-              {/* Enquanto a resposta sai, enviar vira parar: é a mesma posição e o mesmo dedo, como em toda
-                  conversa com assistente. */}
-              {answering ? (
-                <IconButton label="Parar a resposta" size="sm" radius="md" variant="secondary" onClick={onStop}>
-                  <StopIcon weight="fill" />
-                </IconButton>
-              ) : (
-                <IconButton label="Enviar a pergunta" size="sm" radius="md" type="submit" disabled={!ready}>
-                  <PaperPlaneTiltIcon />
-                </IconButton>
+            <span className={styles.end}>
+              {usage && (
+                <Text
+                  as="span"
+                  variant="caption2"
+                  tone="tertiary"
+                  numeric
+                  className={styles.balance}
+                  title={`${aiRemaining(usage)} de ${usage.limit} ações de IA disponíveis neste ciclo`}
+                >
+                  {aiRemaining(usage)} restantes
+                </Text>
               )}
+
+              <span className={styles.send}>
+                <VoiceButton onRecorded={setVoice} />
+                {answering ? (
+                  <IconButton label="Parar a resposta" size="sm" radius="full" onClick={onStop}>
+                    <StopIcon weight="fill" />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    label="Enviar a pergunta"
+                    size="sm"
+                    radius="full"
+                    type="submit"
+                    variant={ready ? "primary" : "secondary"}
+                    disabled={!ready}
+                  >
+                    <ArrowUpIcon />
+                  </IconButton>
+                )}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
       </div>
 
-      {/* Três campos de arquivo, porque o `accept` mudado no clique chegaria depois de o seletor do sistema
-          abrir: um por tipo no desktop e o dos dois juntos para o clipe da barra flutuante. Escondidos: o
-          desenho deles não é da casa. */}
       <input
-        ref={imagePicker}
-        type="file"
-        multiple
-        accept={acceptImages}
-        className={styles.picker}
-        aria-label="Escolher imagens para a pergunta"
-        onChange={(event) => {
-          take(event.target.files);
-          event.target.value = "";
-        }}
-      />
-      <input
-        ref={filePicker}
-        type="file"
-        multiple
-        accept={acceptDocuments}
-        className={styles.picker}
-        aria-label="Escolher documentos para a pergunta"
-        onChange={(event) => {
-          take(event.target.files);
-          event.target.value = "";
-        }}
-      />
-      <input
-        ref={anyPicker}
+        ref={picker}
         type="file"
         multiple
         accept={acceptAny}
+        tabIndex={-1}
         className={styles.picker}
         aria-label="Escolher arquivos para a pergunta"
         onChange={(event) => {
-          take(event.target.files);
+          take(Array.from(event.target.files ?? []));
           event.target.value = "";
         }}
       />

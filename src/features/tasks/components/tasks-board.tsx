@@ -74,7 +74,8 @@ import { randomId } from "@/lib/utils/id";
 
 /* A janela da tarefa entra por importação dinâmica, montada só na primeira abertura (varredura de peso de
    2026-09-21): o quadro desenha as colunas e os cartões sem ela. */
-const TaskDialog = dynamic(() => import("./task-dialog").then((module) => module.TaskDialog));
+const loadTaskDialog = () => import("./task-dialog");
+const TaskDialog = dynamic(() => loadTaskDialog().then((module) => module.TaskDialog));
 
 export type TasksBoardProps = {
   board: TasksBoardData;
@@ -425,6 +426,13 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
   const [stagePage, setStagePage] = useState(1);
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
+
+  /* O quadro existe para abrir tarefas: o código da janela desce assim que a tela fica ociosa, e a primeira
+     abertura não espera pelo arquivo (2026-10-25). */
+  useEffect(() => {
+    const idle = window.setTimeout(() => void loadTaskDialog(), 1200);
+    return () => window.clearTimeout(idle);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_START } }),

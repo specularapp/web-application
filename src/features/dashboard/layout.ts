@@ -8,8 +8,12 @@ import { type DashboardLayout } from "./layout-cookie";
 export { LAYOUT_COOKIE, saveDashboardLayout, serializeDashboardLayout, type DashboardLayout } from "./layout-cookie";
 
 const ids = dashboardBlocks.map((block) => block.id) as [DashboardBlockId, ...DashboardBlockId[]];
-const idSchema = z.enum(ids);
-const layoutSchema = z.object({ order: z.array(idSchema), hidden: z.array(idSchema) });
+const known = new Set<string>(ids);
+const isBlockId = (id: string): id is DashboardBlockId => known.has(id);
+/* Id que não existe mais (o bloco de projetos saiu em 2026-10-25) é descartado, e não derruba o layout
+   inteiro da pessoa de volta ao padrão. */
+const idListSchema = z.array(z.string()).transform((list) => list.filter(isBlockId));
+const layoutSchema = z.object({ order: idListSchema, hidden: idListSchema });
 
 /** A ordem de leitura de `blocks.ts`, com todo bloco à vista. */
 export const defaultLayout: DashboardLayout = { order: ids, hidden: [] };

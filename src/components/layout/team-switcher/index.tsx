@@ -116,10 +116,12 @@ const Field = styled.input`
    rodapé, e com muitos ela empurraria o convite de criar para fora da vista. */
 const Body = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   min-height: 10rem;
   max-height: 15rem;
   min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   ${verticalScrollFade};
@@ -135,6 +137,7 @@ const Body = styled.div`
 
 const List = styled.ul`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   margin: 0;
   padding: var(--space-2);
@@ -147,6 +150,7 @@ const Option = styled.li`
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   min-height: var(--touch-target);
   padding-inline: var(--space-2);
   font-size: var(--text-subheadline);
@@ -191,17 +195,40 @@ const Mark = styled.span`
     width: 1.125rem;
     height: 1.125rem;
   }
+
+  &:empty {
+    display: none;
+  }
 `;
 
-/* O leque de ações na ponta da linha: o botão encolhe para a altura da linha, como o × do compositor faz. */
+/* O leque de ações na ponta da linha, o mesmo `DropdownMenu` das outras listas, sem tamanho próprio
+   (2026-10-25, a pedido). Ele só abre espaço no hover, no foco ou com o menu aberto: parado, a largura volta
+   para o nome. Encolher em vez de sumir mantém o botão alcançável pelo Tab, e onde não há hover ele fica. */
 const Actions = styled.span`
-  --control-height-sm: 1.5rem;
-  --icon-button-radius-sm: 0.75rem;
-  --touch-target: 1.5rem;
-
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
+  width: 0;
+  margin-inline-start: calc(var(--space-2) * -1);
+  overflow: hidden;
+  opacity: 0;
+
+  li:hover > &,
+  li:focus-within > &,
+  li:has([aria-expanded="true"]) > &,
+  [data-mode="sheet"] & {
+    width: auto;
+    margin-inline-start: 0;
+    overflow: visible;
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    width: auto;
+    margin-inline-start: 0;
+    overflow: visible;
+    opacity: 1;
+  }
 `;
 
 const Empty = styled.div`
@@ -495,7 +522,6 @@ export function TeamSwitcher({ teams, currentId, owner, size = "sm" }: TeamSwitc
                     label={`Ações de ${team.name}`}
                     triggerLabel={`Mais opções de ${team.name}`}
                     sections={actionsOf(team)}
-                    size="sm"
                   />
                 </Actions>
               </Option>

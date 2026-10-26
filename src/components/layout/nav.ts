@@ -3,34 +3,43 @@ import {
   AddressBookIcon,
   BellIcon,
   BriefcaseIcon,
+  ChartBarIcon,
   ClipboardTextIcon,
   ChatCircleTextIcon,
   CheckSquareOffsetIcon,
+  ChatsCircleIcon,
   CreditCardIcon,
   CurrencyCircleDollarIcon,
+  EnvelopeSimpleIcon,
   FileTextIcon,
   FlowArrowIcon,
   FunnelIcon,
+  GaugeIcon,
   GearSixIcon,
   GlobeIcon,
+  HeadsetIcon,
   IdentificationCardIcon,
   ListChecksIcon,
+  MegaphoneIcon,
+  PaperPlaneTiltIcon,
   PlugsConnectedIcon,
   ReceiptIcon,
   ShieldCheckIcon,
   SparkleIcon,
   SquaresFourIcon,
   StorefrontIcon,
+  TrayIcon,
   TrophyIcon,
   UserCircleIcon,
   UserIcon,
   UsersThreeIcon,
+  WhatsappLogoIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 
 export type NavLink = { label: string; href: Route; icon: Icon };
 
-/** Entrada que abre no lugar da lista, com as páginas dela dentro e um voltar no topo. O matiz é
+/** Entrada que abre para baixo, no próprio lugar, com as páginas dela penduradas no fio. O matiz é
  *  a cor com que a busca marca as páginas que moram aqui. */
 export type NavFolder = {
   label: string;
@@ -126,6 +135,18 @@ export const navGroups: NavGroup[] = [
       { label: "Projetos", href: "/projetos", icon: BriefcaseIcon },
       { label: "Aprovações", href: "/aprovacoes", icon: CheckSquareOffsetIcon },
       { label: "Feedbacks", href: "/feedbacks", icon: ChatCircleTextIcon },
+      {
+        label: "NPS",
+        icon: GaugeIcon,
+        hue: "var(--sys-yellow)",
+        items: [
+          { label: "Resultados", href: "/nps/resultados", icon: ChartBarIcon },
+          { label: "Pesquisas", href: "/nps/pesquisas", icon: ClipboardTextIcon },
+          { label: "Disparos", href: "/nps/disparos", icon: PaperPlaneTiltIcon },
+          { label: "Respostas", href: "/nps/respostas", icon: TrayIcon },
+          { label: "Tratativas", href: "/nps/tratativas", icon: HeadsetIcon },
+        ],
+      },
     ],
   },
   {
@@ -139,6 +160,16 @@ export const navGroups: NavGroup[] = [
         hue: "var(--sys-teal)",
         tree: "funis",
         items: [{ label: "Todas as oportunidades", href: "/crm", icon: FunnelIcon }],
+      },
+      { label: "WhatsApp", href: "/whatsapp", icon: WhatsappLogoIcon },
+      {
+        label: "Marketing",
+        icon: MegaphoneIcon,
+        hue: "var(--sys-purple)",
+        items: [
+          { label: "E-mail marketing", href: "/marketing/email", icon: EnvelopeSimpleIcon },
+          { label: "Fluxos", href: "/marketing/fluxos", icon: ChatsCircleIcon },
+        ],
       },
       { label: "Clientes e fornecedores", href: "/clientes", icon: AddressBookIcon },
       { label: "Formulários", href: "/formularios", icon: ClipboardTextIcon },

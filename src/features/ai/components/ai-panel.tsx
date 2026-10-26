@@ -111,7 +111,7 @@ function AiBody({ sheet, onClose }: { sheet: boolean; onClose: () => void }) {
       <header className={styles.head}>
         {/* A marca da casa, e não a de quem responde: a conversa é da Specular, e o motor por trás dela é
             assunto da janela de uso, onde o plano é o que está em jogo. */}
-        <AiMark size={20} />
+        <AiMark size={20} motion={panel?.answering ? "thinking" : "still"} />
         <Text as="h2" variant="subheadline" weight="semibold" truncate className={styles.name}>
           SpeculAI
         </Text>
@@ -153,10 +153,10 @@ function AiBody({ sheet, onClose }: { sheet: boolean; onClose: () => void }) {
           fica no meio, que é onde mora tela de abertura. */}
       <div className={styles.scroller}>
         {messages.length > 0 ? (
-          <AiThread messages={messages} onRetry={(question) => panel?.ask(question)} />
+          <AiThread messages={messages} onRetry={(question) => panel?.ask(question)} onFollowUp={(prompt) => panel?.ask(prompt)} />
         ) : (
           <div className={styles.empty}>
-            <AiMark size={34} className={styles.greetingMark} />
+            <AiMark size={34} motion="idle" className={styles.greetingMark} />
             <Text as="p" variant="title2" weight="semibold" font="display" className={styles.greeting}>
               Pode falar{data ? ", " + firstName(data.viewer) : ""}
             </Text>

@@ -22,6 +22,12 @@ html {
   initial-value: 0px;
 }
 
+@property --scroll-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 html[data-scroll="locked"],
 html[data-scroll="locked"] body {
   height: 100%;

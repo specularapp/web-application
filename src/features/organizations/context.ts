@@ -8,6 +8,7 @@ import { dropTags } from "@/lib/cache";
 import { tagsToDrop, type DomainTag } from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import { rememberedOrganization } from "./current-cache";
 import { organizationOf } from "./service";
 
 /**
@@ -29,13 +30,16 @@ export type OrganizationContext = {
    perfil em cada uma. O `cache` do React vale só dentro da renderização, então nada atravessa pedidos. */
 const resolve = cache(async function resolve(user: SessionUser) {
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("current_organization_id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const organizationId = await rememberedOrganization(user.id, async () => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("current_organization_id")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  const organizationId = await organizationOf(supabase, user.id, profile?.current_organization_id ?? null);
+    return organizationOf(supabase, user.id, profile?.current_organization_id ?? null);
+  });
+
   return { supabase, organizationId };
 });
 

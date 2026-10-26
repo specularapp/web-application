@@ -195,7 +195,7 @@ export function AiPanelProvider({ data, children }: { data?: AiPanelData; childr
           if (writing.current !== answerId) return;
 
           if (!result.ok) {
-            patch(answerId, (message) => ({ ...message, text: result.error, state: "done", steps: undefined }));
+            patch(answerId, (message) => ({ ...message, text: result.error, state: "done", steps: undefined, failed: true }));
             writing.current = null;
             return;
           }
@@ -217,7 +217,7 @@ export function AiPanelProvider({ data, children }: { data?: AiPanelData; childr
         })
         .catch(() => {
           if (writing.current !== answerId) return;
-          patch(answerId, (message) => ({ ...message, text: NETWORK_ERROR, state: "done", steps: undefined }));
+          patch(answerId, (message) => ({ ...message, text: NETWORK_ERROR, state: "done", steps: undefined, failed: true }));
           writing.current = null;
         });
     },

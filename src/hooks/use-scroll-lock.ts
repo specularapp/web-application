@@ -17,12 +17,18 @@ import { SCROLL_CONTAINER } from "@/lib/scroll";
  * Trocar `overflow` de um elemento que rola por dentro, ao contrário, não mexe no `scrollTop` dele nem
  * no visor: a posição fica exatamente onde estava.
  *
- * **O gesto também é barrado** (2026-09-08, depois de a página atrás rolar quando o dedo passava do fim
+ * **O toque também é barrado** (2026-09-08, depois de a página atrás rolar quando o dedo passava do fim
  * do conteúdo da janela): `overflow: hidden` segura a coluna, mas o toque que começa numa parte da
  * janela que não rola (cabeçalho, rodapé, fundo) ainda encadeava para quem estava atrás em alguns
- * navegadores. Enquanto há trava, todo `touchmove` e `wheel` do documento é barrado, salvo quando nasce
+ * navegadores. Enquanto há trava, o `touchmove` do documento é barrado, salvo quando o gesto nasceu
  * dentro de algo que rola de verdade (um corpo com `overflow: auto` e conteúdo maior que a caixa), que é
  * o conteúdo da própria janela. A coluna travada não conta, porque o `overflow` dela está em `hidden`.
+ *
+ * **A roda do mouse não é escutada** (2026-10-25, rolagem pesada nas janelas): ela não tem o que encadear,
+ * porque a coluna de trás está em `hidden` e as janelas têm `overscroll-behavior: contain`. Escutá-la sem
+ * `passive` fazia o navegador esperar o JavaScript a cada passo da roda, e o teste subia a árvore com
+ * `getComputedStyle` em cada ancestral, dezenas de vezes por segundo. No toque a mesma pergunta é feita uma
+ * vez por gesto, no `touchstart`, e o `touchmove` só lê a resposta.
  *
  * A contagem é compartilhada porque camada abre de dentro de camada (o menu de opções por dentro do
  * perfil): só a primeira trava e só a última destrava, senão a de cima soltava a rolagem da de baixo.
@@ -62,9 +68,14 @@ function insideScrollable(target: EventTarget | null) {
   return false;
 }
 
+let gestureScrolls = false;
+
+function measureGesture(event: Event) {
+  gestureScrolls = insideScrollable(event.target);
+}
+
 function guard(event: Event) {
-  if (insideScrollable(event.target)) return;
-  event.preventDefault();
+  if (!gestureScrolls) event.preventDefault();
 }
 
 export function useScrollLock(active: boolean) {
@@ -89,8 +100,8 @@ export function useScrollLock(active: boolean) {
           element.style.paddingInlineEnd = `${currentPadding + gutter}px`;
         }
       }
+      document.addEventListener("touchstart", measureGesture, { passive: true });
       document.addEventListener("touchmove", guard, { passive: false });
-      document.addEventListener("wheel", guard, { passive: false });
     }
 
     return () => {
@@ -103,8 +114,8 @@ export function useScrollLock(active: boolean) {
         element.scrollTop = scrollTop;
       }
       frozen.length = 0;
+      document.removeEventListener("touchstart", measureGesture);
       document.removeEventListener("touchmove", guard);
-      document.removeEventListener("wheel", guard);
     };
   }, [active]);
 }

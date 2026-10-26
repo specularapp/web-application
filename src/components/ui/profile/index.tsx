@@ -35,6 +35,8 @@ export type ProfileProps = {
   /** O que fica na quina de baixo da capa: trocar e tirar a capa, na página da própria pessoa. */
   coverAction?: ReactNode;
   avatar: Pick<AvatarProps, "name" | "src" | "seed">;
+  /** Redonda para cliente (2026-10-25, a pedido); a pessoa da equipe segue com o canto de cartão. */
+  photoShape?: Extract<AvatarProps["shape"], "circle" | "rounded">;
   /** O botão pequeno na quina da foto: trocar a foto. */
   photoAction?: ReactNode;
   title: string;
@@ -64,7 +66,7 @@ const external = { target: "_blank", rel: "noreferrer" };
 // passando por cima da borda da capa, o nome com etiquetas e menu, a linha apagada e o que ela faz; os
 // números da relação em linha; os botões de contato; e as seções que quem chama montar com as peças
 // abaixo. Sem diretiva de cliente: é estático, e serve tanto ao servidor quanto a quem já é cliente.
-export function Profile({ hue, cover, coverAction, avatar, photoAction, title, badges, menu, handle, subtitle, stats, actions, children }: ProfileProps) {
+export function Profile({ hue, cover, coverAction, avatar, photoShape = "rounded", photoAction, title, badges, menu, handle, subtitle, stats, actions, children }: ProfileProps) {
   const vars = { "--cover-hue": `var(--sys-${hue})` } as CSSProperties;
 
   return (
@@ -76,7 +78,7 @@ export function Profile({ hue, cover, coverAction, avatar, photoAction, title, b
 
       <header className={styles.head}>
         <span className={styles.photo}>
-          <Avatar {...avatar} size="lg" shape="rounded" className={styles.photoFace} />
+          <Avatar {...avatar} size="lg" shape={photoShape} className={styles.photoFace} />
           {photoAction && <span className={styles.photoAction}>{photoAction}</span>}
         </span>
         <div className={styles.identity}>
@@ -141,6 +143,9 @@ export function Profile({ hue, cover, coverAction, avatar, photoAction, title, b
     </div>
   );
 }
+
+/** Quantas linhas uma lista de perfil mostra (2026-10-25, a pedido): as mais recentes, e o resto na tela do domínio. */
+export const PROFILE_RECENT = 3;
 
 export function ProfileSection({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (

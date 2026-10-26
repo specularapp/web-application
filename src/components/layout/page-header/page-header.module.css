@@ -21,18 +21,19 @@
   min-width: 0;
 }
 
-/* Vão do menu entre as ações, 4px como entre as linhas do nav: com 8 os ícones liam como soltos. */
+/* Vão entre as ações, 8px para todas (2026-10-25, a pedido): com 4 o botão cheio de criar ficava colado no
+   ícone vizinho, porque o ícone fantasma não tem borda que marque onde termina. */
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin-inline-start: auto;
 }
 
 /* Compacto no celular: a foto e o nome ficam na tela numa linha só, a linha de apoio vai para o leitor
    de tela, e as ações ficam na mesma linha, na versão pequena dos botões (36px, sem crescer para o alvo
-   de toque) e a 4px uma da outra. O cabeçalho não quebra: o nome encurta por reticências antes de as
+   de toque) e a 8px uma da outra. O cabeçalho não quebra: o nome encurta por reticências antes de as
    ações descerem, porque a identidade cede e as ações não. */
 @media (max-width: 47.9375rem) {
   .header[data-compact] {
@@ -58,6 +59,6 @@
     --touch-target: var(--control-height-sm);
     flex-wrap: nowrap;
     flex-shrink: 0;
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
 }

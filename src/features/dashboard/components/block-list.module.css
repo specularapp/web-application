@@ -10,9 +10,9 @@
 }
 
 /* A lista sangra o recuo do corpo pelos lados para o hover de cada linha pintar uma caixa em volta do
-   conteúdo, e não colada nele, no ritmo das linhas do menu. Ela desbota nas pontas por máscara, como
-   as listas que rolam nas camadas do menu: em cima uma faixa curta, embaixo uma maior, e o respiro no
-   fim é para a última linha aparecer inteira quando a rolagem chega ao fundo. */
+   conteúdo, e não colada nele, no ritmo das linhas do menu. Ela desbota por máscara só na ponta onde ainda há
+   lista escondida, medida pela própria rolagem como o `verticalScrollFade` dos primitivos: parada no topo não
+   desbota em cima, e no fim não desbota embaixo. O respiro no fim é para a última linha aparecer inteira. */
 .list {
   display: grid;
   align-content: start;
@@ -25,17 +25,42 @@
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 var(--space-2),
-    #000 calc(100% - var(--space-6)),
+    #000 var(--scroll-fade-top),
+    #000 calc(100% - var(--scroll-fade)),
     transparent
   );
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 var(--space-2),
-    #000 calc(100% - var(--space-6)),
+    #000 var(--scroll-fade-top),
+    #000 calc(100% - var(--scroll-fade)),
     transparent
   );
+  animation:
+    fadeTopIn linear both,
+    fadeBottomOut linear both;
+  animation-timeline: scroll(self), scroll(self);
+  animation-range:
+    0 var(--space-8),
+    calc(100% - var(--space-8)) 100%;
+}
+
+@keyframes fadeTopIn {
+  from {
+    --scroll-fade-top: 0px;
+  }
+  to {
+    --scroll-fade-top: var(--space-6);
+  }
+}
+
+@keyframes fadeBottomOut {
+  from {
+    --scroll-fade: var(--space-6);
+  }
+  to {
+    --scroll-fade: 0px;
+  }
 }
 
 /* Quem está do outro lado à esquerda, o texto no meio e o que for da linha na ponta direita. */

@@ -1,45 +1,48 @@
-/* A conversa: um vão generoso entre as falas, porque pergunta e resposta são blocos de leitura, e não itens
-   de lista. A lista é `ol` porque a ordem é o que a conversa é. */
+/* A conversa, com um vão generoso entre as falas. Ela mede a própria largura, para o cartão da resposta
+   apertar o recuo na coluna lateral sem depender da largura da tela. */
 .thread {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-6);
   min-width: 0;
   padding: 0;
-  /* Encostada no pé do que rola, como o vazio: a conversa cresce de baixo para cima. */
   margin: auto 0 0;
   list-style: none;
+  container-type: inline-size;
 }
 
-/* A pergunta vai em balão, à direita, e não toma a coluna inteira: é ela que marca de quem é a vez. */
+/* A pergunta: à direita, num cinza leve e sem borda, e o que foi junto dela logo acima. */
 .person {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-end;
   min-width: 0;
+  animation: rise var(--duration-slow) var(--ease-settle) both;
 }
 
-/* A fala e o que veio junto dela, empilhados e encostados à direita: o anexo em cima, o balão embaixo. */
-.sent {
-  display: grid;
-  gap: var(--space-1);
-  justify-items: end;
-  max-width: 85%;
-  min-width: 0;
+.bubble {
+  max-width: min(85%, 36rem);
+  padding: var(--space-2) var(--space-4);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-xl);
 }
 
 .sentAudio {
   display: block;
-  width: 100%;
-  min-width: 0;
+  width: min(85%, 22rem);
   padding: var(--space-2) var(--space-3);
   background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .sentFiles {
-  display: grid;
-  gap: var(--space-1);
-  justify-items: end;
-  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  max-width: min(85%, 36rem);
   min-width: 0;
   padding: 0;
   margin: 0;
@@ -48,70 +51,117 @@
 
 .sentFile {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
   align-items: center;
-  max-width: 100%;
+  max-width: 16rem;
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-label-secondary);
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-sm);
-}
-
-.sentFile svg {
-  flex-shrink: 0;
-  width: 0.75rem;
-  height: 0.75rem;
-  color: var(--color-label-tertiary);
-}
-
-.bubble {
-  max-width: 100%;
-  min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  overflow-wrap: anywhere;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
   background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-lg);
 }
 
-/* A resposta vem solta na coluna, com a marca da casa na margem: sem balão, porque resposta longa dentro de
-   balão estreita o texto e faz a leitura pular de margem em margem. */
+.sentGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-ai);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.sentGlyph svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sentText {
+  display: grid;
+  min-width: 0;
+}
+
+.answerRow {
+  min-width: 0;
+}
+
+/* O fim da conversa, para onde a rolagem vai a cada palavra. A grade não dá vão a ele. */
+.end {
+  height: 0;
+  margin-block-start: calc(var(--space-6) * -1);
+}
+
+/* A resposta num cartão: a mesma superfície do compositor, com a marca no alto dizendo de quem é a fala. */
 .answer {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg-tertiary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  animation: rise var(--duration-slow) var(--ease-settle) both;
+}
+
+@container (max-width: 30rem) {
+  .answer {
+    padding: var(--space-3);
+  }
+}
+
+.identity {
+  display: flex;
   gap: var(--space-2);
-  align-items: start;
+  align-items: center;
   min-width: 0;
 }
 
-/* A marca na margem da resposta, alinhada com a primeira linha do texto: é o que diz de quem é a fala sem
-   escrever um nome em cima de cada resposta. */
-.mark {
-  margin-block-start: 0.0625rem;
+/* O selo da marca: um azulejo calmo com o símbolo vivo dentro, o lugar em que outras IAs põem o rosto. */
+.seal {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: color-mix(in oklab, var(--color-ai) 12%, var(--color-bg));
+  border: 0.0375rem solid color-mix(in oklab, var(--color-ai) 24%, transparent);
+  border-radius: var(--radius-lg);
 }
 
-.said {
-  display: grid;
-  gap: var(--space-2);
+.name {
+  flex: 1;
   min-width: 0;
+}
+
+.badges {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 .text {
+  position: relative;
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* Recolhida, a última linha à vista se dissolve no cartão, para ler como continuação e não como fim. */
+.text[data-collapsed] {
+  mask-image: linear-gradient(to bottom, var(--color-label) 60%, transparent);
 }
 
 .text strong {
   font-weight: var(--weight-semibold);
 }
 
-/* A lista da resposta com o marcador no recuo, e não solto na margem: o texto dos itens alinha com o dos
-   parágrafos em volta. */
 .list {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
   padding: 0;
   margin: 0;
@@ -120,25 +170,26 @@
 
 .list li {
   position: relative;
-  padding-inline-start: var(--space-4);
+  padding-inline-start: var(--space-5);
 }
 
 .list li::before {
   content: "";
   position: absolute;
-  inset-block-start: 0.5em;
+  inset-block-start: 0.55em;
   inset-inline-start: var(--space-2);
-  width: 0.25rem;
-  height: 0.25rem;
-  background-color: var(--color-label-quaternary);
+  width: 0.3125rem;
+  height: 0.3125rem;
+  background-image: var(--gradient-ai);
   border-radius: var(--radius-full);
 }
 
-/**
- * A palavra que chega **surge do borrão** (a pedido, 2026-09-14): ela entra desfocada e transparente e
- * assenta em foco, um pouco depois da anterior, então a resposta parece sendo escrita em vez de aparecer
- * pronta. Cada palavra é um elemento próprio, então só a nova anima e as que já estão na tela não se mexem.
- */
+.expand {
+  justify-self: start;
+  align-self: flex-start;
+}
+
+/* A palavra que chega surge do borrão; as que já estão na tela não se mexem. */
 @keyframes surface {
   from {
     opacity: 0;
@@ -149,53 +200,63 @@
 
 .word {
   display: inline-block;
-  /* Duzentos milissegundos, e não os 420 do que percorre distância: aqui não há distância, há uma palavra
-     assentando, e com a entrada longa a linha inteira ficava borrada enquanto a seguinte já chegava. */
   animation: surface var(--duration-base) var(--ease-settle) both;
 }
 
-/* "Pensando" numa tinta que anda da apagada para a viva e volta: é o único jeito honesto de dizer que algo
-   está acontecendo antes de existir texto para mostrar. */
+.thinkingRow {
+  display: flex;
+  align-items: center;
+  min-height: 1.75rem;
+}
+
+/* O passo da vez com um brilho na cor da IA correndo pelas letras; o passo novo entra subindo. */
 .thinking {
   margin: 0;
   font-family: var(--font-body);
   font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
   line-height: var(--leading-normal);
-  color: var(--color-label-tertiary);
-  background: linear-gradient(
+  color: transparent;
+  background-image: linear-gradient(
     100deg,
-    var(--color-label-tertiary) 20%,
-    var(--color-label) 40%,
-    var(--color-label-tertiary) 60%
+    var(--color-label-secondary) 0%,
+    var(--color-label-secondary) 40%,
+    color-mix(in oklab, var(--color-ai) 75%, var(--color-label)) 50%,
+    var(--color-label-secondary) 60%,
+    var(--color-label-secondary) 100%
   );
   background-clip: text;
   background-size: 250% 100%;
   -webkit-text-fill-color: transparent;
   animation:
-    sweep 1.6s linear infinite,
-    surface var(--duration-base) var(--ease-settle) both;
+    rise var(--duration-slow) var(--ease-settle) both,
+    shine 1.8s linear infinite;
 }
 
-@keyframes sweep {
+@keyframes shine {
+  from {
+    background-position: 100% 0;
+  }
+
   to {
-    background-position: -250% 0;
+    background-position: -150% 0;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .thinking {
-    background: none;
-    -webkit-text-fill-color: var(--color-label-secondary);
-    animation: none;
-  }
-
-  .word {
-    animation: none;
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
   }
 }
 
-/* De onde saiu o que a resposta diz, em pílulas: o registro lido, para dar para conferir. */
 .sources {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.sourceList {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
@@ -205,40 +266,77 @@
   list-style: none;
 }
 
-.source {
-  display: inline-flex;
-  align-items: center;
+.sourceList > li {
   max-width: 100%;
   min-width: 0;
-  height: 1.375rem;
-  padding-inline: var(--space-2);
-  color: var(--color-label-secondary);
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-full);
 }
 
-/* Copiar e refazer. No computador só aparecem com o ponteiro na resposta, como fazem os assistentes que
-   servem de referência: a fila de ações fixa embaixo de cada resposta polui a leitura. No toque não há
-   ponteiro, então ficam sempre. */
-.actions {
-  --control-height-sm: 1.75rem;
-  --control-padding-sm: var(--space-2);
+.proposals {
+  display: grid;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
 
+/* As ferramentas da resposta, separadas do texto por um fio. O recuo do botão sai da margem, para o glifo, e
+   não a caixa dele, alinhar com o texto. */
+.tools {
+  display: grid;
+  gap: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.actions {
   display: flex;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-half);
   align-items: center;
   min-width: 0;
   margin-inline-start: calc(var(--space-2) * -1);
+  color: var(--color-label-secondary);
 }
 
-@media (hover: hover) {
-  .actions {
-    opacity: 0;
-    transition: opacity var(--duration-fast) var(--ease-standard);
+.status:empty {
+  display: none;
+}
+
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.followUp {
+  display: grid;
+  gap: var(--space-2);
+  padding-block-start: var(--space-1);
+}
+
+.followUpList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.answer[data-failed] {
+  border-color: color-mix(in oklab, var(--color-danger) 30%, var(--color-border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .person,
+  .answer,
+  .word {
+    animation: none;
   }
 
-  .answer:hover .actions,
-  .actions:focus-within {
-    opacity: 1;
+  .thinking {
+    color: var(--color-label-secondary);
+    background: none;
+    -webkit-text-fill-color: var(--color-label-secondary);
+    animation: none;
   }
 }

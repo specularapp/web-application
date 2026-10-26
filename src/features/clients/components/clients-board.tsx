@@ -353,11 +353,11 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       tone: "success",
       feedback: {
         visual: targets.length === 1 ? (
-          <Avatar name={targets[0].name} src={targets[0].avatarUrl ?? undefined} size="lg" shape="rounded" />
+          <Avatar name={targets[0].name} src={targets[0].avatarUrl ?? undefined} size="lg" />
         ) : (
           <AvatarGroup>
             {targets.slice(0, 3).map((client) => (
-              <Avatar key={client.id} name={client.name} src={client.avatarUrl ?? undefined} size="md" shape="rounded" />
+              <Avatar key={client.id} name={client.name} src={client.avatarUrl ?? undefined} size="md" />
             ))}
           </AvatarGroup>
         ),

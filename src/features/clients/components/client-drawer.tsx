@@ -100,7 +100,6 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
                   src={shown.avatarUrl ?? undefined}
                   seed={shown.email ?? shown.name}
                   size="lg"
-                  shape="rounded"
                   className={full?.company ? styles.photo : undefined}
                 />
                 {full?.company && <CompanyMark name={full.company} src={full.companyLogoUrl} />}

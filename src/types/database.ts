@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   graphql_public: {
     Tables: {
@@ -2429,6 +2429,21 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_owners: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3735,6 +3750,13 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Database["public"]["Enums"]["billing_plan"]
       }
+      organization_plans: {
+        Args: { p_organization_ids: string[] }
+        Returns: {
+          organization_id: string
+          plan: Database["public"]["Enums"]["billing_plan"]
+        }[]
+      }
       plan_allows: {
         Args: { p_feature_key: string; p_organization_id: string }
         Returns: boolean
@@ -3764,6 +3786,10 @@ export type Database = {
           p_feature_key: string
           p_organization_id: string
         }
+        Returns: boolean
+      }
+      platform_unlocked: {
+        Args: { p_organization_id: string }
         Returns: boolean
       }
       project_tracking_by_token: {

@@ -8,6 +8,7 @@ import { siteConfig } from "@/lib/metadata";
 import { checkRateLimit, clientIp } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateDomain } from "./context";
+import { forgetOrganization } from "./current-cache";
 import { markNotificationsRead } from "./notifications";
 import {
   archiveTeamSchema,
@@ -90,7 +91,9 @@ export async function saveTeamAction(input: unknown): Promise<ServiceResult<Team
   }
 
   const supabase = await createClient();
-  return saveTeam(supabase, parsed.data);
+  const result = await saveTeam(supabase, parsed.data);
+  if (result.ok && !parsed.data.organizationId) await forgetOrganization(user.id);
+  return result;
 }
 
 export async function switchTeamAction(input: unknown): Promise<ServiceResult<undefined>> {
@@ -102,7 +105,10 @@ export async function switchTeamAction(input: unknown): Promise<ServiceResult<un
 
   const supabase = await createClient();
   const result = await switchTeam(supabase, parsed.data.organizationId);
-  if (result.ok) refresh();
+  if (result.ok) {
+    await forgetOrganization(user.id);
+    refresh();
+  }
   return result;
 }
 
@@ -160,7 +166,7 @@ export async function removeMemberAction(input: unknown): Promise<ServiceResult<
 
   const supabase = await createClient();
   const result = await removeMember(supabase, parsed.data);
-  if (result.ok) await dropTeamCache(parsed.data.organizationId);
+  if (result.ok) await Promise.all([dropTeamCache(parsed.data.organizationId), forgetOrganization(parsed.data.userId)]);
   return result;
 }
 
@@ -225,7 +231,10 @@ export async function archiveTeamAction(input: unknown): Promise<ServiceResult<u
 
   const supabase = await createClient();
   const result = await setTeamArchived(supabase, parsed.data);
-  if (result.ok) revalidatePath("/", "layout");
+  if (result.ok) {
+    await forgetOrganization(user.id);
+    revalidatePath("/", "layout");
+  }
   return result;
 }
 
@@ -262,6 +271,7 @@ export async function acceptInviteAction(token: unknown): Promise<ServiceResult<
   const supabase = await createClient();
   const result = await acceptInvite(supabase, parsed.data);
   if (result.ok) {
+    await forgetOrganization(user.id);
     revalidatePath(DASHBOARD_PATH);
   }
   return result;

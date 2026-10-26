@@ -8,7 +8,6 @@ export type DashboardScreenProps = DashboardHeaderProps & DashboardGridProps;
 // a grade de blocos tomando o que sobra. É o que a
 // página monta com dados do banco e a prévia monta com dados de exemplo.
 export function DashboardScreen({
-  projects,
   finance,
   clients,
   tasks,
@@ -25,7 +24,6 @@ export function DashboardScreen({
         <DashboardHeader {...header} layout={layout} />
       </div>
       <DashboardGrid
-        projects={projects}
         finance={finance}
         clients={clients}
         tasks={tasks}

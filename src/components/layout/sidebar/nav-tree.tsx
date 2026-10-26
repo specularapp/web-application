@@ -106,6 +106,8 @@ export type NavTreeProps = {
   label: string;
   /** Chamado ao escolher uma folha: na tela cheia do celular, fecha o menu. */
   onNavigate?: () => void;
+  /** A raiz pende da pasta do menu, cada item no seu galho, como as subpáginas (2026-10-25). */
+  branched?: boolean;
 };
 
 /**
@@ -158,7 +160,7 @@ type Opened =
   | { kind: "delete-folder"; node: Folder }
   | { kind: "delete-leaf"; node: Leaf };
 
-export function NavTree({ items, basePath, current, openFolders, label, onNavigate }: NavTreeProps) {
+export function NavTree({ items, basePath, current, openFolders, label, onNavigate, branched = false }: NavTreeProps) {
   const router = useRouter();
   const { toast } = useToast();
   const domain = basePath === "/tarefas" ? "tarefas" : "funis";
@@ -360,7 +362,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
         label={`Opções de ${node.name}`}
         triggerLabel={`Opções de ${node.name}`}
         sections={sections}
-        icon={<CaretDownIcon weight="bold" />}
+        icon={<CaretDownIcon />}
         size="sm"
       />
     </span>
@@ -372,7 +374,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
         label={`Outras ações de ${node.name}`}
         triggerLabel={`Outras ações de ${node.name}`}
         sections={folderSections(node, closeEditor)}
-        icon={<CaretUpDownIcon weight="bold" />}
+        icon={<CaretUpDownIcon />}
         size="sm"
       />
     );
@@ -409,17 +411,23 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
   };
 
   /* Cada filho é um galho, e o último da fila fecha o fio em L em vez de deixá-lo seguir para baixo. */
-  const limbs = (nodes: NavTreeItem[], parentId: string | null) =>
-    nodes.map((node, index) => (
+  const limbs = (nodes: NavTreeItem[], parentId: string | null) => {
+    /* O padrão das subpáginas do menu (2026-10-25, como no app-le-ange): o fio escurece do pai até o galho da
+       rota (os irmãos de cima levam só o tronco escuro, o braço deles fica neutro) e, dali para baixo, volta
+       ao neutro. */
+    const routeIndex = nodes.findIndex(onRoute);
+    return nodes.map((node, index) => (
       <div
         key={node.id}
         className={tree.limb}
         data-last={index === nodes.length - 1 || undefined}
-        data-route={onRoute(node) || undefined}
+        data-route={index === routeIndex || undefined}
+        data-path={(routeIndex >= 0 && index < routeIndex) || undefined}
       >
         {node.kind === "folder" ? folder(node, parentId) : link(node, parentId)}
       </div>
     ));
+  };
 
   const folder = (node: Folder, parentId: string | null) => {
     const expanded = open.includes(node.id);
@@ -476,7 +484,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
             </span>
           ) : (
             <span className={cx(tree.mark, tree.tile)} style={hue} aria-hidden="true">
-              <Glyph weight="bold" />
+              <Glyph />
             </span>
           )}
           <span className={styles.label}>{node.name}</span>
@@ -494,13 +502,16 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
 
   return (
     <>
-      <div className={tree.tree} role="group" aria-label={label}>
-        {/* A raiz não tem cotovelo: ela não pende de ninguém. */}
-        {items.map((node) => (
-          <div key={node.id} className={tree.root}>
-            {node.kind === "folder" ? folder(node, null) : link(node, null)}
-          </div>
-        ))}
+      <div className={tree.tree} role="group" aria-label={label} data-branched={branched || undefined}>
+        {/* Solta, a raiz não tem cotovelo: ela não pende de ninguém. Dentro da pasta do menu, cada item da raiz
+            ganha o próprio galho, no mesmo fio das subpáginas. */}
+        {branched
+          ? limbs(items, null)
+          : items.map((node) => (
+              <div key={node.id} className={tree.root}>
+                {node.kind === "folder" ? folder(node, null) : link(node, null)}
+              </div>
+            ))}
       </div>
 
       {/* As janelas, uma de cada vez, montadas só enquanto algo está aberto. */}

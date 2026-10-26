@@ -1,6 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
-  BriefcaseIcon,
   BuildingsIcon,
   CurrencyCircleDollarIcon,
   ListChecksIcon,
@@ -11,7 +10,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 import type { Route } from "next";
 
-export type DashboardBlockId = "projects" | "achievements" | "finance" | "clients" | "tasks" | "team" | "challenge" | "quote";
+export type DashboardBlockId = "achievements" | "finance" | "clients" | "tasks" | "team" | "challenge" | "quote";
 
 export type DashboardBlock = {
   id: DashboardBlockId;
@@ -26,12 +25,11 @@ export type DashboardBlock = {
   tall?: boolean;
 };
 
-/** Os oito blocos do painel, na ordem de leitura padrão; a pessoa reordena e esconde pelo ajuste do
+/** Os sete blocos do painel, na ordem de leitura padrão; a pessoa reordena e esconde pelo ajuste do
  *  painel, guardado em cookie. O ícone é o mesmo da rota no menu, para o bloco e a tela que ele abre
  *  falarem a mesma língua. */
 export const dashboardBlocks: DashboardBlock[] = [
-  { id: "achievements", title: "Conquistas", icon: TrophyIcon, bare: true },
-  { id: "projects", title: "Projetos", icon: BriefcaseIcon, action: { label: "Ver todos", href: "/projetos" } },
+  { id: "achievements", title: "Conquistas", icon: TrophyIcon, bare: true, tall: true },
   { id: "finance", title: "Financeiro", icon: CurrencyCircleDollarIcon, action: { label: "Ver tudo", href: "/financeiro" }, tall: true },
   { id: "clients", title: "Clientes", icon: BuildingsIcon, action: { label: "Ver todos", href: "/clientes" }, tall: true },
   { id: "tasks", title: "Tarefas", icon: ListChecksIcon, action: { label: "Ver todas", href: "/tarefas" }, tall: true },

@@ -65,6 +65,7 @@ export function ClientProfile({ client }: ClientProfileProps) {
     <Profile
       hue={avatarHue(seed)}
       avatar={{ name: client.name, src: client.avatarUrl ?? undefined, seed }}
+      photoShape="circle"
       title={client.name}
       badges={<ClientBadges client={client} />}
       menu={<ClientMenu client={client} />}

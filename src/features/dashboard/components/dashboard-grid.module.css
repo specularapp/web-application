@@ -1,6 +1,5 @@
-/* Oito blocos, sempre na mesma ordem de leitura; o que muda por largura é quantas colunas há. Todo
-   bloco tem duas linhas de altura, menos os pares que dividem uma coluna: conquistas com projetos, e
-   equipe com desafio diário. O id de cada bloco é a área, então mover um bloco é mexer só no mapa. */
+/* Sete blocos, sempre na mesma ordem de leitura; o que muda por largura é quantas colunas há. Todo
+   bloco tem duas linhas de altura, menos o par que divide uma coluna: equipe com desafio diário. O id de cada bloco é a área, então mover um bloco é mexer só no mapa. */
 .grid {
   --block-row: 12.5rem;
   display: grid;
@@ -8,7 +7,7 @@
   grid-template-rows: repeat(12, var(--block-row));
   grid-template-areas:
     "achievements"
-    "projects"
+    "achievements"
     "finance"
     "finance"
     "clients"
@@ -19,7 +18,7 @@
     "challenge"
     "quote"
     "quote";
-  gap: var(--space-4);
+  gap: var(--space-2);
   min-width: 0;
   min-height: 0;
 }
@@ -64,10 +63,6 @@
 /* O mesmo raio da caixa de fora, pelo mesmo motivo do `Card`: com raio menor o fio sumia nas quinas. */
 .bare > * {
   border-radius: var(--bare-corner);
-}
-
-.grid > [data-block="projects"] {
-  grid-area: projects;
 }
 
 .grid > [data-block="achievements"] {
@@ -116,8 +111,7 @@
 }
 
 /* Duas colunas de 48rem a 72rem, quando o menu vira coluna fixa e sobra meia tela: três pares de
-   blocos altos, com conquistas e projetos dividindo a primeira coluna do primeiro par e equipe e
-   desafio a do último. Aqui e no celular a página é alta por natureza e rola, e a linha é fixa em
+   blocos altos, com equipe e desafio dividindo a primeira coluna do último par. Aqui e no celular a página é alta por natureza e rola, e a linha é fixa em
    12,5rem em vez de crescer com o conteúdo (decisão de 2026-09-07): bloco com lista rola por dentro, e
    não estica a página. */
 @media (min-width: 48rem) {
@@ -126,7 +120,7 @@
     grid-template-rows: repeat(6, var(--block-row));
     grid-template-areas:
       "achievements finance"
-      "projects finance"
+      "achievements finance"
       "tasks clients"
       "tasks clients"
       "team quote"
@@ -156,7 +150,7 @@
     max-height: 60rem;
     grid-template-areas:
       "achievements finance clients"
-      "projects finance clients"
+      "achievements finance clients"
       "tasks team quote"
       "tasks challenge quote";
   }

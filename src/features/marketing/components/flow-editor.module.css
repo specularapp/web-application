@@ -1,0 +1,909 @@
+/* O construtor toma a área de conteúdo: a barra em cima e, embaixo, o quadro (com o painel do passo ao lado a
+   partir de 64rem). O quadro precisa de altura própria, porque o React Flow mede o pai. */
+.editor {
+  --line: 0.0375rem solid var(--color-border);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100%;
+}
+
+@media (min-width: 48rem) {
+  .editor {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-4);
+  border-block-end: var(--line);
+}
+
+.crumbs {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.crumb {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+}
+
+@media (hover: hover) {
+  .crumb:hover {
+    color: var(--color-label);
+  }
+}
+
+.crumb:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.slash {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+}
+
+/* O nome é um campo sem caixa na própria linha da rota: parece texto e edita no lugar. */
+.nameInput {
+  flex: 1;
+  min-width: 4rem;
+  max-width: 24rem;
+  padding: var(--space-half) var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.nameInput::placeholder {
+  color: var(--color-placeholder);
+}
+
+@media (hover: hover) {
+  .nameInput:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.nameInput:focus-visible {
+  background-color: var(--color-fill-quaternary);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -1px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.saveState {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.barActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.publish {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+@media (max-width: 63.9375rem) {
+  .saveState {
+    display: none;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .crumbs .crumb,
+  .crumbs .slash,
+  .barActions {
+    display: none;
+  }
+}
+
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.work[data-panel] {
+  grid-template-columns: minmax(0, 1fr) 22rem;
+}
+
+.side {
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border-inline-start: var(--line);
+}
+
+/* O quadro: o React Flow com os tokens da casa nas variáveis dele, a dica por cima enquanto o gatilho não leva
+   a lugar nenhum, e o dock flutuante no pé. */
+.canvas {
+  --xy-background-color: var(--color-bg-grouped);
+  --xy-background-pattern-color: var(--color-fill);
+  --xy-edge-stroke: var(--color-label-tertiary);
+  --xy-edge-stroke-selected: var(--color-accent);
+  --xy-edge-stroke-width: 2;
+  --xy-connectionline-stroke: var(--color-accent);
+  --xy-connectionline-stroke-width: 2;
+  --xy-selection-background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
+  --xy-selection-border: 1px dashed var(--color-accent);
+  --xy-attribution-background-color: transparent;
+
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 47.9375rem) {
+  .canvas {
+    height: calc(100dvh - var(--topbar-height, 3.5rem) - 6.5rem);
+    min-height: 26rem;
+  }
+}
+
+.canvas :global(.react-flow) {
+  font-family: var(--font-body);
+}
+
+.canvas :global(.react-flow__attribution) {
+  font-size: 0.5625rem;
+  color: var(--color-label-tertiary);
+}
+
+.canvas :global(.react-flow__attribution a) {
+  color: inherit;
+}
+
+/* O SVG das ligações não tem medida própria e desenha para fora de si; o `max-width: 100%` do reset o
+   deixaria com largura zero, e SVG com largura zero não desenha nada. */
+.canvas :global(.react-flow__edges svg) {
+  max-width: none;
+}
+
+.canvas :global(.react-flow__node) {
+  cursor: grab;
+}
+
+.canvas :global(.react-flow__node.dragging) {
+  cursor: grabbing;
+}
+
+.edge {
+  stroke-width: 2;
+  transition: stroke var(--duration-fast) var(--ease-standard);
+}
+
+.edge[data-selected] {
+  stroke: var(--color-accent);
+}
+
+.edgeRemove {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  color: var(--color-on-accent);
+  cursor: pointer;
+  pointer-events: all;
+  background-color: var(--color-accent);
+  border: 0.125rem solid var(--color-bg);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.edgeRemove svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.edgeRemove:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.hint {
+  position: absolute;
+  inset-block-start: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: 4;
+  max-width: calc(100% - var(--space-8));
+  padding: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-align: center;
+  background-color: var(--glass-sheet-bg);
+  border: var(--line);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  translate: -50% 0;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.hint strong {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.dock {
+  position: absolute;
+  inset-block-end: var(--space-4);
+  inset-inline-start: 50%;
+  z-index: 4;
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: calc(100% - var(--space-8));
+  padding: var(--space-1);
+  overflow-x: auto;
+  white-space: nowrap;
+  background-color: var(--glass-sheet-bg);
+  border: var(--line);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  translate: -50% 0;
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.dock > * {
+  flex-shrink: 0;
+}
+
+.dockGroup {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  align-items: center;
+  padding-inline-start: var(--space-1);
+  border-inline-start: var(--line);
+}
+
+.zoomValue {
+  min-width: 3rem;
+  height: var(--control-height-sm);
+  padding: 0 var(--space-1);
+  font: inherit;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+  .zoomValue:hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.zoomValue:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+@media (max-width: 47.9375rem) {
+  .dock {
+    inset-block-end: var(--floating-bar-inset);
+  }
+
+  .dock > :first-child,
+  .dockGroup:last-child {
+    display: none;
+  }
+
+  .dockGroup {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+
+/* O cartão do passo, no desenho do ManyChat: os números em cima, o cabeçalho com o glifo no tom do tipo, o
+   conteúdo e as saídas. Largura fixa para as ligações nascerem sempre no mesmo lugar. */
+.node {
+  --hue: var(--color-accent);
+
+  position: relative;
+  width: 18rem;
+  font-size: var(--text-footnote);
+  color: var(--color-label);
+  background-color: var(--color-bg-grouped-secondary);
+  border: var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.node[data-selected] {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 0.1875rem color-mix(in oklab, var(--color-accent) 22%, transparent),
+    var(--shadow-md);
+}
+
+.node[data-kind="trigger"] {
+  border-color: color-mix(in oklab, var(--hue) 45%, var(--color-border));
+}
+
+.nodeStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-caption-2);
+  color: var(--color-label-secondary);
+  border-block-end: var(--line);
+}
+
+.nodeStats b {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.nodeHead {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.nodeIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--hue);
+  background-color: light-dark(color-mix(in oklab, var(--hue) 14%, transparent), color-mix(in oklab, var(--hue) 22%, transparent));
+  border-radius: var(--radius-md);
+}
+
+.nodeIcon svg {
+  width: 1.0625rem;
+  height: 1.0625rem;
+}
+
+.nodeTitle {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+
+.nodeTitle small {
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+}
+
+.nodeTitle strong {
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodeCount {
+  padding: var(--space-half) var(--space-2);
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+.nodeWarn {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-warning);
+}
+
+.nodeBody {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.placeholder {
+  padding: var(--space-3);
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-align: center;
+  border: 0.0625rem dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.triggers {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.triggers li {
+  display: grid;
+  gap: var(--space-half);
+  padding: var(--space-2) var(--space-3);
+  background-color: color-mix(in oklab, var(--hue) 9%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.triggers strong {
+  font-weight: var(--weight-semibold);
+}
+
+.triggers span {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggers span[data-missing] {
+  color: var(--color-warning);
+}
+
+.publicReply {
+  font-weight: var(--weight-medium);
+}
+
+.subject {
+  margin: 0;
+  font-size: var(--text-caption-1);
+}
+
+.subject small {
+  color: var(--color-label-secondary);
+}
+
+.bubbles {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bubble {
+  display: -webkit-box;
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  overflow: hidden;
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+}
+
+.variable {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  margin-inline: var(--space-half);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-normal);
+  vertical-align: middle;
+  color: var(--color-link);
+  background-color: color-mix(in oklab, var(--sys-blue) 12%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.missing {
+  color: var(--color-warning);
+}
+
+.buttons {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Uma saída: a caixinha com o rótulo, o número e a bolinha na borda direita. */
+.port {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.125rem;
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-3);
+  border: var(--line);
+  border-radius: var(--radius-md);
+}
+
+.buttons .port {
+  justify-content: center;
+  font-weight: var(--weight-medium);
+  color: var(--color-link);
+}
+
+.portLabel {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.port[data-tone="reply"] .portLabel,
+.port[data-tone="yes"] .portLabel {
+  color: var(--color-success);
+}
+
+.port[data-tone="noreply"] .portLabel,
+.port[data-tone="no"] .portLabel {
+  color: var(--color-warning);
+}
+
+.buttonLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portCount {
+  flex-shrink: 0;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.buttons .portCount {
+  position: absolute;
+  inset-inline-end: var(--space-4);
+}
+
+.canvas :global(.react-flow__handle).handle {
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: var(--color-bg);
+  border: 0.125rem solid var(--color-label-tertiary);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    scale var(--duration-fast) var(--ease-standard);
+}
+
+.port[data-linked] .handle {
+  background-color: var(--color-label-tertiary);
+}
+
+.canvas .handle[data-tone="yes"],
+.canvas .handle[data-tone="reply"] {
+  border-color: var(--sys-green);
+}
+
+.port[data-linked] .handle[data-tone="yes"],
+.port[data-linked] .handle[data-tone="reply"] {
+  background-color: var(--sys-green);
+}
+
+.canvas .handle[data-tone="no"],
+.canvas .handle[data-tone="noreply"] {
+  border-color: var(--sys-orange);
+}
+
+.port[data-linked] .handle[data-tone="no"],
+.port[data-linked] .handle[data-tone="noreply"] {
+  background-color: var(--sys-orange);
+}
+
+.canvas .handle[data-tone="button"] {
+  border-color: var(--sys-blue);
+}
+
+.port[data-linked] .handle[data-tone="button"] {
+  background-color: var(--sys-blue);
+}
+
+@media (hover: hover) {
+  .canvas :global(.react-flow__handle).handle:hover {
+    scale: 1.25;
+    border-color: var(--color-accent);
+  }
+}
+
+.canvas :global(.react-flow__handle.connectingto),
+.canvas :global(.react-flow__handle.valid) {
+  border-color: var(--color-accent);
+}
+
+.waiting {
+  display: grid;
+  gap: var(--space-1);
+  padding-block-start: var(--space-1);
+}
+
+.waitingTitle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+}
+
+.waitingTitle::after {
+  flex: 1;
+  height: 0;
+  content: "";
+  border-block-start: var(--line);
+}
+
+.saveAs {
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.saveAs b {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.goal {
+  display: grid;
+  gap: var(--space-half);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  line-height: var(--leading-normal);
+  background-color: color-mix(in oklab, var(--hue) 9%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.goal small {
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--hue);
+}
+
+.actionList,
+.rules {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.actionList li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.actionList svg {
+  flex-shrink: 0;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin-block-start: var(--space-half);
+  color: var(--color-label-secondary);
+}
+
+.actionList span {
+  display: grid;
+  min-width: 0;
+}
+
+.actionList strong {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rulesHead {
+  margin: 0;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+}
+
+.rules li {
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.rules em {
+  font-style: normal;
+  color: var(--color-label-secondary);
+}
+
+.rules strong {
+  font-weight: var(--weight-semibold);
+}
+
+.variant {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.variant b {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: var(--text-caption-2);
+  color: var(--hue);
+  background-color: color-mix(in oklab, var(--hue) 14%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.variantBar {
+  flex: 1;
+  height: 0.375rem;
+  overflow: hidden;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.variantBar i {
+  display: block;
+  height: 100%;
+  background-color: var(--hue);
+  border-radius: inherit;
+}
+
+.variant small {
+  min-width: 2.25rem;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-align: end;
+}
+
+.delay {
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  font-weight: var(--weight-medium);
+  background-color: color-mix(in oklab, var(--hue) 9%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* O "escolha o próximo passo": os grupos com título e as opções em linha, com o glifo no tom do tipo. */
+.picker {
+  display: grid;
+  flex: 1;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.pickerBody {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .pickerBody {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.pickerGroup {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.pickerTitle {
+  padding-inline: var(--space-2);
+  margin: 0;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+}
+
+.pickerList {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pickerOption {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .pickerOption:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.pickerOption:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.pickerCopy {
+  display: grid;
+  min-width: 0;
+}
+
+.pickerCopy strong {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+}
+
+.pickerCopy small {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}

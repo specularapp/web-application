@@ -1,7 +1,62 @@
-/* O símbolo da casa no degradê da IA, com um halo da própria cor saindo por trás. O halo é sombra do
-   desenho, e não do retângulo, porque `drop-shadow` segue o recorte da máscara: uma sombra de caixa aqui
-   desenharia um quadrado brilhante em volta do símbolo. */
+/* O símbolo da casa no degradê da IA, com um halo da própria cor. O halo é `drop-shadow`, que segue o recorte
+   da máscara: sombra de caixa desenharia um quadrado brilhante em volta do símbolo. */
 .glyph {
+  --mark-halo: color-mix(in oklab, var(--sys-blue) 45%, transparent);
+  --mark-glint: linear-gradient(
+    115deg,
+    transparent 38%,
+    color-mix(in oklab, var(--color-on-accent) 80%, transparent) 50%,
+    transparent 62%
+  );
+
   background-image: var(--gradient-ai);
-  filter: drop-shadow(0 0 0.5rem color-mix(in oklab, var(--sys-blue) 45%, transparent));
+  background-size: 100% 100%;
+  filter: drop-shadow(0 0 0.5rem var(--mark-halo));
+}
+
+/* Viva: o reflexo é uma camada acima do degradê, larga o bastante para entrar e sair do símbolo inteira, e a
+   máscara do logo recorta as duas juntas. */
+.glyph[data-motion="idle"],
+.glyph[data-motion="thinking"] {
+  background-image: var(--mark-glint), var(--gradient-ai);
+  background-repeat: no-repeat;
+  background-position: 200% 0, 0 0;
+  background-size: 250% 100%, 100% 100%;
+}
+
+.glyph[data-motion="idle"] {
+  animation: mark-glint 7s var(--ease-standard) 1.2s infinite;
+}
+
+.glyph[data-motion="thinking"] {
+  animation:
+    mark-glint 1.4s linear infinite,
+    mark-breathe 1.4s var(--ease-standard) infinite;
+}
+
+/* O reflexo atravessa no começo do ciclo e o resto dele é pausa: luz passando o tempo todo vira pisca-pisca. */
+@keyframes mark-glint {
+  0% {
+    background-position: 200% 0, 0 0;
+  }
+
+  24%,
+  100% {
+    background-position: -100% 0, 0 0;
+  }
+}
+
+@keyframes mark-breathe {
+  50% {
+    filter: drop-shadow(0 0 0.875rem color-mix(in oklab, var(--sys-cyan) 60%, transparent));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph[data-motion="idle"],
+  .glyph[data-motion="thinking"] {
+    background-image: var(--gradient-ai);
+    background-size: 100% 100%;
+    animation: none;
+  }
 }

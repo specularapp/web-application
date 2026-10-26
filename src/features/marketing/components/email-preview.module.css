@@ -1,0 +1,264 @@
+/* A prévia: a caixa de entrada em cima e o papel do e-mail embaixo, sobre o fundo agrupado, como um cliente
+   de e-mail mostra. O matiz do e-mail entra por `--mail-hue` e pinta título, botão, capa e citação. */
+.mail {
+  --mail-hue: var(--sys-blue);
+  --mail-pad: var(--space-6);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-label);
+  background-color: var(--color-bg-grouped);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.mail[data-size="mobile"] {
+  --mail-pad: var(--space-4);
+
+  width: min(100%, 23.4375rem);
+  justify-self: center;
+}
+
+.inbox {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-tertiary);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.sender {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  color: var(--color-on-accent);
+  background-color: var(--mail-hue);
+  border-radius: var(--radius-full);
+}
+
+.inboxCopy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.inboxFrom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--text-footnote);
+}
+
+.inboxFrom strong {
+  font-weight: var(--weight-semibold);
+}
+
+.inboxFrom small {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subject {
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preheader {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  padding: var(--space-5) var(--space-4);
+}
+
+.mail[data-size="mobile"] .body {
+  padding: var(--space-3) var(--space-2);
+}
+
+/* O papel do e-mail: largura de leitura, fundo de cartão e o recuo que muda com o aparelho. */
+.paper {
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, 37.5rem);
+  margin-inline: auto;
+  padding: var(--mail-pad);
+  font-size: var(--text-callout);
+  line-height: var(--leading-relaxed);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-bold);
+  color: var(--mail-hue);
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--text-title-2);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tightest);
+  overflow-wrap: anywhere;
+}
+
+.text {
+  margin: 0;
+  color: var(--color-label-secondary);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.buttonRow {
+  margin: 0;
+}
+
+.button {
+  display: inline-block;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  color: var(--color-on-accent);
+  background-color: var(--mail-hue);
+  border-radius: var(--radius-md);
+}
+
+.image {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.imageArt {
+  display: block;
+  aspect-ratio: 16 / 7;
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--mail-hue) 55%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in oklab, var(--mail-hue) 35%, transparent), transparent 60%),
+    color-mix(in oklab, var(--mail-hue) 16%, var(--color-bg-tertiary));
+  border-radius: var(--radius-md);
+}
+
+.image figcaption {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-5);
+  margin: 0;
+  color: var(--color-label-secondary);
+}
+
+.list li::marker {
+  color: var(--mail-hue);
+}
+
+.quote {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  margin: 0;
+  background-color: color-mix(in oklab, var(--mail-hue) 9%, transparent);
+  border-inline-start: 0.1875rem solid var(--mail-hue);
+  border-radius: var(--radius-sm);
+}
+
+.quote p {
+  margin: 0;
+  font-style: italic;
+}
+
+.quote cite {
+  font-size: var(--text-footnote);
+  font-style: normal;
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+  text-align: center;
+  border: 0.0625rem dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.footer {
+  padding-block-start: var(--space-4);
+  font-size: var(--text-caption-2);
+  line-height: var(--leading-normal);
+  color: var(--color-label-tertiary);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+/* A miniatura do cartão de modelo: o mesmo desenho num degrau bem menor, cortado embaixo com desbotado. */
+.mail[data-size="thumb"] {
+  --mail-pad: var(--space-3);
+
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent);
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}
+
+.mail[data-size="thumb"] .body {
+  padding: var(--space-3) var(--space-3) 0;
+}
+
+.mail[data-size="thumb"] .paper {
+  gap: var(--space-2);
+  font-size: var(--text-caption-2);
+  line-height: var(--leading-normal);
+  pointer-events: none;
+}
+
+.mail[data-size="thumb"] .heading {
+  font-size: var(--text-subheadline);
+}
+
+.mail[data-size="thumb"] .button {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-2);
+}
+
+.mail[data-size="thumb"] .quote {
+  padding: var(--space-2);
+}

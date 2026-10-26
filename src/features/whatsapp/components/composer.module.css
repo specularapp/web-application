@@ -1,0 +1,362 @@
+/*
+ * O campo no pé da conversa: uma barra de ponta a ponta com o fio só em cima, o texto alinhado com as mensagens e as
+ * funções embaixo. Respostas rápidas e emojis sobem da barra como uma folha só, por cima do fim da conversa.
+ */
+.composer {
+  position: relative;
+  display: grid;
+}
+
+.box {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) clamp(var(--space-3), 4%, var(--space-12)) var(--space-2);
+  background-color: var(--color-bg);
+  border-block-start: var(--line);
+}
+
+/* A nota interna troca o fundo da barra pelo amarelo das notas, para ninguém mandar ao cliente o que era da equipe */
+.box[data-note] {
+  background-color: var(--tone-note);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  min-height: var(--space-12);
+  max-height: 11rem;
+  padding: var(--space-1) var(--space-1) 0;
+  font-family: var(--font-body);
+  /* Piso de 16px, senão o iPhone dá zoom ao focar. */
+  font-size: max(16px, var(--text-subheadline));
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  resize: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--color-placeholder);
+}
+
+.tools {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toolGroup {
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  min-width: 0;
+}
+
+.toolGroup:last-child {
+  gap: var(--space-3);
+}
+
+.tool.tool[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-fill-tertiary);
+}
+
+.toolDivider {
+  width: 0.0625rem;
+  height: var(--space-4);
+  margin-inline: var(--space-1);
+  background-color: var(--color-border);
+}
+
+.hints {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  overflow: hidden;
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+  white-space: nowrap;
+}
+
+/* Onde não sobra largura, as dicas de teclado saem antes de qualquer botão: primeiro a do Shift, depois as outras */
+@container thread (max-width: 40rem) {
+  .hints > span:last-child {
+    display: none;
+  }
+}
+
+@container thread (max-width: 30rem) {
+  .hints {
+    display: none;
+  }
+}
+
+/* No celular o teclado já traz os emojis: o botão sai e as funções ganham a largura */
+.wideOnly {
+  display: inline-flex;
+}
+
+@media (max-width: 47.9375rem) {
+  .wideOnly {
+    display: none;
+  }
+}
+
+/* ---------- Janela fechada ---------- */
+
+.closedStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) clamp(var(--space-3), 4%, var(--space-12));
+  font-size: var(--text-footnote);
+  line-height: var(--leading-tight);
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+  border-block-start: var(--line);
+}
+
+.closedStrip > svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.closedStrip > span {
+  flex: 1;
+  min-width: 12rem;
+}
+
+/* ---------- Anexos ---------- */
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.attachments li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  max-width: 16rem;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.attachments li > svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+.attachments li > span {
+  display: grid;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+
+.attachments strong {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachments small {
+  font-size: var(--text-caption-2);
+  color: var(--color-label-secondary);
+}
+
+/* ---------- Respostas rápidas e emojis ---------- */
+
+.quick,
+.emojiPanel {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  z-index: 4;
+  height: min(18rem, 50dvh);
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border-block-start: var(--line);
+  animation: rise var(--duration-base) var(--ease-settle);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+.quick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.quickList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-height: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-inline-end: var(--line);
+}
+
+.quickItem {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--control-height-sm);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label);
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.quickItem > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickItem[data-active] {
+  background-color: var(--color-fill-tertiary);
+}
+
+.quickPreview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.quickPreview > p {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-footnote);
+  line-height: var(--leading-relaxed);
+  color: var(--color-label);
+  white-space: pre-wrap;
+}
+
+.quickKeys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+}
+
+.panelTitle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.quickPreview .panelTitle {
+  padding-inline: 0;
+}
+
+.panelEmpty {
+  margin: 0;
+  padding: var(--space-3);
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+@container thread (max-width: 34rem) {
+  .quick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quickPreview {
+    display: none;
+  }
+}
+
+.emojiPanel {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--control-height-sm), 1fr));
+}
+
+.emoji {
+  display: grid;
+  place-items: center;
+  height: var(--control-height-sm);
+  padding: 0;
+  font-size: var(--text-title-3);
+  line-height: 1;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .quickItem:hover,
+  .emoji:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+
+  .quickItem:focus-visible,
+  .emoji:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+@media (pointer: coarse) {
+  .quickItem,
+  .emoji {
+    min-height: var(--touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick,
+  .emojiPanel {
+    animation: none;
+  }
+}

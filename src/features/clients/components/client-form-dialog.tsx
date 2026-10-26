@@ -352,7 +352,6 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
             src={photoUrl ?? logoUrl ?? undefined}
             seed={seed}
             size="lg"
-            shape="rounded"
           />
         ),
         confetti: !editing,
@@ -412,7 +411,7 @@ function ClientForm({ client, defaultKind = "customer", onClose, onSaved }: { cl
             <ImageField
               label="Foto"
               preview={photoUrl}
-              fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" shape="rounded" className={styles.avatar} />}
+              fallback={<Avatar name={values.name || "Cliente"} seed={seed} size="lg" className={styles.avatar} />}
               onSelect={pickImage(setPhotoUrl, setPhotoFile)}
             />
             <ImageField

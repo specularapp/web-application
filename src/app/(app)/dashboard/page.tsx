@@ -11,7 +11,6 @@ import { getOnboardingGate } from "@/features/onboarding/guard";
 import { getOrganizationContext } from "@/features/organizations/context";
 import { getTeamSummary } from "@/features/organizations/service";
 import type { TeamSummary } from "@/features/organizations/summary";
-import { getProjectsBlock } from "@/features/projects/queries";
 import { getQuotesBlock } from "@/features/quotes/detail";
 import { getTasksBlock } from "@/features/tasks/detail";
 import { createMetadata } from "@/lib/metadata";
@@ -49,10 +48,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const period = parsePeriod(first(params[PERIOD_PARAM]));
   const { viewer } = state;
 
-  /* Os oito blocos saem juntos: cada um é do domínio dele, e esperar um pelo outro faria o painel abrir no
+  /* Os blocos saem juntos: cada um é do domínio dele, e esperar um pelo outro faria o painel abrir no
      tempo da soma em vez de no tempo do mais lento. */
-  const [projects, finance, clients, tasks, team, quotes, gamification] = await Promise.all([
-    getProjectsBlock(),
+  const [finance, clients, tasks, team, quotes, gamification] = await Promise.all([
     getFinanceBlock(),
     getClientsBlock(),
     getTasksBlock(),
@@ -67,7 +65,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         user={{ name: viewer.name ?? viewer.email ?? "Você", email: viewer.email, avatarUrl: viewer.avatarUrl }}
         greeting={greetingFor(viewer.userId)}
         period={period}
-        projects={projects}
         finance={finance}
         clients={clients}
         tasks={tasks}

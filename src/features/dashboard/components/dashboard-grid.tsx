@@ -6,7 +6,6 @@ import type { ClientsSummary } from "@/features/clients/summary";
 import type { FinanceSummary } from "@/features/finance/summary";
 import type { PointsSummary, WeeklyChallenge } from "@/features/gamification/summary";
 import type { TeamSummary } from "@/features/organizations/summary";
-import type { ProjectsSummary } from "@/features/projects/summary";
 import type { QuotesSummary } from "@/features/quotes/summary";
 import type { TasksSummary } from "@/features/tasks/summary";
 import { rounded } from "@/lib/corners";
@@ -17,14 +16,12 @@ import { ChallengeBlock } from "./challenge-block";
 import { ClientsBlock } from "./clients-block";
 import styles from "./dashboard-grid.module.css";
 import { FinanceBlock } from "./finance-block";
-import { ProjectsBlock } from "./projects-block";
 import { QuoteBlock } from "./quote-block";
 import { TasksBlock } from "./tasks-block";
 import { TeamBlock } from "./team-block";
 
 export type DashboardGridProps = {
   layout: DashboardLayout;
-  projects: ProjectsSummary;
   finance: FinanceSummary;
   clients: ClientsSummary;
   tasks: TasksSummary;
@@ -41,7 +38,6 @@ export type DashboardGridProps = {
 // leva à tela, não é o foco; um bloco pode trazer um atalho próprio, que abre algo em vez de navegar.
 export function DashboardGrid({
   layout,
-  projects,
   finance,
   clients,
   tasks,
@@ -51,8 +47,7 @@ export function DashboardGrid({
   achievements,
 }: DashboardGridProps) {
   const content: Partial<Record<DashboardBlockId, ReactNode>> = {
-    projects: <ProjectsBlock summary={projects} />,
-    achievements: <AchievementsBlock summary={achievements} />,
+    achievements: <AchievementsBlock summary={achievements} challenge={challenge} />,
     finance: <FinanceBlock summary={finance} />,
     clients: <ClientsBlock summary={clients} />,
     tasks: <TasksBlock summary={tasks} />,

@@ -1,12 +1,10 @@
 import "server-only";
 import sharp, { type Sharp } from "sharp";
-import { avatarHue } from "@/components/ui/avatar";
 import { avatarSvg } from "@/components/ui/avatar/shape";
 import { artworkSvg } from "@/lib/artwork";
 import { catalogHueFor } from "@/features/catalog/list-options";
 import { cornerRadius, iconButtonCornerRadius, roundedRectPath } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
-import type { SysHue } from "@/lib/palette";
 import type { Quote, QuoteLine } from "./summary";
 
 /**
@@ -41,26 +39,8 @@ export const LOGO_RING = 3;
 /** A cor do anel é a da folha, `--color-bg` no tema claro. */
 const RING_COLOR = "#fbfbfc";
 
-/**
- * O azulejo do rosto desenhado, o `color-mix(in oklab, var(--avatar-hue) 32%, var(--color-on-accent))` do
- * avatar já resolvido: o pastel do matiz sobre branco. Opaco nos dois temas na tela, e aqui também, porque o
- * traço do Adventurer é escuro e precisa de fundo claro para aparecer.
- */
-const avatarTiles: Record<SysHue, string> = {
-  red: "#ffc9bf",
-  orange: "#ffdfc1",
-  yellow: "#fff0c6",
-  green: "#c8efcb",
-  mint: "#c6eeea",
-  teal: "#c6e6ed",
-  cyan: "#c6e5f8",
-  blue: "#b9d7ff",
-  indigo: "#c4caf6",
-  purple: "#e6caf7",
-  pink: "#ffc6c7",
-  brown: "#e1d6ca",
-  gray: "#dcdcde",
-};
+/** O azulejo do rosto desenhado: o cinza quase branco do `Avatar` no tema claro (`--color-bg-secondary`). */
+const AVATAR_TILE = "#f2f2f7";
 
 /* O DiceBear entrega o SVG só com `viewBox`, e sem largura o `sharp` o rasteriza no tamanho do próprio
    desenho, que no Loops são 100 pixels. Dizer o tamanho no arquivo faz o traço ser gerado já grande, o que
@@ -117,15 +97,14 @@ async function fetchImage(url: string) {
 
 /**
  * O avatar da pessoa ou a logo da equipe, no lado e no raio que o componente da tela usa: a foto quando há,
- * e o rosto desenhado sobre o pastel do matiz do nome quando não há, que é a mesma regra do `Avatar`.
+ * e o rosto desenhado sobre o cinza quase branco quando não há, que é a mesma regra do `Avatar`.
  */
 async function avatarTile(name: string, url: string | null, side: number, radius: number, ring = 0): Promise<PdfImage> {
   const photo = url ? await fetchImage(url) : null;
   if (photo) return roundedTile(photo, side, radius, "#ffffff", ring);
 
-  const hue = avatarHue(name) as SysHue;
   const face = sharp(Buffer.from(sizedSvg(avatarSvg(svgToken(name)), side * DENSITY)));
-  return roundedTile(face, side, radius, avatarTiles[hue], ring);
+  return roundedTile(face, side, radius, AVATAR_TILE, ring);
 }
 
 /* A mesma semente da tela, para o desenho ser o mesmo: o matiz nasce do nome do item e o traço, do id. */

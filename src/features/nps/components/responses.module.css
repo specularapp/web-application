@@ -1,0 +1,531 @@
+/* A caixa de respostas: a fila, o atendimento e, na tela larga, a ficha; cada coluna rola por conta. */
+.inbox {
+  --panel-line: 0.0375rem;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+@media (min-width: 48rem) {
+  .inbox {
+    grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr);
+  }
+
+  .inbox[data-wide] {
+    grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr) minmax(17rem, 21rem);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .inbox {
+    height: calc(100dvh - var(--topbar-height));
+  }
+}
+
+.list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  border-inline-end: var(--panel-line) solid var(--color-border);
+}
+
+.listHead {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.searchRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.searchRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.filterButton {
+  position: relative;
+  display: inline-flex;
+  --button-line: 0.0375rem;
+}
+
+.filterCount {
+  position: absolute;
+  inset-block-start: calc(var(--space-1) * -1);
+  inset-inline-end: calc(var(--space-1) * -1);
+  pointer-events: none;
+}
+
+.summary {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.listBody {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .listBody {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.groupTitle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.rowText {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.rowLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rowLine strong {
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowLine strong[data-unread] {
+  font-weight: var(--weight-bold);
+}
+
+.rowLine time {
+  flex-shrink: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+.preview {
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flags {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-label-tertiary);
+}
+
+.flags svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.waitingIcon {
+  color: var(--color-danger);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2);
+}
+
+/* O atendimento: o cabeçalho, o prazo, a conversa que rola e o campo preso embaixo. */
+.thread {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.threadEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: var(--space-5);
+}
+
+.threadHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.threadTitle {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.threadActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.statusPill {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: color-mix(in oklab, var(--tone) 70%, var(--color-label));
+  white-space: nowrap;
+  background-color: color-mix(in oklab, var(--tone) 14%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.statusPill svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.dot {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: var(--tone);
+  border-radius: var(--radius-full);
+}
+
+.slaBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-quaternary);
+  border-block-end: var(--panel-line) solid var(--color-border);
+}
+
+.slaBar strong {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.slaBar[data-tone="danger"] strong {
+  color: var(--color-danger);
+}
+
+.slaBar[data-tone="warning"] strong {
+  color: color-mix(in oklab, var(--sys-orange) 75%, var(--color-label));
+}
+
+.chat {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--color-bg-grouped-secondary);
+}
+
+.day {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dayLabel {
+  justify-self: center;
+  padding: var(--space-half) var(--space-2);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  background-color: var(--color-bg);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.system {
+  justify-self: center;
+  max-width: 34rem;
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.row[data-side="team"] {
+  justify-content: flex-end;
+}
+
+.bubble {
+  display: grid;
+  gap: var(--space-2);
+  max-width: min(36rem, 85%);
+  padding: var(--space-3);
+  font-size: var(--text-subheadline);
+  line-height: var(--leading-normal);
+  background-color: var(--color-bg);
+  border: var(--panel-line) solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.bubble p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bubble[data-side="team"] {
+  background-color: color-mix(in oklab, var(--sys-blue) 10%, var(--color-bg));
+  border-color: color-mix(in oklab, var(--sys-blue) 24%, transparent);
+}
+
+.bubble[data-note] {
+  background-color: color-mix(in oklab, var(--sys-yellow) 12%, var(--color-bg));
+  border-color: color-mix(in oklab, var(--sys-yellow) 30%, transparent);
+}
+
+.bubbleScore,
+.bubbleAuthor {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.bubbleAuthor svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.meta {
+  justify-self: end;
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+}
+
+.muted {
+  color: var(--color-label-tertiary);
+}
+
+.dock {
+  padding: var(--space-3) var(--space-4);
+  border-block-start: var(--panel-line) solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .dock {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.closedBlock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+.closedBlock > span {
+  display: inline-flex;
+  flex: 1 1 14rem;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.closedBlock svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.composer {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.composer[data-note] .field {
+  --field-background: color-mix(in oklab, var(--sys-yellow) 8%, transparent);
+}
+
+.tools {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toolGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.resolve {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+/* A ficha da resposta. */
+.profilePanel {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-inline-start: var(--panel-line) solid var(--color-border);
+}
+
+.profileDialog {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.profile {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+
+.profileHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.profileTitle {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: var(--space-2);
+  font-size: var(--text-footnote);
+}
+
+.facts dt {
+  color: var(--color-label-secondary);
+}
+
+.facts dd {
+  display: grid;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.facts small {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+.profileSection {
+  display: grid;
+  gap: var(--space-2);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--panel-line) solid var(--color-border);
+}
+
+.answers {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.answers li {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-footnote);
+}
+
+.answers li > span:first-child {
+  color: var(--color-label-secondary);
+}
+
+.starsValue {
+  display: inline-flex;
+  gap: var(--space-half);
+  color: var(--sys-yellow);
+}
+
+.starsValue svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.history {
+  display: grid;
+  gap: var(--space-half);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}

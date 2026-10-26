@@ -1,0 +1,768 @@
+/*
+ * A conversa: o cabeçalho com fundo da página, as mensagens sobre o fundo pontilhado e os balões. Cada autor tem o seu
+ * tom (contato neutro, equipe azul, modelo verde, nota amarela), todos misturados a partir dos tokens, então valem nos
+ * dois temas. O rabinho é um triângulo de borda na primeira mensagem de cada bloco.
+ */
+
+/* ---------- Cabeçalho ---------- */
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: calc(var(--control-height-sm) + var(--space-6));
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  background-color: var(--color-bg);
+  border-block-end: var(--line);
+}
+
+.back {
+  display: none;
+  margin-inline-start: calc(var(--space-1) * -1);
+}
+
+.listToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-inline-start: calc(var(--space-2) * -1);
+}
+
+.name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+
+.title {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.title strong {
+  overflow: hidden;
+  font-size: var(--text-callout);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title > :last-child {
+  flex-shrink: 0;
+}
+
+.meta {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.optional {
+  display: inline-flex;
+}
+
+.statusChip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  height: var(--control-height-sm);
+  padding-inline: var(--space-3) var(--space-2);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label);
+  white-space: nowrap;
+  border: var(--line);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.statusChip::before {
+  width: var(--space-2);
+  height: var(--space-2);
+  content: "";
+  background-color: var(--dot, var(--sys-green));
+  border-radius: var(--radius-full);
+}
+
+.statusChip[data-status="aguardando"] {
+  --dot: var(--sys-orange);
+}
+
+.statusChip[data-status="resolvida"] {
+  --dot: var(--color-label-tertiary);
+}
+
+.statusChip > svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-label-secondary);
+}
+
+.chipLabel {
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .statusChip:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+/* O responsável num Listbox só com a foto, com o gatilho vestido como os botões ao lado */
+.assignee {
+  --listbox-trigger-height: var(--control-height-sm);
+  --listbox-trigger-background: transparent;
+  --listbox-trigger-background-hover: var(--color-fill-quaternary);
+  --listbox-trigger-border: var(--color-border);
+  --listbox-trigger-radius: var(--radius-md);
+}
+
+.noAssignee {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-label-secondary);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.noAssignee svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.starToggle.starToggle[aria-pressed="true"] {
+  color: color-mix(in oklab, var(--sys-yellow) 60%, var(--color-label));
+}
+
+/* Conversa estreita (ficha aberta, tela média): a situação fica só com o ponto, e o nome do contato não some */
+@container thread (max-width: 46rem) {
+  .chipLabel {
+    display: none;
+  }
+
+  .statusChip {
+    gap: var(--space-1);
+    padding-inline: var(--space-2);
+  }
+}
+
+@container thread (max-width: 34rem) {
+  .optional {
+    display: none;
+  }
+}
+
+/* ---------- Mensagens ---------- */
+
+.body {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-height: 0;
+  padding: var(--space-3) clamp(var(--space-4), 5%, var(--space-12)) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.noMessages {
+  max-width: 24rem;
+  margin: auto;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-align: center;
+}
+
+.toBottom {
+  position: absolute;
+  inset-inline-end: var(--space-5);
+  bottom: var(--space-3);
+  z-index: 3;
+  display: inline-flex;
+  background-color: var(--glass-layer-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+/* Cada dia é um grupo: o selo fica preso no topo só enquanto o dia dele está na tela */
+.dayGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.day {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-2);
+  pointer-events: none;
+}
+
+.day span {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  pointer-events: auto;
+  background-color: var(--glass-layer-bg);
+  border: var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+/* As mensagens entram de baixo para cima: a mais recente primeiro, as de cima logo atrás */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+.dayGroup > .row,
+.dayGroup > .day {
+  animation: rise var(--duration-base) var(--ease-standard) both;
+  animation-delay: 150ms;
+}
+
+.dayGroup:last-child > :nth-last-child(1) {
+  animation-delay: 0ms;
+}
+
+.dayGroup:last-child > :nth-last-child(2) {
+  animation-delay: 30ms;
+}
+
+.dayGroup:last-child > :nth-last-child(3) {
+  animation-delay: 60ms;
+}
+
+.dayGroup:last-child > :nth-last-child(4) {
+  animation-delay: 90ms;
+}
+
+.system {
+  display: flex;
+  justify-content: center;
+  margin-block: var(--space-2);
+}
+
+.system span {
+  max-width: 80%;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-align: center;
+  background-color: var(--glass-layer-bg);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Balões ---------- */
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.row[data-out] {
+  align-items: flex-end;
+}
+
+.row[data-first] {
+  margin-top: var(--space-2);
+}
+
+.passThrough {
+  display: contents;
+}
+
+.bubble {
+  --tail: var(--space-2);
+  --bubble-bg: var(--tone-contact);
+
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+  max-width: min(36rem, 78%);
+  padding: var(--space-1) var(--space-2) var(--space-1);
+  color: var(--color-label);
+  background-color: var(--bubble-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.bubble[data-tone="agent"] {
+  --bubble-bg: var(--tone-agent);
+}
+
+.bubble[data-tone="template"] {
+  --bubble-bg: var(--tone-template);
+}
+
+.bubble[data-tone="note"] {
+  --bubble-bg: var(--tone-note);
+
+  border: 0.0375rem dashed color-mix(in oklab, var(--sys-yellow) 60%, var(--color-label));
+}
+
+/* O rabinho: um triângulo de borda na cor do balão, colado no canto de cima, só na primeira do bloco */
+.bubble[data-first]::before {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  content: "";
+  border-block-start: 0.8125rem solid var(--bubble-bg);
+}
+
+.row:not([data-out]) .bubble[data-first] {
+  border-start-start-radius: 0;
+}
+
+.row:not([data-out]) .bubble[data-first]::before {
+  inset-inline-start: calc(var(--tail) * -1);
+  border-inline-start: var(--tail) solid transparent;
+}
+
+.row[data-out] .bubble[data-first] {
+  border-start-end-radius: 0;
+}
+
+.row[data-out] .bubble[data-first]::before {
+  inset-inline-end: calc(var(--tail) * -1);
+  border-inline-end: var(--tail) solid transparent;
+}
+
+.bubble[data-tone="note"][data-first] {
+  border-radius: var(--radius-xl);
+}
+
+.bubble[data-tone="note"][data-first]::before {
+  display: none;
+}
+
+.bubble[data-media] {
+  padding: var(--space-1);
+}
+
+/* A mensagem subindo: um brilho suave atravessa a bolha até a confirmação chegar */
+.bubble[data-pending]::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(100deg, transparent 25%, color-mix(in oklab, var(--color-bg) 45%, transparent) 50%, transparent 75%);
+  background-size: 250% 100%;
+  border-radius: inherit;
+  animation: pendingShine 1.3s var(--ease-standard) infinite;
+}
+
+@keyframes pendingShine {
+  from {
+    background-position: 125% 0;
+  }
+
+  to {
+    background-position: -125% 0;
+  }
+}
+
+.bubbleAuthor {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--author, color-mix(in oklab, var(--sys-blue) 70%, var(--color-label)));
+}
+
+.bubbleAuthor svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.bubble[data-tone="template"] .bubbleAuthor {
+  --author: color-mix(in oklab, var(--sys-green) 70%, var(--color-label));
+}
+
+.bubble[data-tone="note"] .bubbleAuthor {
+  --author: color-mix(in oklab, var(--sys-yellow) 60%, var(--color-label));
+}
+
+.bubble[data-media] .bubbleAuthor {
+  padding: var(--space-1) var(--space-1) 0;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-subheadline);
+  line-height: var(--leading-normal);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.text code {
+  padding: 0 var(--space-1);
+  font-family: var(--font-code);
+  font-size: 0.9em;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-xs);
+}
+
+.bubble[data-media] .text {
+  padding: var(--space-half) var(--space-1) 0;
+}
+
+/* Reserva o lugar da hora na última linha, para ela nunca cobrir o texto */
+.spacer {
+  display: inline-block;
+  width: 3.75rem;
+}
+
+.spacer[data-out] {
+  width: 4.75rem;
+}
+
+.meta {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  bottom: var(--space-1);
+  display: inline-flex;
+  gap: var(--space-half);
+  align-items: center;
+  font-size: var(--text-caption-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.meta svg {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.meta svg[data-read] {
+  color: var(--tick-read);
+}
+
+.meta svg[data-failed] {
+  color: var(--color-danger);
+}
+
+.meta[data-overlay] {
+  bottom: var(--space-2);
+  padding: var(--space-half) var(--space-2);
+  background-color: var(--glass-layer-bg);
+  border-radius: var(--radius-full);
+}
+
+/* Sem texto (áudio, documento) a hora vai para uma linha própria */
+.bubble:not(:has(.text)):not([data-media]) .meta {
+  position: static;
+  justify-self: end;
+}
+
+/* A foto: enquanto o arquivo não vem do WhatsApp, o quadro dela no lugar, com o nome */
+.image {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-1);
+  width: min(16rem, 60vw);
+  aspect-ratio: 4 / 3;
+  color: var(--color-label-tertiary);
+  background-color: color-mix(in oklab, var(--color-label) 6%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.image svg {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.image small {
+  max-width: 90%;
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: min(14rem, 60vw);
+  padding: var(--space-2);
+  background-color: color-mix(in oklab, var(--color-label) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.document > svg {
+  flex-shrink: 0;
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--color-danger);
+}
+
+.document > span {
+  display: grid;
+  min-width: 0;
+}
+
+.document strong {
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document small {
+  font-size: var(--text-caption-2);
+  color: var(--color-label-secondary);
+}
+
+.audio {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: min(15rem, 60vw);
+  padding-block: var(--space-1);
+}
+
+.audio small {
+  min-width: 2.25rem;
+  font-size: var(--text-caption-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.play {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  padding: 0;
+  color: var(--color-bg);
+  cursor: pointer;
+  background-color: var(--color-label);
+  border: 0;
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.play svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.play:active {
+  transform: scale(0.94);
+}
+
+.wave {
+  display: flex;
+  flex: 1;
+  gap: var(--space-half);
+  align-items: center;
+  height: var(--space-6);
+}
+
+.wave i {
+  flex: 1;
+  height: calc(var(--level) * 100%);
+  min-height: 0.1875rem;
+  background-color: var(--color-label-tertiary);
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.wave i[data-played] {
+  background-color: var(--tick-read);
+}
+
+.templateStack {
+  display: grid;
+  gap: var(--space-half);
+  max-width: min(36rem, 78%);
+}
+
+.templateStack > .bubble {
+  max-width: 100%;
+}
+
+.templateHeader {
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.templateFooter {
+  font-size: var(--text-caption-1);
+  line-height: var(--leading-tight);
+  color: var(--color-label-secondary);
+}
+
+.templateButtons {
+  display: grid;
+  gap: var(--space-half);
+}
+
+.templateButtons > span {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-link);
+  background-color: var(--tone-template);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.templateButtons svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Responder: o botão redondo ao lado do balão, que aparece ao passar o mouse ou ao chegar pelo teclado */
+.replyButton {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background-color: var(--color-bg);
+  border: var(--line);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.replyButton svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.row:not([data-out]) .replyButton {
+  inset-inline-start: calc(100% + var(--space-2));
+}
+
+.row[data-out] .replyButton {
+  inset-inline-end: calc(100% + var(--space-2));
+}
+
+@media (hover: hover) {
+  .bubble:hover .replyButton {
+    opacity: 1;
+  }
+
+  .replyButton:focus-visible,
+  .play:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+
+  .replyButton:hover {
+    color: var(--color-label);
+  }
+}
+
+@media (hover: none) {
+  .replyButton {
+    display: none;
+  }
+}
+
+.failedLine {
+  margin-top: var(--space-1);
+  font-size: var(--text-caption-1);
+  color: var(--color-danger-solid);
+}
+
+.failedLine button {
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.125rem;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dayGroup > .row,
+  .dayGroup > .day,
+  .bubble[data-pending]::after {
+    animation: none;
+  }
+
+  .play:active {
+    transform: none;
+  }
+}
+
+@media (max-width: 63.9375rem) {
+  .back {
+    display: inline-flex;
+  }
+
+  .listToggle {
+    display: none;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .head {
+    padding-inline: var(--space-2);
+  }
+
+  .bubble,
+  .templateStack {
+    max-width: 88%;
+  }
+}

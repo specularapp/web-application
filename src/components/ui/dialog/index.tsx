@@ -176,17 +176,19 @@ const Panel = styled.div`
 
   ${layerMotion};
 
+  /* Larguras um degrau acima (2026-10-25, a pedido: "aumente a largura"): o perfil e a ficha em 40rem
+     apertavam quatro números e três botões numa linha, e a rolagem aparecia antes da hora. */
   &[data-size="sm"] {
-    max-width: 24rem;
+    max-width: 26rem;
   }
 
   &[data-size="md"] {
-    max-width: 30rem;
+    max-width: 36rem;
   }
 
   &[data-size="lg"] {
-    max-width: 40rem;
-    max-height: min(46rem, calc(100dvh - var(--space-16)));
+    max-width: 48rem;
+    max-height: min(52rem, calc(100dvh - var(--space-12)));
   }
 
   /* A janela de trabalho (2026-09-09, para o editor de orçamento): quase a tela inteira, com altura fixa

@@ -1,3 +1,4 @@
+import { forgetOrganization } from "@/features/organizations/current-cache";
 import { organizationIdSchema } from "@/features/organizations/schemas";
 import { switchTeam } from "@/features/organizations/service";
 import { authorizeRequest, invalidPayload, readJson } from "@/lib/api/v1";
@@ -11,6 +12,7 @@ export async function PUT(request: Request) {
 
   const result = await switchTeam(auth.session.supabase, parsed.data.organizationId);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+  await forgetOrganization(auth.session.userId);
 
   return new Response(null, { status: 204 });
 }

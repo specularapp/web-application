@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { ComponentPropsWithoutRef, CSSProperties } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 import { roundedAuto } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
 import { cx } from "@/lib/utils/cx";
@@ -24,8 +24,13 @@ const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44
    o layout pular antes de o arquivo chegar. O CSS continua mandando no tamanho de verdade. */
 const pixelSizes: Record<AvatarSize, number> = { xs: 24, sm: 36, md: 44, lg: 52 };
 
-/* Fundo do rosto desenhado: um matiz da paleta do sistema escolhido pela semente, então a mesma pessoa
-   tem sempre a mesma cor e duas pessoas lado a lado quase nunca repetem. */
+/* O estilo do rosto gerado vai no endereço: a rota guarda o desenho por um ano, e trocar o estilo sem trocar o
+   endereço deixaria o rosto antigo no navegador de quem já tinha visto. Muda junto com `shape.ts`. */
+const AVATAR_STYLE = "notionists";
+
+/* Um matiz da paleta do sistema escolhido pela semente, então a mesma pessoa tem sempre a mesma cor e duas
+   pessoas lado a lado quase nunca repetem. O rosto gerado não usa mais (o fundo dele é o da casa); quem usa é
+   a capa do perfil. */
 const hues = ["red", "orange", "yellow", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "pink", "brown"];
 
 /** O nome do matiz da paleta do sistema que a semente escolhe, para pintar outra coisa com a cor da pessoa. */
@@ -35,8 +40,7 @@ export function avatarHue(seed: string) {
 
 export function Avatar({ name, src, seed, size = "md", shape = "circle", className, style, ...props }: AvatarProps) {
   const key = seed ?? name;
-  const hue = avatarHue(key);
-  const vars = { ...style, ...(!src && { "--avatar-hue": `var(--sys-${hue})` }) } as CSSProperties;
+
 
   return (
     <span
@@ -46,7 +50,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
       data-size={size}
       data-shape={shape}
       data-generated={src ? undefined : ""}
-      style={vars}
+      style={style}
       {...(shape === "rounded" && roundedAuto())}
       {...props}
     >
@@ -62,7 +66,7 @@ export function Avatar({ name, src, seed, size = "md", shape = "circle", classNa
            é rebaixar a segurança para não ganhar nada. É o desvio consciente da regra de imagens. */
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`/api/avatar/${svgToken(key)}.svg`}
+          src={`/api/avatar/${svgToken(key)}.svg?estilo=${AVATAR_STYLE}`}
           alt=""
           width={pixelSizes[size]}
           height={pixelSizes[size]}

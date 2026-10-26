@@ -99,7 +99,7 @@ export function ClientMenu({ client, onView, onEdit, onDeleted }: ClientMenuProp
       description: `${client.name} saiu da base.`,
       tone: "success",
       feedback: {
-        visual: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
+        visual: <Avatar name={client.name} src={client.avatarUrl ?? undefined} size="lg" />,
         confetti: false,
       },
     });

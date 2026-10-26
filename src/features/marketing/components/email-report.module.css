@@ -1,0 +1,356 @@
+/* A janela de trabalho: o cabeçalho e, embaixo, os números à esquerda e o e-mail à direita, cada coluna
+   rolando por conta. No celular é uma coluna só, rolando inteira. */
+.report {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 64rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+    overflow: hidden;
+  }
+
+  .main,
+  .side {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.side {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (min-width: 64rem) {
+  .side {
+    border-block-start: 0;
+    border-inline-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .main,
+  .side {
+    padding: var(--space-4);
+  }
+
+  .side {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.wide {
+  display: contents;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+}
+
+.fresh {
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label);
+  background-color: color-mix(in oklab, var(--color-info) 12%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* O destaque: a taxa grande à esquerda e os três medidores contra a referência à direita. */
+.highlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+@media (min-width: 48rem) {
+  .highlight {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+.headline {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.big {
+  font-size: var(--text-large-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tightest);
+}
+
+.gauges {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.gauge {
+  --gauge-hue: var(--sys-orange);
+
+  display: grid;
+  gap: var(--space-1);
+}
+
+.gauge[data-above] {
+  --gauge-hue: var(--sys-green);
+}
+
+.gaugeHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+.gaugeHead strong {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+}
+
+.meter {
+  position: relative;
+  display: block;
+  height: 0.5rem;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  background-color: var(--gauge-hue);
+  border-radius: inherit;
+}
+
+.meter b {
+  position: absolute;
+  inset-block: calc(var(--space-1) * -1);
+  width: 0.125rem;
+  background-color: var(--color-label);
+  border-radius: var(--radius-full);
+  translate: -50% 0;
+}
+
+.gauge small {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+/* Os oito indicadores em ladrilhos, quantos couberem por linha. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.kpi {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.kpiHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.kpiGlyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--hue);
+  background-color: color-mix(in oklab, var(--hue) 16%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.kpiGlyph svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.kpiValue {
+  font-size: var(--text-title-3);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tightest);
+}
+
+.kpiCaption {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 48rem) {
+  .band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.cardHead {
+  display: grid;
+  gap: var(--space-half);
+}
+
+/* A curva das aberturas em colunas, a mais alta tocando o teto. */
+.hours {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: end;
+  height: 9rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hour {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-1);
+  height: 100%;
+  min-width: 0;
+}
+
+.hourBar {
+  display: flex;
+  align-items: flex-end;
+  min-height: 0;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-sm);
+}
+
+.hourBar i {
+  display: block;
+  width: 100%;
+  min-height: 0.125rem;
+  background-color: var(--sys-blue);
+  border-radius: var(--radius-sm);
+}
+
+.hour small {
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+  text-align: center;
+}
+
+/* Até onde cada um foi: uma barra só, empilhada, com a legenda embaixo. */
+.stack {
+  display: flex;
+  height: 0.75rem;
+  overflow: hidden;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.stack i {
+  display: block;
+  height: 100%;
+  background-color: var(--hue);
+}
+
+.legend {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-footnote);
+}
+
+.legend strong {
+  font-weight: var(--weight-semibold);
+}
+
+.legend small {
+  min-width: 3rem;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-align: end;
+}
+
+.dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: var(--hue);
+  border-radius: var(--radius-full);
+}
+
+.url {
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}

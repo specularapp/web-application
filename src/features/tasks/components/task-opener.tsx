@@ -9,7 +9,12 @@ import styles from "./task-opener.module.css";
 /* A janela da tarefa entra por importação dinâmica, e cada linha só a monta depois de abrir a primeira vez
    (varredura de peso de 2026-09-21): ela tem mais de mil e seiscentas linhas, e uma lista de vinte tarefas
    carregava e instanciava todas as vinte sem ninguém ter clicado em nenhuma. */
-const TaskDialog = dynamic(() => import("./task-dialog").then((module) => module.TaskDialog));
+const loadTaskDialog = () => import("./task-dialog");
+const TaskDialog = dynamic(() => loadTaskDialog().then((module) => module.TaskDialog));
+
+/* O código da janela começa a descer quando o ponteiro chega na linha ou ela ganha foco (2026-10-25): sem
+   isso a primeira abertura esperava quase dois segundos pelo arquivo, e a linha parecia não responder. */
+const preload = () => void loadTaskDialog();
 
 export type TaskOpenerProps = Omit<HTMLAttributes<HTMLElement>, "onClick" | "onKeyDown" | "role" | "tabIndex"> & {
   task: Task;
@@ -60,7 +65,17 @@ export function TaskOpener({ task, label, children, ...props }: TaskOpenerProps)
      `ul`. */
   return (
     <li className={styles.item}>
-      <div role="button" tabIndex={0} aria-haspopup="dialog" aria-label={label} onClick={onClick} onKeyDown={onKeyDown} {...props}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-label={label}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        onPointerEnter={preload}
+        onFocus={preload}
+        {...props}
+      >
         {children}
       </div>
       {ready && <TaskDialog task={task} open={open} onClose={() => setOpen(false)} />}

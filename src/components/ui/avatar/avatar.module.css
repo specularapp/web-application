@@ -41,11 +41,12 @@
   mask: var(--shape-hexagon) center / 100% 100% no-repeat;
 }
 
-/* Rosto desenhado: pastel do matiz da semente sobre o branco fixo, o mesmo dos dois temas, porque o
-   traço do rosto é escuro e some sobre fundo escuro. Opaco de propósito: no grupo um avatar cobre o
-   vizinho. */
+/* Rosto desenhado sobre um neutro (2026-10-25, a pedido): cinza quase branco no tema claro e preto quase
+   preto no escuro, sem matiz, um degrau fora do fundo da página para o círculo não sumir nela. O Notionists
+   preenche rosto e roupa de branco, então o desenho continua legível no escuro. Opaco de propósito: no
+   grupo um avatar cobre o vizinho. */
 .avatar[data-generated] {
-  background-color: color-mix(in oklab, var(--avatar-hue) 32%, var(--color-on-accent));
+  background-color: var(--color-bg-secondary);
 }
 
 .shape,

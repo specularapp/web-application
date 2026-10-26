@@ -4,6 +4,7 @@ import { CrmAppearanceDialog, type CrmAppearance } from "@/features/crm/componen
 
 import {
   CheckIcon,
+  CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
   FolderPlusIcon,
@@ -25,6 +26,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -100,8 +102,6 @@ export type SidebarProps = {
 /* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
 const ALERT_FACES = 3;
 
-type NavMotion = "forward" | "back";
-
 // Quem rola muda com a moldura: no desktop é o próprio nav, na tela cheia é a tela, acima dele na
 // árvore. Subir a partir do nav até o primeiro ancestral que rola serve às duas sem cada uma saber
 // da outra.
@@ -117,6 +117,28 @@ function scrollRegion(node: HTMLElement | null) {
 
 function folderIsCurrent(pathname: string, folder: NavFolder) {
   return folder.items.some((item) => isCurrent(pathname, item.href));
+}
+
+const folders = navGroups.flatMap((group) => group.entries.filter(isFolder));
+
+/** Como o galho se pinta: no caminho até a página ativa, a própria página ativa, ou neutro. */
+type BranchTone = "path" | "active" | undefined;
+
+/**
+ * O galho que liga a página de dentro à pasta, no padrão do app-le-ange (2026-10-25, a pedido): o tronco desce
+ * do ícone da pasta e, na altura da linha, dobra em ângulo reto até encostar nela. No último galho o tronco para
+ * na dobra. As linhas são bordas, com a espessura e a cor das divisórias do menu, e a página ativa muda só a cor
+ * do caminho até ela. Como a cor da borda é translúcida, nenhum pedaço passa por cima de outro.
+ */
+function Branch({ last = false, tone, children }: { last?: boolean; tone?: BranchTone; children: ReactNode }) {
+  const descends = last || tone === "active";
+  return (
+    <div className={styles.branch}>
+      {!last && <span className={styles.trunk} data-tone={tone === "path" ? "path" : undefined} data-below={tone === "active" || undefined} aria-hidden="true" />}
+      <span className={styles.elbow} data-tone={tone === "active" ? "active" : undefined} data-descends={descends || undefined} aria-hidden="true" />
+      {children}
+    </div>
+  );
 }
 
 /* O que nasce na raiz da árvore, pelo "+" do cabeçalho da pasta (2026-09-17, tudo funcionando): projeto novo
@@ -159,8 +181,9 @@ type PanelProps = SidebarProps & {
   onNavigate?: () => void;
 };
 
-// Pasta abre no lugar da lista, e não em submenu: a lista some, entram as páginas de dentro e um
-// voltar no topo. Em painel estreito submenu aninhado empurra tudo para a direita e some da vista.
+// Pasta abre para baixo, no próprio lugar, como no app-le-ange (2026-10-25, a pedido): as páginas de dentro
+// entram logo abaixo dela, recuadas e ligadas pelo fio, e o resto do menu continua à vista. Antes a pasta
+// trocava a lista inteira por uma camada com voltar.
 export function SidebarPanel({
   team,
   user,
@@ -182,7 +205,16 @@ export function SidebarPanel({
   const { toast } = useToast();
   const commandKey = useCommandKey();
   const navRef = useRef<HTMLElement>(null);
-  const [folder, setFolder] = useState<NavFolder | null>(null);
+  /* Uma pasta aberta por vez: abrir uma fecha a outra. Nasce aberta a da página em vigor, e navegar para
+     dentro de outra pasta passa a abrir aquela. */
+  const [expanded, setExpanded] = useState<string | null>(() => folders.find((entry) => folderIsCurrent(pathname, entry))?.label ?? null);
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    const current = folders.find((entry) => folderIsCurrent(pathname, entry));
+    if (current && expanded !== current.label) setExpanded(current.label);
+  }
+  const folder = folders.find((entry) => entry.label === expanded) ?? null;
   /* O que está sendo criado na raiz pelo "+" da pasta: uma pasta ou um funil, cada um com a sua janela. */
   const [creating, setCreating] = useState<Creating | null>(null);
 
@@ -201,7 +233,6 @@ export function SidebarPanel({
     router.push(`/crm/${result.slug}` as Route);
     return undefined;
   };
-  const [motion, setMotion] = useState<NavMotion | null>(null);
   // O projeto aberto sai do endereço (`/tarefas/<slug>`): é ele que marca a linha da árvore, e o caminho de
   // pastas até ele é o galho que a árvore abre ao aparecer.
   const currentProject = taskRoute ?? (pathname.startsWith("/tarefas/") ? pathname.split("/")[2] : undefined);
@@ -210,25 +241,31 @@ export function SidebarPanel({
   const currentFunnel = funnelRoute ?? (pathname.startsWith("/crm/") ? pathname.split("/")[2] : undefined);
   const funnelBranch = currentFunnel ? pathToFunnel(funnels, currentFunnel) : [];
 
-  // Abrir pasta leva a rolagem ao topo: na tela cheia a pasta costuma ser escolhida lá embaixo, e a
-  // lista curta que entra no lugar ficava fora da vista, com a tela parada no rodapé.
-  const openFolder = (entry: NavFolder) => {
-    setFolder(entry);
-    setMotion("forward");
-    if (entry.tree && entry.items[0]) router.push(entry.items[0].href);
-    const reduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    scrollRegion(navRef.current)?.scrollTo({
-      top: 0,
-      behavior: reduced ? "auto" : "smooth",
-    });
-  };
+  const toggleFolder = (entry: NavFolder) => setExpanded((current) => (current === entry.label ? null : entry.label));
 
-  const closeFolder = () => {
-    setFolder(null);
-    setMotion("back");
-  };
+  /* A pasta que abre rola para aparecer inteira: cabendo, ela toda fica à vista; maior que o menu, o nome dela
+     vai para o alto. Espera a abertura assentar. */
+  useEffect(() => {
+    if (!expanded) return;
+    const frame = window.requestAnimationFrame(() => {
+      const region = scrollRegion(navRef.current);
+      const opened = navRef.current?.querySelector<HTMLElement>(`[data-folder="${CSS.escape(expanded)}"]`);
+      if (!region || !opened) return;
+      const box = region.getBoundingClientRect();
+      const item = opened.getBoundingClientRect();
+      const gap = 8;
+      const delta =
+        item.height > box.height - gap * 2
+          ? item.top - box.top - gap
+          : item.bottom > box.bottom
+            ? item.bottom - box.bottom + gap
+            : item.top < box.top
+              ? item.top - box.top - gap
+              : 0;
+      if (Math.abs(delta) > 1) region.scrollBy({ top: delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [expanded]);
   const [alertVisible, setAlertVisible] = useState(true);
   const mobile = variant === "mobile";
 
@@ -350,124 +387,110 @@ export function SidebarPanel({
         </span>
       </button>
 
-      <nav
-        ref={navRef}
-        className={styles.nav}
-        aria-label="Navegação principal"
-        data-folder={folder ? "" : undefined}
-      >
-        {/* A chave troca com a pasta, então cada troca remonta a pilha e a entrada anima na direção certa:
-            para dentro vem da direita, para fora volta da esquerda. */}
-        <div
-          key={folder?.label ?? "raiz"}
-          className={styles.stack}
-          data-motion={motion ?? undefined}
-        >
-          {folder ? (
-            <div className={styles.group}>
-              {/* O voltar e, na pasta que abre árvore, o criar ao lado dele: é o cabeçalho do galho, e o
-                  lugar onde uma pasta ou um projeto novo nasce. */}
-              <div className={styles.folderHead}>
-                <button
-                  type="button"
-                  className={styles.back}
-                  onClick={closeFolder}
-                  {...rounded("md")}
-                >
-                  <CaretLeftIcon aria-hidden="true" />
-                  <span className={styles.label}>{folder.label}</span>
-                </button>
-                {folder.tree && (
-                  <DropdownMenu
-                    label={`Criar em ${folder.label}`}
-                    triggerLabel={folder.tree === "funis" ? "Criar pasta ou funil" : "Criar pasta ou projeto"}
-                    sections={createSections(folder.tree, setCreating)}
-                    icon={<PlusIcon />}
-                    size="sm"
-                  />
-                )}
-              </div>
-              {!folder.tree && folder.items.map((item) => (
-                <Row key={item.href} item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
-              ))}
-              {folder.tree === "tarefas" && (
-                <NavTree
-                  items={fromTaskTree(tasks)}
-                  basePath="/tarefas"
-                  current={currentProject}
-                  openFolders={openBranch}
-                  label="Pastas e projetos"
-                  onNavigate={onNavigate}
-                />
-              )}
-              {folder.tree === "funis" && (
-                <NavTree
-                  items={fromCrmTree(funnels)}
-                  basePath="/crm"
-                  current={currentFunnel}
-                  openFolders={funnelBranch}
-                  label="Pastas e funis"
-                  onNavigate={onNavigate}
-                />
-              )}
-              {creating && folder?.tree === "funis" ? (
-                <CrmAppearanceDialog title={creating === "folder" ? "Nova pasta" : "Novo funil"} folder={creating === "folder"} onClose={() => setCreating(null)} onSave={creating === "funnel" ? createFunnel : async (value) => { const result = await saveCrmFolderAction({ ...value, parentId: null }); return result.ok ? undefined : result.error; }} />
-              ) : creating && (
-                <NameDialog
-                  open
-                  onClose={() => setCreating(null)}
-                  title={creating === "folder" ? "Nova pasta" : "Novo funil"}
-                  description={creating === "folder" ? "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta." : "Ele nasce com as etapas padrão, que você arruma depois."}
-                  placeholder={creating === "folder" ? "Clientes, Interno, 2026" : "Indicações, Licitações, Loja"}
-                  onSubmit={createFolder}
-                />
-              )}
-            </div>
-          ) : (
-            navGroups.map((group, index) => (
-              // O título do grupo saiu da tela e virou nome do grupo para leitor de tela: quem separa
-              // um do outro agora é a linha, que sangra até a borda do menu.
-              <Fragment key={group.title}>
-                {index > 0 && <span className={styles.divider} />}
-                <div
-                  className={styles.group}
-                  role="group"
-                  aria-label={group.title}
-                >
-                  {group.entries.map((entry) =>
-                    isFolder(entry) ? (
+      <nav ref={navRef} className={styles.nav} aria-label="Navegação principal">
+        {navGroups.map((group, index) => (
+          // O título do grupo saiu da tela e virou nome do grupo para leitor de tela: quem separa
+          // um do outro agora é a linha, que sangra até a borda do menu.
+          <Fragment key={group.title}>
+            {index > 0 && <span className={styles.divider} />}
+            <div className={styles.group} role="group" aria-label={group.title}>
+              {group.entries.map((entry) => {
+                if (!isFolder(entry)) {
+                  return <Row key={entry.href} item={entry} active={isCurrent(pathname, entry.href)} onNavigate={onNavigate} />;
+                }
+                const open = expanded === entry.label;
+                /* Qual galho leva à página ativa: uma das páginas fixas ou, na pasta que abre árvore, a própria
+                   árvore quando o projeto ou o funil aberto está nela. */
+                const pages = entry.tree ? [] : entry.items;
+                const treeActive = (entry.tree === "funis" && Boolean(currentFunnel)) || (entry.tree === "tarefas" && Boolean(currentProject));
+                const activeIndex = entry.tree ? (treeActive ? 0 : -1) : pages.findIndex((item) => isCurrent(pathname, item.href));
+                const subId = `menu-${entry.label.toLowerCase().replace(/\s+/g, "-")}`;
+                return (
+                  <div key={entry.label} className={styles.folder} data-folder={entry.label}>
+                    <div className={styles.folderHead}>
                       <button
-                        key={entry.label}
                         type="button"
                         className={styles.row}
-                        data-active={
-                          folderIsCurrent(pathname, entry) || undefined
-                        }
-                        onClick={() => openFolder(entry)}
+                        data-active={(folderIsCurrent(pathname, entry) && !open) || undefined}
+                        data-parent={folderIsCurrent(pathname, entry) || undefined}
+                        aria-expanded={open}
+                        aria-controls={subId}
+                        onClick={() => toggleFolder(entry)}
                         {...rounded("md")}
                       >
                         <entry.icon aria-hidden="true" />
                         <span className={styles.label}>{entry.label}</span>
-                        <CaretRightIcon
-                          aria-hidden="true"
-                          className={styles.chevron}
-                        />
+                        <CaretDownIcon aria-hidden="true" className={styles.chevron} data-open={open || undefined} />
                       </button>
-                    ) : (
-                      <Row
-                        key={entry.href}
-                        item={entry}
-                        active={isCurrent(pathname, entry.href)}
-                        onNavigate={onNavigate}
-                      />
-                    ),
-                  )}
-                </div>
-              </Fragment>
-            ))
-          )}
-        </div>
+                      {open && entry.tree && (
+                        <DropdownMenu
+                          label={`Criar em ${entry.label}`}
+                          triggerLabel={entry.tree === "funis" ? "Criar pasta ou funil" : "Criar pasta ou projeto"}
+                          sections={createSections(entry.tree, setCreating)}
+                          icon={<PlusIcon />}
+                          size="sm"
+                        />
+                      )}
+                    </div>
+                    {open && (
+                      <div id={subId} className={styles.sub}>
+                        {/* O começo do tronco, saindo do ícone da pasta; escuro quando alguma página dela está ativa. */}
+                        <span className={styles.stem} data-tone={activeIndex >= 0 ? "path" : undefined} aria-hidden="true" />
+                        {pages.map((item, itemIndex) => (
+                          <Branch
+                            key={item.href}
+                            last={itemIndex === pages.length - 1}
+                            tone={itemIndex === activeIndex ? "active" : itemIndex < activeIndex ? "path" : undefined}
+                          >
+                            <Row item={item} active={isCurrent(pathname, item.href)} onNavigate={onNavigate} />
+                          </Branch>
+                        ))}
+                        {entry.tree === "tarefas" && (
+                          <div className={styles.treeBranch}>
+                            <NavTree items={fromTaskTree(tasks)} basePath="/tarefas" current={currentProject} openFolders={openBranch} label="Pastas e projetos" onNavigate={onNavigate} branched />
+                          </div>
+                        )}
+                        {entry.tree === "funis" && (
+                          <div className={styles.treeBranch}>
+                            <NavTree items={fromCrmTree(funnels)} basePath="/crm" current={currentFunnel} openFolders={funnelBranch} label="Pastas e funis" onNavigate={onNavigate} branched />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Fragment>
+        ))}
       </nav>
+
+      {creating && folder?.tree === "funis" ? (
+        <CrmAppearanceDialog
+          title={creating === "folder" ? "Nova pasta" : "Novo funil"}
+          folder={creating === "folder"}
+          onClose={() => setCreating(null)}
+          onSave={
+            creating === "funnel"
+              ? createFunnel
+              : async (value) => {
+                  const result = await saveCrmFolderAction({ ...value, parentId: null });
+                  return result.ok ? undefined : result.error;
+                }
+          }
+        />
+      ) : (
+        creating && (
+          <NameDialog
+            open
+            onClose={() => setCreating(null)}
+            title={creating === "folder" ? "Nova pasta" : "Novo funil"}
+            description={creating === "folder" ? "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta." : "Ele nasce com as etapas padrão, que você arruma depois."}
+            placeholder={creating === "folder" ? "Clientes, Interno, 2026" : "Indicações, Licitações, Loja"}
+            onSubmit={createFolder}
+          />
+        )
+      )}
 
       <div className={styles.foot}>
         {!mobile && planCard}

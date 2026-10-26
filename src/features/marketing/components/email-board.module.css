@@ -1,0 +1,273 @@
+/* A prancha é uma coluna: barra, abas, resumo e a lista. No desktop ela tem a altura da tela e a lista toma o
+   que sobra, rolando por dentro; no celular tudo segue em fluxo, rolando a coluna de conteúdo. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+
+  .content {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}
+
+/* As abas de situação, no segmento da casa, cada uma com a contagem ao lado do nome. A fila rola na
+   horizontal quando não cabe. */
+.tabs {
+  display: inline-flex;
+  gap: var(--space-half);
+  justify-self: start;
+  max-width: 100%;
+  padding: var(--space-half);
+  overflow-x: auto;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.tab {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 1.75rem;
+  padding-inline: var(--space-3);
+  font: inherit;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+@media (pointer: coarse) {
+  .tab {
+    min-height: var(--touch-target);
+  }
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-label);
+  background-color: var(--color-bg-tertiary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.tabCount {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+/* O resumo dos envios em quatro ladrilhos, dois por linha no celular. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.tile {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.tileLabel {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.tileValue {
+  font-size: var(--text-title-3);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tightest);
+}
+
+.tileCaption {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* As células: a cor do e-mail na frente do nome, o público em etiquetas, a barra dos entregues e a taxa
+   com o "x de y" embaixo. */
+.hue {
+  display: block;
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: var(--hue);
+  border-radius: var(--radius-full);
+}
+
+.audience {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  white-space: nowrap;
+}
+
+.person {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.delivery {
+  --level: var(--sys-green);
+
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  white-space: nowrap;
+}
+
+.delivery[data-level="medio"] {
+  --level: var(--sys-orange);
+}
+
+.delivery[data-level="baixo"] {
+  --level: var(--sys-red);
+}
+
+.deliveryBar {
+  display: block;
+  width: 3.5rem;
+  height: 0.375rem;
+  overflow: hidden;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.deliveryBar i {
+  display: block;
+  height: 100%;
+  background-color: var(--level);
+  border-radius: inherit;
+}
+
+.conversion {
+  display: inline-grid;
+  justify-items: end;
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.conversion strong {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+}
+
+.conversion small {
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+}
+
+.number {
+  font-size: var(--text-footnote);
+  white-space: nowrap;
+}
+
+.muted {
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}
+
+.bulk {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+}
+
+.bulk svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* A janela de criar: o cabeçalho e a vitrine rolando por dentro. */
+.picker {
+  display: grid;
+  flex: 1;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.pickerBody {
+  min-height: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .pickerBody {
+    padding: var(--space-3) var(--space-4) var(--floating-bar-inset);
+  }
+}

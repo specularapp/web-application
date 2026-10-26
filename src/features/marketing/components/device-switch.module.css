@@ -1,0 +1,53 @@
+.switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-half);
+  padding: var(--space-half);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.option {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.option svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.option[data-on] {
+  color: var(--color-label);
+  background-color: var(--color-fill-tertiary);
+}
+
+@media (hover: hover) {
+  .option:not([data-on]):hover {
+    color: var(--color-label);
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+@media (pointer: coarse) {
+  .option {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+}

@@ -1,7 +1,7 @@
 import "server-only";
 import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { grantingStatuses, type BillingPlan } from "@/features/billing/schemas";
+import type { BillingPlan } from "@/features/billing/schemas";
 import type { Database, TablesUpdate } from "@/types/database";
 import type { TeamMember as SummaryMember, TeamMemberProject, TeamSummary } from "./summary";
 import {
@@ -311,16 +311,13 @@ export async function listTeams(client: TeamClient, userId: string): Promise<Tea
   const ids = (memberships ?? []).map((row) => row.organization_id);
   if (ids.length === 0) return [];
 
-  const [{ data: rows }, { data: subscriptions }] = await Promise.all([
+  const [{ data: rows }, { data: plans }] = await Promise.all([
     /* Arquivada some da lista: é o que arquivar quer dizer. Ela continua no banco e volta ao desarquivar. */
     client.from("organizations").select("id, name, slug, logo_url").in("id", ids).is("archived_at", null).order("name"),
-    client.from("organization_subscriptions").select("organization_id, plan, status").in("organization_id", ids),
+    client.rpc("organization_plans", { p_organization_ids: ids }),
   ]);
 
-  const contracted = new Map<string, BillingPlan>();
-  for (const row of subscriptions ?? []) {
-    if (grantingStatuses.includes(row.status)) contracted.set(row.organization_id, row.plan);
-  }
+  const contracted = new Map<string, BillingPlan>((plans ?? []).map((row) => [row.organization_id, row.plan]));
 
   return (rows ?? []).map((row) => ({
     id: row.id,
@@ -684,7 +681,11 @@ export async function getTeamSummary(client: TeamClient, organizationId: string)
   const [people, invites, projects, tasks, charges] = await Promise.all([
     listTeamMembers(client, organizationId),
     client.from("organization_invites").select("id, name, email, role, created_at").eq("organization_id", organizationId).is("accepted_at", null),
-    client.from("projects").select("id, reference, name, status, progress, owner_id").eq("organization_id", organizationId),
+    client
+      .from("projects")
+      .select("id, reference, name, status, progress, owner_id")
+      .eq("organization_id", organizationId)
+      .order("started_at", { ascending: false }),
     client.from("tasks").select("owner_id, task_stages!inner(kind)").eq("organization_id", organizationId).neq("task_stages.kind", "done"),
     client.from("charges").select("owner_id, charge_installments(amount, paid_at)").eq("organization_id", organizationId),
   ]);

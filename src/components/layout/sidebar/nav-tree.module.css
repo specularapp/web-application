@@ -6,21 +6,20 @@
  * sai a meia altura em que o cotovelo vira. O eixo cai no centro do azulejo da linha de cima: recuo da linha
  * (8px) mais metade do azulejo (10px) dá 18px, e o degrau de 24px menos esses 18 dá os 6px do eixo.
  *
- * O fio é uma linha contínua de um pixel inteiro. O cotovelo termina na borda do glifo do filho, enquanto a
+ * O fio é o traço da borda do menu, reto. O cotovelo termina na borda do glifo do filho, enquanto a
  * continuação vertical começa somente depois da curva. Assim os dois desenhos não se sobrepõem e o galho
  * não ganha emendas mais escuras entre uma linha e outra.
  */
 .tree {
-  --tree-indent: 1.5rem;
-  --tree-axis: 0.375rem;
+  /* As mesmas medidas das subpáginas do menu (`.sub` em sidebar.module.css): o fio cai no centro do glifo de
+     cima (recuo de 8px da linha mais metade do glifo de 20px, 18px) e o braço tem os mesmos 10px até a
+     borda da linha de baixo. Recuo = 18 + 10. */
+  --tree-indent: 1.75rem;
+  --tree-axis: 0.625rem;
   --tree-row: 2.25rem;
-  --tree-elbow: 0.375rem;
-  --tree-line: 1px;
-  --tree-ink: color-mix(
-    in oklab,
-    var(--color-label-tertiary) 58%,
-    transparent
-  );
+  --tree-line: var(--menu-line, 0.0375rem);
+  --tree-ink: var(--color-border);
+  --tree-ink-active: var(--color-label-secondary);
 
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -42,58 +41,63 @@
   gap: var(--space-1);
 }
 
-/* O galho: o cotovelo que liga o filho ao pai e, quando ele não é o último, o fio que segue para o irmão de
-   baixo. Os dois são desenhados no invólucro, e não na linha, para não atravessarem o realce do hover.
-   `position: relative` sem `overflow`, porque o cotovelo mora fora da caixa, à esquerda dela. */
+/* O galho, no desenho das subpáginas: o tronco vertical no eixo e o braço reto que para na borda da linha,
+   sem entrar nela. Os traços são do invólucro, e não da linha, para não atravessarem o realce do hover. */
 .limb {
   position: relative;
 }
 
-/**
- * O caminho até o projeto aberto sai mais forte (2026-09-10, a pedido): é o único galho que a pessoa precisa
- * enxergar de longe, porque é a rota completa de onde ela está. O resto da árvore fica no fio de sempre, no
- * peso de estrutura; se tudo ficasse forte, nada ficaria em evidência.
- */
-.limb[data-route] {
-  --tree-ink: color-mix(
-    in oklab,
-    var(--color-label-secondary) 72%,
-    transparent
-  );
-}
-
-/* O cotovelo desce até o centro da linha e alcança a borda do glifo. O trecho dentro da linha pode ficar sob
-   o realce de hover sem aparecer cortado, porque o glifo cobre a ponta e conclui visualmente a conexão. */
+/* A dobra: desce do vão de cima até o meio da linha e vira até a borda dela. Cobre o vão entre irmãos, então
+   o tronco de baixo (`::after`) não precisa invadir esse vão e nada se sobrepõe: com a borda translúcida,
+   traço por cima de traço apareceria mais escuro. */
 .limb::before {
   content: "";
   position: absolute;
-  /* Sobe o vão do menu, para o fio sair de dentro da linha de cima em vez de começar 4px abaixo dela: sem
-     isso a árvore aparecia picada, um traço solto por filho. */
   inset-block-start: calc(var(--space-1) * -1);
   inset-inline-start: calc(var(--tree-axis) * -1);
   box-sizing: border-box;
-  width: calc(var(--tree-axis) + var(--space-2));
-  height: calc(var(--tree-row) / 2 + var(--space-1));
+  width: var(--tree-axis);
+  height: calc(var(--tree-row) / 2 + var(--space-1) + var(--tree-line));
   pointer-events: none;
   border-inline-start: var(--tree-line) solid var(--tree-ink);
   border-block-end: var(--tree-line) solid var(--tree-ink);
-  border-end-start-radius: var(--tree-elbow);
 }
 
-/* O fio que continua para baixo, em todo filho que não é o último: ele atravessa o galho inteiro, então
-   passa também pelos filhos de uma pasta aberta e chega no irmão seguinte. No último, o cotovelo fecha
-   sozinho e nada desce, que é o `└` da referência. */
+/* O primeiro filho sai do pé do glifo da pasta, como o tronco das subpáginas sai do ícone da pasta. Na raiz
+   pendurada na pasta do menu, quem sai do ícone é o `.stem` dela, e o primeiro galho só continua o fio. */
+.children > .limb:first-child::before {
+  inset-block-start: calc((var(--space-1) + 0.5rem) * -1);
+  height: calc(var(--tree-row) / 2 + var(--space-1) + 0.5rem + var(--tree-line));
+}
+
+/* O tronco que segue para o irmão de baixo, em todo filho que não é o último: começa logo abaixo da dobra e
+   termina no fim do galho (o vão seguinte é da dobra do irmão). No último, nada desce: é o `└`. */
 .limb:not([data-last])::after {
   content: "";
   position: absolute;
-  /* Começa depois do cotovelo, sem pintar uma segunda linha por cima dele, e atravessa o restante do galho
-     até o irmão seguinte. */
-  inset-block-start: calc(var(--tree-row) / 2);
-  inset-block-end: calc(var(--space-1) * -1);
+  inset-block-start: calc(var(--tree-row) / 2 + var(--tree-line));
+  inset-block-end: 0;
   inset-inline-start: calc(var(--tree-axis) * -1);
   width: 0;
   pointer-events: none;
   border-inline-start: var(--tree-line) solid var(--tree-ink);
+}
+
+/**
+ * O caminho até a página aberta, como nas subpáginas: só muda a cor, nunca a grossura. O galho da rota
+ * escurece a dobra inteira; os irmãos de cima escurecem só o tronco (o braço deles continua neutro, porque
+ * não levam à rota); e abaixo da rota o fio volta ao neutro.
+ */
+.limb[data-route]::before {
+  border-color: var(--tree-ink-active);
+}
+
+.limb[data-path]::before {
+  border-inline-start-color: var(--tree-ink-active);
+}
+
+.limb[data-path]::after {
+  border-color: var(--tree-ink-active);
 }
 
 /* O degrau: os filhos entram recuados, e é do recuo deles que o eixo do fio é medido. Aninhado, o recuo

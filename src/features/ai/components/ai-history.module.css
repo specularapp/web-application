@@ -1,33 +1,38 @@
-/* A trilha de conversas: o que começa uma nova e a busca no alto, a lista rolando no meio e o saldo do
-   ciclo no pé. Mesma divisão da trilha do menu, porque é a mesma coisa que ela faz. */
+/* O histórico: uma coluna estreita e calma. A largura é fixa por dentro, para a coluna que recolhe por fora
+   não fazer o texto quebrar no meio do caminho. */
 .history {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
   min-width: 0;
-  min-height: 0;
   height: 100%;
-}
-
-.head {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
+  min-height: 0;
   padding: var(--space-3);
 }
 
-.scroller {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
+.head {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
   min-width: 0;
-  min-height: 0;
-  padding: 0 var(--space-2) var(--space-3);
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
-.empty {
-  padding: var(--space-2) var(--space-1);
+.new {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.list {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  padding-inline: var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .group {
@@ -37,11 +42,10 @@
 }
 
 .groupName {
-  padding-inline: var(--space-2);
-  margin-block-end: var(--space-half);
+  padding: 0 var(--space-2) var(--space-1);
 }
 
-.list {
+.items {
   display: grid;
   gap: 0.0625rem;
   min-width: 0;
@@ -50,93 +54,114 @@
   list-style: none;
 }
 
-/* A linha da conversa: o nome tomando a largura toda e as opções aparecendo na ponta com o ponteiro em
-   cima, como nas listas da casa. No toque não há ponteiro, então elas ficam. */
-.row {
+/* A conversa: o título numa linha e o leque aparecendo com o ponteiro, ou sempre na aberta. */
+.item {
   --control-height-sm: 1.75rem;
   --icon-button-radius-sm: 0.875rem;
   --touch-target: 1.75rem;
 
   position: relative;
   display: flex;
-  gap: var(--space-half);
   align-items: center;
   min-width: 0;
   padding-inline-end: var(--space-1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-fast) var(--ease-standard);
+  animation: item-in var(--duration-slow) var(--ease-settle) backwards;
+}
+
+.item[data-current] {
+  background-color: var(--color-fill-tertiary);
 }
 
 @media (hover: hover) {
-  .row:hover {
+  .item:not([data-current]):hover {
     background-color: var(--color-fill-quaternary);
   }
 }
 
-/* A conversa aberta fica marcada como a página em vigor no menu: fundo cheio e tinta viva. */
-.row[data-current] {
-  background-color: var(--color-fill-tertiary);
-}
-
-.pick {
+.open {
   display: flex;
   flex: 1;
-  gap: var(--space-2);
+  gap: var(--space-1);
   align-items: center;
   min-width: 0;
-  height: 2rem;
-  padding-inline: var(--space-2);
-  font-family: var(--font-body);
-  color: var(--color-label-secondary);
+  min-height: 2.25rem;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  color: var(--color-label);
   text-align: start;
   cursor: pointer;
   background: transparent;
   border: 0;
-}
-
-.row[data-current] .pick {
-  color: var(--color-label);
-}
-
-.pick:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: -2px;
   border-radius: var(--radius-md);
 }
 
-.rowGlyph {
-  flex-shrink: 0;
-  width: 0.875rem;
-  height: 0.875rem;
-  color: var(--color-label-tertiary);
+.open:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
-.rowName {
+@media (pointer: coarse) {
+  .open {
+    min-height: var(--touch-target);
+  }
+
+  .item {
+    --control-height-sm: 2.75rem;
+    --touch-target: 2.75rem;
+  }
+}
+
+.title {
   flex: 1;
   min-width: 0;
 }
 
-.rowEnd {
+.pin {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-ai);
+}
+
+.menu {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
 }
 
 @media (hover: hover) {
-  .rowEnd {
+  .menu {
     opacity: 0;
     transition: opacity var(--duration-fast) var(--ease-standard);
   }
 
-  .row:hover .rowEnd,
-  .rowEnd:focus-within {
+  .item:hover .menu,
+  .item:focus-within .menu,
+  .item[data-current] .menu {
     opacity: 1;
   }
 }
 
+.empty {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-8) var(--space-3);
+  margin: 0;
+  color: var(--color-label-tertiary);
+  text-align: center;
+}
+
+.empty svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
 .foot {
   min-width: 0;
-  padding: var(--space-2) var(--space-3) var(--space-3);
+  padding-block-start: var(--space-2);
+  margin-inline: calc(var(--space-1) * -1);
   border-block-start: 0.0375rem solid var(--color-border);
 }
 
@@ -170,4 +195,18 @@
   align-items: baseline;
   justify-content: space-between;
   min-width: 0;
+}
+
+/* A conversa nova entra no alto da lista com um leve salto. */
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    animation: none;
+  }
 }

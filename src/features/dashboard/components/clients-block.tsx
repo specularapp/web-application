@@ -20,8 +20,8 @@ const SHOWN_CLIENTS = 5;
 const phoneOf = (client: Client) => (client.phone ? applyPattern("phone", client.phone) : null);
 
 // O cliente mais novo em destaque: a foto grande à esquerda e, à direita, o nome com a etiqueta "Novo"
-// e o menu de opções do cliente na outra ponta da mesma linha, e a ficha em grade embaixo
-// (e-mail e telefone, cada um com o próprio rótulo). Clicar abre o perfil do cliente.
+// e o menu de opções do cliente na outra ponta da mesma linha, e embaixo telefone e e-mail lado a lado, sem
+// caixa. Clicar abre o perfil do cliente.
 function Featured({ client }: { client: Client }) {
   const phone = phoneOf(client);
 
@@ -40,7 +40,6 @@ function Featured({ client }: { client: Client }) {
         src={client.avatarUrl ?? undefined}
         seed={client.email ?? client.name}
         size="lg"
-        shape="rounded"
         className={styles.photo}
       />
       <div className={styles.sheet}>
@@ -59,18 +58,18 @@ function Featured({ client }: { client: Client }) {
         <dl className={styles.facts}>
           <div className={styles.fact}>
             <Text as="dt" variant="caption1" tone="secondary">
-              E-mail
-            </Text>
-            <Text as="dd" variant="footnote" weight="medium" truncate>
-              {client.email ?? "Não informado"}
-            </Text>
-          </div>
-          <div className={styles.fact}>
-            <Text as="dt" variant="caption1" tone="secondary">
               Telefone
             </Text>
             <Text as="dd" variant="footnote" weight="medium" numeric truncate>
               {phone ?? "Não informado"}
+            </Text>
+          </div>
+          <div className={styles.fact}>
+            <Text as="dt" variant="caption1" tone="secondary">
+              E-mail
+            </Text>
+            <Text as="dd" variant="footnote" weight="medium" truncate>
+              {client.email ?? "Não informado"}
             </Text>
           </div>
         </dl>
@@ -91,7 +90,7 @@ function Row({ client }: { client: Client }) {
       label={`Ver detalhes de ${client.name}`}
       className={list.row}
     >
-      <Avatar name={client.name} src={client.avatarUrl ?? undefined} seed={client.email ?? client.name} size="sm" shape="rounded" />
+      <Avatar name={client.name} src={client.avatarUrl ?? undefined} seed={client.email ?? client.name} size="sm" />
       <span className={list.copy}>
         <Text as="span" variant="subheadline" weight="medium" truncate>
           {client.name}

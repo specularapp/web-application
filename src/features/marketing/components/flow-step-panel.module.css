@@ -1,0 +1,120 @@
+/* O painel do passo: o cabeçalho com o glifo no tom do tipo, o corpo que rola e o pé com duplicar e excluir. */
+.panel {
+  --hue: var(--color-accent);
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--hue);
+  background-color: light-dark(color-mix(in oklab, var(--hue) 14%, transparent), color-mix(in oklab, var(--hue) 22%, transparent));
+  border-radius: var(--radius-md);
+}
+
+.glyph svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.headCopy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.foot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+@media (max-width: 47.9375rem) {
+  .foot {
+    padding-block-end: var(--floating-bar-inset);
+  }
+}
+
+.section {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--control-height-sm);
+}
+
+.sectionTitle {
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+}
+
+.items {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  gap: var(--space-1);
+  align-items: flex-start;
+  min-width: 0;
+  padding: var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.itemFields {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--space-2);
+}
+
+.switchLabel {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+}

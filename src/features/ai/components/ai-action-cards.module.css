@@ -1,0 +1,86 @@
+.cards {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Um cartão por ação, no cinza da pergunta e sem fio: está dentro do cartão da resposta, e dois fios um dentro
+   do outro leriam como caixa em caixa. */
+.card {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-lg);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--text-footnote);
+  line-height: var(--leading-normal);
+}
+
+.fields > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.fields dt {
+  color: var(--color-label-secondary);
+}
+
+.fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.more {
+  color: var(--color-label-secondary);
+}
+
+.more summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  font-size: var(--text-footnote);
+  cursor: pointer;
+}
+
+.more summary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.more .fields {
+  padding-block-start: var(--space-1);
+  color: var(--color-label);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}

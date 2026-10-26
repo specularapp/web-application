@@ -1,19 +1,18 @@
 import "server-only";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
-import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
+import { requireOrganization } from "@/features/organizations/context";
 import type { TaskTreeNode } from "@/features/tasks/tree";
 import type { ProjectsListPage, ProjectsQuery } from "./list-options";
 import {
   getProject,
   getProjectDetails,
   getProjectTree,
-  getProjectsSummary,
   listProjectClients,
   listProjectOwners,
   listProjects,
 } from "./service";
-import type { Project, ProjectClient, ProjectDetails, ProjectOwnerOption, ProjectsSummary } from "./summary";
+import type { Project, ProjectClient, ProjectDetails, ProjectOwnerOption } from "./summary";
 
 /** O que a tela de projetos precisa de uma vez: a página da grade, os clientes e a equipe do formulário. */
 export type ProjectsScreenData = {
@@ -57,22 +56,6 @@ export async function getProjectById(id: string, next = "/projetos"): Promise<Pr
 export async function getProjectDetailsById(id: string, next = "/projetos"): Promise<ProjectDetails | null> {
   const { supabase, organizationId } = await requireOrganization(next);
   return getProjectDetails(supabase, organizationId, id);
-}
-
-const EMPTY_BLOCK: ProjectsSummary = { total: 0, clientCount: 0, clients: [], months: [] };
-
-/* O bloco do painel abre sem time, porque o painel abre sem time: é nele que a configuração inicial
-   aparece por cima, e quem acabou de se cadastrar ainda não tem o que contar. */
-export async function getProjectsBlock(): Promise<ProjectsSummary> {
-  const context = await getOrganizationContext();
-  if (!context) return EMPTY_BLOCK;
-  const { supabase, organizationId } = context;
-
-  return cached(
-    cacheKey(organizationId, "projects:block"),
-    { organizationId, tags: [cacheTags.projects], ttl: cacheTtl.summary },
-    () => getProjectsSummary(supabase, organizationId),
-  );
 }
 
 /** A arquitetura que o menu de tarefas desenha. */

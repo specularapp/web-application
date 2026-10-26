@@ -1,12 +1,25 @@
 "use client";
 
-import { ChatsCircleIcon, MagnifyingGlassIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import {
+  ChatCircleDotsIcon,
+  MagnifyingGlassIcon,
+  NotePencilIcon,
+  PencilSimpleIcon,
+  PushPinIcon,
+  PushPinSlashIcon,
+  SidebarSimpleIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { NameDialog } from "@/components/ui/name-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
+import { Tooltip } from "@/components/ui/tooltip";
 import { rounded } from "@/lib/corners";
 import { aiHistory, type AiConversation } from "../conversation";
 import { aiRemaining, aiTone } from "../summary";
@@ -15,76 +28,71 @@ import { AiUsageDialog } from "./ai-usage-dialog";
 import styles from "./ai-history.module.css";
 
 export type AiHistoryProps = {
-  /** Escolher uma conversa fecha a gaveta, quando o histórico está dentro de uma. */
+  /** Escolher uma conversa ou começar outra; fecha a gaveta, quando o histórico está dentro de uma. */
   onPick?: () => void;
+  /** Recolher a coluna no computador, ou fechar a gaveta no celular. */
+  onHide: () => void;
+  /** O nome do botão que esconde o histórico, que muda entre coluna e gaveta. */
+  hideLabel: string;
+  /** As conversas fixadas no alto. Valem nesta sessão: o banco ainda não guarda a marca. */
+  pinned: readonly string[];
+  onTogglePin: (id: string) => void;
 };
 
-/* Passando disto, a lista deixa de ser lida de relance e passa a ser procurada, o mesmo corte do leque de
-   opções da casa. */
-const SEARCH_FROM = 5;
-
 /**
- * A trilha de conversas da página cheia: começar uma nova, procurar nas antigas e voltar a qualquer uma
- * delas, com o uso do ciclo no pé. É a parte que a coluna lateral não tem como oferecer, porque lá o
- * histórico cabe num leque e aqui ele é a lista que fica à vista o tempo todo.
- *
- * As conversas vêm do provedor da concha, o mesmo da coluna: perguntar numa tela e continuar aqui é a mesma
- * conversa, e não duas listas que não se conhecem.
+ * O histórico de conversas do SpeculAI: no alto, começar uma nova e recolher; a busca, que varre o nome e o que
+ * foi dito; as conversas em faixas de tempo, com as fixadas primeiro e a aberta marcada; e o uso do ciclo no pé.
  */
-export function AiHistory({ onPick }: AiHistoryProps) {
+export function AiHistory({ onPick, onHide, hideLabel, pinned, onTogglePin }: AiHistoryProps) {
   const panel = useAiPanel();
   const [search, setSearch] = useState("");
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
+  const [renaming, setRenaming] = useState<AiConversation | null>(null);
+  const [removing, setRemoving] = useState<AiConversation | null>(null);
   const [usageOpen, setUsageOpen] = useState(false);
-  const field = useRef<HTMLInputElement>(null);
-  /* Escape sai sem salvar, e sair do campo salva. Como fechar o campo tira o foco dele, o `blur` chegaria
-     depois do Escape e salvaria assim mesmo: esta marca é o que diz a ele para não fazer nada. */
-  const cancelled = useRef(false);
-
-  useEffect(() => {
-    if (renaming) field.current?.select();
-  }, [renaming]);
 
   if (!panel) return null;
 
   const conversations = panel.conversations;
-  const groups = aiHistory(conversations, search);
+  const fixed = conversations.filter((conversation) => pinned.includes(conversation.id));
+  const loose = conversations.filter((conversation) => !pinned.includes(conversation.id));
+  const fixedFound = aiHistory(fixed, search).flatMap((group) => group.conversations);
+  const groups = [
+    ...(fixedFound.length > 0 ? [{ id: "fixadas", label: "Fixadas", conversations: fixedFound }] : []),
+    ...aiHistory(loose, search),
+  ];
   const usage = panel.data?.usage;
 
-  const start = (conversation: AiConversation) => {
-    cancelled.current = false;
-    setDraft(conversation.title);
-    setRenaming(conversation.id);
+  const menuOf = (conversation: AiConversation): DropdownSection[] => {
+    const isPinned = pinned.includes(conversation.id);
+    return [
+      {
+        id: "conversa",
+        items: [
+          { id: "renomear", label: "Renomear", icon: PencilSimpleIcon, onSelect: () => setRenaming(conversation) },
+          {
+            id: "fixar",
+            label: isPinned ? "Desafixar" : "Fixar no alto",
+            icon: isPinned ? PushPinSlashIcon : PushPinIcon,
+            onSelect: () => onTogglePin(conversation.id),
+          },
+        ],
+      },
+      {
+        id: "remover",
+        items: [{ id: "excluir", label: "Excluir", icon: TrashIcon, tone: "danger", onSelect: () => setRemoving(conversation) }],
+      },
+    ];
   };
-
-  const save = () => {
-    if (renaming && !cancelled.current) panel.rename(renaming, draft);
-    setRenaming(null);
-  };
-
-  const menuOf = (conversation: AiConversation): DropdownSection[] => [
-    {
-      id: "editar",
-      items: [{ id: "renomear", label: "Renomear", icon: PencilSimpleIcon, onSelect: () => start(conversation) }],
-    },
-    {
-      id: "remover",
-      items: [{ id: "excluir", label: "Excluir", icon: TrashIcon, tone: "danger", onSelect: () => panel.remove(conversation.id) }],
-    },
-  ];
 
   return (
     <div className={styles.history}>
       <div className={styles.head}>
-        {/* A ação principal da trilha no desenho que toda ação principal da casa tem: primário, tamanho
-            pequeno, canto md e o mais na frente, o mesmo de "Novo cliente" e "Novo projeto". Só a largura
-            cheia é daqui, porque numa trilha de dezessete rem um botão curto no canto fica solto. */}
         <Button
+          variant="secondary"
           size="sm"
           radius="md"
-          fullWidth
-          iconStart={<PlusIcon />}
+          iconStart={<NotePencilIcon />}
+          className={styles.new}
           onClick={() => {
             panel.reset();
             onPick?.();
@@ -92,92 +100,73 @@ export function AiHistory({ onPick }: AiHistoryProps) {
         >
           Nova conversa
         </Button>
-
-        {conversations.length >= SEARCH_FROM && (
-          <Input
-            size="sm"
-            value={search}
-            placeholder="Procurar na conversa"
-            aria-label="Procurar nas conversas"
-            iconStart={<MagnifyingGlassIcon />}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        )}
+        <Tooltip content={hideLabel} align="end">
+          <IconButton label={hideLabel} variant="ghost" size="sm" radius="md" onClick={onHide}>
+            <SidebarSimpleIcon />
+          </IconButton>
+        </Tooltip>
       </div>
 
-      <div className={styles.scroller}>
+      <Input
+        size="sm"
+        value={search}
+        placeholder="Buscar conversa"
+        aria-label="Buscar nas conversas"
+        iconStart={<MagnifyingGlassIcon />}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+
+      <nav className={styles.list} aria-label="Conversas">
         {groups.length === 0 ? (
-          <Text as="p" variant="caption1" tone="tertiary" className={styles.empty}>
-            {conversations.length === 0 ? "O que você perguntar aparece aqui." : "Nenhuma conversa com esse termo."}
-          </Text>
+          <p className={styles.empty}>
+            <ChatCircleDotsIcon weight="duotone" aria-hidden="true" />
+            <Text as="span" variant="footnote" tone="secondary">
+              {search.trim() ? "Nenhuma conversa com esse termo." : "Suas conversas aparecem aqui."}
+            </Text>
+          </p>
         ) : (
           groups.map((group) => (
             <section key={group.id} className={styles.group}>
-              <Text as="h2" variant="caption2" weight="medium" tone="tertiary" className={styles.groupName}>
+              <Text as="h2" variant="caption1" weight="medium" tone="secondary" className={styles.groupName}>
                 {group.label}
               </Text>
-              <ul className={styles.list}>
-                {group.conversations.map((conversation) => (
-                  <li
-                    key={conversation.id}
-                    className={styles.row}
-                    data-current={conversation.id === panel.currentId || undefined}
-                    {...rounded("md")}
-                  >
-                    {renaming === conversation.id ? (
-                      <Input
-                        ref={field}
-                        size="sm"
-                        value={draft}
-                        aria-label={"Novo nome de " + conversation.title}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onBlur={save}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            save();
-                          }
-                          if (event.key === "Escape") {
-                            cancelled.current = true;
-                            setRenaming(null);
-                          }
+              <ul className={styles.items}>
+                {group.conversations.map((conversation) => {
+                  const current = conversation.id === panel.currentId;
+                  return (
+                    <li key={conversation.id} className={styles.item} data-current={current || undefined} {...rounded("md")}>
+                      <button
+                        type="button"
+                        className={styles.open}
+                        aria-current={current ? "page" : undefined}
+                        onClick={() => {
+                          panel.resume(conversation.id);
+                          onPick?.();
                         }}
-                      />
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className={styles.pick}
-                          onClick={() => {
-                            panel.resume(conversation.id);
-                            onPick?.();
-                          }}
-                        >
-                          <ChatsCircleIcon className={styles.rowGlyph} />
-                          <Text as="span" variant="footnote" truncate className={styles.rowName}>
-                            {conversation.title}
-                          </Text>
-                        </button>
-                        <span className={styles.rowEnd}>
-                          <DropdownMenu
-                            label={"Opções de " + conversation.title}
-                            triggerLabel={"Mais opções de " + conversation.title}
-                            sections={menuOf(conversation)}
-                            size="sm"
-                          />
-                        </span>
-                      </>
-                    )}
-                  </li>
-                ))}
+                      >
+                        {pinned.includes(conversation.id) && <PushPinIcon weight="fill" aria-hidden="true" className={styles.pin} />}
+                        <Text as="span" variant="footnote" weight={current ? "medium" : "regular"} truncate className={styles.title}>
+                          {conversation.title}
+                        </Text>
+                      </button>
+                      <span className={styles.menu}>
+                        <DropdownMenu
+                          label={"Ações de " + conversation.title}
+                          triggerLabel={"Abrir ações de " + conversation.title}
+                          sections={menuOf(conversation)}
+                          size="sm"
+                          searchable={false}
+                        />
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))
         )}
-      </div>
+      </nav>
 
-      {/* O saldo do ciclo no pé, onde mora o rodapé de toda trilha: a régua em dez degraus, a mesma do topo
-          da página e da janela do uso, e o clique abre o resumo com a data em que o ciclo vira. */}
       {usage && (
         <footer className={styles.foot}>
           <button type="button" className={styles.usage} onClick={() => setUsageOpen(true)} {...rounded("md")}>
@@ -185,7 +174,7 @@ export function AiHistory({ onPick }: AiHistoryProps) {
               <Text as="span" variant="caption2" tone="secondary">
                 Uso da IA
               </Text>
-              <Text as="span" variant="caption2" tone="secondary">
+              <Text as="span" variant="caption2" tone="secondary" numeric>
                 {aiRemaining(usage)} restantes
               </Text>
             </span>
@@ -201,6 +190,34 @@ export function AiHistory({ onPick }: AiHistoryProps) {
           <AiUsageDialog usage={usage} open={usageOpen} onClose={() => setUsageOpen(false)} />
         </footer>
       )}
+
+      <NameDialog
+        open={renaming !== null}
+        onClose={() => setRenaming(null)}
+        title="Renomear conversa"
+        label="Nome da conversa"
+        initialValue={renaming?.title ?? ""}
+        maxLength={80}
+        confirmLabel="Salvar"
+        onSubmit={(title) => {
+          if (renaming) panel.rename(renaming.id, title);
+          setRenaming(null);
+          return Promise.resolve(undefined);
+        }}
+      />
+
+      <ConfirmDialog
+        open={removing !== null}
+        title="Excluir esta conversa?"
+        description={removing ? `"${removing.title}" sai do histórico e não tem volta.` : ""}
+        confirmLabel="Excluir"
+        tone="danger"
+        onClose={() => setRemoving(null)}
+        onConfirm={() => {
+          if (removing) panel.remove(removing.id);
+          setRemoving(null);
+        }}
+      />
     </div>
   );
 }

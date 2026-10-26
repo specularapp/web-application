@@ -1,0 +1,88 @@
+.dialog {
+  display: grid;
+  flex: 1;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .list {
+    padding: var(--space-3) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+.option {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-3);
+  color: var(--color-label);
+  text-decoration: none;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.option[data-blank] {
+  border-style: dashed;
+}
+
+@media (hover: hover) {
+  .option:hover {
+    background-color: var(--color-fill-quaternary);
+    border-color: var(--color-separator);
+  }
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--hue);
+  background-color: light-dark(color-mix(in oklab, var(--hue) 14%, transparent), color-mix(in oklab, var(--hue) 22%, transparent));
+  border-radius: var(--radius-md);
+}
+
+.glyph svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.copy strong {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+}
+
+.copy small {
+  font-size: var(--text-caption-1);
+  line-height: var(--leading-normal);
+  color: var(--color-label-secondary);
+}

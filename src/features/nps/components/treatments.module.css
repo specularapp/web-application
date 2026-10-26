@@ -1,0 +1,251 @@
+.board {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-5);
+}
+
+@media (max-width: 47.9375rem) {
+  .board {
+    grid-template-rows: auto auto;
+    padding: var(--space-3) var(--space-3) var(--floating-bar-inset);
+  }
+}
+
+.list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* O quadro: uma coluna por situação, rolando de lado dentro do próprio container. */
+.columns {
+  display: grid;
+  grid-auto-columns: minmax(16rem, 18rem);
+  grid-auto-flow: column;
+  gap: var(--space-3);
+  align-items: start;
+  min-height: 0;
+  padding: 0 0 var(--space-2);
+  margin: 0;
+  overflow: auto;
+  list-style: none;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 47.9375rem) {
+  .columns {
+    grid-auto-columns: minmax(15rem, 85%);
+    scroll-snap-type: x mandatory;
+  }
+
+  .column {
+    scroll-snap-align: start;
+  }
+}
+
+.column {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 0;
+  max-height: 100%;
+  padding: var(--space-2);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-xl);
+}
+
+.columnHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1);
+}
+
+.stagePill {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  color: color-mix(in oklab, var(--tone) 70%, var(--color-label));
+  background-color: color-mix(in oklab, var(--tone) 14%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.stagePill b {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--tone);
+  border-radius: var(--radius-full);
+}
+
+.columnHint {
+  padding-inline: var(--space-1);
+}
+
+.cards {
+  display: grid;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.columnEmpty {
+  padding: var(--space-4) var(--space-2);
+  font-size: var(--text-footnote);
+  color: var(--color-label-tertiary);
+  text-align: center;
+  border: 0.0375rem dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cardText strong {
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.cardComment {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  line-height: var(--leading-normal);
+  color: var(--color-label-secondary);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cardFoot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding-block-start: var(--space-2);
+  border-block-start: 0.0375rem dashed var(--color-border);
+}
+
+.owner {
+  display: inline-flex;
+  flex: 1;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.owner > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.age {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+  white-space: nowrap;
+}
+
+.sla {
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  white-space: nowrap;
+}
+
+.sla[data-tone="danger"] {
+  color: var(--color-danger);
+}
+
+.sla[data-tone="warning"] {
+  color: color-mix(in oklab, var(--sys-orange) 75%, var(--color-label));
+}
+
+.sla[data-tone="info"] {
+  color: color-mix(in oklab, var(--sys-blue) 75%, var(--color-label));
+}
+
+/* O atendimento aberto pelo quadro: a conversa e a ficha lado a lado na tela larga. */
+.workspace {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.workspace[data-side] {
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+}
+
+@media (max-width: 47.9375rem) {
+  .workspace {
+    height: 80dvh;
+  }
+}
+
+.workspaceProfile {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.workspace[data-side] .workspaceProfile {
+  border-inline-start: 0.0375rem solid var(--color-border);
+}
+
+.profileBack {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 0.0375rem solid var(--color-border);
+}
+
+.dialogTools {
+  display: inline-flex;
+  flex-shrink: 0;
+}
