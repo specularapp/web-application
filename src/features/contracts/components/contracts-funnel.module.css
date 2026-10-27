@@ -1,0 +1,156 @@
+/*
+ * O funil de contratos, no desenho do funil de orçamentos (`quotes-funnel.module.css`) e das colunas do quadro
+ * de tarefas e do funil de vendas: o trilho que rola para o lado, cada coluna no véu da cor da etapa, medindo
+ * o que tem, com a etiqueta da etapa no topo e os cartões rolando por dentro.
+ */
+.rail {
+  --mobile-column: min(19rem, calc(100% - var(--space-8) - var(--space-3) * 2));
+
+  display: flex;
+  gap: var(--space-4);
+  align-items: stretch;
+  min-height: 0;
+  margin-inline: calc(var(--space-4) * -1);
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-2);
+  overflow-x: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 48rem) {
+  .rail {
+    margin-inline: calc(var(--space-6) * -1);
+    padding-inline: var(--space-6);
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  .rail {
+    scroll-snap-type: x mandatory;
+  }
+}
+
+.column {
+  --column-width: 19rem;
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: var(--column-width);
+  min-width: var(--column-width);
+  max-height: 100%;
+  min-height: 0;
+  padding: var(--space-2);
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 4%, transparent),
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 11%, transparent)
+  );
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 47.9375rem) {
+  .column {
+    --column-width: var(--mobile-column);
+
+    scroll-snap-align: center;
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* A etiqueta da etapa: glifo, nome e contagem numa pílula só, tingida pelo matiz da etapa, nas contas do
+   `Badge` suave da casa. */
+.stage {
+  --stage-ink: color-mix(in oklab, var(--stage-hue) 70%, var(--color-label));
+
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-1);
+  padding-inline-start: var(--space-3);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue) 9%, transparent),
+    color-mix(in oklab, var(--stage-hue) 12%, transparent)
+  );
+  border-radius: var(--radius-md);
+}
+
+.glyph {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--stage-ink);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: var(--space-1);
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue) 20%, transparent),
+    color-mix(in oklab, var(--stage-hue) 26%, transparent)
+  );
+  border-radius: var(--radius-sm);
+}
+
+/* O dinheiro da etapa, na mesma linha do nome: é medida, e não etiqueta, então fica em texto apagado. */
+.total {
+  flex-shrink: 0;
+  padding-inline-end: var(--space-2);
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.body {
+  min-height: 0;
+  padding-inline-end: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-footnote);
+  color: color-mix(in oklab, var(--stage-hue) 60%, var(--color-label-tertiary));
+}

@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  ArrowLeftIcon,
   ArrowUUpLeftIcon,
   ArrowUUpRightIcon,
   BuildingsIcon,
   CalendarBlankIcon,
   CaretDownIcon,
+  CheckIcon,
   CopyIcon,
   CurrencyCircleDollarIcon,
   DownloadSimpleIcon,
@@ -15,7 +15,6 @@ import {
   ListNumbersIcon,
   ListPlusIcon,
   MinusIcon,
-  PaperPlaneTiltIcon,
   PlusCircleIcon,
   QuotesIcon,
   SlidersHorizontalIcon,
@@ -39,10 +38,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { Route } from "next";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
@@ -57,12 +53,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip } from "@/components/ui/tooltip";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { callAction } from "@/lib/action";
 import { onlyDigits } from "@/lib/masks";
+import { docFromEditor } from "@/lib/rich-doc";
 import { cx } from "@/lib/utils/cx";
 import { formatMoney } from "@/lib/utils/format";
-import { rewriteTextAction, saveContractAction, sendContractAction } from "../actions";
+import { rewriteTextAction, saveContractAction } from "../actions";
 import { ContractSignatures } from "../document";
 import docStyles from "../document.module.css";
 import { contractKinds } from "../labels";
@@ -78,6 +76,12 @@ export type ContractEditorProps = {
   lookups: ContractLookups;
   /** Se a reescrita por IA está configurada: sem ela o grupo nem aparece. */
   aiAvailable: boolean;
+  /** Sair do editor depois de salvar o que faltava: a janela fecha e a lista volta. */
+  onLeave: () => void;
+  /** Criar: o rascunho foi salvo inteiro, e quem abriu o editor mostra a ficha dele, de onde sai o envio. */
+  onCreated: (contract: Contract) => void;
+  /** Onde o editor deixa o próprio sair, para o Escape e o toque fora da janela salvarem antes de fechar. */
+  closeRef?: RefObject<(() => void) | null>;
 };
 
 /** Quanto o editor espera a pessoa parar de mexer antes de salvar o rascunho. */
@@ -137,9 +141,9 @@ function setupOf(contract: Contract): Setup {
 // contrato e o estilo), porque a pedido do usuário no mesmo dia a coluna da direita saiu e a barra ficou mais
 // fluida. No PDF anexado a coluna da direita continua, com os campos de assinatura, porque ali ela é a lista
 // do trabalho. Abaixo de 64rem a ficha vira gaveta aberta por glifo na barra. Tudo salva sozinho depois de
-// uma pausa, e a barra diz quando; Enviar salva e manda o convite às duas partes.
-export function ContractEditor({ contract, lookups, aiAvailable }: ContractEditorProps) {
-  const router = useRouter();
+// uma pausa, e a barra diz quando; Criar salva tudo e abre a ficha, de onde o convite sai para as partes. Mora numa janela grande
+// sobre a lista (2026-10-26, a pedido: "abrir em modal grande também"), e sair dela salva o que faltava.
+export function ContractEditor({ contract, lookups, aiAvailable, onLeave, onCreated, closeRef }: ContractEditorProps) {
   const { toast } = useToast();
   const mobile = useMediaQuery(MOBILE_QUERY);
   const panelsInline = useMediaQuery(PANELS_QUERY);
@@ -149,8 +153,7 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
   const [parties, setParties] = useState<ContractParty[]>(contract.parties);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   // O que mudou desde o último salvamento: cada mexida soma um, e o efeito de salvar espera a pausa.
@@ -181,6 +184,8 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
   const payloadRef = useRef(payload);
   const versionRef = useRef(version);
   const savedVersionRef = useRef(0);
+  /* O contrato como o servidor o devolveu no último salvamento: é o que a ficha abre depois de criar. */
+  const savedRef = useRef<Contract>(contract);
   const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
   useEffect(() => {
     payloadRef.current = payload;
@@ -201,11 +206,11 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
             return false;
           }
           savedVersionRef.current = targetVersion;
+          savedRef.current = result.contract;
           setParties(result.contract.parties);
           required = savedVersionRef.current < versionRef.current;
         }
         setSaveState("saved");
-        setSavedAt(format(new Date(), "HH:mm"));
         return true;
       });
       saveQueueRef.current = queued;
@@ -238,42 +243,40 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
     touch();
   };
 
-  const send = async () => {
-    setSending(true);
+  /* Criar (2026-10-26, a pedido: "ao invés de enviar para assinatura, criar"): salva tudo e abre a ficha do
+     contrato, que é onde ele é revisado e enviado para as partes assinarem. */
+  const create = async () => {
+    setCreating(true);
     const saved = await save(true);
-    if (!saved) {
-      setSending(false);
-      return;
-    }
-    const result = await callAction(sendContractAction({ id: contract.id }));
-    setSending(false);
-    if (!result.ok) {
-      toast({ title: "Não deu para enviar", description: result.error, tone: "danger" });
-      return;
-    }
-    toast({
-      title: result.emailed ? "Convite enviado" : "Convite registrado",
-      description: result.emailed ? "As duas partes receberam o link de assinatura por e-mail." : "O e-mail não saiu neste ambiente. Copie o link de cada parte na ficha do contrato.",
-      tone: result.emailed ? "success" : "warning",
-    });
-    router.push(`/contratos/${contract.id}` as Route);
+    setCreating(false);
+    if (!saved) return;
+    toast({ title: "Contrato criado", description: "Revise na ficha e envie para assinatura quando estiver pronto.", tone: "success" });
+    onCreated(savedRef.current);
   };
 
-  const leave = async (path: Route) => {
-    if (sending) return;
+  const leave = useCallback(async () => {
+    if (creating) return;
     const saved = await save();
-    if (saved) router.push(path);
-  };
+    if (saved) onLeave();
+  }, [creating, save, onLeave]);
+
+  useEffect(() => {
+    if (!closeRef) return;
+    closeRef.current = () => void leave();
+    return () => {
+      closeRef.current = null;
+    };
+  }, [closeRef, leave]);
 
   useFloatingActionsRegistration(
     mobile
       ? {
-          primary: { label: sending ? "Enviando" : "Enviar", icon: <PaperPlaneTiltIcon weight="bold" />, loading: sending, onClick: () => void send() },
+          primary: { label: creating ? "Criando" : "Criar", icon: <CheckIcon weight="bold" />, loading: creating, onClick: () => void create() },
           extras: [
             { label: "Ajustes do contrato", icon: <SlidersHorizontalIcon weight="bold" />, onClick: () => setSetupOpen(true) },
             ...(isPdf ? [{ label: "Campos de assinatura", icon: <TextAaIcon weight="bold" />, onClick: () => setToolsOpen(true) }] : []),
           ],
-          cancel: { label: "Voltar ao contrato", onClick: () => void leave(`/contratos/${contract.id}` as Route) },
+          cancel: { label: "Fechar editor", onClick: () => void leave() },
         }
       : null,
   );
@@ -361,31 +364,18 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
     />
   );
 
-  const saveLabel = saveState === "saving" ? "Salvando" : saveState === "error" ? "Não salvou" : saveState === "saved" && savedAt ? `Salvo às ${savedAt}` : "Rascunho";
+  const saveLabel = saveState === "saving" ? "Salvando" : saveState === "error" ? "Não salvou" : "";
 
   return (
     <div className={styles.editor}>
       <header className={styles.bar}>
-        <IconButton label="Voltar ao contrato" variant="ghost" size="sm" onClick={() => void leave(`/contratos/${contract.id}` as Route)}>
-          <ArrowLeftIcon />
-        </IconButton>
-        <nav className={styles.crumbs} aria-label="Onde o contrato mora">
-          <Link href="/contratos" className={styles.crumb} onClick={(event) => {
-            event.preventDefault();
-            void leave("/contratos" as Route);
-          }}>
-            Contratos
-          </Link>
-          <span className={styles.slash} aria-hidden="true">
-            /
-          </span>
-          <Text as="span" variant="footnote" weight="semibold" truncate>
-            {setup.title || "Contrato sem título"}
-          </Text>
+        {/* Na janela o topo é só o código (2026-10-26, a pedido): o título e a situação já estão na ficha e na
+            folha, e a rota até aqui é a lista que está atrás. O salvamento só fala enquanto acontece ou falha. */}
+        <div className={styles.crumbs}>
           <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {contract.reference}
           </Badge>
-        </nav>
+        </div>
         <Text as="span" variant="caption1" tone={saveState === "error" ? "danger" : "secondary"} className={styles.saveState} role="status">
           {saveLabel}
         </Text>
@@ -402,19 +392,25 @@ export function ContractEditor({ contract, lookups, aiAvailable }: ContractEdito
               )}
             </>
           )}
-          <IconButton label="Baixar PDF" variant="outline" size="sm" radius="md" href={`/api/contratos/${contract.id}/pdf`}>
-            <DownloadSimpleIcon />
-          </IconButton>
           <span className={styles.wide}>
-            <Button size="sm" radius="md" iconStart={<PaperPlaneTiltIcon />} loading={sending} onClick={() => void send()}>
-              {sending ? "Enviando" : "Enviar para assinatura"}
+            <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={creating} onClick={() => void create()}>
+              {creating ? "Criando" : "Criar"}
             </Button>
           </span>
           <span className={styles.narrow}>
-            <IconButton label="Enviar para assinatura" size="sm" radius="md" loading={sending} onClick={() => void send()}>
-              <PaperPlaneTiltIcon />
+            <IconButton label="Criar contrato" size="sm" radius="md" loading={creating} onClick={() => void create()}>
+              <CheckIcon />
             </IconButton>
           </span>
+          {/* Baixar mora ao lado do fechar (2026-10-26, a pedido), como copiar o link no editor de orçamento. */}
+          <Tooltip content="Baixar PDF">
+            <IconButton label="Baixar PDF" variant="ghost" size="sm" href={`/api/contratos/${contract.id}/pdf`}>
+              <DownloadSimpleIcon />
+            </IconButton>
+          </Tooltip>
+          <IconButton label="Fechar editor" variant="ghost" size="sm" onClick={() => void leave()}>
+            <XIcon />
+          </IconButton>
         </div>
       </header>
 
@@ -548,7 +544,7 @@ function BodyWorkspace({ contract, parties, theme, facts, aiAvailable, onTheme, 
     ],
     content: contract.body ?? undefined,
     editorProps: { attributes: { class: docStyles.body, "aria-label": "Texto do contrato" } },
-    onUpdate: ({ editor: instance }) => onBody(instance.getJSON() as unknown as DocNode),
+    onUpdate: ({ editor: instance }) => onBody(docFromEditor(instance.getJSON())),
   });
 
   const editorState = useEditorState({

@@ -29,6 +29,8 @@ import {
   ArrowCounterClockwiseIcon,
   FunnelIcon,
   HourglassIcon,
+  KanbanIcon,
+  ListBulletsIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
@@ -49,7 +51,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { saveCrmStageOverrides, type CrmStageOverrides } from "../board-cookie";
 import {
   DEFAULT_CRM_SORT,
   HORIZON_PARAM,
@@ -71,9 +72,11 @@ import {
 import { crmStageValues, type CrmStage, stageKind } from "../stages";
 import type { CrmClientOption, CrmPerson, Opportunity } from "../summary";
 import type { CrmFunnel } from "../tree";
+import { saveCrmView, type CrmView } from "../view-cookie";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { deleteOpportunityAction } from "../actions";
+import { OpportunitiesTable } from "./opportunities-table";
 import { OpportunityCard } from "./opportunity-card";
 import { OpportunityColumn } from "./opportunity-column";
 import { OpportunityDialog } from "./opportunity-dialog";
@@ -83,8 +86,6 @@ import { callAction } from "@/lib/action";
 export type CrmBoardProps = {
   board: CrmBoardData;
   query: CrmQuery;
-  /** O que o cookie guardou de decidido em cada etapa, para o quadro nascer do jeito que a pessoa deixou. */
-  collapsed: CrmStageOverrides;
   /** Onde o filtro é escrito: `/crm`, ou `/crm/<slug>` na página de um funil. */
   basePath: string;
   /** Quem pode assumir uma venda, para os seletores da ficha. */
@@ -93,7 +94,15 @@ export type CrmBoardProps = {
   funnels: CrmFunnel[];
   /** O funil deste quadro; ausente no quadro de todas e no balde, que não têm etapas próprias. */
   funnelId?: string;
+  /** O jeito de ver que o cookie guardou: o quadro de etapas ou a tabela. */
+  view: CrmView;
 };
+
+
+const viewOptions = [
+  { value: "quadro", label: "Ver em quadro", icon: <KanbanIcon /> },
+  { value: "tabela", label: "Ver em tabela", icon: <ListBulletsIcon /> },
+];
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
@@ -173,14 +182,15 @@ export function CrmBoard(props: CrmBoardProps) {
 function CrmBoardContent({
   board,
   query,
-  collapsed: saved,
   basePath,
   team = [],
   clients,
   funnels,
   funnelId,
+  view: savedView,
 }: CrmBoardProps) {
   const crmStageMeta = useCrmStages();
+  const [view, setView] = useState<CrmView>(savedView);
   const [managingStages, setManagingStages] = useState(false);
   const currentFunnel = funnels.find((entry) => entry.id === funnelId);
   const dragContextId = useId();
@@ -203,7 +213,10 @@ function CrmBoardContent({
     setSeen(query);
     setLive(query);
   }
-  const [overrides, setOverrides] = useState<CrmStageOverrides>(saved);
+  /* As etapas recolhidas na visita. Começa vazio a cada entrada, porque o funil abre sempre com todas à
+     vista (2026-10-26, a pedido): guardar a escolha em cookie fazia a etapa vazia ou recolhida antes
+     esconder o caminho inteiro de quem chegava. */
+  const [overrides, setOverrides] = useState<Partial<Record<CrmStage, boolean>>>({});
   const [sorts, setSorts] =
     useState<Record<CrmStage, CrmColumnSort>>(initialSorts);
   const [open, setOpen] = useState<Opportunity | null>(null);
@@ -327,12 +340,15 @@ function CrmBoardContent({
       title: "Oportunidade excluída",
       description: `${target.title} saiu do funil.`,
       tone: "success",
+      feedback: false,
     });
   };
 
   /** No celular o cartão não se arrasta: a coluna ocupa quase a tela inteira e o trilho rola na horizontal,
    *  então o mesmo gesto serviria para as duas coisas. Quem move ali é a ficha e o "Mover para" do leque. */
   const mobile = useMediaQuery(MOBILE_QUERY);
+  /* A tabela é coisa de desktop, como nas outras listas da casa: no celular vale sempre o quadro. */
+  const asTable = view === "tabela" && !mobile;
   /** Para onde cada oportunidade foi arrastada, por id. É um mapa de destinos, e não uma cópia da lista: o
    *  quadro em si continua vindo do servidor a cada filtro. Vale só na tela enquanto não há tabela. */
   const [moved, setMoved] = useState<Record<string, CrmStage>>({});
@@ -386,16 +402,10 @@ function CrmBoardContent({
     );
   };
 
-  /** Etapa vazia nasce fechada: numa lista de sete etapas, as que não têm nada só empurrariam as que têm
-   *  para fora da vista. O que a pessoa decide no clique vale mais que o padrão e vai para o cookie. */
-  const isCollapsed = (stage: CrmStage, count: number) =>
-    overrides[stage] ?? count === 0;
+  const isCollapsed = (stage: CrmStage) => overrides[stage] ?? false;
 
-  const changeCollapsed = (stage: CrmStage, on: boolean) => {
-    const next = { ...overrides, [stage]: on };
-    setOverrides(next);
-    saveCrmStageOverrides(next);
-  };
+  const changeCollapsed = (stage: CrmStage, on: boolean) =>
+    setOverrides((current) => ({ ...current, [stage]: on }));
 
   const changeSort = (stage: CrmStage, sort: CrmColumnSort) =>
     setSorts((current) => ({ ...current, [stage]: sort }));
@@ -453,6 +463,16 @@ function CrmBoardContent({
     }));
   }, [board.columns, moved, hidden, savedOpportunities, currentFunnel]);
 
+  /* As linhas da tabela são as mesmas oportunidades do quadro, já com os destinos do arraste aplicados: a etapa
+     de cada uma é a da coluna em que ela está. */
+  const tableRows = useMemo(
+    () =>
+      columns.flatMap((column) =>
+        column.opportunities.map((item) => (item.stage === column.stage ? item : { ...item, stage: column.stage })),
+      ),
+    [columns],
+  );
+
   /** Qual coluna está centrada, lida da rolagem do próprio trilho: a barra mostra "3/7" e as setas andam a
    *  partir dali. Só no celular: acima disso o trilho mostra várias colunas de uma vez. */
   useEffect(() => {
@@ -505,9 +525,6 @@ function CrmBoardContent({
     setLanding(over && over !== dragging?.from ? over : null);
   };
 
-  const countOf = (stage: CrmStage) =>
-    columns.find((column) => column.stage === stage)?.opportunities.length ?? 0;
-
   /** Levar uma oportunidade para outra etapa, venha o pedido de onde vier: do arraste, do leque do cartão ou
    *  da ficha. Fica num lugar só porque a etapa de destino recolhida precisa abrir nos três casos. */
   const pendingMoves = useRef(new Set<string>());
@@ -530,11 +547,7 @@ function CrmBoardContent({
     }
     pendingMoves.current.add(opportunity.id);
     setMoved((current) => ({ ...current, [opportunity.id]: to }));
-    if (
-      overrides[to] === true ||
-      (overrides[to] === undefined && countOf(to) === 0)
-    )
-      changeCollapsed(to, false);
+    if (overrides[to]) changeCollapsed(to, false);
     const result = await callAction(
       moveOpportunityAction({ id: opportunity.id, stage: to }),
     );
@@ -680,6 +693,16 @@ function CrmBoardContent({
           icon: filter.icon,
           onClear: () => go(filter.clear),
         }))}
+        view={{
+          value: view,
+          options: viewOptions,
+          onChange: (next) => {
+            const chosen: CrmView = next === "tabela" ? "tabela" : "quadro";
+            setView(chosen);
+            saveCrmView(chosen);
+          },
+          label: "Jeito de ver o funil",
+        }}
         action={
           <>
             <span className={styles.wide}>
@@ -753,6 +776,18 @@ function CrmBoardContent({
             </Button>
           )}
         </EmptyState>
+      ) : asTable ? (
+        <div className={styles.table}>
+          <OpportunitiesTable
+            opportunities={tableRows}
+            onOpen={openOpportunity}
+            stages={board.columns.map((column) => column.stage)}
+            onMove={(opportunity, to) => void moveOpportunity(opportunity, to, opportunity.stage)}
+            onDelete={setDeleting}
+            showFunnel={!funnelId}
+            filterKey={JSON.stringify(query)}
+          />
+        </div>
       ) : (
         <DndContext
           id={dragContextId}
@@ -782,10 +817,7 @@ function CrmBoardContent({
                   column.opportunities,
                   sorts[column.stage] ?? DEFAULT_CRM_SORT,
                 )}
-                collapsed={isCollapsed(
-                  column.stage,
-                  column.opportunities.length,
-                )}
+                collapsed={isCollapsed(column.stage)}
                 onCollapsedChange={(on) => changeCollapsed(column.stage, on)}
                 sort={sorts[column.stage] ?? DEFAULT_CRM_SORT}
                 onSortChange={(sort) => changeSort(column.stage, sort)}

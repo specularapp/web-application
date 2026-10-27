@@ -1,17 +1,17 @@
 import { Topbar } from "@/components/layout/topbar";
 import type { AiUsage } from "@/features/ai/summary";
-import type { CrmStageOverrides } from "../board-cookie";
 import type { CrmBoardData, CrmQuery } from "../list-options";
 import type { CrmClientOption, CrmPerson } from "../summary";
 import type { CrmFunnel } from "../tree";
+import type { CrmView } from "../view-cookie";
 import { CrmBoard } from "./crm-board";
 import styles from "./crm-screen.module.css";
 
 export type CrmScreenProps = {
   board: CrmBoardData;
   query: CrmQuery;
-  /** O que o cookie guardou de decidido em cada etapa: recolhida, aberta, ou ausente para o padrão dela. */
-  collapsed: CrmStageOverrides;
+  /** O jeito de ver que o cookie guardou: o quadro de etapas ou a tabela. */
+  view: CrmView;
   ai: AiUsage;
   /** O nome do quadro no topo, quando não é o do menu: o do funil, na página dele. */
   title?: string;
@@ -29,11 +29,11 @@ export type CrmScreenProps = {
 // prancha com a busca e o quadro, essa sim com o recuo da tela. Server Component: quem tem estado é a
 // prancha. Serve o quadro de todas as oportunidades e o de um funil, que é a mesma tela com outra lista,
 // outras etapas e outro nome no topo.
-export function CrmScreen({ board, query, collapsed, ai, title, basePath, team, clients, funnels, funnelId }: CrmScreenProps) {
+export function CrmScreen({ board, query, view, ai, title, basePath, team, clients, funnels, funnelId }: CrmScreenProps) {
   return (
     <div className={styles.screen}>
       <Topbar ai={ai} title={title} />
-      <CrmBoard board={board} query={query} collapsed={collapsed} basePath={basePath} team={team} clients={clients} funnels={funnels} funnelId={funnelId} />
+      <CrmBoard board={board} query={query} view={view} basePath={basePath} team={team} clients={clients} funnels={funnels} funnelId={funnelId} />
     </div>
   );
 }

@@ -150,6 +150,29 @@
   --color-whatsapp: #25d366;
   --color-on-whatsapp: #ffffff;
 
+  /* As cores da conversa no WhatsApp (2026-10-26, a pedido de a prévia da oportunidade ser igual ao chat do
+     lead da pousada): o fundo da conversa, os balões de cada autor e o tique de lida, nos mesmos valores de lá. */
+  --chat-bg: light-dark(#f4f4f7, #0d0d0f);
+  --chat-tone-contact: light-dark(#ffffff, #1f1f22);
+  --chat-tone-agent: light-dark(#dcecff, #16314f);
+  --chat-tone-template: light-dark(#ddf5e3, #183823);
+  --chat-tick-read: light-dark(#1f8fe0, #53bdeb);
+  --chat-bubble-shadow: 0 0.0625rem 0.0625rem rgb(0 0 0 / 0.06);
+
+  /* A ficha da oportunidade no desenho da ficha do lead da pousada (2026-10-26, a pedido): o cabeçalho num
+     cinza-escuro único nos dois temas, com tinta branca, e a cor de cada aba quando escolhida. */
+  --profile-head-bg: light-dark(#1f2326, #25272b);
+  --profile-head-ink: #ffffff;
+  --profile-tab-main: light-dark(#2563eb, #64a8ff);
+  --profile-tab-tracking: light-dark(#7c3aed, #b794ff);
+  --profile-tab-summary: light-dark(#c2410c, #ff9f5a);
+
+  /* O cabeçalho da janela dupla de criar e editar (2026-10-26, a pedido: no claro o cinza-escuro pesava): o
+     da ficha da oportunidade no escuro, e no claro um cinza levíssimo com tinta escura, para as abas de pasta
+     seguirem emendando no corpo sem a faixa escura em cima. */
+  --form-head-bg: light-dark(#f3f3f5, #25272b);
+  --form-head-ink: light-dark(#1d1d1f, #ffffff);
+
   /* A cor da IA (2026-09-14): um azul calmo, mais lavado e mais frio que o azul de acento, que é o da ação e
      não podia virar marca de outra coisa. É ela que veste a marca da casa dentro do assistente, o cursor da
      resposta e o brilho que sobe do pé da coluna. Mais fechada no claro e mais aberta no escuro, como toda

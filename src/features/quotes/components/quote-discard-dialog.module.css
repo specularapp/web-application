@@ -14,12 +14,18 @@
   max-width: 24rem;
 }
 
-/* Os três botões em coluna, e não em duas colunas como na exclusão: são três saídas, e lado a lado a terceira
-   sobraria numa linha só ou os nomes cederiam por reticências. */
+/* As três saídas numa linha (2026-10-26, a pedido): salvar com o nome toma a largura, e continuar editando e
+   sair sem salvar ficam só no glifo, na medida do botão. */
 .actions {
-  display: grid;
+  display: flex;
   gap: var(--space-2);
+  align-items: center;
   width: 100%;
+}
+
+.save {
+  flex: 1;
+  min-width: 0;
 }
 
 /* No celular a bandeja leva a folga da barra flutuante embaixo, a regra da casa para toda janela com ações

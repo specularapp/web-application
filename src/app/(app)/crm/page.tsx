@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { getAiUsageData } from "@/features/ai/queries";
 import { CrmScreen } from "@/features/crm/components/crm-screen";
-import { CRM_STAGES_COOKIE, buildCrmBoard, parseCrmQuery, parseCrmStageOverrides } from "@/features/crm/list";
+import { CRM_VIEW_COOKIE, buildCrmBoard, parseCrmQuery, parseCrmView } from "@/features/crm/list";
 import { loadCrmScreenData } from "@/features/crm/queries";
 import { crmStagesInUse } from "@/features/crm/tree";
 import { createMetadata } from "@/lib/metadata";
@@ -15,7 +15,7 @@ export const metadata = createMetadata({
 
 export default async function CrmPage({ searchParams }: PageProps<"/crm">) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
-  const collapsed = parseCrmStageOverrides(cookieStore.get(CRM_STAGES_COOKIE)?.value);
+  const view = parseCrmView(cookieStore.get(CRM_VIEW_COOKIE)?.value);
   const query = parseCrmQuery({
     busca: first(params.busca),
     temperatura: first(params.temperatura),
@@ -29,5 +29,5 @@ export default async function CrmPage({ searchParams }: PageProps<"/crm">) {
   // diferentes, e cada funil tem as etapas dele.
   const board = buildCrmBoard(data.opportunities, query, crmStagesInUse(data.opportunities, data.funnels));
 
-  return <CrmScreen board={board} query={query} collapsed={collapsed} ai={ai} basePath="/crm" team={data.team} clients={data.clients} funnels={data.funnels} />;
+  return <CrmScreen board={board} query={query} view={view} ai={ai} basePath="/crm" team={data.team} clients={data.clients} funnels={data.funnels} />;
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, ListBulletsIcon, PlusIcon, ReceiptIcon, SquaresFourIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, KanbanIcon, ListBulletsIcon, PlusIcon, ReceiptIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloatingPagerRegistration } from "@/components/layout/floating-actions";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -17,8 +18,7 @@ import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
 import { quoteStatuses } from "../labels";
 import {
-  GRID_PER_PAGE_DEFAULT,
-  MOBILE_PER_PAGE,
+  FUNNEL_PER_PAGE,
   PAGE_PARAM,
   PAGE_SIZE_PARAM,
   PERIOD_PARAM,
@@ -28,7 +28,6 @@ import {
   activeQuotesFilters,
   clearedFilters,
   defaultQuery,
-  gridPageSize,
   periodOptions,
   statusFilterLabels,
   statusFilterValues,
@@ -36,8 +35,9 @@ import {
   type QuotesQuery,
 } from "../list-options";
 import type { Quote } from "../summary";
-import { saveQuotesGridSize, saveQuotesView, type QuotesView } from "../view-cookie";
-import { QuoteCard } from "./quote-card";
+import { saveQuotesView, type QuotesView } from "../view-cookie";
+import { QuoteEditor, type QuoteEditorProps, type QuotePrefill } from "./quote-editor";
+import { QuotesFunnel } from "./quotes-funnel";
 import { QuotesTable } from "./quotes-table";
 import styles from "./quotes-board.module.css";
 
@@ -46,7 +46,26 @@ export type QuotesBoardProps = {
   query: QuotesQuery;
   /** O jeito de ver que o cookie guardou: tabela ou grade de cartões. */
   view: QuotesView;
+  /** O que o editor precisa para gerar um orçamento na janela, sem sair da lista. */
+  editor: QuoteEditorData;
+  /** A janela de gerar já aberta, quando a URL é `/orcamentos/novo`. */
+  creating?: boolean;
+  /** A janela de editar já aberta neste orçamento, quando a URL é `/orcamentos/<id>`. */
+  editing?: Quote;
+  /** O que chega preenchido de outra tela (`?item=` do catálogo, `?cliente=` da base de clientes). */
+  prefill?: QuotePrefill;
 };
+
+export type QuoteEditorData = {
+  clients: QuoteEditorProps["clients"];
+  catalog: QuoteEditorProps["catalog"];
+  issuer: QuoteEditorProps["issuer"];
+  owner: QuoteEditorProps["owner"];
+  nextNumber: string;
+};
+
+const LIST_PATH = "/orcamentos";
+const NEW_PATH = "/orcamentos/novo";
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
 const TYPING_PAUSE = 320;
@@ -59,7 +78,7 @@ const numberFormat = new Intl.NumberFormat("pt-BR");
 /* Os dois jeitos de ver a mesma lista, no seletor da barra: a tabela primeiro, porque é o padrão daqui. */
 const viewOptions = [
   { value: "tabela", label: "Ver em tabela", icon: <ListBulletsIcon /> },
-  { value: "grade", label: "Ver em grade", icon: <SquaresFourIcon /> },
+  { value: "grade", label: "Ver em funil", icon: <KanbanIcon /> },
 ];
 
 // A prancha de orçamentos: a barra de busca e filtros em cima, a tabela ou a grade de cartões tomando o resto
@@ -69,8 +88,46 @@ const viewOptions = [
 // quem faz o trabalho é o servidor; aqui ficam a espera do campo de busca, o filtro adiantado, o jeito de ver,
 // o tamanho da página da grade e o orçamento aberto no editor, que tem endereço (`/orcamentos/novo`,
 // `/orcamentos/<id>`) como a ficha do cliente. Trocar qualquer filtro leva de volta para a primeira página.
-export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
+export function QuotesBoard({ page, query, view: saved, editor, creating = false, editing, prefill }: QuotesBoardProps) {
   const router = useRouter();
+  /* Gerar e editar abrem o editor numa janela longa sobre a lista (2026-10-26, a pedido: primeiro o gerar, "ao
+     invés de abrir página, um modal longo no mesmo padrão da edição", e depois o editar, "igual a parte de criar
+     novo"), na receita da ficha do cliente: a URL vira `/orcamentos/novo` ou `/orcamentos/<id>` por `pushState`,
+     que o roteador acompanha sem refazer nada no servidor, e o voltar do navegador fecha pelo `popstate`. Aberta
+     direto, a URL cai nas páginas de novo e do orçamento, que montam a mesma lista com a janela já aberta. */
+  const routeTarget: Quote | "new" | null = editing ?? (creating ? "new" : null);
+  const routeKey = routeTarget === "new" ? "novo" : (routeTarget?.id ?? "");
+  const [target, setTarget] = useState<Quote | "new" | null>(routeTarget);
+  const [seenRoute, setSeenRoute] = useState(routeKey);
+  if (seenRoute !== routeKey) {
+    setSeenRoute(routeKey);
+    setTarget(routeTarget);
+  }
+  const closeEditorRef = useRef<(() => void) | null>(null);
+
+  const pathOf = (next: Quote | "new" | null) => (next === null ? LIST_PATH : next === "new" ? NEW_PATH : `${LIST_PATH}/${next.id}`);
+
+  const showEditor = useCallback((next: Quote | "new" | null) => {
+    setTarget(next);
+    window.history.pushState(null, "", `${pathOf(next)}${window.location.search}`);
+  }, []);
+
+  const items = page.items;
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname;
+      if (path === NEW_PATH) return setTarget("new");
+      if (path === LIST_PATH) return setTarget(null);
+      const id = path.slice(LIST_PATH.length + 1);
+      const quote = items.find((entry) => entry.id === id) ?? (editing?.id === id ? editing : undefined);
+      // O orçamento que não está na página da lista vem do servidor, pela página dele.
+      if (quote) setTarget(quote);
+      else router.refresh();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [items, editing, router]);
+
   const [search, setSearch] = useState(query.search);
   const [live, setLive] = useState(query);
   const [seen, setSeen] = useState(query);
@@ -81,26 +138,14 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
   const typing = useRef<number | undefined>(undefined);
   // O jeito de ver vive em cookie, então o servidor já manda a página certa; o estado aqui é só para a troca
-  // valer no clique. A tabela é coisa de desktop: no celular a grade vale sempre.
+  // valer no clique. A tabela é coisa de desktop: no celular vale sempre o funil.
   const [view, setView] = useState<QuotesView>(saved);
   const asTable = view === "tabela" && !mobile;
-  // O último tamanho que a grade mediu, para a troca de visão já pedir o tamanho certo sem esperar a medida.
-  const gridSize = useRef<number>(GRID_PER_PAGE_DEFAULT);
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
 
-  /* Abrir um orçamento é **navegar** (2026-09-16): o editor virou tela, com endereço próprio, e não mais
-     uma janela sobre a lista. Antes isto empurrava a URL com `pushState` e mantinha a janela por cima, o
-     que obrigava a ouvir o botão de voltar do navegador na mão. */
-  const openEditor = useCallback(
-    (next: Quote | "new") => {
-      const params = new URLSearchParams(window.location.search);
-      const search = params.toString();
-      const path = next === "new" ? "/orcamentos/novo" : `/orcamentos/${next.id}`;
-      router.push((search ? `${path}?${search}` : path) as Route);
-    },
-    [router],
-  );
+  /* Abrir um orçamento, ou gerar um novo, é abrir a janela do editor sobre a lista (2026-10-26). */
+  const openEditor = useCallback((next: Quote | "new") => showEditor(next), [showEditor]);
 
   /* `go` lê `live` por uma ref, e não pela variável do fechamento: a busca com espera agenda uma chamada
      num `setTimeout` que só dispara depois, e se `live` mudasse nesse intervalo (por exemplo, a pessoa
@@ -121,11 +166,15 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
       if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
       if (merged.period !== defaultQuery.period) params.set(PERIOD_PARAM, merged.period);
       if (merged.page > 1) params.set(PAGE_PARAM, String(merged.page));
-      if (merged.pageSize !== QUOTES_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
+      /* O tamanho padrão de cada visão (30 na tabela, 100 no funil) fica fora da URL: o servidor já o sabe pelo
+         cookie da visão. */
+      if (merged.pageSize !== QUOTES_PER_PAGE && merged.pageSize !== FUNNEL_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
 
       const search = params.toString();
-      /* A lista mora sempre em /orcamentos: o editor deixou de ser uma camada sobre ela. */
-      const base = "/orcamentos";
+      /* O filtro mantém o endereço em que a pessoa está: com a janela do editor aberta ele é `/orcamentos/novo`
+         ou `/orcamentos/<id>`, e trocar para `/orcamentos` fechava a janela junto (2026-10-26, correção: no
+         celular a troca do tamanho da página fechava o gerar assim que ele abria). */
+      const base = window.location.pathname.startsWith(LIST_PATH) ? window.location.pathname : LIST_PATH;
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
     [router],
@@ -134,45 +183,21 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
   const changeView = (next: QuotesView) => {
     setView(next);
     saveQuotesView(next);
-    const pageSize = next === "tabela" ? QUOTES_PER_PAGE : gridSize.current;
+    const pageSize = next === "tabela" ? QUOTES_PER_PAGE : FUNNEL_PER_PAGE;
     if (pageSize !== live.pageSize) go({ pageSize, page: remapPage(live.page, live.pageSize, pageSize) });
   };
 
-  // A grade mede quantas colunas formou e pede ao servidor a página que cabe em três linhas, sempre par, na
-  // mesma receita do catálogo e da base de clientes; no celular a página é sempre doze. A medida entra no
-  // cookie para a próxima visita já vir do tamanho certo, e só pede outra página quando o tamanho muda de
-  // verdade, depois de a janela parar de mudar. Na tabela, que só existe no desktop, valem os trinta.
-  const gridRef = useRef<HTMLUListElement>(null);
-  const showing = page.items.length;
+  // Cada visão pede ao servidor a página da medida dela: trinta na tabela e cem no funil, que mostra as etapas
+  // de uma vez (2026-10-26, no lugar da grade que media as colunas). A troca só pede outra página quando o
+  // tamanho muda de verdade.
   const currentSize = live.pageSize;
   const currentPage = live.page;
   useEffect(() => {
-    const grid = gridRef.current;
-    let timer: number | undefined;
-    const request = (size: number) => {
-      window.clearTimeout(timer);
-      if (size === currentSize) return;
-      timer = window.setTimeout(() => go({ pageSize: size, page: remapPage(currentPage, currentSize, size) }), RESIZE_PAUSE);
-    };
-    if (asTable || !grid) {
-      if (asTable) request(QUOTES_PER_PAGE);
-      return () => window.clearTimeout(timer);
-    }
-    const observer = new ResizeObserver(() => {
-      const columns = getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length;
-      const size = mobile ? MOBILE_PER_PAGE : gridPageSize(columns);
-      gridSize.current = size;
-      // O cookie guarda só a medida do desktop: o doze fixo do celular gravado ali faria o desktop abrir
-      // curto antes de medir.
-      if (!mobile) saveQuotesGridSize(size);
-      request(size);
-    });
-    observer.observe(grid);
-    return () => {
-      observer.disconnect();
-      window.clearTimeout(timer);
-    };
-  }, [asTable, mobile, showing, currentSize, currentPage, go]);
+    const size = asTable ? QUOTES_PER_PAGE : FUNNEL_PER_PAGE;
+    if (size === currentSize) return;
+    const timer = window.setTimeout(() => go({ pageSize: size, page: remapPage(currentPage, currentSize, size) }), RESIZE_PAUSE);
+    return () => window.clearTimeout(timer);
+  }, [asTable, currentSize, currentPage, go]);
 
   const onSearch = (value: string) => {
     setSearch(value);
@@ -264,10 +289,6 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
      dentro. Memorizar a lista pronta tem o mesmo efeito, porque o React reaproveita elementos que chegam
      com a mesma referência: enquanto `page.items` e `openEditor` não mudarem, o corpo de cada cartão não
      roda de novo. */
-  const cards = useMemo(
-    () => page.items.map((quote) => <QuoteCard key={quote.id} quote={quote} onOpen={() => openEditor(quote)} />),
-    [page.items, openEditor],
-  );
 
   return (
     <div className={styles.board}>
@@ -333,14 +354,12 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
           )}
         </EmptyState>
       ) : (
-        <div ref={scrollArea} className={styles.scrollArea}>
-          <ul ref={gridRef} className={styles.grid}>
-            {cards}
-          </ul>
+        <div ref={scrollArea} className={styles.funnel}>
+          <QuotesFunnel quotes={page.items} onOpen={openEditor} />
         </div>
       )}
 
-      {/* O pé da grade, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
+      {/* O pé do funil, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
           página, a barra. Na tabela ele mora no pé da própria tabela.
 
           A condição olha `page.total`, e não `page.items.length`: uma página que ficou para trás do fim
@@ -354,6 +373,36 @@ export function QuotesBoard({ page, query, view: saved }: QuotesBoardProps) {
           {pagination}
         </div>
       )}
+
+      {/* A janela de gerar: a de trabalho da casa, quase a tela inteira, com o editor de sempre por dentro. O
+          Escape e o toque fora passam pela pergunta do editor, que só fecha direto quando nada foi mexido. */}
+      <Dialog
+        open={target !== null}
+        onClose={() => (closeEditorRef.current ? closeEditorRef.current() : showEditor(null))}
+        label={target && target !== "new" ? `Orçamento ${target.number}` : "Novo orçamento"}
+        size="xl"
+        surface="solid"
+        focusOnOpen={false}
+      >
+        {target !== null && (
+          <QuoteEditor
+            key={target === "new" ? "new" : target.id}
+            quote={target === "new" ? undefined : target}
+            clients={editor.clients}
+            catalog={editor.catalog}
+            issuer={editor.issuer}
+            owner={editor.owner}
+            nextNumber={editor.nextNumber}
+            prefill={target === "new" ? prefill : undefined}
+            closeRef={closeEditorRef}
+            onLeave={() => showEditor(null)}
+            onSaved={() => {
+              showEditor(null);
+              router.refresh();
+            }}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }

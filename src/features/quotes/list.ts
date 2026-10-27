@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  FUNNEL_PER_PAGE,
   GRID_PER_PAGE_DEFAULT,
   MAX_PER_PAGE,
   QUOTES_PER_PAGE,
@@ -38,9 +39,9 @@ export function parseQuotesGridSize(raw: string | undefined) {
   return z.coerce.number().int().min(2).max(MAX_PER_PAGE).multipleOf(2).catch(GRID_PER_PAGE_DEFAULT).parse(raw);
 }
 
-/** Quantos por página quando a URL não diz: 30 na tabela, e na grade o que o cookie guardou. */
-export function defaultPageSize(view: QuotesView, gridSize: number) {
-  return view === "tabela" ? QUOTES_PER_PAGE : gridSize;
+/** Quantos por página quando a URL não diz: 30 na tabela e 100 no funil, que mostra as etapas de uma vez. */
+export function defaultPageSize(view: QuotesView, _gridSize?: number) {
+  return view === "tabela" ? QUOTES_PER_PAGE : FUNNEL_PER_PAGE;
 }
 
 export function parseQuotesQuery(params: Record<string, string | undefined>, fallbackPageSize = QUOTES_PER_PAGE): QuotesQuery {

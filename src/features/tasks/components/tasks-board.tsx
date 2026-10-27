@@ -62,7 +62,6 @@ import { CardEditContext, type CardEdit, type CardPatch } from "./card-edit";
 import { DEFAULT_TASK_TITLE } from "../schemas";
 import type { ProjectHue } from "@/features/projects/summary";
 import type { ProjectGlyph } from "../tree";
-import { BoardLookDialog } from "./appearance-dialog";
 import { StagesDialog } from "./stages-dialog";
 import { TaskCard } from "./task-card";
 import { TaskColumn } from "./task-column";
@@ -358,7 +357,6 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
      etapa voltar, mas somem da vista, e isso merece a pergunta. */
   /** A janela das etapas e a da cor, abertas pela barra. */
   const [arranging, setArranging] = useState(false);
-  const [dressing, setDressing] = useState(false);
   const [removingStage, setRemovingStage] = useState<TaskStage | null>(null);
   const [removingStageBusy, setRemovingStageBusy] = useState(false);
   const [hiddenStages, setHiddenStages] = useState<TaskStageId[]>([]);
@@ -832,7 +830,6 @@ export function TasksBoard({ board, query, collapsed: saved, basePath, team, vie
         onClose={() => setArranging(false)}
         onSaved={() => router.refresh()}
       />
-      {project && <BoardLookDialog open={dressing} project={project} onClose={() => setDressing(false)} />}
       <ConfirmDialog
         open={deleting !== null}
         pending={removing}

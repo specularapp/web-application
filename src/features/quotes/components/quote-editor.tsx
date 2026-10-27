@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   ArrowLeftIcon,
   FloppyDiskIcon,
@@ -18,7 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +33,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
+import { Tooltip } from "@/components/ui/tooltip";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/providers/toast-provider";
 import { CatalogArtwork } from "@/features/catalog/components/catalog-artwork";
@@ -50,7 +51,7 @@ import { saveQuoteAction } from "../actions";
 import { paymentMethods } from "../labels";
 import { MAX_LINES, paymentMethodValues, quoteLimits, type QuoteFormInput } from "../schemas";
 import { quoteShareUrl } from "../share";
-import type { Quote, QuoteCourtesy, QuoteIssuer, QuotePaymentMethod, QuotePerson } from "../summary";
+import type { Quote, QuoteCourtesy, QuoteIssuer, QuotePaymentMethod, QuoteSeller } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
 import { QuoteDiscardDialog } from "./quote-discard-dialog";
 import { QuoteDocument } from "./quote-document";
@@ -277,7 +278,7 @@ function InstallmentsInfo({ onOpen, ...plan }: InstallmentPlanProps & { onOpen?:
  * toque fora e disputa a altura com a lista atrás. Aqui o editor é o destino, com endereço próprio, voltar
  * de verdade e a tela inteira para o documento.
  */
-export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber, prefill, onLeave, onSaved }: QuoteEditorProps) {
+export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber, prefill, onLeave, onSaved, closeRef }: QuoteEditorProps) {
   const mobile = useMediaQuery(MOBILE_QUERY);
 
   return (
@@ -293,6 +294,7 @@ export function QuoteEditor({ quote, clients, catalog, issuer, owner, nextNumber
       mobile={mobile}
       onClose={onLeave}
       onSaved={onSaved}
+      closeRef={closeRef}
     />
   );
 }
@@ -303,13 +305,18 @@ export type QuoteEditorProps = {
   clients: ClientListItem[];
   catalog: CatalogItem[];
   issuer: QuoteIssuer;
-  owner: QuotePerson;
+  owner: QuoteSeller;
   nextNumber: string;
   prefill?: QuotePrefill;
   /** Sair do editor: volta para a lista. */
   onLeave: () => void;
   /** Depois de salvar. */
   onSaved: () => void;
+  /**
+   * O pedido de sair, para quem monta o editor numa janela (2026-10-26, o gerar orçamento em janela): o Escape e
+   * o toque fora passam pela mesma pergunta do X, e não fecham por cima de um orçamento mexido.
+   */
+  closeRef?: RefObject<(() => void) | null>;
 };
 
 type QuoteFormProps = {
@@ -317,16 +324,17 @@ type QuoteFormProps = {
   clients: ClientListItem[];
   catalog: CatalogItem[];
   issuer: QuoteIssuer;
-  owner: QuotePerson;
+  owner: QuoteSeller;
   nextNumber: string;
   prefill?: QuotePrefill;
   mobile: boolean;
   /** Sair do editor de verdade: é o destino, e nunca a pergunta de sair, que mora aqui dentro. */
   onClose: () => void;
   onSaved: () => void;
+  closeRef?: RefObject<(() => void) | null>;
 };
 
-function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved }: QuoteFormProps) {
+function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill, mobile, onClose, onSaved, closeRef }: QuoteFormProps) {
   const { toast } = useToast();
   const [values, setValues] = useState<Values>(() => valuesOf(quote, catalog, prefill));
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
@@ -335,6 +343,9 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
   const [tab, setTab] = useState<"form" | "preview">("form");
   const editorTabs = useTabList(["form", "preview"] as const, tab, setTab);
   const editing = Boolean(quote);
+  /* A ação principal da janela: gerar o novo e o rascunho, salvar o que já foi gerado. */
+  const primary: { intent: "draft" | "send"; label: string; pending: string } =
+    !quote || quote.status === "draft" ? { intent: "send", label: "Gerar", pending: "Gerando" } : { intent: "draft", label: "Salvar", pending: "Salvando" };
   const titleId = useId();
   const form = useRef<HTMLFormElement>(null);
   const intent = useRef<"draft" | "send">("draft");
@@ -363,45 +374,21 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     else setLineSheet(null);
   };
 
-  /* A confirmação de sair é a bandeja da casa com a pergunta, e as duas respostas moram na barra flutuante,
-     que é o contrato de toda janela no celular (a ficha do cliente, o item do catálogo e criar equipe fazem
-     igual): o conteúdo na bandeja, salvar e sair na barra. Ela é registrada antes das outras porque, com a
-     pergunta à vista, é ela quem manda na barra: as bandejas de item e de parcelas só oferecem Fechar, e
-     salvar por trás da pergunta não faria sentido. */
-  const confirmActions = confirmingClose
-    ? {
-        primary: { label: saving === "draft" ? "Salvando" : editing ? "Salvar" : "Salvar rascunho", loading: saving === "draft", onClick: () => void saveAndClose() },
-        /* Sair sem salvar é a lixeira ao lado de salvar, e não um botão escrito na bandeja: as três saídas
-           moram na barra, que é onde as ações do editor vivem no celular, e a bandeja fica só com a pergunta.
-           O nome vai na voz e na dica, como em toda ação de glifo da barra. */
-        extras: [
-          {
-            label: "Sair sem salvar",
-            icon: <TrashIcon />,
-            disabled: saving !== null,
-            onClick: () => {
-              setConfirmingClose(false);
-              onClose();
-            },
-          },
-        ],
-        cancel: { label: "Continuar editando", onClick: () => setConfirmingClose(false) },
-      }
-    : null;
-
+  /* Com a pergunta de sair à vista, quem manda na barra é ela, que registra as três saídas na camada dela
+     (2026-10-26, correção: com o editor dentro de uma janela, a pergunta abre uma camada acima e a barra só
+     mostrava o X, porque as saídas eram registradas aqui, uma camada abaixo). */
   useFloatingActionsRegistration(
-    confirmActions ??
-      (sheetOpen
+    sheetOpen
         ? { primary: { label: lineSheet !== null && infoLine === null && !planOpen ? "Concluir" : "Fechar", onClick: closeTopSheet }, cancel: { label: "Fechar", onClick: closeTopSheet } }
         : {
             /* Salvar, e não "Salvar rascunho" (pedido de 2026-09-10): o botão gera o orçamento ou grava a
                edição, e chamá-lo de rascunho dizia menos do que ele faz. Ao lado vai só enviar, em glifo: o
                copiar link saiu da barra do celular (segundo pedido do dia), porque enviar já leva o link e
                cada peça a mais aperta a barra. Ele fica no leque da lista e no cabeçalho do desktop. */
-            primary: { label: saving ? "Salvando" : "Salvar", loading: saving !== null, onClick: () => submitWith("draft") },
-            extras: [{ label: "Enviar ao cliente", icon: <PaperPlaneTiltIcon weight="bold" />, loading: saving === "send", disabled: saving !== null, onClick: () => submitWith("send") }],
+            /* A barra tem só a ação principal, a mesma do topo do desktop (2026-10-26). */
+            primary: { label: saving ? primary.pending : primary.label, loading: saving !== null, onClick: () => submitWith(primary.intent) },
             cancel: { label: "Fechar", onClick: () => void requestClose() },
-          }),
+          },
   );
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
@@ -464,7 +451,8 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
           city: client.city,
         }
       : { name: "Cliente", avatarUrl: null },
-    owner,
+    /* Editando, quem vende é quem já responde pelo orçamento, e não quem abriu o editor. */
+    owner: quote?.owner ?? owner,
     issuer,
     lines: values.lines.map((line) => ({
       id: line.id,
@@ -565,6 +553,14 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     setConfirmingClose(true);
   };
 
+  useEffect(() => {
+    if (!closeRef) return;
+    closeRef.current = requestClose;
+    return () => {
+      closeRef.current = null;
+    };
+  });
+
   /* Salvar e sair, a partir da confirmação. Se o rascunho não passa (falta o cliente, por exemplo), a janela
      fecha mesmo assim e avisa, como antes: um fechar que não fecha prende a pessoa numa tela que ela já quis
      deixar, e a confirmação não é lugar de corrigir campo. */
@@ -609,7 +605,7 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
     }
 
     toast({
-      title: result.status === "sent" ? "Orçamento enviado" : editing ? "Orçamento salvo" : "Rascunho salvo",
+      title: next === "send" ? "Orçamento gerado" : editing ? "Orçamento salvo" : "Rascunho salvo",
       description: result.status === "sent" ? `${draft.client.name} já pode abrir o documento pelo link.` : `${draft.number} está na lista.`,
       tone: "success",
       feedback: {
@@ -787,24 +783,14 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
         <IconButton label="Voltar aos orçamentos" variant="ghost" size="sm" disabled={saving !== null} onClick={() => void requestClose()}>
           <ArrowLeftIcon />
         </IconButton>
-        <nav className={styles.crumbs} aria-label="Onde o orçamento mora" id={titleId}>
-          <Link href="/orcamentos" className={styles.crumb}>
-            Orçamentos
-          </Link>
-          <span className={styles.slash} aria-hidden="true">
-            /
-          </span>
-          <Text as="span" variant="footnote" weight="semibold" truncate>
-            {values.title || (editing ? "Orçamento sem título" : "Novo orçamento")}
-          </Text>
+        {/* O topo é só o código do orçamento, gerando ou editando (2026-10-26, a pedido: a edição "praticamente
+            idêntica nas opções" à de gerar): a rota e o total ao lado do nome não diziam nada numa janela. */}
+        <div className={styles.crumbs} id={titleId}>
+          <VisuallyHidden>{editing ? `Orçamento ${values.title || draft.number}` : "Novo orçamento"}</VisuallyHidden>
           <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {draft.number}
           </Badge>
-          <Text variant="caption1" tone="secondary" truncate className={styles.subtitle}>
-            {formatMoney(totals.total)}
-            {draft.lines.length > 0 ? `, ${draft.lines.length} ${draft.lines.length === 1 ? "item" : "itens"}` : ""}
-          </Text>
-        </nav>
+        </div>
         <div className={styles.headActions}>
           {mobile ? (
             /* No celular o cabeçalho tem só as abas (pedido de 2026-09-10): salvar, enviar, copiar o link e
@@ -819,37 +805,29 @@ function QuoteForm({ quote, clients, catalog, issuer, owner, nextNumber, prefill
             </div>
           ) : (
             <>
-              {quote && (
-                <Button variant="ghost" size="sm" radius="md" iconStart={<LinkIcon />} onClick={() => void copyLink()}>
-                  Copiar link
-                </Button>
-              )}
-              {/* Os dois na mesma medida (pedido de 2026-09-09): mesmo tamanho, mesmo raio, mesma largura
-                  mínima e um glifo em cada, para lerem como um par. */}
-              <Button
-                variant="outline"
-                size="sm"
-                radius="md"
-                iconStart={<FloppyDiskIcon />}
-                loading={saving === "draft"}
-                disabled={saving !== null}
-                onClick={() => submitWith("draft")}
-                className={styles.action}
-              >
-                {editing ? "Salvar" : "Rascunho"}
-              </Button>
+              {/* Um botão só, como no gerar (2026-10-26): gerar o que ainda é rascunho, que marca como enviado, ou
+                  salvar o que já foi gerado, que grava sem mexer na situação. */}
               <Button
                 size="sm"
                 radius="md"
-                iconStart={<PaperPlaneTiltIcon weight="bold" />}
-                loading={saving === "send"}
+                iconStart={primary.intent === "send" ? <PaperPlaneTiltIcon weight="bold" /> : <FloppyDiskIcon />}
+                loading={saving === primary.intent}
                 disabled={saving !== null}
-                onClick={() => submitWith("send")}
+                onClick={() => submitWith(primary.intent)}
                 className={styles.action}
               >
-                Enviar
+                {primary.label}
               </Button>
             </>
+          )}
+          {/* O link do que já foi gerado fica ao lado do X, os dois fantasmas juntos na ponta (2026-10-26, a
+              pedido): perto do botão principal ele disputava a vista com ele. */}
+          {!mobile && quote && quote.status !== "draft" && (
+            <Tooltip content="Copiar link">
+              <IconButton label="Copiar link" variant="ghost" size="sm" radius="md" onClick={() => void copyLink()}>
+                <LinkIcon />
+              </IconButton>
+            </Tooltip>
           )}
           {!mobile && (
             <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving !== null} onClick={() => void requestClose()}>

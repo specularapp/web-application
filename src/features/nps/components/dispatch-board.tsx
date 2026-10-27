@@ -228,7 +228,7 @@ export function DispatchBoard({ data }: { data: NpsData }) {
       sortValue: (send) => clientsById.get(send.clientId)?.contact.name ?? "",
       cell: (send) => {
         const client = clientsById.get(send.clientId);
-        return <DataTableTitle title={client?.contact.name ?? "Cliente"} caption={client?.contact.company} media={<Avatar name={client?.contact.name ?? "Cliente"} seed={send.clientId} size="sm" />} />;
+        return <DataTableTitle title={client?.contact.name ?? "Cliente"} caption={client?.contact.company} media={<Avatar name={client?.contact.name ?? "Cliente"} seed={send.clientId} size="xs" />} />;
       },
     },
     { id: "project", header: "Projeto", hideBelow: "lg", cell: (send) => <Text as="span" variant="footnote" tone="secondary">{clientsById.get(send.clientId)?.project.name}</Text> },
@@ -420,8 +420,6 @@ export function DispatchBoard({ data }: { data: NpsData }) {
             rows={pageRows}
             rowKey={(send) => send.id}
             columns={columns}
-            density="compact"
-            zebra
             actions={(send) => <DropdownMenu label={`Ações do envio para ${clientsById.get(send.clientId)?.contact.name ?? "o cliente"}`} triggerLabel="Abrir ações do envio" sections={sendMenu(send)} />}
             range={{ page: current, pageSize: PAGE_SIZE, total: rows.length }}
             footer={pages > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={rows.length} onPageChange={setPage} label="Páginas dos envios" /> : undefined}

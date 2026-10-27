@@ -3,6 +3,7 @@
 import { firstIssue, guardAction, revalidateDomain } from "@/features/organizations/context";
 import { cacheTags } from "@/lib/cache/tags";
 import {
+  attachBoardSchema,
   folderIdSchema,
   moveProjectSchema,
   projectFormSchema,
@@ -10,15 +11,19 @@ import {
   projectPublicSchema,
   projectAppearanceSchema,
   projectStatusSchema,
+  saveBoardSchema,
   saveFolderSchema,
 } from "./schemas";
 import {
+  attachTaskBoard,
   deleteProject,
   deleteProjectFolder,
   getProjectDetails,
+  listBoardTargets,
   moveProject,
   saveProject,
   saveProjectFolder,
+  saveTaskBoard,
   setProjectPublic,
   setProjectAppearance,
   setProjectStatus,
@@ -33,6 +38,7 @@ export type ProjectSaveResult = { ok: true; id: string } | { ok: false; error: s
 export type ProjectDeleteResult = { ok: true } | { ok: false; error: string };
 export type FolderSaveResult = { ok: true; id: string } | { ok: false; error: string; field?: string };
 export type FolderResult = { ok: true } | { ok: false; error: string };
+export type BoardSaveResult = { ok: true; id: string; slug: string } | { ok: false; error: string; field?: string };
 export type ProjectStatusResult = { ok: true; feedbackUrl?: string } | { ok: false; error: string };
 
 /** Ativa ou renova por 180 dias o endereço que o cliente usa para acompanhar o projeto. */
@@ -143,6 +149,44 @@ export async function moveProjectAction(input: unknown): Promise<FolderResult> {
   if (!moved.ok) return { ok: false, error: moved.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos"]);
+  return { ok: true };
+}
+
+/** Cria a página de Tarefas só com o nome, ou renomeia a que veio com id. */
+export async function saveBoardAction(input: unknown): Promise<BoardSaveResult> {
+  const guard = await guardAction("project-board-save");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = saveBoardSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+
+  const saved = await saveTaskBoard(guard.context.supabase, guard.context.organizationId, parsed.data);
+  if (!saved.ok) return { ok: false, error: saved.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/tarefas"]);
+  return { ok: true, ...saved.data };
+}
+
+/** Os projetos que podem receber a página, para a janela de atrelar. */
+export async function listBoardTargetsAction(): Promise<{ id: string; name: string; reference: string }[]> {
+  const guard = await guardAction("project-load");
+  if (!guard.ok) return [];
+
+  return listBoardTargets(guard.context.supabase, guard.context.organizationId);
+}
+
+/** Leva as tarefas da página para o projeto escolhido, e a página some da árvore. */
+export async function attachBoardAction(input: unknown): Promise<FolderResult> {
+  const guard = await guardAction("project-board-attach");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = attachBoardSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Escolha o projeto." };
+
+  const attached = await attachTaskBoard(guard.context.supabase, parsed.data);
+  if (!attached.ok) return { ok: false, error: attached.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.projects], ["/projetos", "/tarefas"]);
   return { ok: true };
 }
 

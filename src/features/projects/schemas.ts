@@ -108,6 +108,22 @@ export const moveProjectSchema = z.object({
   folderId: z.uuid().nullable(),
 });
 
+/**
+ * O quadro avulso de Tarefas (2026-10-26, a pedido): nasce só com o nome e a pasta, sem a ficha do projeto, e
+ * depois pode ser atrelado a um projeto de verdade, que recebe as tarefas dele.
+ */
+export const saveBoardSchema = z.object({
+  /** Presente ao renomear; ausente ao criar. */
+  id: z.uuid().optional(),
+  name: z.string().trim().min(2, "Dê um nome à página").max(80, "Nome longo demais"),
+  folderId: z.uuid().nullable().default(null),
+});
+
+export const attachBoardSchema = z.object({
+  boardId: z.uuid(),
+  projectId: z.uuid("Escolha o projeto"),
+});
+
 /* Vazio é sem capa; com protocolo é o endereço do arquivo no armazenamento. */
 const coverUrl = z
   .string()

@@ -29,19 +29,13 @@
 
   display: grid;
   align-content: start;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   cursor: pointer;
   background-color: var(--color-bg);
   border-radius: var(--card-corner);
   transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-@media (min-width: 48rem) {
-  .inner {
-    padding: var(--space-5);
-  }
 }
 
 /* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque com o
@@ -88,6 +82,12 @@
   gap: var(--space-1);
   align-items: center;
   margin-inline-start: auto;
+}
+
+/* O código do contrato em algarismo tabular, para alinhar de cartão a cartão numa coluna do funil. */
+.reference {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* O título e, colada embaixo, a descrição: um bloco só, com o vão pequeno entre as duas, e não o vão das

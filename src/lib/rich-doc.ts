@@ -21,6 +21,14 @@ export type DocNode = {
   text?: string;
 };
 
+/**
+ * O documento do editor em JSON comum (2026-10-26, correção). O ProseMirror monta os `attrs` de cada nó com
+ * `Object.create(null)`, e a Server Action só serializa objeto com o protótipo de sempre: o resto atravessa
+ * como referência opaca, que chega ao servidor como função e o zod recusa ("expected record, received
+ * function"). Como toda gravação da ficha leva a descrição junto, nada da tarefa salvava.
+ */
+export const docFromEditor = (json: unknown): DocNode => JSON.parse(JSON.stringify(json)) as DocNode;
+
 /** Quantos nós a árvore tem, para o teto valer sobre o todo e não só sobre a raiz. */
 export function countNodes(node: DocNode): number {
   return 1 + (node.content?.reduce((sum, child) => sum + countNodes(child), 0) ?? 0);

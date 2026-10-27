@@ -29,6 +29,12 @@
   --avatar-radius: var(--icon-button-radius-lg);
 }
 
+/* O rosto de uma ficha, ao lado do título e das etiquetas: na altura do bloco de texto que ele acompanha. */
+.avatar[data-size="xl"] {
+  --avatar-size: 5.5rem;
+  --avatar-radius: var(--radius-2xl);
+}
+
 .avatar[data-shape="rounded"] {
   border-radius: var(--avatar-radius);
 }

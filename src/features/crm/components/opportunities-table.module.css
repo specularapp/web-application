@@ -1,0 +1,103 @@
+/*
+ * A lista do funil, nas medidas da lista do funil da pousada (`funnel.module.css` de lá): a moldura com o fio e o
+ * canto, a venda com o rosto e o telefone, a etapa no véu da cor dela, a origem com o logo e o leque no fim. A
+ * tabela e as páginas são as peças trazidas de lá (`ListTable`, `ListPagination`).
+ */
+.tableWrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.tableLead {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 12rem;
+}
+
+.tableLead > span {
+  display: grid;
+  gap: 0.0625rem;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.tableLead strong {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.tableLead small {
+  font-size: var(--text-caption-2);
+  color: var(--color-label-tertiary);
+}
+
+.stageChip {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: color-mix(in oklab, var(--tone) 75%, var(--color-label));
+  white-space: nowrap;
+  background-color: color-mix(in oklab, var(--tone) 13%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.stageChip svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.money {
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--color-label-tertiary);
+}
+
+.tableSource,
+.person,
+.inline {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.logo {
+  display: inline-flex;
+}
+
+.inline svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.tags {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O leque de ações da linha, no fim; o clique nele não abre a ficha */
+.tableActions {
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-align: center;
+}

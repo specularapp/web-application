@@ -24,20 +24,14 @@
    curva de dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. */
 .inner {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-content: start;
   min-width: 0;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   cursor: pointer;
   background-color: var(--color-bg);
   border-radius: var(--card-corner);
   transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-@media (min-width: 48rem) {
-  .inner {
-    padding: var(--space-5);
-  }
 }
 
 /* O cartão inteiro é o alvo, então ele responde ao ponteiro. O anel de foco é de teclado: abrir o leque
@@ -60,36 +54,42 @@
 /* Fora de linha, o cartão apaga o que é do item e deixa a situação e o leque inteiros, porque é por eles
    que se lê e se reverte. Só opacidade, sem trocar cor: nos dois temas o resultado é o mesmo "apagado". */
 .card[data-inactive] .head > :first-child,
+.card[data-inactive] .naming,
 .card[data-inactive] .body,
-.card[data-inactive] .tags {
+.card[data-inactive] .price {
   opacity: 0.55;
 }
 
-/* A arte de um lado, e na outra ponta a situação, o preço e o leque, colados. */
+/* A arte, o nome com a categoria embaixo e o leque na ponta. O nome cede por reticências; o leque nunca. */
 .head {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: center;
-  justify-content: space-between;
   min-width: 0;
 }
 
-.end {
+.naming {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu {
   display: inline-flex;
   flex-shrink: 0;
-  gap: var(--space-1);
   align-items: center;
 }
 
 .body {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 
 /* Descrição em até duas linhas, na receita dos blocos do painel. */
 .description {
   display: -webkit-box;
+  margin: 0;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -97,24 +97,40 @@
   line-height: var(--leading-tight);
 }
 
-/* A linha de orçamentos, acima do nome: as bolinhas de quem já recebeu o item e o total, numa linha só. */
-.quotes {
-  --avatar-overlap: var(--space-1);
-
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
-  margin-block-end: var(--space-half);
-}
-
-/* As etiquetas em fila, quebrando linha quando não cabem: é lista porque é uma lista de fatos do item. */
+/* Os fatos em fila, quebrando linha quando não cabem: é lista porque é uma lista de fatos do item. */
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--space-1) var(--space-2);
   align-items: center;
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+/* Os orçamentos: as bolinhas de quem já recebeu o item e o total, numa linha só. */
+.quotes {
+  --avatar-overlap: var(--space-1);
+
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+/* O pé, depois do fio: o preço com a cobrança embaixo de um lado e a situação do outro. */
+.foot {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding-block-start: var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-separator);
+}
+
+.price {
+  display: grid;
+  min-width: 0;
+  margin: 0;
 }

@@ -44,16 +44,13 @@ export function ListSkeleton({ rows = 9 }: { rows?: number }) {
   );
 }
 
-/** A tela inteira enquanto a rota carrega: o topo, a lista com as linhas e a conversa em espera. */
+/** A tela inteira enquanto a rota carrega: a lista com as linhas e a conversa em espera, sem o topo. */
 export function WhatsappSkeleton() {
   return (
     <div className={styles.page}>
       <span role="status" aria-live="polite" className={styles.status}>
         Carregando as conversas
       </span>
-      <div className={styles.topBones} aria-hidden="true">
-        <Skeleton width="6rem" height="1.25rem" />
-      </div>
       <div className={inbox.screen} aria-hidden="true">
         <div className={inbox.list}>
           <div className={inbox.listHead}>

@@ -7,9 +7,11 @@ import {
   CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  FilePlusIcon,
   FolderPlusIcon,
   FunnelIcon,
   KanbanIcon,
+  LockSimpleIcon,
   ListIcon,
   MagnifyingGlassIcon,
   CircleHalfIcon,
@@ -37,7 +39,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { NameDialog } from "@/components/ui/name-dialog";
 import { useToast } from "@/components/providers/toast-provider";
 import { saveCrmFolderAction, saveFunnelAction } from "@/features/crm/actions";
-import { saveFolderAction } from "@/features/projects/actions";
+import { saveBoardAction, saveFolderAction } from "@/features/projects/actions";
 import { TextLink } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -121,6 +123,9 @@ function folderIsCurrent(pathname: string, folder: NavFolder) {
 
 const folders = navGroups.flatMap((group) => group.entries.filter(isFolder));
 
+/** O tempo do deslize da pasta, o mesmo `--duration-slow` do CSS: é quando a altura dela já é a final. */
+const FOLDER_SLIDE_MS = 320;
+
 /** Como o galho se pinta: no caminho até a página ativa, a própria página ativa, ou neutro. */
 type BranchTone = "path" | "active" | undefined;
 
@@ -144,7 +149,7 @@ function Branch({ last = false, tone, children }: { last?: boolean; tone?: Branc
 /* O que nasce na raiz da árvore, pelo "+" do cabeçalho da pasta (2026-09-17, tudo funcionando): projeto novo
    vai para a página dele, que tem a ficha inteira; funil e pasta pedem só um nome, na janela de nome da casa.
    O nome do primeiro item segue a árvore da pasta, senão a pasta do funil ofereceria "Novo projeto". */
-type Creating = "folder" | "funnel";
+type Creating = "folder" | "funnel" | "board";
 
 const createSections = (tree: "tarefas" | "funis", onCreate: (kind: Creating) => void): DropdownSection[] => [
   {
@@ -152,13 +157,23 @@ const createSections = (tree: "tarefas" | "funis", onCreate: (kind: Creating) =>
     items: [
       tree === "funis"
         ? { id: "funnel", label: "Novo funil", icon: FunnelIcon, onSelect: () => onCreate("funnel") }
-        : { id: "project", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route },
+        : { id: "board", label: "Nova página", icon: FilePlusIcon, onSelect: () => onCreate("board") },
+      ...(tree === "tarefas" ? [{ id: "project", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route }] : []),
       { id: "folder", label: "Nova pasta", icon: FolderPlusIcon, onSelect: () => onCreate("folder") },
     ],
   },
 ];
 
 function Row({ item, active, onNavigate }: { item: NavLink; active: boolean; onNavigate?: () => void }) {
+  if (item.locked) {
+    return (
+      <button type="button" className={styles.row} data-locked="" aria-disabled="true" {...rounded("md")}>
+        <item.icon aria-hidden="true" />
+        <span className={styles.label}>{item.label}</span>
+        <LockSimpleIcon aria-label="Bloqueado" className={styles.chevron} />
+      </button>
+    );
+  }
   return (
     <Link
       href={item.href}
@@ -226,6 +241,16 @@ export function SidebarPanel({
     return undefined;
   };
 
+  /* A página nasce só com o nome e abre na hora: o projeto é atrelado depois, pelo chevron da linha. */
+  const createBoard = async (name: string) => {
+    const result = await saveBoardAction({ name, folderId: null });
+    if (!result.ok) return result.error;
+    toast({ title: "Página criada", description: `${name} já está na árvore.`, tone: "success" });
+    router.push(`/tarefas/${result.slug}` as Route);
+    onNavigate?.();
+    return undefined;
+  };
+
   const createFunnel = async (value: CrmAppearance) => {
     const result = await saveFunnelAction({ ...value, folderId: null });
     if (!result.ok) return result.error;
@@ -244,10 +269,11 @@ export function SidebarPanel({
   const toggleFolder = (entry: NavFolder) => setExpanded((current) => (current === entry.label ? null : entry.label));
 
   /* A pasta que abre rola para aparecer inteira: cabendo, ela toda fica à vista; maior que o menu, o nome dela
-     vai para o alto. Espera a abertura assentar. */
+     vai para o alto. Espera a abertura assentar, que agora desliza: medir no começo pegaria a altura zero. */
   useEffect(() => {
     if (!expanded) return;
-    const frame = window.requestAnimationFrame(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const settle = window.setTimeout(() => {
       const region = scrollRegion(navRef.current);
       const opened = navRef.current?.querySelector<HTMLElement>(`[data-folder="${CSS.escape(expanded)}"]`);
       if (!region || !opened) return;
@@ -262,9 +288,9 @@ export function SidebarPanel({
             : item.top < box.top
               ? item.top - box.top - gap
               : 0;
-      if (Math.abs(delta) > 1) region.scrollBy({ top: delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    });
-    return () => window.cancelAnimationFrame(frame);
+      if (Math.abs(delta) > 1) region.scrollBy({ top: delta, behavior: reduced ? "auto" : "smooth" });
+    }, reduced ? 0 : FOLDER_SLIDE_MS);
+    return () => window.clearTimeout(settle);
   }, [expanded]);
   const [alertVisible, setAlertVisible] = useState(true);
   const mobile = variant === "mobile";
@@ -382,8 +408,7 @@ export function SidebarPanel({
         <MagnifyingGlassIcon aria-hidden="true" />
         <span className={styles.findLabel}>Buscar</span>
         <span className={styles.findKeys}>
-          <Kbd>{commandKey}</Kbd>
-          <Kbd>F</Kbd>
+          <Kbd>{commandKey.length > 1 ? `${commandKey} F` : `${commandKey}F`}</Kbd>
         </span>
       </button>
 
@@ -398,7 +423,7 @@ export function SidebarPanel({
                 if (!isFolder(entry)) {
                   return <Row key={entry.href} item={entry} active={isCurrent(pathname, entry.href)} onNavigate={onNavigate} />;
                 }
-                const open = expanded === entry.label;
+                const open = !entry.locked && expanded === entry.label;
                 /* Qual galho leva à página ativa: uma das páginas fixas ou, na pasta que abre árvore, a própria
                    árvore quando o projeto ou o funil aberto está nela. */
                 const pages = entry.tree ? [] : entry.items;
@@ -408,6 +433,13 @@ export function SidebarPanel({
                 return (
                   <div key={entry.label} className={styles.folder} data-folder={entry.label}>
                     <div className={styles.folderHead}>
+                      {entry.locked ? (
+                        <button type="button" className={styles.row} data-locked="" aria-disabled="true" {...rounded("md")}>
+                          <entry.icon aria-hidden="true" />
+                          <span className={styles.label}>{entry.label}</span>
+                          <LockSimpleIcon aria-label="Bloqueado" className={styles.chevron} />
+                        </button>
+                      ) : (
                       <button
                         type="button"
                         className={styles.row}
@@ -422,20 +454,23 @@ export function SidebarPanel({
                         <span className={styles.label}>{entry.label}</span>
                         <CaretDownIcon aria-hidden="true" className={styles.chevron} data-open={open || undefined} />
                       </button>
+                      )}
                       {open && entry.tree && (
                         <DropdownMenu
                           label={`Criar em ${entry.label}`}
-                          triggerLabel={entry.tree === "funis" ? "Criar pasta ou funil" : "Criar pasta ou projeto"}
+                          triggerLabel={entry.tree === "funis" ? "Criar pasta ou funil" : "Criar página, projeto ou pasta"}
                           sections={createSections(entry.tree, setCreating)}
                           icon={<PlusIcon />}
                           size="sm"
                         />
                       )}
                     </div>
-                    {open && (
-                      <div id={subId} className={styles.sub}>
-                        {/* O começo do tronco, saindo do ícone da pasta; escuro quando alguma página dela está ativa. */}
-                        <span className={styles.stem} data-tone={activeIndex >= 0 ? "path" : undefined} aria-hidden="true" />
+                    {/* Sempre montada, para abrir e fechar deslizando nos dois sentidos (2026-10-26, a pedido: montar
+                        só ao abrir fazia a pasta fechar de um corte). Fechada, sai do foco e do leitor de tela. */}
+                    <div id={subId} className={styles.sub} data-open={open || undefined} inert={!open}>
+                      {/* O começo do tronco, saindo do ícone da pasta; escuro quando alguma página dela está ativa. */}
+                      <span className={styles.stem} data-tone={activeIndex >= 0 ? "path" : undefined} aria-hidden="true" />
+                      <div className={styles.subInner}>
                         {pages.map((item, itemIndex) => (
                           <Branch
                             key={item.href}
@@ -456,7 +491,7 @@ export function SidebarPanel({
                           </div>
                         )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
@@ -484,10 +519,16 @@ export function SidebarPanel({
           <NameDialog
             open
             onClose={() => setCreating(null)}
-            title={creating === "folder" ? "Nova pasta" : "Novo funil"}
-            description={creating === "folder" ? "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta." : "Ele nasce com as etapas padrão, que você arruma depois."}
-            placeholder={creating === "folder" ? "Clientes, Interno, 2026" : "Indicações, Licitações, Loja"}
-            onSubmit={createFolder}
+            title={creating === "board" ? "Nova página" : "Nova pasta"}
+            description={
+              creating === "board"
+                ? "Só o nome: o projeto você atrela depois, se fizer sentido."
+                : "Na raiz da árvore. Para criar dentro de outra, use o chevron da pasta."
+            }
+            placeholder={creating === "board" ? "Rotina, Ideias, Sprint de outubro" : "Clientes, Interno, 2026"}
+            maxLength={creating === "board" ? 80 : undefined}
+            confirmLabel={creating === "board" ? "Criar página" : undefined}
+            onSubmit={creating === "board" ? createBoard : createFolder}
           />
         )
       )}

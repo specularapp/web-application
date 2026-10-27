@@ -40,47 +40,6 @@
   min-width: 0;
 }
 
-.crumb {
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: var(--space-1);
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-body);
-  font-size: var(--text-footnote);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
-  text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.crumb svg {
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  color: var(--color-label-tertiary);
-}
-
-@media (hover: hover) {
-  .crumb:hover {
-    color: var(--color-label);
-  }
-}
-
-.route .crumb:last-of-type {
-  flex-shrink: 1;
-}
-
-.slash {
-  flex-shrink: 0;
-  font-size: var(--text-footnote);
-  color: var(--color-label-tertiary);
-}
-
 .route .reference {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -228,11 +187,29 @@
   }
 }
 
+/* Uma pessoa nos detalhes: a foto e o nome numa linha só, que cede por reticências na lateral estreita. */
 .person {
   display: inline-flex;
+  flex: 1 1 auto;
   gap: var(--space-2);
   align-items: center;
+  max-width: 100%;
   min-width: 0;
+}
+
+/* A foto nunca encolhe; quem cede é o nome. */
+.person > :first-child {
+  flex-shrink: 0;
+}
+
+.person > :last-child {
+  min-width: 0;
+}
+
+.personName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* A coluna lateral: as partes e a linha do tempo, no véu leve da ficha do projeto. */

@@ -19,7 +19,7 @@ const decisionOf = (row: DecisionRow): ApprovalDecision => ({ type: row.decision
 const versionOf = (row: VersionRow, assets: ApprovalAsset[], decision: ApprovalDecision | null): ApprovalVersion => ({ id: row.id, number: row.version_number, title: row.title, notes: row.notes, sourceType: row.source_type, previewUrl: row.preview_url, createdAt: row.created_at, assets, decision });
 
 export async function listApprovalProjects(client: ApprovalClient, organizationId: string): Promise<ApprovalProjectOption[]> {
-  const { data } = await client.from("projects").select("id, reference, name, client_id, hue, logo_url, clients(name)").eq("organization_id", organizationId).order("created_at", { ascending: false });
+  const { data } = await client.from("projects").select("id, reference, name, client_id, hue, logo_url, clients(name)").eq("organization_id", organizationId).eq("board_only", false).order("created_at", { ascending: false });
   return ((data ?? []) as unknown as ProjectRow[]).map(projectOf);
 }
 

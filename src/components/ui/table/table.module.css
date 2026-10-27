@@ -1,76 +1,75 @@
-/* A região que rola, nos dois eixos: quem a monta numa altura fixa rola as linhas por dentro. A superfície
-   é variável para quem monta a tabela poder vesti-la no fundo da página. Sem recuo nenhum e com o canto
-   de 4px (pedidos de 2026-09-08): cabeçalho e linhas vão de borda a borda, e a moldura, discreta, recorta. */
+/*
+ * Os primitivos de tabela da casa, nas medidas da tabela trazida do sistema da pousada (2026-10-26, a pedido de
+ * padronizar as tabelas do sistema), para as tabelas simples que não passam pela `DataTable` terem a mesma cara:
+ * a moldura de fio fino e canto `lg` no fundo da página, o cabeçalho de 36px apagado e preso no topo, as linhas
+ * de 40px com o fio fino entre elas e entre as colunas, e o recuo maior nas pontas. A densidade deixou de mudar a
+ * medida: toda tabela tem a mesma.
+ */
 .scroll {
-  --table-surface: var(--color-bg-grouped-secondary);
-  --table-head: var(--color-bg-secondary);
+  --table-surface: var(--color-bg);
+  --table-head: var(--color-bg);
   --table-line: 0.0375rem;
+  --line-faint: color-mix(in oklab, var(--color-border) 50%, transparent);
 
   width: 100%;
   min-height: 0;
   overflow: auto;
   border: var(--table-line) solid var(--color-border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   background-color: var(--table-surface);
 }
 
 .table {
   width: 100%;
-  font-size: var(--text-subheadline);
+  font-size: var(--text-footnote);
   line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-tight);
   color: var(--color-label);
+  border-spacing: 0;
+  border-collapse: separate;
 }
 
 .headerCell,
 .cell {
-  padding: var(--space-3) var(--space-4);
+  padding: 0 0.625rem;
   text-align: start;
   vertical-align: middle;
   white-space: nowrap;
 }
 
-/* Compacta é a densidade das listas longas: 6px em cima e embaixo dá linha de 36px com etiqueta pequena
-   dentro, o suficiente para o dedo e o bastante para caber o dobro de linhas na tela. */
-.table[data-density="compact"] .headerCell,
-.table[data-density="compact"] .cell {
-  padding: calc(var(--space-1) + var(--space-half)) var(--space-3);
+.headerCell:first-child,
+.cell:first-child {
+  padding-inline-start: 1.25rem;
 }
 
-.table[data-density="compact"] .headerCell {
-  padding-block: var(--space-2);
+.headerCell:last-child,
+.cell:last-child {
+  padding-inline-end: 1.25rem;
 }
 
-/* O cabeçalho é a barra presa no topo da região, no cinza secundário e colada na moldura e na primeira
-   linha (decisão de 2026-09-08, depois de uma rodada solta com recuo): cada célula fica presa por conta
-   própria. Os fios do cabeçalho (embaixo, e entre as colunas) vão por sombra interna, e não por borda,
-   porque em tabela de bordas fundidas a borda de uma célula presa não acompanha a célula ao rolar. */
+/* O cabeçalho preso no topo da região, no fundo da página, com o fio embaixo e o fio fino entre as colunas. */
 .headerCell {
   position: sticky;
   top: 0;
   z-index: 1;
+  height: 2.25rem;
   font-size: var(--text-caption-1);
   font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
   color: var(--color-label-secondary);
   background-color: var(--table-head);
-  box-shadow: inset 0 calc(-1 * var(--table-line)) 0 var(--color-border);
+  border-block-end: 1px solid var(--color-border);
 }
 
-.headerCell + .headerCell {
-  box-shadow: inset var(--table-line) calc(-1 * var(--table-line)) 0 var(--color-border);
-}
-
-/* O fio da casa entre as linhas e entre as colunas, o mesmo do cabeçalho: a grade inteira no fio fino. */
+/* As linhas de 40px, com o fio fino entre elas e entre as colunas. */
 .cell {
-  border-top: var(--table-line) solid var(--color-border);
+  height: 2.5rem;
+  padding-block: 0.375rem;
+  border-block-end: 1px solid var(--line-faint);
 }
 
-.cell + .cell {
-  border-inline-start: var(--table-line) solid var(--color-border);
-}
-
-.row:first-child .cell {
-  border-top: 0;
+.headerCell:not(:last-child),
+.cell:not(:last-child) {
+  border-inline-end: 1px solid var(--line-faint);
 }
 
 .headerCell[data-align="center"],

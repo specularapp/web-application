@@ -1,6 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import { TagIcon } from "@phosphor-icons/react/ssr";
-import { gridPageSize as pageSizeForGrid, remapPage } from "@/lib/utils/paging";
+import { remapPage } from "@/lib/utils/paging";
 import { contractKinds, contractSources, contractStatuses } from "./labels";
 import type { Contract, ContractKind, ContractSource, ContractStatus } from "./summary";
 
@@ -12,18 +12,12 @@ import type { Contract, ContractKind, ContractSource, ContractStatus } from "./s
  */
 
 /**
- * A página é o que cabe em até três linhas da grade, e sempre par, na receita do catálogo e dos projetos: a
- * prancha mede quantas colunas a grade formou e pede ao servidor esse tanto. Antes de medir vale o que o
- * cookie guardou da última vez ou o padrão de quatro colunas.
+ * Cada visão pede a página da medida dela (2026-10-26, no lugar da grade que media as colunas): trinta na
+ * tabela e cem no funil, que mostra as etapas de uma vez, como o de orçamentos.
  */
-export const GRID_ROWS = 3;
-export const GRID_PER_PAGE_DEFAULT = 12;
-export const MAX_PER_PAGE = 30;
-
-/** No celular a página é sempre doze, como nas outras grades da casa. */
-export const MOBILE_PER_PAGE = 12;
-
-export const gridPageSize = (columns: number) => pageSizeForGrid(columns, GRID_ROWS, MAX_PER_PAGE);
+export const CONTRACTS_PER_PAGE = 30;
+export const FUNNEL_PER_PAGE = 100;
+export const MAX_PER_PAGE = 100;
 
 export { remapPage };
 
@@ -85,7 +79,7 @@ export type ContractsQuery = {
   source: ContractsSourceFilter;
   kind: ContractsKindFilter;
   page: number;
-  /** Quantos por página: o que cabe em três linhas da grade. Sem parâmetro, o servidor decide pelo cookie. */
+  /** Quantos por página: trinta na tabela e cem no funil. Sem parâmetro, o servidor decide pelo cookie da visão. */
   pageSize: number;
 };
 
@@ -95,7 +89,7 @@ export const defaultQuery: ContractsQuery = {
   source: DEFAULT_SOURCE,
   kind: DEFAULT_KIND,
   page: 1,
-  pageSize: GRID_PER_PAGE_DEFAULT,
+  pageSize: FUNNEL_PER_PAGE,
 };
 
 /** Um filtro fora do padrão: o glifo e o nome que a barra mostra, e o que devolve só ele ao padrão. */
@@ -130,7 +124,7 @@ export const clearedFilters: Partial<ContractsQuery> = {
 };
 
 /**
- * A página pronta: os cartões que a grade mostra, quantos contratos o filtro encontrou ao todo e quantos há
+ * A página pronta: os contratos que o funil ou a tabela mostram, quantos contratos o filtro encontrou ao todo e quantos há
  * em cada situação, na base inteira, para o menu de filtros dizer o que existe.
  */
 export type ContractsListPage = {

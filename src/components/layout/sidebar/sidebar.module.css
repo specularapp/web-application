@@ -102,7 +102,7 @@
 }
 
 @media (hover: hover) {
-  .row:hover {
+  .row:not([data-locked]):hover {
     color: var(--color-label);
     background-color: var(--color-fill-quaternary);
   }
@@ -155,6 +155,16 @@
   }
 }
 
+/* Pasta bloqueada: fica à vista para a pessoa saber que existe, apagada e sem reagir ao toque. */
+.row[data-locked] {
+  color: var(--color-label-tertiary);
+  cursor: not-allowed;
+}
+
+.row[data-locked]:active {
+  transform: none;
+}
+
 .label {
   flex: 1;
   min-width: 0;
@@ -169,7 +179,7 @@
   width: 0.875rem;
   height: 0.875rem;
   color: var(--color-label-tertiary);
-  transition: rotate var(--duration-fast) var(--ease-standard);
+  transition: rotate var(--duration-slow) var(--ease-settle);
 }
 
 .row .chevron[data-open] {
@@ -182,8 +192,9 @@
   color: var(--color-label);
 }
 
-/* As páginas de dentro, recuadas até o começo do rótulo da pasta, entrando com um fade curto (2026-10-25, no
-   padrão do app-le-ange). A ligação com a pasta é feita de bordas, as mesmas das divisórias do menu: o tronco
+/* As páginas de dentro, recuadas até o começo do rótulo da pasta (2026-10-25, no padrão do app-le-ange). Abrem
+   e fecham deslizando a altura, de zero à do conteúdo, com o esmaecer junto e a cauda longa do `--ease-settle`
+   (2026-10-26, a pedido: o fade curto só na entrada e o corte na saída pareciam secos). A ligação com a pasta é feita de bordas, as mesmas das divisórias do menu: o tronco
    desce do centro do ícone dela (--trunk-x) e cada galho dobra reto até a sua linha. */
 .sub {
   --trunk-x: calc(var(--space-2) + 0.5rem);
@@ -194,7 +205,42 @@
 
   position: relative;
   display: grid;
-  animation: subEnter var(--duration-base) var(--ease-standard) both;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--duration-slow) var(--ease-settle),
+    opacity var(--duration-base) var(--ease-standard);
+}
+
+.sub[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-slow) var(--ease-settle),
+    opacity var(--duration-slow) var(--ease-settle);
+}
+
+/* O vão entre a pasta e a primeira página mora aqui dentro, e não no `gap` da pasta: fechada, a pasta não
+   guarda espaço nenhum. É conteúdo, e não `padding`, porque o recorte encolhe conteúdo até zero e o
+   `padding` não. O recorte deixa sobrar o anel de foco. */
+.subInner {
+  display: grid;
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: var(--space-1);
+}
+
+.subInner::before {
+  content: "";
+  height: var(--space-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sub,
+  .sub[data-open],
+  .row .chevron {
+    transition: none;
+  }
 }
 
 .stem,
@@ -207,9 +253,9 @@
   border: 0 solid var(--branch-line);
 }
 
-/* Do pé do ícone da pasta até o começo da primeira página. */
+/* Do pé do ícone da pasta até o começo da primeira página, passando pelo vão que agora mora no `.subInner`. */
 .stem {
-  inset-block-start: calc(var(--space-1) * -1 - 0.5rem);
+  inset-block-start: -0.5rem;
   height: calc(var(--space-1) + 0.5rem);
   border-inline-start-width: var(--menu-line);
 }
@@ -259,17 +305,9 @@
   border-color: var(--branch-line-active);
 }
 
-@keyframes subEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-}
-
 /* A pasta: a linha dela e, aberta, as páginas de dentro logo abaixo. */
 .folder {
   display: grid;
-  gap: var(--space-1);
 }
 
 /* A linha da pasta e, na que abre árvore, o criar na ponta. */

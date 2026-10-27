@@ -1,21 +1,18 @@
-/* O editor toma a área de conteúdo: a barra em cima e, embaixo, o trabalho em colunas que rolam por dentro
-   no desktop. No celular tudo segue em fluxo. */
+/* O editor toma a janela grande em que mora (2026-10-26): a barra em cima e, embaixo, o trabalho em colunas
+   que rolam por dentro. O piso zero é o que deixa a bandeja do celular rolar por dentro, na receita do editor
+   de orçamento: item de flex tem piso automático na altura do conteúdo, e sem o zero nada encolhia. */
 .editor {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
   min-width: 0;
-  min-height: 100%;
+  min-height: 0;
 }
 
-@media (min-width: 48rem) {
-  .editor {
-    height: 100%;
-    min-height: 0;
-  }
-}
-
-/* A barra: voltar, a rota com o título e o identificador, o estado do salvamento e as ações na ponta. */
+/* A barra: o identificador com o título, o estado do salvamento e as ações na ponta, com o fechar. */
 .bar {
   display: flex;
   gap: var(--space-2);
@@ -31,28 +28,6 @@
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
-}
-
-.crumb {
-  flex-shrink: 0;
-  font-family: var(--font-body);
-  font-size: var(--text-footnote);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-label-secondary);
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .crumb:hover {
-    color: var(--color-label);
-  }
-}
-
-.slash {
-  flex-shrink: 0;
-  font-size: var(--text-footnote);
-  color: var(--color-label-tertiary);
 }
 
 .reference {
@@ -105,6 +80,14 @@
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
+}
+
+/* Abaixo de 64rem a ficha é gaveta e o trabalho é uma coluna só, que rola por dentro da janela. */
+@media (max-width: 63.9375rem) {
+  .work {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 @media (min-width: 64rem) {
@@ -169,6 +152,7 @@
    como papel na mesa. `align-items: start` para a folha medir o próprio conteúdo, e não a linha da grade. */
 .stage {
   position: relative;
+  container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
@@ -305,23 +289,21 @@
 }
 
 /* A folha no editor: a mesma da página pública, com a sombra de papel e o canto, porque aqui é quem a
-   emoldura. O texto é o Tiptap, com a tipografia do documento na raiz editável. A partir do tablet a folha
-   tem a proporção da A4 (acerto de 2026-09-14, "bem encaixado"): com pouco texto as assinaturas pousam no pé
-   da página, e com mais texto ela cresce, porque a razão é preferência e o mínimo automático é o conteúdo. */
+   emoldura. O texto é o Tiptap, com a tipografia do documento na raiz editável. Fluida (2026-10-26, a pedido:
+   "a visualização do tamanho do documento para edição mais fluida"): a largura e as margens acompanham o palco
+   pela largura do contêiner (`cqi`), das margens de norma numa janela larga até o recuo da casa numa estreita,
+   e a altura é a do texto, sem a proporção fixa de A4 que deixava a folha alta e vazia. */
 .stage .sheet {
+  --doc-pad-block: clamp(2rem, 7cqi, 4.6rem) clamp(1.75rem, 5cqi, 3rem);
+  --doc-pad-inline: clamp(1.25rem, 7cqi, 4.6rem) clamp(1.25rem, 5cqi, 3rem);
+
   width: 100%;
-  max-width: 52rem;
+  max-width: 50rem;
   min-height: 30rem;
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-}
-
-@media (min-width: 48rem) {
-  .stage .sheet {
-    aspect-ratio: 210 / 297;
-    min-height: auto;
-  }
+  transition: padding var(--duration-fast) var(--ease-standard);
 }
 
 .content :global(.ProseMirror) {

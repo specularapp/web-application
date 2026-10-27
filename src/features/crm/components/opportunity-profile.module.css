@@ -1,0 +1,750 @@
+/*
+ * A ficha da oportunidade no desenho da gaveta do lead da pousada (`lead-drawer`, `lead-profile.module.css` e a
+ * `drawerDialog` do funil de lá), a pedido de 2026-10-26: no computador, a janela vira só o lugar de dois
+ * cartões soltos, a conversa mais larga à esquerda e a ficha à direita; a ficha tem o cabeçalho escuro com o
+ * nome, o código, as etiquetas, o funil com a linha das etapas e as abas, e embaixo os campos em linha, rótulo
+ * apagado à esquerda e valor à direita, editáveis no lugar.
+ */
+
+/* ---------- A janela: dois cartões soltos ---------- */
+
+/* A classe repetida vence a folha do Emotion da janela, que tem a mesma especificidade. */
+.drawer.drawer:not([data-mode="sheet"]) {
+  display: grid;
+  /* A ficha um pouco mais estreita que a da pousada (2026-10-26, a pedido: "está muito largo"): os campos são
+     curtos, e a conversa ao lado ganha a largura que sobrava. */
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: var(--space-3);
+  width: min(84rem, calc(100vw - var(--space-12)));
+  max-width: none;
+  height: min(60rem, calc(100dvh - var(--space-12)));
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.drawer.drawer:not([data-mode="sheet"]) > * {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Na bandeja do celular, um cartão de cada vez, na altura da bandeja. */
+.drawer.drawer[data-mode="sheet"] {
+  height: 85dvh;
+}
+
+.single {
+  height: 100%;
+  min-height: 0;
+  padding-block-end: var(--floating-bar-inset);
+}
+
+/* ---------- A ficha ---------- */
+
+.profile {
+  --head-bg: var(--profile-head-bg);
+  --head-ink: var(--profile-head-ink);
+  --head-muted: color-mix(in oklab, var(--head-ink) 62%, transparent);
+  --head-line: color-mix(in oklab, var(--head-ink) 18%, transparent);
+  --label-width: 8.5rem;
+  --line: 0.0375rem solid var(--color-border);
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  background-color: var(--color-bg);
+}
+
+/* O cabeçalho é escuro em qualquer tema, então as cores da casa são redefinidas aqui dentro: os botões
+   fantasma, o gatilho da etapa e as abas usam estes tokens e leem em claro sobre o fundo. Os menus abrem em
+   portal, fora daqui, e seguem com as cores normais. */
+.head {
+  --color-label: var(--head-ink);
+  --color-label-secondary: var(--head-muted);
+  --color-label-tertiary: color-mix(in oklab, var(--head-ink) 45%, transparent);
+  --color-placeholder: color-mix(in oklab, var(--head-ink) 45%, transparent);
+  --color-border: var(--head-line);
+  --color-fill-quaternary: color-mix(in oklab, var(--head-ink) 8%, transparent);
+  --color-fill-tertiary: color-mix(in oklab, var(--head-ink) 12%, transparent);
+  --color-fill-secondary: color-mix(in oklab, var(--head-ink) 16%, transparent);
+  --color-focus: color-mix(in oklab, var(--head-ink) 85%, transparent);
+
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--head-ink);
+  background-color: var(--head-bg);
+}
+
+.titleRow {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  margin-inline-start: calc(var(--space-2) * -1);
+}
+
+.headButton,
+.titleRow > :last-child button {
+  color: var(--head-ink);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+}
+
+.name h2 {
+  font-size: var(--text-title-3);
+  font-weight: var(--weight-bold);
+  color: var(--head-ink);
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem var(--space-2);
+  align-items: center;
+}
+
+.number {
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-variant-numeric: tabular-nums;
+  color: var(--head-muted);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+@media (hover: hover) {
+  .number:hover {
+    color: var(--head-ink);
+  }
+}
+
+.number:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* As etiquetas: selo claro e translúcido sobre o topo, com o quadradinho na cor da etiqueta e o glifo branco
+   dentro, o nome em seguida e o X que só acende ao passar o mouse. */
+.tag,
+.addTag {
+  display: inline-flex;
+  gap: 0.3125rem;
+  align-items: center;
+  height: 1.375rem;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+}
+
+.tag {
+  padding: 0 0.1875rem;
+  color: var(--head-ink);
+  background-color: color-mix(in oklab, var(--head-ink) 14%, transparent);
+  box-shadow: inset 0 0 0 0.0625rem color-mix(in oklab, var(--head-ink) 10%, transparent);
+}
+
+.tagIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  color: var(--profile-head-ink);
+  background-color: var(--tag);
+  border-radius: var(--radius-xs);
+}
+
+.tagIcon svg {
+  width: 0.5625rem;
+  height: 0.5625rem;
+}
+
+.tag button {
+  display: grid;
+  place-items: center;
+  width: 0.875rem;
+  height: 0.875rem;
+  padding: 0;
+  color: var(--head-muted);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 0.1875rem;
+  opacity: 0.55;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tag:hover button,
+.tag button:focus-visible {
+  opacity: 1;
+}
+
+.tag button svg {
+  width: 0.5625rem;
+  height: 0.5625rem;
+}
+
+.addTag {
+  padding-inline: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--head-muted);
+  border: 0.0625rem dashed var(--head-line);
+}
+
+.addTag svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+@media (hover: hover) {
+  .addTag:hover,
+  .tag button:hover {
+    color: var(--head-ink);
+  }
+}
+
+.funnel {
+  display: grid;
+  gap: 0.125rem;
+}
+
+/* A etapa: o gatilho inteiro ganha o véu claro dos botões ao passar o mouse e ao abrir */
+.funnel button:has(.stage) {
+  padding: 0.125rem var(--space-2);
+  margin-inline: calc(var(--space-2) * -1);
+  border-radius: var(--radius-md);
+}
+
+@media (hover: hover) {
+  .funnel button:has(.stage):hover {
+    background-color: color-mix(in oklab, var(--head-ink) 8%, transparent);
+  }
+}
+
+.funnel button:has(.stage)[aria-expanded="true"] {
+  background-color: color-mix(in oklab, var(--head-ink) 12%, transparent);
+}
+
+.funnelName {
+  font-size: var(--text-caption-1);
+  color: var(--head-muted);
+}
+
+.stage {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  width: 100%;
+  font-size: var(--text-subheadline);
+  color: var(--head-ink);
+  text-align: start;
+}
+
+.stage strong {
+  font-weight: var(--weight-semibold);
+}
+
+.stage > span {
+  color: var(--head-muted);
+}
+
+.stage > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-inline-start: auto;
+  color: var(--head-muted);
+}
+
+/* A linha das etapas, que também move a venda: um pedaço por etapa, na cor sólida dela até a etapa atual, e as
+   seguintes num tom fraco da mesma cor. Passar o mouse acende até a etapa apontada e mostra o nome dela embaixo;
+   o clique leva a venda para lá. A atual tem um realce fino. */
+.progress {
+  display: flex;
+  gap: 0.1875rem;
+  margin-block-start: var(--space-2);
+}
+
+.step {
+  flex: 1;
+  height: 0.375rem;
+  padding: 0;
+  cursor: pointer;
+  background-color: color-mix(in oklab, var(--tone) 32%, transparent);
+  border: 0;
+  border-radius: 0.1875rem;
+  transition:
+    background-color 160ms var(--ease-standard),
+    transform 160ms var(--ease-standard);
+}
+
+.step[data-on] {
+  background-color: var(--tone);
+}
+
+.step[data-current] {
+  box-shadow: 0 0 0 0.0625rem color-mix(in oklab, var(--head-ink) 70%, transparent);
+}
+
+.step:disabled {
+  cursor: wait;
+}
+
+@media (hover: hover) {
+  .step:not(:disabled):hover {
+    transform: scaleY(1.6);
+  }
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--head-ink);
+  outline-offset: 2px;
+}
+
+.stepHint {
+  min-height: 1rem;
+  margin-block-start: 0.25rem;
+  font-size: var(--text-caption-2);
+  color: var(--head-muted);
+  opacity: 0;
+  transition: opacity 160ms var(--ease-standard);
+}
+
+.stepHint[data-visible] {
+  opacity: 1;
+}
+
+/* As abas de pasta no pé do cabeçalho, emendando no corpo branco: cada uma na sua cor quando escolhida, com as
+   curvinhas de fora que fazem a aba nascer do corpo. */
+.sections {
+  --tab-radius: 0.625rem;
+
+  display: flex;
+  gap: 0.125rem;
+  align-items: flex-end;
+  padding: 0 var(--space-3);
+  margin: var(--space-1) calc(var(--space-4) * -1) 0;
+}
+
+.section {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.375rem;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--head-muted);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--tab-radius) var(--tab-radius) 0 0;
+  transition:
+    color 220ms var(--ease-standard),
+    background-color 220ms var(--ease-standard);
+}
+
+.section svg {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.section::before,
+.section::after {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: var(--tab-radius);
+  height: var(--tab-radius);
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transition: opacity 220ms var(--ease-standard);
+}
+
+.section::before {
+  left: calc(var(--tab-radius) * -1);
+  background: radial-gradient(circle at 0 0, transparent calc(var(--tab-radius) - 0.5px), var(--profile-body-bg, var(--color-bg)) var(--tab-radius));
+}
+
+.section::after {
+  right: calc(var(--tab-radius) * -1);
+  background: radial-gradient(circle at 100% 0, transparent calc(var(--tab-radius) - 0.5px), var(--profile-body-bg, var(--color-bg)) var(--tab-radius));
+}
+
+.section:nth-child(1) {
+  --tab-on: var(--profile-tab-main);
+}
+
+.section:nth-child(2) {
+  --tab-on: var(--profile-tab-tracking);
+}
+
+.section:nth-child(3) {
+  --tab-on: var(--profile-tab-summary);
+}
+
+.section[aria-selected="true"] {
+  z-index: 1;
+  font-weight: var(--weight-semibold);
+  color: var(--tab-on);
+  background-color: var(--profile-body-bg, var(--color-bg));
+}
+
+.section[aria-selected="true"]::before,
+.section[aria-selected="true"]::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .section:not([aria-selected="true"]):hover {
+    color: var(--head-ink);
+    background-color: color-mix(in oklab, var(--head-ink) 8%, transparent);
+  }
+}
+
+.section:focus-visible {
+  outline: 2px solid var(--tab-on);
+  outline-offset: -2px;
+}
+
+/* O corpo abaixo do cabeçalho tem o fundo da página, e as abas emendam nele: a variável leva a mesma cor para
+   a aba escolhida e para as curvinhas, que estão dentro do cabeçalho escuro. */
+.profile {
+  --profile-body-bg: var(--color-bg);
+}
+
+/* ---------- O corpo ---------- */
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes sectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}
+
+.body > * {
+  animation: sectionIn 220ms var(--ease-standard) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body > *,
+  .section,
+  .section::before,
+  .section::after,
+  .step,
+  .stepHint {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Um respiro interno suave (2026-10-26, a pedido): a lista recua das bordas da ficha e cada linha ganha um
+   pouco de ar em cima e embaixo, para os badges e os valores não encostarem uns nos outros. */
+.fields {
+  display: grid;
+  gap: var(--space-half);
+  padding: var(--space-4) var(--space-5) var(--space-6);
+  margin: 0;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: var(--label-width) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 2.25rem;
+  padding-block: var(--space-half);
+}
+
+/* Rótulo e valor quebram a linha em vez de cortar em reticências: o campo cresce e o texto inteiro fica à vista */
+.field dt {
+  padding-block: 0.25rem;
+  font-size: var(--text-footnote);
+  line-height: 1.3;
+  color: var(--color-label-secondary);
+  overflow-wrap: break-word;
+}
+
+.field[data-muted] dt {
+  color: var(--color-label-tertiary);
+}
+
+.field dd {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-footnote);
+}
+
+/* O valor que se edita no lugar continua parecendo valor: o mesmo recuo e o véu ao passar o mouse da ficha da
+   pousada, por cima do campo em linha da casa. */
+.field dd [role="button"],
+.counts dd [role="button"] {
+  padding: var(--space-1) var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+  .field dd [role="button"]:hover,
+  .counts dd [role="button"]:hover {
+    background-color: var(--color-fill-quaternary);
+  }
+}
+
+.field dd [role="button"][data-empty],
+.counts dd [role="button"][data-empty] {
+  color: var(--color-label-tertiary);
+}
+
+/* Um badge que diz o estado do valor ao lado dele, como a chance e o prazo. */
+.badged {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.select {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  font-size: var(--text-footnote);
+  color: var(--color-label);
+}
+
+.select[data-empty] {
+  color: var(--color-label-secondary);
+}
+
+.select > svg:last-child {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-label-tertiary);
+}
+
+.static {
+  color: var(--color-label);
+}
+
+.static[data-empty] {
+  color: var(--color-label-tertiary);
+}
+
+.date {
+  font-size: var(--text-footnote);
+}
+
+.link {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .link:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------- Rastreio e Resumo ---------- */
+
+.stats {
+  display: grid;
+}
+
+.source {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  margin: 0;
+  font-size: var(--text-footnote);
+  border-block-end: var(--line);
+}
+
+.source strong {
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.sourceLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-medium);
+}
+
+.source small {
+  color: var(--color-label-secondary);
+}
+
+.tracked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+  padding: var(--space-4) var(--space-5) var(--space-3);
+  border-block-end: var(--line);
+}
+
+.tracked > strong {
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-secondary);
+}
+
+.tracked > span {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-tertiary);
+}
+
+.counts {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+.counts > div {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-footnote);
+}
+
+.counts dt {
+  flex-shrink: 0;
+  color: var(--color-label-secondary);
+}
+
+.counts dd {
+  min-width: 0;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.counts dd[data-empty] {
+  color: var(--color-label-tertiary);
+}
+
+.linkLine {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- A variante compacta ---------- */
+
+/* A mesma ficha mais enxuta, para a lateral do WhatsApp (2026-10-26, a pedido: "na Le Ange é mais compacto e
+   otimizado"): o cabeçalho com menos respiro e o nome um degrau menor, as abas mais baixas e as linhas da ficha
+   em corpo de legenda, sem o vão entre elas. A janela da oportunidade segue no tamanho dela. */
+.compact .head {
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.compact .name h2 {
+  font-size: var(--text-headline);
+}
+
+.compact .stage {
+  font-size: var(--text-footnote);
+}
+
+.compact .progress {
+  margin-block-start: var(--space-1);
+}
+
+.compact .sections {
+  padding: 0 var(--space-2);
+  margin: 0 calc(var(--space-3) * -1) 0;
+}
+
+.compact .section {
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  font-size: var(--text-caption-1);
+}
+
+.compact .fields {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0 var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.compact .field {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-height: 1.875rem;
+  padding-block: 0;
+}
+
+.compact .field dt,
+.compact .field dd {
+  font-size: var(--text-caption-1);
+}
+
+/* Na coluna estreita nada quebra o rótulo nem corta o valor (2026-10-26, a pedido: "o título de cada campo sem
+   pular linha" e depois "a informação está cortando"): as linhas dividem a grade da lista, por `subgrid` (acima),
+   então a coluna dos rótulos toma a largura do mais longo, cada rótulo fica numa linha e todos alinham; e o
+   valor, que é o que pode ser comprido (um e-mail, uma página de entrada), quebra linha em vez de sumir na borda. */
+.compact .field dt {
+  white-space: nowrap;
+}
+
+.compact .field dd,
+.compact .field dd * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.compact .counts > div {
+  font-size: var(--text-caption-1);
+}
+
+.compact .counts dt {
+  white-space: nowrap;
+}
+
+.compact .tracked {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}

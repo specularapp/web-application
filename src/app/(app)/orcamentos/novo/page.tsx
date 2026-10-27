@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { getAiUsageData } from "@/features/ai/queries";
-import { QuoteEditorScreen } from "@/features/quotes/components/quote-editor-screen";
-import { loadQuoteEditorData } from "@/features/quotes/queries";
+import { QuotesScreen } from "@/features/quotes/components/quotes-screen";
+import { QUOTES_GRID_COOKIE, QUOTES_VIEW_COOKIE, defaultPageSize, parseQuotesGridSize, parseQuotesQuery, parseQuotesView } from "@/features/quotes/list";
+import { loadQuotesScreenData } from "@/features/quotes/queries";
 import { createMetadata } from "@/lib/metadata";
 import { first } from "@/lib/utils/search-params";
 
@@ -12,25 +14,38 @@ export const metadata = createMetadata({
 });
 
 /**
- * O editor de um orçamento novo, em tela inteira (2026-09-16, a pedido, na moldura do editor de contrato).
- * Era a lista com a janela aberta por cima; montar um orçamento é trabalho de tela, e a lista atrás só
- * disputava altura. `?item=` e `?cliente=` chegam do catálogo e da base de clientes e entram preenchidos.
+ * Gerar um orçamento é a lista com a janela do editor aberta por cima (2026-10-26, a pedido: "ao invés de abrir
+ * página, um modal longo no mesmo padrão da edição"), na receita de `/clientes/novo`: endereço próprio para o
+ * atalho de qualquer tela levar direto, e a lista atrás continua a mesma. `?item=` e `?cliente=` chegam do
+ * catálogo e da base de clientes e entram preenchidos.
  */
 export default async function NewQuotePage({ searchParams }: PageProps<"/orcamentos/novo">) {
-  const params = await searchParams;
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
+  const view = parseQuotesView(cookieStore.get(QUOTES_VIEW_COOKIE)?.value);
+  const gridSize = parseQuotesGridSize(cookieStore.get(QUOTES_GRID_COOKIE)?.value);
+  const query = parseQuotesQuery(
+    {
+      busca: first(params.busca),
+      situacao: first(params.situacao),
+      periodo: first(params.periodo),
+      pagina: first(params.pagina),
+      porPagina: first(params.porPagina),
+    },
+    defaultPageSize(view, gridSize),
+  );
   const prefill = { itemId: first(params.item) || undefined, clientId: first(params.cliente) || undefined };
 
-  const [data, ai] = await Promise.all([loadQuoteEditorData("/orcamentos/novo"), getAiUsageData()]);
+  const [data, ai] = await Promise.all([loadQuotesScreenData(query, "/orcamentos/novo"), getAiUsageData()]);
 
   return (
-    <QuoteEditorScreen
-      clients={data.clients}
-      catalog={data.catalog}
-      issuer={data.issuer}
-      owner={data.owner}
-      nextNumber={data.nextNumber}
-      prefill={prefill}
+    <QuotesScreen
+      page={data.page}
+      query={query}
       ai={ai}
+      view={view}
+      editor={{ clients: data.clients, catalog: data.catalog, issuer: data.issuer, owner: data.owner, nextNumber: data.nextNumber }}
+      creating
+      prefill={prefill}
     />
   );
 }

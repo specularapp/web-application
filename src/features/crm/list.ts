@@ -1,11 +1,12 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { z } from "zod";
-import { crmStageSchema } from "./schemas";
 import { slugify } from "@/lib/utils/slug";
 import { isStale } from "./labels";
-import type { CrmStageOverrides } from "./board-cookie";
 import { defaultCrmQuery, horizonValues, sortCrmColumn, temperatureFilterValues, type CrmBoardData, type CrmQuery } from "./list-options";
 import { type CrmStage } from "./stages";
+import { crmViewValues, DEFAULT_CRM_VIEW, type CrmView } from "./view-cookie";
+
+export { CRM_VIEW_COOKIE, type CrmView } from "./view-cookie";
 import type { Opportunity } from "./summary";
 
 /**
@@ -14,8 +15,6 @@ import type { Opportunity } from "./summary";
  * de onde vêm, então trocar a prévia pela consulta não mexe em nada daqui.
  */
 
-/* O nome do cookie das etapas e a escrita dele moram em `board-cookie.ts`, que não carrega zod. */
-export { CRM_STAGES_COOKIE, type CrmStageOverrides } from "./board-cookie";
 
 /* Filtro de liga e desliga na URL: presente com "1" liga, qualquer outra coisa ou ausente desliga. */
 const flag = z
@@ -40,30 +39,15 @@ export function parseCrmQuery(params: Record<string, string | undefined>): CrmQu
   });
 }
 
-/**
- * Lê o cookie do que a pessoa decidiu em cada etapa, porque cookie é entrada de usuário: entrada que não é
- * `etapa:0` ou `etapa:1` cai fora, e etapa repetida vale a última.
- */
-export function parseCrmStageOverrides(raw: string | undefined): CrmStageOverrides {
-  const listed = z
-    .string()
-    .transform((value) => value.split(","))
-    .catch([] as string[])
-    .parse(raw);
-
-  const overrides: CrmStageOverrides = {};
-  for (const entry of listed) {
-    const [stage, on] = entry.split(":");
-    if (!crmStageSchema.safeParse(stage).success || (on !== "0" && on !== "1")) continue;
-    overrides[stage as CrmStage] = on === "1";
-  }
-  return overrides;
+/** O jeito de ver que o cookie guardou, porque cookie é entrada de usuário: o que não for um dos dois vira o quadro. */
+export function parseCrmView(raw: string | undefined): CrmView {
+  return z.enum(crmViewValues).catch(DEFAULT_CRM_VIEW).parse(raw);
 }
 
 /* A busca compara pelo mesmo formato dos dois lados, então acento e maiúscula não atrapalham. Ela varre o
    que identifica uma venda: o nome dela, a descrição, o identificador, o cliente e a empresa dele, o funil,
    as etiquetas e quem está envolvido, porque procurar pelo nome do cliente é o jeito mais comum de achar. */
-function matches(opportunity: Opportunity, search: string) {
+export function opportunityMatches(opportunity: Opportunity, search: string) {
   if (!search) return true;
   const needle = slugify(search, 80);
   const haystack = [
@@ -96,7 +80,7 @@ function withinHorizon(opportunity: Opportunity, horizon: CrmQuery["horizon"]) {
 export function buildCrmBoard(opportunities: Opportunity[], query: CrmQuery, stages: CrmStage[]): CrmBoardData {
   const filtered = opportunities.filter(
     (opportunity) =>
-      matches(opportunity, query.search) &&
+      opportunityMatches(opportunity, query.search) &&
       withinHorizon(opportunity, query.horizon) &&
       (query.temperature === "todas" || opportunity.temperature === query.temperature) &&
       (!query.stale || isStale(opportunity)),

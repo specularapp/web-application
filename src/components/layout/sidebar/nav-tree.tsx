@@ -3,7 +3,8 @@
 import { CrmAppearanceDialog, CrmAppearancePopover, type CrmAppearance } from "@/features/crm/components/crm-appearance-dialog";
 import { TaskAppearanceDialog, TaskAppearancePopover } from "@/features/tasks/components/appearance-dialog";
 import { StagesDialog as TaskStagesDialog } from "@/features/tasks/components/stages-dialog";
-import { setProjectAppearanceAction } from "@/features/projects/actions";
+import { deleteProjectAction, saveBoardAction } from "@/features/projects/actions";
+import { AttachBoardDialog } from "@/features/projects/components/attach-board-dialog";
 import type { ProjectHue } from "@/features/projects/summary";
 import type { ProjectGlyph } from "@/features/tasks/tree";
 import { FunnelStagesDialog } from "@/features/crm/components/funnel-stages-dialog";
@@ -16,6 +17,7 @@ import {
   CaretDownIcon,
   CaretUpDownIcon,
   FileIcon,
+  FilePlusIcon,
   FolderSimpleIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -24,6 +26,7 @@ import {
   GlobeIcon,
   HandshakeIcon,
   KanbanIcon,
+  LinkSimpleIcon,
   ListDashesIcon,
   MegaphoneIcon,
   PaletteIcon,
@@ -42,6 +45,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import { NameDialog } from "@/components/ui/name-dialog";
 import { deleteCrmFolderAction, deleteFunnelAction, moveFunnelAction, saveCrmFolderAction, saveFunnelAction } from "@/features/crm/actions";
 import type { CrmTreeItem } from "@/features/crm/tree";
 import { deleteFolderAction, moveProjectAction, saveFolderAction } from "@/features/projects/actions";
@@ -92,6 +96,8 @@ export type NavTreeItem =
       taskStageDefinitions?: TaskStage[];
       /** O balde do que não tem pasta nem quadro próprio ("Sem funil"): não se edita nem se apaga. */
       bucket?: boolean;
+      /** Página avulsa de Tarefas: renomeia e atrela a um projeto, em vez de abrir a ficha. */
+      boardOnly?: boolean;
     };
 
 export type NavTreeProps = {
@@ -136,7 +142,7 @@ export const fromTaskTree = (items: TaskTreeItem[]): NavTreeItem[] =>
   items.map((item) =>
     item.kind === "folder"
       ? { kind: "folder", id: item.id, name: item.name, open: item.open, hue: item.hue, paletteHue: item.paletteHue, glyph: item.glyph, children: fromTaskTree(item.children) }
-      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, paletteHue: item.paletteHue, stages: item.stages.map((stage) => stage.id), taskStageDefinitions: item.stages, bucket: item.bucket },
+      : { kind: "leaf", id: item.id, slug: item.slug, name: item.name, open: item.open, glyph: item.glyph, hue: item.hue, paletteHue: item.paletteHue, stages: item.stages.map((stage) => stage.id), taskStageDefinitions: item.stages, bucket: item.bucket, boardOnly: item.boardOnly },
   );
 
 /** A árvore do funil na mesma forma: o funil é a folha. */
@@ -154,9 +160,12 @@ type Leaf = Extract<NavTreeItem, { kind: "leaf" }>;
 type Opened =
   | { kind: "new-folder"; parentId: string | null; parentName?: string }
   | { kind: "new-leaf"; parentId: string | null; parentName?: string }
+  | { kind: "new-board"; parentId: string | null; parentName?: string }
+  | { kind: "rename-board"; node: Leaf }
+  | { kind: "attach-board"; node: Leaf }
+  | { kind: "delete-board"; node: Leaf }
   | { kind: "rename-leaf"; node: Leaf }
   | { kind: "stages"; node: Leaf }
-  | { kind: "look"; node: Leaf; parentId: string | null; anchor: { current: HTMLElement | null } }
   | { kind: "delete-folder"; node: Folder }
   | { kind: "delete-leaf"; node: Leaf };
 
@@ -181,8 +190,9 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
 
   /* Cada escrita derruba o cache do domínio, que leva a concha junto na cascata; refazer a rota é o que traz
      a árvore nova para o menu sem recarregar a página. */
-  const done = (title: string, description: string) => {
-    toast({ title, description, tone: "success" });
+  /* No funil só a criação abre a janela de retorno; renomear, mover e excluir ficam no recibo do canto. */
+  const done = (title: string, description: string, created = false) => {
+    toast({ title, description, tone: "success", ...(domain === "funis" && !created ? { feedback: false as const } : {}) });
   };
 
   /* --------------------------------------------- as ações --------------------------------------------- */
@@ -191,7 +201,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
     const result = domain === "tarefas" ? await saveFolderAction(input) : await saveCrmFolderAction(input);
     if (!result.ok) return result.error;
     /* Editar a pasta não avisa: o próprio menu já mostra o nome e a cor novos. */
-    if (!input.id) done("Pasta criada", `${input.name} já está na árvore.`);
+    if (!input.id) done("Pasta criada", `${input.name} já está na árvore.`, true);
     router.refresh();
     return undefined;
   };
@@ -200,14 +210,48 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
     /* Projeto novo nasce na página dele, com a ficha inteira; aqui só o funil, que precisa de um nome. */
     const result = await saveFunnelAction(input);
     if (!result.ok) return result.error;
-    done(input.id ? "Funil renomeado" : "Funil criado", input.id ? `Agora ele se chama ${input.name}.` : `${input.name} já está na árvore.`);
+    done(input.id ? "Funil renomeado" : "Funil criado", input.id ? `Agora ele se chama ${input.name}.` : `${input.name} já está na árvore.`, !input.id);
     if (!input.id) router.push(`/crm/${result.slug}` as Route);
     return undefined;
   };
 
+  /* A página avulsa nasce só com o nome e abre na hora; renomear fica onde está. */
+  const saveBoard = async (input: { id?: string; name: string; folderId: string | null }) => {
+    const result = await saveBoardAction(input);
+    if (!result.ok) return result.error;
+    if (input.id) {
+      router.refresh();
+      return undefined;
+    }
+    done("Página criada", `${input.name} já está na árvore.`, true);
+    router.push(`/tarefas/${result.slug}` as Route);
+    onNavigate?.();
+    return undefined;
+  };
+
+  /* A página que some da árvore leva quem estava nela para a lista de todas, senão o endereço daria 404. */
+  const leaveBoard = (node: Leaf) => {
+    setOpened(null);
+    if (node.slug === current) router.push("/tarefas" as Route);
+    else router.refresh();
+  };
+
   const remove = async () => {
-    if (!opened || (opened.kind !== "delete-folder" && opened.kind !== "delete-leaf")) return;
+    if (!opened || (opened.kind !== "delete-folder" && opened.kind !== "delete-leaf" && opened.kind !== "delete-board")) return;
     setWorking(true);
+    if (opened.kind === "delete-board") {
+      const node = opened.node;
+      const removed = await deleteProjectAction(node.id);
+      setWorking(false);
+      if (!removed.ok) {
+        setOpened(null);
+        toast({ title: "Não deu para excluir", description: removed.error, tone: "danger" });
+        return;
+      }
+      done("Página excluída", `${node.name} saiu da árvore.`);
+      leaveBoard(node);
+      return;
+    }
     const result =
       opened.kind === "delete-folder"
         ? domain === "tarefas"
@@ -283,9 +327,20 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
             setOpened({ kind: "new-folder", parentId: node.id, parentName: node.name });
           },
         },
-        domain === "tarefas"
-          ? { id: "leaf", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route, onSelect: closeEditor }
-          : {
+        ...(domain === "tarefas"
+          ? [
+              {
+                id: "board",
+                label: "Nova página",
+                icon: FilePlusIcon,
+                onSelect: () => {
+                  closeEditor();
+                  setOpened({ kind: "new-board", parentId: node.id, parentName: node.name });
+                },
+              },
+              { id: "leaf", label: "Novo projeto", icon: KanbanIcon, href: "/projetos/novo" as Route, onSelect: closeEditor },
+            ]
+          : [{
               id: "leaf",
               label: "Novo funil",
               icon: FunnelIcon,
@@ -293,7 +348,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
                 closeEditor();
                 setOpened({ kind: "new-leaf", parentId: node.id, parentName: node.name });
               },
-            },
+            }]),
       ],
     },
     {
@@ -319,25 +374,24 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           {
             id: "edit",
             items: [
-              { id: "edit", label: "Editar projeto", icon: PencilSimpleIcon, href: `/projetos/${node.id}/editar` as Route },
+              ...(node.boardOnly
+                ? [
+                    { id: "rename", label: "Renomear página", icon: PencilSimpleIcon, onSelect: () => setOpened({ kind: "rename-board", node }) },
+                    { id: "attach", label: "Atrelar a um projeto", icon: LinkSimpleIcon, onSelect: () => setOpened({ kind: "attach-board", node }) },
+                  ]
+                : [{ id: "edit", label: "Editar projeto", icon: PencilSimpleIcon, href: `/projetos/${node.id}/editar` as Route }]),
               { id: "stages", label: "Etapas do quadro", icon: ListDashesIcon, onSelect: () => setOpened({ kind: "stages", node }) },
-              {
-                id: "look",
-                label: "Cor do quadro",
-                icon: PaletteIcon,
-                /* Abre no lugar do leque, ancorada no mesmo chevron, como a edição da pasta: o leque fecha e volta
-                   no cabeçalho da caixa, no mesmo botão que a pasta tem ali. */
-                onSelect: () =>
-                  setOpened({
-                    kind: "look",
-                    node,
-                    parentId,
-                    anchor: { current: document.querySelector<HTMLElement>(`[data-leaf="${node.id}"] button[aria-haspopup]`) },
-                  }),
-              },
             ],
           },
           ...moveSection(node, parentId),
+          ...(node.boardOnly
+            ? [
+                {
+                  id: "danger",
+                  items: [{ id: "delete", label: "Excluir página", icon: TrashIcon, tone: "danger" as const, onSelect: () => setOpened({ kind: "delete-board", node }) }],
+                },
+              ]
+            : []),
         ]
       : [
           {
@@ -459,6 +513,26 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           {folderEditor(node, parentId)}
         </div>
         {expanded && node.children.length > 0 && <div className={tree.children}>{limbs(node.children, node.id)}</div>}
+        {expanded && node.children.length === 0 && files && (
+          <div className={tree.children}>
+            <div className={tree.limb} data-last>
+              <div className={tree.item}>
+                <button
+                  type="button"
+                  className={cx(styles.row, tree.node)}
+                  data-hint
+                  onClick={() => setOpened({ kind: "new-board", parentId: node.id, parentName: node.name })}
+                  {...rounded("md")}
+                >
+                  <span className={tree.mark} aria-hidden="true">
+                    <FilePlusIcon />
+                  </span>
+                  <span className={styles.label}>Pasta vazia, criar página</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   };
@@ -543,38 +617,46 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
       {opened?.kind === "stages" && (domain === "funis" ? <FunnelStagesDialog
         id={opened.node.id} name={opened.node.name} stages={opened.node.stages} definitions={opened.node.stageDefinitions} onClose={() => setOpened(null)} onSaved={() => router.refresh()}
       /> : <TaskStagesDialog open name={opened.node.name} stages={opened.node.taskStageDefinitions ?? []} projectId={opened.node.bucket ? null : opened.node.id} onClose={() => setOpened(null)} onSaved={() => router.refresh()} />)}
-      {opened?.kind === "look" && domain === "tarefas" && (
-        <TaskAppearancePopover
-          anchor={opened.anchor}
-          withName={false}
-          title="Cor do quadro"
-          renderHeaderAction={() => (
-            <DropdownMenu
-              label={`Outras ações de ${opened.node.name}`}
-              triggerLabel={`Outras ações de ${opened.node.name}`}
-              sections={leafSections(opened.node, opened.parentId)
-                .map((section) => ({ ...section, items: section.items.filter((item) => item.id !== "look") }))
-                .filter((section) => section.items.length > 0)}
-              icon={<CaretUpDownIcon weight="bold" />}
-              size="sm"
-            />
-          )}
-          initial={{ hue: opened.node.paletteHue ?? "blue", glyph: opened.node.glyph }}
+      {opened?.kind === "new-board" && (
+        <NameDialog
+          open
           onClose={() => setOpened(null)}
-          onSave={async (value: { hue: string; glyph: string }) => {
-            const result = await setProjectAppearanceAction({ id: opened.node.id, hue: value.hue, glyph: value.glyph });
-            if (!result.ok) return result.error;
-            router.refresh();
-            return undefined;
-          }}
+          title="Nova página"
+          description={opened.parentName ? `Dentro de ${opened.parentName}. Só o nome: o projeto você atrela depois, se fizer sentido.` : "Só o nome: o projeto você atrela depois, se fizer sentido."}
+          placeholder="Rotina, Ideias, Sprint de outubro"
+          maxLength={80}
+          confirmLabel="Criar página"
+          onSubmit={(name) => saveBoard({ name, folderId: opened.parentId })}
         />
       )}
+      {opened?.kind === "rename-board" && (
+        <NameDialog
+          open
+          onClose={() => setOpened(null)}
+          title="Renomear página"
+          initialValue={opened.node.name}
+          maxLength={80}
+          confirmLabel="Salvar"
+          onSubmit={(name) => saveBoard({ id: opened.node.id, name, folderId: null })}
+        />
+      )}
+      {opened?.kind === "attach-board" && (
+        <AttachBoardDialog board={opened.node} onClose={() => setOpened(null)} onAttached={() => leaveBoard(opened.node)} />
+      )}
       <ConfirmDialog
-        open={opened?.kind === "delete-folder" || opened?.kind === "delete-leaf"}
+        open={opened?.kind === "delete-folder" || opened?.kind === "delete-leaf" || opened?.kind === "delete-board"}
         pending={working}
-        title={opened?.kind === "delete-leaf" ? `Excluir o funil ${opened.node.name}?` : `Excluir a pasta ${opened?.kind === "delete-folder" ? opened.node.name : ""}?`}
+        title={
+          opened?.kind === "delete-board"
+            ? `Excluir a página ${opened.node.name}?`
+            : opened?.kind === "delete-leaf"
+              ? `Excluir o funil ${opened.node.name}?`
+              : `Excluir a pasta ${opened?.kind === "delete-folder" ? opened.node.name : ""}?`
+        }
         description={
-          opened?.kind === "delete-leaf"
+          opened?.kind === "delete-board"
+            ? "As tarefas dela são excluídas junto. Para guardar as tarefas, atrele a página a um projeto antes."
+            : opened?.kind === "delete-leaf"
             ? "As oportunidades dele não somem: vão para o balde Sem funil e continuam contando."
             : "O que está dentro dela não some: volta para a raiz da árvore. Pasta é só organização."
         }

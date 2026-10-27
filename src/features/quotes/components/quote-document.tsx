@@ -1,9 +1,9 @@
-import { CalendarBlankIcon, EnvelopeSimpleIcon, MapPinIcon, PhoneIcon, SealCheckIcon } from "@phosphor-icons/react/ssr";
+import { CalendarBlankIcon, EnvelopeSimpleIcon, GlobeSimpleIcon, MapPinIcon, PhoneIcon, SealCheckIcon } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AnimatedMoney } from "@/components/ui/animated-number";
-import { Avatar, avatarHue } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BrandIcon } from "@/components/ui/brand-icon";
 import { Text } from "@/components/ui/text";
@@ -15,7 +15,7 @@ import { applyPattern } from "@/lib/masks";
 import { siteConfig } from "@/lib/metadata";
 import { cx } from "@/lib/utils/cx";
 import { formatMoney } from "@/lib/utils/format";
-import { paymentBrandLogos, paymentMethods } from "../labels";
+import { paymentBrandLogos, paymentMethods, placeOf, siteOf } from "../labels";
 import type { Quote, QuoteLine } from "../summary";
 import { isCourtesy, lineTotal, quoteTotals } from "../totals";
 import { QuoteSignature } from "./quote-signature";
@@ -54,10 +54,14 @@ export const lineArtwork = (line: QuoteLine) => ({
   hue: catalogHueFor(line.name),
 });
 
+/* Na folha a arte sai em cinza (2026-10-26, a pedido: "tire essas cores do documento"): o papel é neutro, e a
+   cor do item fica para as telas de quem vende. */
+const sheetArtwork = (line: QuoteLine) => ({ ...lineArtwork(line), hue: "gray" as const });
+
 // O documento do orçamento, o que o cliente recebe pelo link e o que o editor mostra em prévia (2026-09-09,
 // sobre uma referência de fatura do usuário). É um só componente nas duas telas, para o que a pessoa vê ao
-// montar ser exatamente o que o cliente recebe. Uma folha no fundo da casa, com a aura de cor nas quatro
-// quinas no matiz da equipe, a logo dela, e tudo o que um orçamento diz: número, emissão e validade; para
+// montar ser exatamente o que o cliente recebe. Uma folha neutra, em preto e branco como papel (2026-10-26,
+// a pedido, sem a aura de cor que vinha do matiz da equipe), com a logo dela, e tudo o que um orçamento diz: número, emissão e validade; para
 // quem e quem vende; as linhas em tabela compacta, com a arte do item, quantidade, unitário com a unidade e
 // total, e a etiqueta de cortesia no que é brinde; formas de pagamento, parcelas e a oferta de à vista, ao
 // lado dos totais; observações; o espaço centralizado para o vendedor assinar; e o selo discreto de que a
@@ -66,7 +70,6 @@ export const lineArtwork = (line: QuoteLine) => ({
 // qualquer tema, e a impressão vira uma folha A4 de verdade.
 export function QuoteDocument({ quote, variant = "page", actions, className }: QuoteDocumentProps) {
   const totals = quoteTotals(quote);
-  const hue = avatarHue(quote.issuer.name);
   const methods = quote.paymentMethods.length > 0 ? quote.paymentMethods : (["pix"] as const);
   /* O endereço de conferência sai curto, sem o token: a frase do selo fica numa linha só, e quem está com o
      documento na mão já tem o link inteiro na barra do navegador. */
@@ -80,15 +83,12 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
       className={cx(styles.sheet, className)}
       data-scheme="light"
       data-variant={variant}
-      style={{ "--doc-hue": `var(--sys-${hue})` } as CSSProperties}
       {...rounded("lg", { clip: true })}
     >
-      {/* A aura: quatro bolas de cor sangrando pelas quinas da folha, na receita do painel de planos. */}
-      <div className={styles.aura} aria-hidden="true" />
 
       <header className={styles.masthead}>
         <div className={styles.brand}>
-          <Avatar name={quote.issuer.name} src={quote.issuer.logoUrl ?? undefined} size="lg" shape="rounded" className={styles.logo} />
+          <Avatar name={quote.issuer.name} src={quote.issuer.logoUrl ?? undefined} size="lg" shape="rounded" />
           <div className={styles.brandCopy}>
             <Text as="p" variant="title3" weight="semibold" truncate>
               {quote.issuer.name}
@@ -178,10 +178,10 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
                 {applyPattern("phone", quote.client.phone)}
               </li>
             )}
-            {quote.client.city && (
+            {(quote.client.city || quote.client.state) && (
               <li>
                 <MapPinIcon aria-hidden="true" />
-                {quote.client.city}
+                {placeOf(quote.client)}
               </li>
             )}
           </ul>
@@ -197,15 +197,17 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
                 {quote.owner.name}
               </Text>
               <Text as="p" variant="footnote" tone="secondary" truncate>
-                {quote.issuer.name}
+                {quote.owner.role ? `${quote.owner.role}, ${quote.issuer.name}` : quote.issuer.name}
               </Text>
             </div>
           </div>
+          {/* O vendedor por inteiro (2026-10-26, a pedido): o e-mail dele, e na falta o da equipe, o telefone, o
+              site e a cidade da equipe, que é por onde o cliente chega em quem vendeu. */}
           <ul className={styles.details}>
-            {quote.issuer.email && (
+            {(quote.owner.email || quote.issuer.email) && (
               <li>
                 <EnvelopeSimpleIcon aria-hidden="true" />
-                {quote.issuer.email}
+                {quote.owner.email || quote.issuer.email}
               </li>
             )}
             {quote.issuer.phone && (
@@ -214,10 +216,16 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
                 {applyPattern("phone", quote.issuer.phone)}
               </li>
             )}
+            {quote.issuer.website && (
+              <li>
+                <GlobeSimpleIcon aria-hidden="true" />
+                {siteOf(quote.issuer.website)}
+              </li>
+            )}
             {(quote.issuer.city || quote.issuer.state) && (
               <li>
                 <MapPinIcon aria-hidden="true" />
-                {[quote.issuer.city, quote.issuer.state].filter(Boolean).join(" — ")}
+                {placeOf(quote.issuer)}
               </li>
             )}
           </ul>
@@ -250,14 +258,14 @@ export function QuoteDocument({ quote, variant = "page", actions, className }: Q
               <tr key={line.id}>
                 <td>
                   <span className={styles.line}>
-                    <CatalogArtwork item={lineArtwork(line)} size="sm" className={styles.lineArt} />
+                    <CatalogArtwork item={sheetArtwork(line)} size="sm" className={styles.lineArt} />
                     <span className={styles.lineCopy}>
                       <span className={styles.lineName}>
                         {line.name}
-                        {/* Cortesia comum em verde; a que vale só hoje em vermelho, porque ela é um prazo
-                            correndo (pedido de 2026-09-09). */}
+                        {/* A cortesia em cinza, como o resto da folha (2026-10-26): o texto já diz se ela vale
+                            só hoje. */}
                         {isCourtesy(line) && (
-                          <Badge tone={line.courtesy === "today" ? "danger" : "success"} size="sm" className={styles.courtesy}>
+                          <Badge tone="neutral" size="sm" className={styles.courtesy}>
                             {line.courtesy === "today" ? "Cortesia hoje" : "Cortesia"}
                           </Badge>
                         )}

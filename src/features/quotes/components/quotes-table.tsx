@@ -24,7 +24,7 @@ export type QuotesTableProps = {
 };
 
 // A lista de orçamentos, que é só tabela (decisão de 2026-09-09: orçar e acompanhar são a mesma tela), na
-// receita das outras: compacta, com zebra, altura da tela, cabeçalho preso e a coluna de ações presa na
+// receita das outras: no desenho da tabela da casa, altura da tela, cabeçalho preso e a coluna de ações presa na
 // ponta. Colunas: o orçamento (título e número, com a ficha resumida ao apontar), o cliente com a foto e a
 // empresa embaixo, o total com as parcelas, quantos itens, a situação com o glifo dela, enviado em, válido até,
 // quem responde e o leque. Ordena só por total, enviado em e válido até. A linha inteira abre o editor; pelo
@@ -33,6 +33,7 @@ function QuotesTableBase({ quotes, onOpen, footer, range }: QuotesTableProps) {
   const columns: DataTableColumn<Quote>[] = [
     {
       id: "title",
+      pinned: true,
       header: "Orçamento",
       cell: (quote) => (
         <QuoteHoverCard quote={quote}>
@@ -48,7 +49,7 @@ function QuotesTableBase({ quotes, onOpen, footer, range }: QuotesTableProps) {
         <DataTableTitle
           title={quote.client.company ?? quote.client.name}
           caption={quote.client.company ? quote.client.name : undefined}
-          media={<Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="rounded" />}
+          media={<Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="xs" />}
         />
       ),
     },
@@ -128,8 +129,6 @@ function QuotesTableBase({ quotes, onOpen, footer, range }: QuotesTableProps) {
       columns={columns}
       rows={quotes}
       rowKey={(quote) => quote.id}
-      density="compact"
-      zebra
       fill
       onRowClick={onOpen}
       actions={(quote) => <QuoteMenu quote={quote} onEdit={() => onOpen(quote)} />}

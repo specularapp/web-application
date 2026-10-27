@@ -212,7 +212,7 @@ export function SurveysBoard({ data }: { data: NpsData }) {
         {visible.length === 0 ? (
           empty
         ) : view === "table" ? (
-          <DataTable label="Pesquisas de NPS" rows={visible} rowKey={(survey) => survey.id} columns={columns} density="compact" zebra onRowClick={(survey) => router.push(`${NPS_BASE}/pesquisas/${survey.id}` as Route)} actions={actionsOf} empty={empty} />
+          <DataTable label="Pesquisas de NPS" rows={visible} rowKey={(survey) => survey.id} columns={columns} onRowClick={(survey) => router.push(`${NPS_BASE}/pesquisas/${survey.id}` as Route)} actions={actionsOf} empty={empty} />
         ) : (
           <ul className={styles.grid}>
             {visible.map((survey) => {

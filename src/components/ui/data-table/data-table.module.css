@@ -1,0 +1,37 @@
+/* A moldura da tabela da casa, a da lista do funil da pousada: fio fino e canto `lg`, com a tabela rolando por
+   dentro. Enchendo a altura de quem a monta, ela toma o que sobra e as páginas flutuam por cima do pé. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.frame[data-fill] {
+  height: 100%;
+}
+
+/* O leque e os botões da linha, juntos na ponta. */
+.actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.empty {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  text-align: center;
+}
+
+.loading {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 32rem;
+}

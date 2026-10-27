@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getAiUsageData } from "@/features/ai/queries";
 import { CrmScreen } from "@/features/crm/components/crm-screen";
-import { CRM_STAGES_COOKIE, buildCrmBoard, parseCrmQuery, parseCrmStageOverrides } from "@/features/crm/list";
+import { CRM_VIEW_COOKIE, buildCrmBoard, parseCrmQuery, parseCrmView } from "@/features/crm/list";
 import { getCrmTreeData, loadCrmScreenData } from "@/features/crm/queries";
 import { findFunnel } from "@/features/crm/tree";
 import { createMetadata } from "@/lib/metadata";
@@ -25,8 +25,8 @@ export async function generateMetadata({ params }: PageProps<"/crm/[funil]">) {
 // só as oportunidades dele, **as etapas que ele declara**, e o nome dele no topo.
 export default async function CrmFunnelPage({ params, searchParams }: PageProps<"/crm/[funil]">) {
   const [{ funil }, search, cookieStore] = await Promise.all([params, searchParams, cookies()]);
+  const view = parseCrmView(cookieStore.get(CRM_VIEW_COOKIE)?.value);
 
-  const collapsed = parseCrmStageOverrides(cookieStore.get(CRM_STAGES_COOKIE)?.value);
   const query = parseCrmQuery({
     busca: first(search.busca),
     temperatura: first(search.temperatura),
@@ -43,7 +43,7 @@ export default async function CrmFunnelPage({ params, searchParams }: PageProps<
     <CrmScreen
       board={board}
       query={query}
-      collapsed={collapsed}
+      view={view}
       ai={ai}
       title={data.funnel.name}
       basePath={`/crm/${funil}`}

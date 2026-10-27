@@ -6,7 +6,7 @@ import { cx } from "@/lib/utils/cx";
 import { hashString } from "@/lib/utils/hash";
 import styles from "./avatar.module.css";
 
-export type AvatarSize = "xs" | "sm" | "md" | "lg";
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 export type AvatarShapeName = "circle" | "rounded" | "hexagon";
 
@@ -18,11 +18,11 @@ export type AvatarProps = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
   shape?: AvatarShapeName;
 };
 
-const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44px", lg: "52px" };
+const imageSizes: Record<AvatarSize, string> = { xs: "24px", sm: "36px", md: "44px", lg: "52px", xl: "88px" };
 
 /* Lado em pixels de cada tamanho, para o `<img>` do rosto gerado declarar largura e altura e não deixar
    o layout pular antes de o arquivo chegar. O CSS continua mandando no tamanho de verdade. */
-const pixelSizes: Record<AvatarSize, number> = { xs: 24, sm: 36, md: 44, lg: 52 };
+const pixelSizes: Record<AvatarSize, number> = { xs: 24, sm: 36, md: 44, lg: 52, xl: 88 };
 
 /* O estilo do rosto gerado vai no endereço: a rota guarda o desenho por um ano, e trocar o estilo sem trocar o
    endereço deixaria o rosto antigo no navegador de quem já tinha visto. Muda junto com `shape.ts`. */

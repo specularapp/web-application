@@ -8,7 +8,7 @@ import { getCrmOpenCounts, getCrmTree } from "@/features/crm/service";
 import { buildCrmTree, type CrmTreeItem } from "@/features/crm/tree";
 import { roleLabels } from "@/features/onboarding/labels";
 import { getProjectTree } from "@/features/projects/service";
-import { getTaskOpenCounts } from "@/features/tasks/service";
+import { getTaskOpenCounts, listTaskStages } from "@/features/tasks/service";
 import { buildTaskTree, type TaskTreeItem } from "@/features/tasks/tree";
 import type { AppNotification } from "@/components/layout/notifications";
 import { pickAlert, type SidebarAlert } from "@/components/layout/alerts";
@@ -81,11 +81,12 @@ async function load(context: OrganizationContext | null): Promise<ShellData> {
   if (!context) return { ...base, notifications: [], alert: undefined, tasks: [], funnels: [], ai: NO_AI_USAGE };
 
   const { supabase, organizationId, user } = context;
-  const [notifications, alerts, taskTree, taskCounts, crmTree, crmCounts, ai] = await Promise.all([
+  const [notifications, alerts, taskTree, taskCounts, teamStages, crmTree, crmCounts, ai] = await Promise.all([
     listNotifications(supabase, organizationId, user.id),
     getSidebarAlerts(supabase, organizationId),
     getProjectTree(supabase, organizationId),
     getTaskOpenCounts(supabase, organizationId),
+    listTaskStages(supabase, organizationId),
     getCrmTree(supabase, organizationId),
     getCrmOpenCounts(supabase, organizationId),
     getAiUsage(supabase, organizationId),
@@ -96,7 +97,7 @@ async function load(context: OrganizationContext | null): Promise<ShellData> {
     ...base,
     notifications,
     alert: alert ? { ...alert, remaining: Math.max(0, alerts.length - 1) } : undefined,
-    tasks: buildTaskTree(taskTree, taskCounts),
+    tasks: buildTaskTree(taskTree, taskCounts, teamStages),
     funnels: buildCrmTree(crmTree, crmCounts),
     ai,
   };

@@ -46,7 +46,7 @@ const Bubble = styled.span`
   width: max-content;
   max-width: 18rem;
   padding: var(--space-2) var(--space-3);
-  font-family: var(--font-code);
+  font-family: var(--font-body);
   font-size: var(--text-footnote);
   font-weight: var(--weight-medium);
   line-height: var(--leading-normal);

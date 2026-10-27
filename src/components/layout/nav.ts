@@ -30,6 +30,7 @@ import {
   StorefrontIcon,
   TrayIcon,
   TrophyIcon,
+  TruckIcon,
   UserCircleIcon,
   UserIcon,
   UsersThreeIcon,
@@ -37,7 +38,8 @@ import {
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 
-export type NavLink = { label: string; href: Route; icon: Icon };
+/** `locked`: página à vista no menu, com cadeado, mas que ainda não abre nem aparece na busca. */
+export type NavLink = { label: string; href: Route; icon: Icon; locked?: boolean };
 
 /** Entrada que abre para baixo, no próprio lugar, com as páginas dela penduradas no fio. O matiz é
  *  a cor com que a busca marca as páginas que moram aqui. */
@@ -53,6 +55,8 @@ export type NavFolder = {
    * chega por prop, como as notificações e o aviso. Tarefas e funil de vendas usam a mesma peça.
    */
   tree?: "tarefas" | "funis";
+  /** Pasta à vista no menu, com cadeado, mas que ainda não abre: as páginas dela ficam fora da busca. */
+  locked?: boolean;
 };
 
 export type NavEntry = NavLink | NavFolder;
@@ -125,6 +129,9 @@ export const navGroups: NavGroup[] = [
     hue: "var(--sys-blue)",
     entries: [
       { label: "Painel", href: "/dashboard", icon: SquaresFourIcon },
+      /* O WhatsApp solto, logo abaixo do Painel (2026-10-26, a pedido): é onde se trabalha o dia inteiro, e
+         dentro da pasta de clientes ficava a dois cliques. */
+      { label: "WhatsApp", href: "/whatsapp", icon: WhatsappLogoIcon, locked: true },
       {
         label: "Tarefas",
         icon: ListChecksIcon,
@@ -132,19 +139,14 @@ export const navGroups: NavGroup[] = [
         tree: "tarefas",
         items: [{ label: "Todas as tarefas", href: "/tarefas", icon: ListChecksIcon }],
       },
-      { label: "Projetos", href: "/projetos", icon: BriefcaseIcon },
-      { label: "Aprovações", href: "/aprovacoes", icon: CheckSquareOffsetIcon },
-      { label: "Feedbacks", href: "/feedbacks", icon: ChatCircleTextIcon },
       {
-        label: "NPS",
-        icon: GaugeIcon,
-        hue: "var(--sys-yellow)",
+        label: "Projetos",
+        locked: true,
+        icon: BriefcaseIcon,
+        hue: "var(--sys-indigo)",
         items: [
-          { label: "Resultados", href: "/nps/resultados", icon: ChartBarIcon },
-          { label: "Pesquisas", href: "/nps/pesquisas", icon: ClipboardTextIcon },
-          { label: "Disparos", href: "/nps/disparos", icon: PaperPlaneTiltIcon },
-          { label: "Respostas", href: "/nps/respostas", icon: TrayIcon },
-          { label: "Tratativas", href: "/nps/tratativas", icon: HeadsetIcon },
+          { label: "Todos os projetos", href: "/projetos", icon: BriefcaseIcon },
+          { label: "Aprovações", href: "/aprovacoes", icon: CheckSquareOffsetIcon },
         ],
       },
     ],
@@ -161,9 +163,36 @@ export const navGroups: NavGroup[] = [
         tree: "funis",
         items: [{ label: "Todas as oportunidades", href: "/crm", icon: FunnelIcon }],
       },
-      { label: "WhatsApp", href: "/whatsapp", icon: WhatsappLogoIcon },
+      {
+        label: "Comercial",
+        icon: ReceiptIcon,
+        hue: "var(--sys-orange)",
+        items: [
+          { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
+          { label: "Contratos", href: "/contratos", icon: FileTextIcon },
+          { label: "Produtos e serviços", href: "/catalogo", icon: StorefrontIcon },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Relacionamento",
+    icon: AddressBookIcon,
+    hue: "var(--sys-teal)",
+    entries: [
+      {
+        label: "Clientes",
+        icon: AddressBookIcon,
+        hue: "var(--sys-teal)",
+        items: [
+          { label: "Clientes", href: "/clientes", icon: AddressBookIcon },
+          { label: "Fornecedores", href: "/fornecedores", icon: TruckIcon },
+          { label: "Formulários", href: "/formularios", icon: ClipboardTextIcon, locked: true },
+        ],
+      },
       {
         label: "Marketing",
+        locked: true,
         icon: MegaphoneIcon,
         hue: "var(--sys-purple)",
         items: [
@@ -171,11 +200,20 @@ export const navGroups: NavGroup[] = [
           { label: "Fluxos", href: "/marketing/fluxos", icon: ChatsCircleIcon },
         ],
       },
-      { label: "Clientes e fornecedores", href: "/clientes", icon: AddressBookIcon },
-      { label: "Formulários", href: "/formularios", icon: ClipboardTextIcon },
-      { label: "Produtos e serviços", href: "/catalogo", icon: StorefrontIcon },
-      { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon },
-      { label: "Contratos", href: "/contratos", icon: FileTextIcon },
+      {
+        label: "Satisfação",
+        locked: true,
+        icon: GaugeIcon,
+        hue: "var(--sys-yellow)",
+        items: [
+          { label: "Resultados do NPS", href: "/nps/resultados", icon: ChartBarIcon },
+          { label: "Pesquisas", href: "/nps/pesquisas", icon: ClipboardTextIcon },
+          { label: "Disparos", href: "/nps/disparos", icon: PaperPlaneTiltIcon },
+          { label: "Respostas", href: "/nps/respostas", icon: TrayIcon },
+          { label: "Tratativas", href: "/nps/tratativas", icon: HeadsetIcon },
+          { label: "Feedbacks", href: "/feedbacks", icon: ChatCircleTextIcon },
+        ],
+      },
     ],
   },
   {
@@ -187,14 +225,23 @@ export const navGroups: NavGroup[] = [
         label: "Financeiro",
         icon: CurrencyCircleDollarIcon,
         hue: "var(--sys-green)",
+        locked: true,
         items: [
           { label: "Visão geral", href: "/financeiro", icon: CurrencyCircleDollarIcon },
           { label: "Cobranças", href: "/cobrancas", icon: CreditCardIcon },
           { label: "Despesas", href: "/despesas", icon: ReceiptIcon },
         ],
       },
-      { label: "Automações", href: "/automacoes", icon: FlowArrowIcon },
-      { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },
+      {
+        label: "Automação e IA",
+        locked: true,
+        icon: FlowArrowIcon,
+        hue: "var(--sys-indigo)",
+        items: [
+          { label: "Automações", href: "/automacoes", icon: FlowArrowIcon },
+          { label: "Inteligência artificial", href: "/ia", icon: SparkleIcon },
+        ],
+      },
     ],
   },
   {
@@ -204,6 +251,7 @@ export const navGroups: NavGroup[] = [
     entries: [
       {
         label: "Perfil profissional",
+        locked: true,
         icon: UserIcon,
         hue: "var(--sys-pink)",
         items: [
@@ -211,8 +259,16 @@ export const navGroups: NavGroup[] = [
           { label: "Currículo", href: "/curriculo", icon: IdentificationCardIcon },
         ],
       },
-      { label: "Equipe", href: "/configuracoes/equipe", icon: UsersThreeIcon },
-      { label: "Conquistas", href: "/conquistas", icon: TrophyIcon },
+      {
+        label: "Equipe",
+        icon: UsersThreeIcon,
+        hue: "var(--sys-mint)",
+        locked: true,
+        items: [
+          { label: "Membros", href: "/configuracoes/equipe", icon: UsersThreeIcon },
+          { label: "Conquistas", href: "/conquistas", icon: TrophyIcon },
+        ],
+      },
     ],
   },
   {
@@ -244,8 +300,12 @@ export function navLinks(): NavResult[] {
   return navGroups.flatMap((group) =>
     group.entries.flatMap((entry) =>
       isFolder(entry)
-        ? entry.items.map((item) => ({ ...item, section: entry.label, hue: entry.hue }))
-        : [{ ...entry, section: group.title, hue: group.hue }],
+        ? entry.locked
+          ? []
+          : entry.items.filter((item) => !item.locked).map((item) => ({ ...item, section: entry.label, hue: entry.hue }))
+        : entry.locked
+          ? []
+          : [{ ...entry, section: group.title, hue: group.hue }],
     ),
   );
 }
@@ -255,12 +315,8 @@ export function navLinks(): NavResult[] {
  *  para a pessoa achar pela cor antes de ler. */
 export const navHighlights: NavHighlight[] = [
   { label: "Tarefas", href: "/tarefas", icon: ListChecksIcon, hue: "var(--sys-cyan)" },
-  { label: "Projetos", href: "/projetos", icon: BriefcaseIcon, hue: "var(--sys-indigo)" },
-  { label: "Aprovações", href: "/aprovacoes", icon: CheckSquareOffsetIcon, hue: "var(--sys-purple)" },
   { label: "Oportunidades", href: "/crm", icon: FunnelIcon, hue: "var(--sys-cyan)" },
-  { label: "Clientes e fornecedores", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
-  { label: "Formulários", href: "/formularios", icon: ClipboardTextIcon, hue: "var(--sys-indigo)" },
+  { label: "Clientes", href: "/clientes", icon: AddressBookIcon, hue: "var(--sys-teal)" },
   { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
   { label: "Contratos", href: "/contratos", icon: FileTextIcon, hue: "var(--sys-purple)" },
-  { label: "Financeiro", href: "/financeiro", icon: CurrencyCircleDollarIcon, hue: "var(--sys-green)" },
 ];

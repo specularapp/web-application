@@ -179,7 +179,7 @@ export async function listProjects(
   organizationId: string,
   query: ProjectsQuery,
 ): Promise<ProjectsListPage> {
-  let builder = client.from("projects").select(columns, { count: "exact" }).eq("organization_id", organizationId);
+  let builder = client.from("projects").select(columns, { count: "exact" }).eq("organization_id", organizationId).eq("board_only", false);
 
   if (query.search) {
     const term = query.search.replace(/[%,()]/g, " ").trim();
@@ -205,7 +205,7 @@ export async function listProjects(
   const start = (query.page - 1) * query.pageSize;
   const [page, all] = await Promise.all([
     builder.order("started_at", { ascending: false }).range(start, start + query.pageSize - 1),
-    client.from("projects").select("status, tags").eq("organization_id", organizationId),
+    client.from("projects").select("status, tags").eq("organization_id", organizationId).eq("board_only", false),
   ]);
 
   const rows = (page.data ?? []) as unknown as Row[];
@@ -358,6 +358,7 @@ export async function getProjectsSummary(
     .from("projects")
     .select("started_at, status, due_at, progress, clients(id, name, avatar_url, company_logo_url)", { count: "exact" })
     .eq("organization_id", organizationId)
+    .eq("board_only", false)
     .order("started_at", { ascending: false })
     .limit(400);
 
@@ -576,7 +577,7 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
       .order("position"),
     client
       .from("projects")
-      .select("id, slug, reference, name, glyph, hue, folder_id, status, logo_url, clients(avatar_url, company_logo_url), project_stages(position, task_stages(id, name, hue, glyph, kind))")
+      .select("id, slug, reference, name, glyph, hue, folder_id, status, board_only, logo_url, clients(avatar_url, company_logo_url), project_stages(position, task_stages(id, name, hue, glyph, kind))")
       .eq("organization_id", organizationId)
       .in("status", ["active", "paused"])
       .order("started_at", { ascending: false }),
@@ -591,6 +592,7 @@ export async function getProjectTree(client: ProjectsClient, organizationId: str
       slug: project.slug,
       name: project.name,
       reference: project.reference,
+      boardOnly: project.board_only,
       stages: [...(project.project_stages ?? [])]
         .sort((a, b) => a.position - b.position)
         .map((entry) => entry.task_stages as TaskStage)
@@ -710,6 +712,69 @@ export async function moveProject(
     .eq("organization_id", organizationId);
 
   if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Cria o quadro avulso de Tarefas, só com o nome, ou renomeia o que veio com id. O endereço nasce do nome e
+ * não muda na renomeação, para o quadro não trocar de lugar.
+ */
+export async function saveTaskBoard(
+  client: ProjectsClient,
+  organizationId: string,
+  input: { id?: string; name: string; folderId: string | null },
+): Promise<ServiceResult<{ id: string; slug: string }>> {
+  if (input.id) {
+    const { data, error } = await client
+      .from("projects")
+      .update({ name: input.name })
+      .eq("id", input.id)
+      .eq("organization_id", organizationId)
+      .eq("board_only", true)
+      .select("id, slug")
+      .maybeSingle();
+
+    if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
+    return { ok: true, data };
+  }
+
+  const { data, error } = await client
+    .from("projects")
+    .insert({
+      organization_id: organizationId,
+      name: input.name,
+      folder_id: input.folderId,
+      board_only: true,
+      slug: await uniqueSlug(client, organizationId, input.name),
+      hue: projectHueFor(input.name),
+    })
+    .select("id, slug")
+    .single();
+
+  if (error || !data) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
+  return { ok: true, data };
+}
+
+/** Os projetos que podem receber um quadro avulso: os de verdade e em andamento, do mais novo ao mais velho. */
+export async function listBoardTargets(client: ProjectsClient, organizationId: string): Promise<{ id: string; name: string; reference: string }[]> {
+  const { data } = await client
+    .from("projects")
+    .select("id, name, reference")
+    .eq("organization_id", organizationId)
+    .eq("board_only", false)
+    .in("status", ["active", "paused"])
+    .order("started_at", { ascending: false });
+
+  return data ?? [];
+}
+
+/** Leva as tarefas do quadro avulso para o projeto e apaga o quadro, numa escrita só no banco. */
+export async function attachTaskBoard(
+  client: ProjectsClient,
+  input: { boardId: string; projectId: string },
+): Promise<ServiceResult<undefined>> {
+  const { error } = await client.rpc("attach_task_board", { p_board: input.boardId, p_project: input.projectId });
+  if (error) return { ok: false, error: dbMessage(error, "Não foi possível atrelar a página. Tente de novo em instantes.") };
   return { ok: true, data: undefined };
 }
 

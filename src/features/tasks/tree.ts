@@ -46,6 +46,8 @@ export type TaskProject = {
    * lugar na arquitetura em vez de existir só na lista de todas.
    */
   reference: string | null;
+  /** Quadro avulso, criado só com o nome em Tarefas: fica fora de Projetos até ser atrelado a um. */
+  boardOnly?: boolean;
   /** As etapas do quadro deste projeto, na ordem em que as colunas aparecem. Vazio é projeto que ainda não
    *  escolheu nenhuma, e nesse caso o quadro mostra o catálogo inteiro da equipe. */
   stages: TaskStage[];
@@ -89,6 +91,8 @@ export type TaskTreeItem =
       stages: TaskStage[];
       /** O balde das tarefas sem projeto: não se edita nem se apaga. */
       bucket?: boolean;
+      /** Quadro avulso: renomeia e atrela a um projeto, em vez de abrir a ficha. */
+      boardOnly?: boolean;
     };
 
 /** As tarefas de um projeto: as do identificador dele, ou as sem projeto nenhum quando ele é o balde. */
@@ -106,11 +110,12 @@ export type TaskOpenCounts = { byProject: Record<string, number>; loose: number 
 
 export const noTaskCounts: TaskOpenCounts = { byProject: {}, loose: 0 };
 
-/** A árvore com as contagens resolvidas, pronta para o menu. Roda no servidor, junto da concha. */
-export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): TaskTreeItem[] {
+/** A árvore com as contagens resolvidas, pronta para o menu. Roda no servidor, junto da concha. Projeto que
+ *  ainda não escolheu etapas leva as da equipe, que são as colunas que o quadro dele desenha. */
+export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts, teamStages: TaskStage[]): TaskTreeItem[] {
   return nodes.map((node): TaskTreeItem => {
     if (isTaskFolder(node)) {
-      const children = buildTaskTree(node.children, counts);
+      const children = buildTaskTree(node.children, counts, teamStages);
       return {
         kind: "folder",
         id: node.id,
@@ -133,8 +138,9 @@ export function buildTaskTree(nodes: TaskTreeNode[], counts: TaskOpenCounts): Ta
       hue: node.hue,
       paletteHue: node.paletteHue,
       imageUrl: node.imageUrl,
-      stages: node.stages,
+      stages: node.stages.length > 0 ? node.stages : teamStages,
       bucket: node.reference === null || undefined,
+      boardOnly: node.boardOnly || undefined,
     };
   });
 }

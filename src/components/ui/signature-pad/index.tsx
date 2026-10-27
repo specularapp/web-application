@@ -14,12 +14,20 @@ export type SignaturePadProps = {
   label?: string;
 };
 
-/* A área do traço: o fundo da casa, o fio tracejado que diz "assine aqui" e a linha de base embaixo, como
-   numa folha. Canto `lg` pelo sistema de cantos. `touch-action: none` para o dedo desenhar em vez de rolar. */
+/* O quadro inteiro: a área do traço e, embaixo, a dica com o limpar. */
 const Frame = styled.div`
-  position: relative;
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
+`;
+
+/* A área do traço é papel, clara em qualquer tema (2026-10-26, correção: no escuro a tinta preta sumia no
+   fundo preto e a assinatura não aparecia). A tinta segue preta porque o traço é carimbado na folha branca do
+   documento e no PDF; quem deixa o fundo claro é a ilha de tema claro dos tokens (`data-scheme="light"`), a
+   mesma da folha do contrato. O fio tracejado diz "assine aqui" e a linha de base fica embaixo, como numa
+   folha. `touch-action: none` para o dedo desenhar em vez de rolar. */
+const Paper = styled.div`
+  position: relative;
   min-width: 0;
 `;
 
@@ -43,7 +51,7 @@ const Canvas = styled.canvas`
 const Baseline = styled.span`
   position: absolute;
   inset-inline: var(--space-6);
-  inset-block-end: 3.25rem;
+  inset-block-end: 2.75rem;
   height: 0.0625rem;
   pointer-events: none;
   background-color: var(--color-label-tertiary);
@@ -52,7 +60,7 @@ const Baseline = styled.span`
 const Hint = styled(Text)`
   position: absolute;
   inset-inline: 0;
-  inset-block-end: 1.75rem;
+  inset-block-end: 1rem;
   pointer-events: none;
   text-align: center;
 `;
@@ -157,13 +165,15 @@ export function SignaturePad({ onChange, disabled = false, label = "Área para d
 
   return (
     <Frame>
-      <Canvas ref={canvas} role="img" aria-label={label} data-disabled={disabled || undefined} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} />
-      <Baseline aria-hidden="true" />
-      {empty && (
-        <Hint as="span" variant="footnote" tone="tertiary" aria-hidden="true">
-          Desenhe sua assinatura aqui
-        </Hint>
-      )}
+      <Paper data-scheme="light">
+        <Canvas ref={canvas} role="img" aria-label={label} data-disabled={disabled || undefined} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} />
+        <Baseline aria-hidden="true" />
+        {empty && (
+          <Hint as="span" variant="footnote" tone="tertiary" aria-hidden="true">
+            Desenhe sua assinatura aqui
+          </Hint>
+        )}
+      </Paper>
       <Row>
         <Text as="span" variant="caption1" tone="secondary">
           Use o dedo, a caneta ou o mouse

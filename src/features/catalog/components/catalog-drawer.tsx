@@ -53,7 +53,9 @@ const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part /
 
 const units = (count: number) => (count === 1 ? "1 unidade" : `${count} unidades`);
 
-// A ficha do item na gaveta lateral, na moldura da ficha do cliente: o cabeçalho preso com o nome, o leque e
+// A ficha do item numa janela centrada, sólida e sobre o véu, no padrão das janelas da casa (2026-10-26, a
+// pedido: "o modal siga os padrões e apareça central no meio"; antes era a gaveta lateral), na moldura da
+// ficha do cliente: o cabeçalho preso com o nome, o leque e
 // o fechar; a identidade com a arte, o nome com as etiquetas e a categoria (sem ação na ponta: gerar orçamento
 // vive no leque, a pedido); e as seções empilhadas nos primitivos do perfil. O centro é a grade de preço e condições, em duas colunas com
 // rótulo em cima e valor embaixo, cada fato numa linha só e em poucas palavras: é a tela que faz o orçamento
@@ -67,9 +69,6 @@ export function CatalogDrawer({ item, active, onActiveChange, onClose, onEdit, o
       onClose={onClose}
       label={item ? `Ficha de ${item.name}` : "Ficha do item"}
       size="lg"
-      placement="end"
-      surface="page"
-      scrim={false}
       focusOnOpen={false}
     >
       {item && (

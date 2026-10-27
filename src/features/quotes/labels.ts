@@ -30,3 +30,9 @@ export const paymentMethods: Record<QuotePaymentMethod, { label: string; icon: I
   boleto: { label: "Boleto", icon: BarcodeIcon },
   card: { label: "Cartão de crédito", icon: CreditCardIcon },
 };
+
+/* Cidade e UF juntas, como se escreve num endereço: "Curitiba, PR". A tela e o PDF do documento leem daqui. */
+export const placeOf = (place: { city?: string; state?: string }) => [place.city, place.state].filter(Boolean).join(", ");
+
+/* O endereço do site sem o protocolo, que é como se lê e se digita. */
+export const siteOf = (url: string) => url.replace(/^https?:\/\//i, "").replace(/\/$/, "");

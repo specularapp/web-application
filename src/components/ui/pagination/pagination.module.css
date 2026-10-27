@@ -1,0 +1,93 @@
+/* O controle de páginas da casa, no desenho trazido do sistema da pousada (2026-10-26, a pedido de padronizar as
+   tabelas do sistema): quantas linhas por página, a faixa à vista e as páginas numa trilha em pílula, com a atual
+   na cor da marca. */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.size {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.select {
+  min-width: 4.5rem;
+}
+
+.range {
+  font-variant-numeric: tabular-nums;
+}
+
+/* As páginas no desenho das referências (2026-10-02): as setas redondas e os números num trilho em pílula,
+   com a página atual na cor da marca (a dos botões principais), sem sombra */
+.pages {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.step {
+  flex: 0 0 auto;
+}
+
+.numbers {
+  display: inline-flex;
+  gap: 0.125rem;
+  align-items: center;
+  padding: 0.1875rem;
+  margin: 0;
+  list-style: none;
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-full);
+}
+
+.number,
+.gap {
+  display: inline-grid;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding-inline: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-variant-numeric: tabular-nums;
+  place-items: center;
+}
+
+.number {
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.number[aria-current="page"] {
+  font-weight: var(--weight-semibold);
+  color: var(--color-bg);
+  background-color: var(--color-brand);
+}
+
+@media (hover: hover) {
+  /* No escuro o fundo da página é o preto, e o número em hover afundava no trilho em vez de subir: lá ele
+     ganha a tinta de preenchimento, que clareia sobre qualquer superfície. */
+  .number:not([aria-current]):hover {
+    color: var(--color-label);
+    background-color: light-dark(var(--color-bg), var(--color-fill-tertiary));
+  }
+
+  .number:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+}

@@ -131,11 +131,21 @@
   margin: 0;
 }
 
+/* O bloco destacado: o quadro resumo dos modelos e a citação do editor (2026-10-26, a pedido de modelos mais
+   organizados). Um painel no cinza do cartão da folha (o mesmo `ink.card` do PDF), com o fio do acento à
+   esquerda e as linhas mais juntas que os parágrafos, porque é ficha de uma olhada, e não prosa. */
 .body blockquote {
-  padding-inline-start: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   margin: var(--space-3) 0;
-  color: var(--color-label-secondary);
+  background-color: color-mix(in oklab, var(--color-label) 4%, var(--color-bg));
   border-inline-start: 0.1875rem solid var(--doc-accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.body blockquote p + p {
+  margin-block-start: 0;
 }
 
 .body hr {

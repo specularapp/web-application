@@ -158,7 +158,7 @@ export async function listFormProjects(client: FormsClient, organizationId: stri
   const { data } = await client
     .from("projects")
     .select("id, name, reference, logo_url, cover_url, hue")
-    .eq("organization_id", organizationId)
+    .eq("organization_id", organizationId).eq("board_only", false)
     .order("name");
   return (data ?? []).map((project) => ({
     id: project.id,

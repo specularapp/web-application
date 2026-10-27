@@ -35,7 +35,7 @@ const Stack = styled.span`
   min-width: 7rem;
 `;
 
-// A lista de cobranças em tabela, na receita das outras: compacta, com zebra, cabeçalho preso e a coluna de
+// A lista de cobranças em tabela, na receita das outras: no desenho da tabela da casa, cabeçalho preso e a coluna de
 // ações presa na ponta. Colunas: a cobrança (título e número), o cliente com a foto, o valor com as parcelas e
 // a forma, o que já entrou em barra, a próxima parcela com o vencimento em palavras, a situação com o glifo e
 // o leque. A linha inteira abre a ficha; pelo teclado quem abre é o título.
@@ -43,6 +43,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
   const columns: DataTableColumn<Charge>[] = [
     {
       id: "title",
+      pinned: true,
       header: "Lançamento",
       cell: (charge) => <DataTableTitle title={charge.title} caption={charge.reference} onClick={() => onOpen(charge)} />,
     },
@@ -71,7 +72,7 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
           <DataTableTitle
             title={payer.company ?? payer.name}
             caption={payer.company ? payer.name : payer.standalone ? `${chargeDirections[charge.direction].label} avulsa` : undefined}
-            media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="sm" shape="rounded" />}
+            media={<Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="xs" />}
           />
         );
       },
@@ -156,8 +157,6 @@ export function ChargesTable({ charges, onOpen, actionsOf, footer, range, fill =
       rowKey={(charge) => charge.id}
       onRowClick={onOpen}
       actions={(charge) => <ChargeMenu charge={charge} onOpen={() => onOpen(charge)} {...actionsOf(charge)} />}
-      density="compact"
-      zebra
       fill={fill}
       footer={footer}
       range={range}

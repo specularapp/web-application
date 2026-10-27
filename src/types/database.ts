@@ -2689,6 +2689,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          board_only: boolean
           budget_max: number | null
           budget_min: number | null
           client_id: string | null
@@ -2720,6 +2721,7 @@ export type Database = {
           url: string | null
         }
         Insert: {
+          board_only?: boolean
           budget_max?: number | null
           budget_min?: number | null
           client_id?: string | null
@@ -2751,6 +2753,7 @@ export type Database = {
           url?: string | null
         }
         Update: {
+          board_only?: boolean
           budget_max?: number | null
           budget_min?: number | null
           client_id?: string | null
@@ -3618,6 +3621,10 @@ export type Database = {
       attach_billing_customer: {
         Args: { p_organization_id: string; p_stripe_customer_id: string }
         Returns: string
+      }
+      attach_task_board: {
+        Args: { p_board: string; p_project: string }
+        Returns: undefined
       }
       can_manage_billing: {
         Args: { p_organization_id: string }

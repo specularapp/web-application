@@ -1,87 +1,8 @@
-/* Cabeçalho e rodapé fixos, o meio rola: a gaveta tem a altura da tela e a ficha é longa. Os fios seguem o
-   menu, 0,6px em `--color-border`, nascendo aqui e descendo por cascata para cabeçalho, divisor e rodapé. */
-.dialog {
-  --panel-line: 0.0375rem;
-
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 0;
-}
-
-/* O recuo lateral mora em cada bloco, e não na coluna que rola: assim o fio que separa os blocos corre de
-   ponta a ponta sem margem negativa, que dentro de `overflow-y: auto` é cortada de um lado. */
-.body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: var(--space-5);
-  min-height: 0;
-  padding-block: var(--space-5);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* No celular o rodapé some: salvar e sair estão na barra flutuante, acima da bandeja, e o corpo que rola
-   leva a folga dela embaixo, para o último campo fechar acima da barra. */
-@media (max-width: 47.9375rem) {
-  .body {
-    gap: var(--space-4);
-    padding-block: var(--space-4) var(--floating-bar-inset);
-  }
-}
-
-.section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: var(--space-3);
-  min-width: 0;
-  padding-inline: var(--space-5);
-}
-
-@media (max-width: 47.9375rem) {
-  .section {
-    padding-inline: var(--space-4);
-  }
-}
-
-/* O glifo e o título do bloco, na cor do título, herdada. */
-.heading {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  padding-block-end: var(--space-1);
-}
-
-.heading > svg {
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  color: var(--color-label-secondary);
-}
-
-/* O divisor no fio da casa: o `Separator` puro traz `--color-separator`, quase três vezes mais opaco, que
-   numa coluna estreita vira um risco no meio do formulário. */
-.divider.divider {
-  height: var(--panel-line);
-  background-color: var(--color-border);
-}
-
-/* Dois campos lado a lado no desktop. No celular empilham: e-mail, site e empresa são compridos, e em meia
-   coluna cortavam o que a pessoa digita. O que é pequeno de verdade (foto e logo) segue em grade. */
-.pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-  align-items: start;
-}
-
-@media (max-width: 47.9375rem) {
-  .pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+/*
+ * O que é só do contato na janela dupla de criar e editar (2026-10-26): a moldura, as abas, as seções e a
+ * prévia moram em `components/ui/form-window`. Aqui ficam a foto e a logo lado a lado, o rosto da capa da
+ * prévia com a logo na quina, as etiquetas da prévia e o giro enquanto a ficha vem.
+ */
 
 .images {
   display: grid;
@@ -166,11 +87,39 @@
   white-space: nowrap;
 }
 
-.alert {
-  padding-inline: var(--space-5);
+/* O rosto grande da capa da prévia, com a logo da empresa pequena na quina, como na ficha. */
+.face {
+  position: relative;
+  display: inline-grid;
 }
 
-/* Enquanto a ficha vem, o giro toma o meio da gaveta. */
+.faceLogo {
+  position: absolute;
+  inset-block-end: -0.125rem;
+  inset-inline-end: -0.125rem;
+  display: inline-grid;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px var(--color-bg-grouped-secondary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* O glifo de contato na ponta da linha, no lugar do valor que a linha do item tem. */
+.lineGlyph {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-tertiary);
+}
+
+/* Enquanto a ficha vem, o giro toma o meio do formulário. */
 .loading {
   display: grid;
   flex: 1;

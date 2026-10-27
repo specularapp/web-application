@@ -31,7 +31,8 @@ const INTERACTIVE = "button, a, input, label, [role='button'], [role='menuitem']
 // equipe, com o check de quem já assinou na quina do rosto, e a data que importa na situação em que o
 // contrato está (assinado em, vence em, criado em), na etiqueta com calendário da referência. O cartão
 // inteiro abre a ficha; o leque tem ação própria. O fio da caixa é o do `Card`, em duas camadas recortadas
-// pelo sistema de cantos.
+// pelo sistema de cantos. Desde 2026-10-26 ele mora nas colunas do funil por situação, então a etiqueta da
+// situação saiu (a coluna já diz) e o código do contrato tomou o lugar dela, com o recuo de cartão de funil.
 export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps) {
   const kind = contractKinds[contract.kind];
   const status = contractStatuses[contract.status];
@@ -63,7 +64,7 @@ export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps
         role="button"
         tabIndex={0}
         aria-haspopup="dialog"
-        aria-label={`Abrir ${contract.title}, ${contract.reference}`}
+        aria-label={`Abrir ${contract.title}, ${contract.reference}, ${status.label}`}
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
@@ -74,9 +75,9 @@ export function ContractCard({ contract, onOpen, ...actions }: ContractCardProps
             {kind.label}
           </Badge>
           <span className={styles.end}>
-            <Badge tone={status.tone} size="sm" icon={<status.icon />}>
-              {status.label}
-            </Badge>
+            <Text as="span" variant="caption1" tone="secondary" className={styles.reference}>
+              {contract.reference}
+            </Text>
             <ContractMenu contract={contract} onOpen={onOpen} {...actions} />
           </span>
         </header>

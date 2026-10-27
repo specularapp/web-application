@@ -684,7 +684,7 @@ export async function getTeamSummary(client: TeamClient, organizationId: string)
     client
       .from("projects")
       .select("id, reference, name, status, progress, owner_id")
-      .eq("organization_id", organizationId)
+      .eq("organization_id", organizationId).eq("board_only", false)
       .order("started_at", { ascending: false }),
     client.from("tasks").select("owner_id, task_stages!inner(kind)").eq("organization_id", organizationId).neq("task_stages.kind", "done"),
     client.from("charges").select("owner_id, charge_installments(amount, paid_at)").eq("organization_id", organizationId),

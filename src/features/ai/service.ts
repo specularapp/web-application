@@ -227,7 +227,7 @@ async function contextFor(
     const { data } = await client
       .from("projects")
       .select("reference, name, status, progress, started_at, due_at, clients(name)")
-      .eq("organization_id", organizationId)
+      .eq("organization_id", organizationId).eq("board_only", false)
       .order("started_at", { ascending: false })
       .limit(PER_SOURCE);
 

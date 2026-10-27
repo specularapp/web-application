@@ -1,0 +1,53 @@
+/* ---------- As páginas flutuando no pé (PagedBody) ---------- */
+
+/* A área da lista com as páginas por cima, trazida da pousada: o conteúdo ocupa a altura e a pílula de vidro
+   fica centrada no pé, com o fio e a sombra das peças flutuantes da casa. */
+.paged {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pager {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+  background-color: color-mix(in oklab, var(--color-bg) 88%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.pager:empty {
+  display: none;
+}
+
+.pager > nav {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* A folga no fim da lista, para a última linha rolar até acima da pílula. */
+.paged[data-pager] :global([data-list-scroll]) {
+  padding-bottom: 4.5rem;
+  scroll-padding-bottom: 4.5rem;
+}
+
+/* No celular as páginas passam para a barra flutuante, e a pílula sai. */
+@media (max-width: 47.9375rem) {
+  .pager {
+    display: none;
+  }
+
+  .paged[data-pager] :global([data-list-scroll]) {
+    padding-bottom: 0;
+  }
+}

@@ -9,7 +9,7 @@ import { requireOrganization } from "@/features/organizations/context";
 import { getIssuer } from "@/features/organizations/service";
 import { listQuotes, nextQuoteNumber } from "./service";
 import type { QuotesListPage, QuotesQuery } from "./list-options";
-import type { QuoteIssuer, QuotePerson } from "./summary";
+import type { QuoteIssuer, QuoteSeller } from "./summary";
 
 /** Um cliente como o editor de orçamento o oferece: o que a linha da lista desenha, e nada além. */
 export type QuoteClientOption = ClientListItem;
@@ -17,7 +17,7 @@ export type QuoteClientOption = ClientListItem;
 export type QuotesScreenData = {
   page: QuotesListPage;
   issuer: QuoteIssuer;
-  owner: QuotePerson;
+  owner: QuoteSeller;
   nextNumber: string;
   clients: QuoteClientOption[];
   catalog: CatalogItem[];
@@ -40,7 +40,7 @@ export async function loadQuoteEditorData(next = "/orcamentos") {
     nextQuoteNumber(supabase, organizationId),
     getClientOptions(next),
     getCatalogOptions(next),
-    supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("full_name, email, avatar_url, headline").eq("id", user.id).maybeSingle(),
   ]);
 
   return {
@@ -48,6 +48,8 @@ export async function loadQuoteEditorData(next = "/orcamentos") {
     owner: {
       name: profile.data?.full_name || profile.data?.email || "Você",
       avatarUrl: profile.data?.avatar_url ?? null,
+      email: profile.data?.email ?? undefined,
+      role: profile.data?.headline?.trim() || undefined,
     },
     nextNumber,
     clients,
@@ -68,7 +70,7 @@ export async function loadQuotesScreenData(query: QuotesQuery, next = "/orcament
     nextQuoteNumber(supabase, organizationId),
     getClientOptions(next),
     getCatalogOptions(next),
-    supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("full_name, email, avatar_url, headline").eq("id", user.id).maybeSingle(),
   ]);
 
   return {
@@ -77,6 +79,8 @@ export async function loadQuotesScreenData(query: QuotesQuery, next = "/orcament
     owner: {
       name: profile.data?.full_name || profile.data?.email || "Você",
       avatarUrl: profile.data?.avatar_url ?? null,
+      email: profile.data?.email ?? undefined,
+      role: profile.data?.headline?.trim() || undefined,
     },
     nextNumber,
     clients,

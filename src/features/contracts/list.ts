@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { first } from "@/lib/utils/search-params";
 import { slugify } from "@/lib/utils/slug";
 import {
-  GRID_PER_PAGE_DEFAULT,
+  CONTRACTS_PER_PAGE,
+  FUNNEL_PER_PAGE,
   MAX_PER_PAGE,
   defaultQuery,
   kindFilterValues,
@@ -11,10 +13,11 @@ import {
   type ContractsQuery,
 } from "./list-options";
 import type { Contract, ContractStatus } from "./summary";
+import { CONTRACTS_VIEW_COOKIE, DEFAULT_CONTRACTS_VIEW, contractsViewValues, type ContractsView } from "./view-cookie";
 
-/* O nome do cookie da grade e a escrita dele moram em `grid-cookie.ts`, que não carrega zod. Segue saindo
+/* O nome do cookie da visão e a escrita dele moram em `view-cookie.ts`, que não carrega zod. Segue saindo
    daqui para quem lê a listagem no servidor. */
-export { CONTRACTS_GRID_COOKIE } from "./grid-cookie";
+export { CONTRACTS_VIEW_COOKIE };
 
 /**
  * A regra da listagem de contratos: ler o que a URL pede, filtrar, ordenar e cortar a página. Roda no
@@ -32,12 +35,15 @@ const querySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(MAX_PER_PAGE).optional().catch(undefined),
 });
 
-/** Lê o cookie do tamanho da grade: só um par entre 2 e o máximo vale; o resto cai no padrão. */
-export function parseContractsGridSize(raw: string | undefined) {
-  return z.coerce.number().int().min(2).max(MAX_PER_PAGE).multipleOf(2).catch(GRID_PER_PAGE_DEFAULT).parse(raw);
+/** Lê o cookie da visão: fora da lista cai no funil. */
+export function parseContractsView(raw: string | undefined): ContractsView {
+  return z.enum(contractsViewValues).catch(DEFAULT_CONTRACTS_VIEW).parse(raw);
 }
 
-export function parseContractsQuery(params: Record<string, string | undefined>, fallbackPageSize = GRID_PER_PAGE_DEFAULT): ContractsQuery {
+/** A medida da página de cada visão, quando a URL não diz outra. */
+export const defaultContractsPageSize = (view: ContractsView) => (view === "tabela" ? CONTRACTS_PER_PAGE : FUNNEL_PER_PAGE);
+
+export function parseContractsQuery(params: Record<string, string | undefined>, fallbackPageSize = FUNNEL_PER_PAGE): ContractsQuery {
   const { pageSize, ...rest } = querySchema.parse({
     search: params.busca ?? "",
     status: params.situacao,
@@ -76,4 +82,19 @@ export function listContracts(contracts: Contract[], query: ContractsQuery): Con
   for (const contract of contracts) counts[contract.status] += 1;
 
   return { items: filtered.slice(start, start + query.pageSize), total: filtered.length, counts };
+}
+
+/** O que as páginas de contratos leem da URL, na mesma conta nas quatro (lista, novo, ficha e editor). */
+export function contractsQueryFrom(search: Record<string, string | string[] | undefined>, view: ContractsView): ContractsQuery {
+  return parseContractsQuery(
+    {
+      busca: first(search.busca),
+      situacao: first(search.situacao),
+      origem: first(search.origem),
+      tipo: first(search.tipo),
+      pagina: first(search.pagina),
+      porPagina: first(search.porPagina),
+    },
+    defaultContractsPageSize(view),
+  );
 }

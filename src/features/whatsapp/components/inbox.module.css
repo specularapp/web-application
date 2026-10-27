@@ -6,7 +6,8 @@
 .screen {
   --line: 0.0375rem solid var(--color-border);
   --list-width: 22rem;
-  --panel-width: 23rem;
+  /* A ficha do lead, compacta e estreita como a da Le Ange (2026-10-26, a pedido: "está muito largo ainda"). */
+  --panel-width: 20rem;
   --tone-contact: var(--color-bg-tertiary);
   --tone-agent: color-mix(in oklab, var(--sys-blue) 14%, var(--color-bg-tertiary));
   --tone-template: color-mix(in oklab, var(--sys-green) 16%, var(--color-bg-tertiary));

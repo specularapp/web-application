@@ -1,6 +1,5 @@
-/* A prancha é uma coluna: barra, grade e paginação, como na base de clientes, no catálogo e nos projetos. A
-   coluna é `minmax(0, 1fr)` porque trilha automática tem o min-content como piso, e a grade alargaria a
-   página. */
+/* A prancha é uma coluna: barra, funil ou tabela, e o pé, como a de orçamentos. A coluna é `minmax(0, 1fr)`
+   porque trilha automática tem o min-content como piso, e o trilho do funil alargaria a página. */
 .board {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -16,9 +15,8 @@
   }
 }
 
-/* No desktop a prancha tem altura fixa, a da tela: a barra em cima, a grade tomando o resto e rolando por
-   dentro, e o pé preso embaixo, em vez de subir e descer com a altura da grade. No celular tudo segue em
-   fluxo, rolando a coluna de conteúdo. */
+/* No desktop a prancha tem altura fixa, a da tela: a barra em cima, o funil ou a tabela tomando o resto e
+   rolando por dentro, e o pé preso embaixo. No celular tudo segue em fluxo, rolando a coluna de conteúdo. */
 @media (min-width: 48rem) {
   .board {
     grid-template-rows: auto minmax(0, 1fr);
@@ -26,24 +24,12 @@
     height: 100%;
     min-height: 0;
   }
-
-  .scrollArea {
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
 }
 
-/* A grade enche a largura com quantos cartões couberem. `auto-fill`, e não `auto-fit`: com poucos contratos
-   os cartões ficam do tamanho dos outros, em vez de esticarem para ocupar a linha. O piso de 17rem é o das
-   grades da casa: cabe a cabeça inteira, com o tipo, a situação e o leque, e em 320px dá uma coluna. */
-.grid {
+/* O funil ocupa o que sobra abaixo da barra: o trilho rola para o lado e cada coluna rola por dentro. */
+.funnel {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-  gap: var(--space-3);
-  padding: 0;
-  margin: 0;
-  list-style: none;
+  min-height: 0;
 }
 
 /* A contagem e a barra, alinhadas à direita como o pé da tabela. */

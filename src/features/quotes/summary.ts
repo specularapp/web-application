@@ -5,6 +5,9 @@ export type QuoteStatus = "draft" | "sent" | "viewed" | "approved" | "declined" 
 
 export type QuotePerson = { name: string; avatarUrl: string | null };
 
+/** Quem vende: a pessoa com o cargo e o e-mail do perfil, que o cartão de vendedor do documento imprime. */
+export type QuoteSeller = QuotePerson & { email?: string; role?: string };
+
 /** Como o cliente paga, escrito no documento junto das parcelas. */
 export type QuotePaymentMethod = "pix" | "transfer" | "boleto" | "card";
 
@@ -67,7 +70,7 @@ export type Quote = {
   clientId: string | null;
   client: QuoteClient;
   /** Quem da equipe montou e responde pelo orçamento. */
-  owner: QuotePerson;
+  owner: QuoteSeller;
   issuer: QuoteIssuer;
   lines: QuoteLine[];
   discount: QuoteDiscount;

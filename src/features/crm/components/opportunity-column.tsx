@@ -163,8 +163,7 @@ export function OpportunityColumn({
     >
       <header className={styles.head}>
         <div className={styles.heading}>
-          {/* A etiqueta **é o botão** que abre e fecha a etapa: com a coluna vazia nascendo fechada, tocar o
-              cabeçalho é o caminho curto para abri-la, e o menu ficou sendo o longo. */}
+          {/* A etiqueta **é o botão** que abre e fecha a etapa; o menu é o caminho longo. */}
           <h2 className={styles.title}>
             <button
               type="button"
@@ -207,52 +206,52 @@ export function OpportunityColumn({
         )}
       </header>
 
-      {!collapsed &&
-        (count === 0 && !landing ? (
-          <div className={styles.empty}>
-            <Text variant="footnote" tone="tertiary">
-              Nada nesta etapa
-            </Text>
-          </div>
-        ) : (
-          <div className={styles.body}>
-            <ul className={styles.list}>
-              {/* O lugar do cartão que vem: tracejado no matiz da etapa, no topo da pilha, que é a parte da
-                  coluna que está à vista quando o cartão chega. */}
-              {landing && (
-                <li className={styles.landing} aria-hidden="true" {...rounded("xl")}>
-                  <Text as="span" variant="caption1" weight="medium" tone="inherit">
-                    Soltar em {stage.label}
-                  </Text>
-                </li>
-              )}
-              {opportunities.map((opportunity) =>
-                draggable ? (
-                  <DraggableCard
-                    key={opportunity.id}
-                    celebrating={celebrating === opportunity.id}
-                    onCelebrated={onCelebrated}
-                    opportunity={opportunity}
-                    stage={stage.id}
-                    onOpen={open}
-                    stages={stages}
-                    onMove={onMove && move}
-                    onDelete={onDelete && remove}
-                  />
-                ) : (
-                  <OpportunityCard
-                    key={opportunity.id}
-                    opportunity={opportunity}
-                    onOpen={open}
-                    stages={stages}
-                    onMove={onMove && move}
-                    onDelete={onDelete && remove}
-                  />
-                ),
-              )}
-            </ul>
-          </div>
-        ))}
+      {!collapsed && (
+        <div className={styles.body}>
+          <ul className={styles.list}>
+            {/* O lugar do cartão que vem: tracejado no matiz da etapa, no topo da pilha, que é a parte da
+                coluna que está à vista quando o cartão chega. */}
+            {landing && (
+              <li className={styles.landing} aria-hidden="true" {...rounded("xl")}>
+                <Text as="span" variant="caption1" weight="medium" tone="inherit">
+                  Soltar em {stage.label}
+                </Text>
+              </li>
+            )}
+            {opportunities.map((opportunity) =>
+              draggable ? (
+                <DraggableCard
+                  key={opportunity.id}
+                  celebrating={celebrating === opportunity.id}
+                  onCelebrated={onCelebrated}
+                  opportunity={opportunity}
+                  stage={stage.id}
+                  onOpen={open}
+                  stages={stages}
+                  onMove={onMove && move}
+                  onDelete={onDelete && remove}
+                />
+              ) : (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onOpen={open}
+                  stages={stages}
+                  onMove={onMove && move}
+                  onDelete={onDelete && remove}
+                />
+              ),
+            )}
+          </ul>
+          {/* Como no quadro de tarefas: sem cartão nenhum, é ele que ocupa a etapa; com cartões, fica no pé da
+              pilha. */}
+          <button type="button" className={styles.add} onClick={onAdd}>
+            <PlusIcon aria-hidden="true" weight="bold" />
+            <span className={styles.addLabel}>Adicionar oportunidade</span>
+            <VisuallyHidden>em {stage.label}</VisuallyHidden>
+          </button>
+        </div>
+      )}
     </section>
   );
 }

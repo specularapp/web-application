@@ -482,7 +482,6 @@ export function EmailBoard({ data }: EmailBoardProps) {
             columns={columns}
             rows={rows}
             rowKey={(campaign) => campaign.id}
-            density="compact"
             fill
             sort={sort}
             onSortChange={(next) => {

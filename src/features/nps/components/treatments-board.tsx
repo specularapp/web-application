@@ -160,7 +160,7 @@ export function TreatmentsBoard({ data }: { data: NpsData }) {
       sortValue: (treatment) => identity(treatment).name,
       cell: (treatment) => {
         const { client, name } = identity(treatment);
-        return <DataTableTitle title={name} caption={client?.project.name} media={<Avatar name={name} seed={client?.id ?? treatment.id} size="sm" />} onClick={() => setOpenedId(treatment.id)} />;
+        return <DataTableTitle title={name} caption={client?.project.name} media={<Avatar name={name} seed={client?.id ?? treatment.id} size="xs" />} onClick={() => setOpenedId(treatment.id)} />;
       },
     },
     { id: "score", header: "Nota", sortable: true, sortValue: (treatment) => identity(treatment).response?.score ?? 0, cell: (treatment) => <ScoreBubble score={identity(treatment).response?.score ?? 0} size="sm" /> },
@@ -238,7 +238,7 @@ export function TreatmentsBoard({ data }: { data: NpsData }) {
         empty
       ) : view === "list" && !mobile ? (
         <div className={styles.list}>
-          <DataTable label="Tratativas" rows={visible.toSorted((a, b) => a.dueAt.localeCompare(b.dueAt))} rowKey={(treatment) => treatment.id} columns={columns} density="compact" zebra onRowClick={(treatment) => setOpenedId(treatment.id)} actions={(treatment) => moveMenu(treatment, identity(treatment).name)} />
+          <DataTable label="Tratativas" rows={visible.toSorted((a, b) => a.dueAt.localeCompare(b.dueAt))} rowKey={(treatment) => treatment.id} columns={columns} onRowClick={(treatment) => setOpenedId(treatment.id)} actions={(treatment) => moveMenu(treatment, identity(treatment).name)} />
         </div>
       ) : (
         <ol className={styles.columns} aria-label="Quadro de tratativas">

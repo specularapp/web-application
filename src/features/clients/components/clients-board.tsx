@@ -27,7 +27,6 @@ import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { useToast } from "@/components/providers/toast-provider";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { useTabList } from "@/hooks/use-tab-list";
 import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { callAction } from "@/lib/action";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
@@ -39,7 +38,6 @@ import {
   EMAIL_PARAM,
   FAVORITE_PARAM,
   GRID_PER_PAGE_DEFAULT,
-  GROUP_PARAM,
   MOBILE_PER_PAGE,
   PAGE_PARAM,
   PAGE_SIZE_PARAM,
@@ -53,6 +51,7 @@ import {
   gridPageSize,
   periodOptions,
   type ClientListItem,
+  type ClientsGroup,
   type ClientsListPage,
   type ClientsQuery,
 } from "../list-options";
@@ -63,9 +62,6 @@ import type { ClientEditor } from "./client-form-dialog";
 import { ClientsTable } from "./clients-table";
 
 import styles from "./clients-board.module.css";
-
-/* As duas filas de contato, na ordem em que a seta do teclado as percorre. */
-const CONTACT_GROUPS = ["clientes", "fornecedores"] as const;
 
 /* A ficha e o formulário entram por importação dinâmica, e só são montados depois da primeira abertura
    (varredura de peso de 2026-09-21): juntos são mais de setecentas linhas com máscara, seletor de data e
@@ -79,6 +75,8 @@ export type ClientsBoardProps = {
   editing?: Client | "new";
   /** O jeito de ver que o cookie guardou: grade de cartões ou tabela. */
   view: ClientsView;
+  /** De que lado da base a tela é, pela rota: `/clientes` ou `/fornecedores` (2026-10-26, a pedido). */
+  group: ClientsGroup;
 };
 
 /** Quanto o campo espera parar de digitar antes de refazer a busca no servidor. */
@@ -89,9 +87,9 @@ const RESIZE_PAUSE = 200;
 
 const numberFormat = new Intl.NumberFormat("pt-BR");
 
-/* O endereço de cada estado da janela. Fora do componente porque só depende do que recebe, e é o que deixa
-   `go` valer para qualquer render sem virar dependência dele. */
-const editorPath = (next: ClientEditor) => (next === null ? "/clientes" : next === "new" ? "/clientes/novo" : `/clientes/${next.id}`);
+/* O endereço de cada estado da janela, sob a rota do lado da base. Fora do componente porque só depende do
+   que recebe, e é o que deixa `go` valer para qualquer render sem virar dependência dele. */
+const editorPath = (group: ClientsGroup, next: ClientEditor) => (next === null ? `/${group}` : next === "new" ? `/${group}/novo` : `/${group}/${next.id}`);
 
 /* Os dois jeitos de ver a mesma lista, no seletor da barra. */
 const viewOptions = [
@@ -105,7 +103,7 @@ const viewOptions = [
 // ficam só a seleção, que é da sessão e vale para cartões e tabela, a espera do campo de busca, o filtro
 // adiantado, o jeito de ver e o tamanho da página da grade. Trocar qualquer filtro leva de volta para a
 // primeira página, senão a pessoa cairia numa página que o novo filtro nem tem.
-export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoardProps) {
+export function ClientsBoard({ page, query, editing, view: saved, group }: ClientsBoardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState(query.search);
@@ -183,7 +181,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       // se o segundo pedaço fosse um contato, e a prancha, que ainda está no ar até a troca comitar, mandava
       // o roteador de novo para o endereço da outra tela.
       const [, area, segment] = window.location.pathname.split("/");
-      if (area !== "clientes") return;
+      if (area !== group) return;
       if (segment === "novo") {
         setOpen(null);
         setEditor("new");
@@ -207,7 +205,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [page.items, hidden, editing, router]);
+  }, [page.items, hidden, editing, router, group]);
 
   // Editar quem já está na tela abre no lugar, com a ficha completa chegando dentro da gaveta: sem ida
   // ao servidor pela página, o que era o que deixava o clique sem resposta.
@@ -218,7 +216,7 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
 
   const openEditor = (next: ClientEditor) => {
     setEditor(next);
-    window.history.pushState(null, "", `${editorPath(next)}${window.location.search}`);
+    window.history.pushState(null, "", `${editorPath(group, next)}${window.location.search}`);
   };
 
   useEffect(() => () => window.clearTimeout(typing.current), []);
@@ -229,7 +227,6 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       setLive(merged);
       setSelected([]);
       const params = new URLSearchParams();
-      if (merged.group !== defaultQuery.group) params.set(GROUP_PARAM, merged.group);
       if (merged.search) params.set(QUERY_PARAM, merged.search);
       if (merged.favorite !== defaultQuery.favorite) params.set(FAVORITE_PARAM, merged.favorite);
       if (merged.status !== defaultQuery.status) params.set(STATUS_PARAM, merged.status);
@@ -240,10 +237,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
       if (merged.pageSize !== CLIENTS_PER_PAGE) params.set(PAGE_SIZE_PARAM, String(merged.pageSize));
 
       const search = params.toString();
-      const base = editorPath(editorRef.current);
+      const base = editorPath(group, editorRef.current);
       startTransition(() => router.replace((search ? `${base}?${search}` : base) as Route, { scroll: false }));
     },
-    [router],
+    [router, group],
   );
 
   const changeView = (next: ClientsView) => {
@@ -324,10 +321,9 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
   };
   const selectedClients = items.filter((client) => selected.includes(client.id));
   const count = selectedClients.length;
-  const suppliers = live.group === "fornecedores";
+  const suppliers = group === "fornecedores";
   const singular = suppliers ? "fornecedor" : "cliente";
   const plural = suppliers ? "fornecedores" : "clientes";
-  const groupTabs = useTabList(CONTACT_GROUPS, suppliers ? "fornecedores" : "clientes", (group) => go({ group, page: 1 }));
 
   // Excluir de uma vez: a action valida no servidor e devolve a contagem; a tela avisa, limpa a marcação
   // e refaz a lista. Hoje a base é a prévia, então nada some de verdade; com a tabela, some.
@@ -496,19 +492,10 @@ export function ClientsBoard({ page, query, editing, view: saved }: ClientsBoard
         }
       />
 
-      <div className={styles.groups} aria-label="Tipo de contato" {...groupTabs.listProps}>
-        <button type="button" className={styles.group} {...groupTabs.tabProps("clientes")} onClick={() => go({ group: "clientes", page: 1 })}>
-          Clientes
-        </button>
-        <button type="button" className={styles.group} {...groupTabs.tabProps("fornecedores")} onClick={() => go({ group: "fornecedores", page: 1 })}>
-          Fornecedores
-        </button>
-      </div>
-
       {asTable ? (
         <ClientsTable
           clients={items}
-          group={live.group}
+          group={group}
           selected={selected}
           onSelectedChange={setSelected}
           onOpen={setOpen}

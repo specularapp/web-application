@@ -73,7 +73,7 @@ export async function getPortfolioSettings(client: PortfolioClient, organization
     client
       .from("projects")
       .select("id, name, description, cover_url, logo_url, hue, status, is_public, clients(name, company)")
-      .eq("organization_id", organizationId)
+      .eq("organization_id", organizationId).eq("board_only", false)
       .order("started_at", { ascending: false })
       .limit(200),
   ]);

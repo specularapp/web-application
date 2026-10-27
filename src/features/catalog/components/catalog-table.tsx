@@ -71,10 +71,11 @@ export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, 
     },
     {
       id: "name",
+      pinned: true,
       header: "Item",
       cell: (item) => (
         <CatalogHoverCard item={item} active={isActive(item)}>
-          <DataTableTitle title={item.name} caption={item.category} media={<CatalogArtwork item={item} size="sm" />} onClick={() => onOpen(item)} />
+          <DataTableTitle title={item.name} caption={item.category} media={<CatalogArtwork item={item} size="xs" />} onClick={() => onOpen(item)} />
         </CatalogHoverCard>
       ),
     },
@@ -165,8 +166,6 @@ export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, 
       columns={columns}
       rows={items}
       rowKey={(item) => item.id}
-      density="compact"
-      zebra
       fill
       selection={{ selected, onChange: setSelected, rowLabel: (item) => `Selecionar ${item.name}` }}
       onRowClick={onOpen}

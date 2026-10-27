@@ -22,7 +22,13 @@ export const GRID_ROWS = 3;
 export const GRID_PER_PAGE_DEFAULT = 12;
 /** No celular a lista é sempre a grade e a página é doze, como nas grades do catálogo e de clientes. */
 export const MOBILE_PER_PAGE = 12;
-export const MAX_PER_PAGE = 30;
+/**
+ * No funil (2026-10-26, no lugar da grade de cartões) a página traz até cem orçamentos de uma vez: as colunas são
+ * as etapas, e cortar a base em páginas de doze deixaria cada etapa com o que coube por acaso. Passando de cem, a
+ * paginação aparece no pé.
+ */
+export const FUNNEL_PER_PAGE = 100;
+export const MAX_PER_PAGE = 100;
 
 export const gridPageSize = (columns: number) => pageSizeForGrid(columns, GRID_ROWS, MAX_PER_PAGE);
 

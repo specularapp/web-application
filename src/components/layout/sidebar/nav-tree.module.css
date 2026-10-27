@@ -213,3 +213,14 @@
     margin-inline-end: 2rem;
   }
 }
+
+/* A pasta vazia aberta mostra o que dá para pôr nela, em vez de abrir sem resposta nenhuma (2026-10-26, a
+   pedido: "nada acontece quando eu clico"). */
+.node[data-hint] {
+  color: var(--color-label-tertiary);
+}
+
+.node[data-hint]:hover,
+.node[data-hint]:focus-visible {
+  color: var(--color-label-secondary);
+}

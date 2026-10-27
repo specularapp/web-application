@@ -6,7 +6,7 @@ import { catalogArtworkUrl } from "../list-options";
 import type { CatalogItem } from "../summary";
 import styles from "./catalog-artwork.module.css";
 
-export type CatalogArtworkSize = "sm" | "md" | "lg";
+export type CatalogArtworkSize = "xs" | "sm" | "md" | "lg";
 
 export type CatalogArtworkProps = {
   item: Pick<CatalogItem, "id" | "name" | "imageUrl" | "hue">;
@@ -15,7 +15,7 @@ export type CatalogArtworkProps = {
 };
 
 /* Lado em pixels de cada tamanho, para a imagem declarar largura e altura e o layout não pular. */
-const pixelSizes: Record<CatalogArtworkSize, number> = { sm: 32, md: 40, lg: 52 };
+const pixelSizes: Record<CatalogArtworkSize, number> = { xs: 24, sm: 32, md: 40, lg: 52 };
 
 // A imagem de um item do catálogo num azulejo tingido no matiz dele: a foto quando há, e a arte gerada
 // pelo DiceBear no estilo Icons quando não há, com o ícone no mesmo matiz. É o que a pessoa varre com o
@@ -34,7 +34,9 @@ export function CatalogArtwork({ item, size = "md", className }: CatalogArtworkP
       data-size={size}
       style={{ "--item-hue": `var(--sys-${item.hue})` } as CSSProperties}
       aria-hidden="true"
-      {...rounded(size === "lg" ? "lg" : size === "sm" ? "sm" : "md")}
+      /* O `xs` é a bolinha das tabelas, na medida da foto do cliente e do responsável (2026-10-26): círculo não
+         passa pelo sistema de cantos, pela regra da casa. */
+      {...(size === "xs" ? {} : rounded(size === "lg" ? "lg" : size === "sm" ? "sm" : "md"))}
     >
       {item.imageUrl ? (
         <StoredImage src={item.imageUrl} alt="" width={side} height={side} className={styles.photo} />

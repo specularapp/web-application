@@ -10,16 +10,12 @@ import {
   TrayIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { useToast } from "@/components/providers/toast-provider";
 import {
   AppearanceDialog,
   AppearancePopover,
   type AppearanceDialogProps,
   type AppearancePopoverProps,
 } from "@/components/ui/stage-settings";
-import { setProjectAppearanceAction } from "@/features/projects/actions";
-import type { ProjectHue } from "@/features/projects/summary";
-import { callAction } from "@/lib/action";
 import { projectGlyphs, type ProjectGlyph } from "../tree";
 import { stageColorOptions } from "./stages-dialog";
 
@@ -66,33 +62,4 @@ export function TaskAppearanceDialog(props: Omit<AppearanceDialogProps, "colorOp
 
 export function TaskAppearancePopover(props: Omit<AppearancePopoverProps, "colorOptions" | "glyphOptions">) {
   return <AppearancePopover {...props} colorOptions={stageColorOptions} glyphOptions={projectGlyphOptions} />;
-}
-
-/** A cor e o glifo do quadro, que são os do projeto. O nome fica na ficha dele, e não aqui. */
-export function BoardLookDialog({
-  open,
-  project,
-  onClose,
-}: {
-  open: boolean;
-  project: { id: string; name: string; hue: ProjectHue; glyph: ProjectGlyph };
-  onClose: () => void;
-}) {
-  const { toast } = useToast();
-
-  return (
-    <TaskAppearanceDialog
-      open={open}
-      title="Cor do quadro"
-      withName={false}
-      initial={{ hue: project.hue, glyph: project.glyph }}
-      onClose={onClose}
-      onSave={async (value) => {
-        const result = await callAction(setProjectAppearanceAction({ id: project.id, hue: value.hue, glyph: value.glyph }));
-        if (!result.ok) return result.error;
-        toast({ title: "Cor do quadro salva", description: `${project.name} já aparece assim no menu.`, tone: "success" });
-        return undefined;
-      }}
-    />
-  );
 }

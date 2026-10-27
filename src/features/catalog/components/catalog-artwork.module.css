@@ -18,6 +18,13 @@
   border-radius: var(--radius-md);
 }
 
+/* A bolinha das tabelas, na medida do `Avatar` pequeno da casa. */
+.artwork[data-size="xs"] {
+  --artwork-size: 1.5rem;
+
+  border-radius: var(--radius-full);
+}
+
 .artwork[data-size="sm"] {
   --artwork-size: 2rem;
 

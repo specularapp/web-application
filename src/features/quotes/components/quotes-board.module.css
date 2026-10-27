@@ -26,25 +26,12 @@
   }
 }
 
-/* A grade enche a largura com quantos cartões couberem. `auto-fill`, e não `auto-fit`: com poucos orçamentos
-   os cartões ficam do tamanho dos outros, em vez de esticarem para ocupar a linha. O piso é maior que o dos
-   outros cartões porque este carrega três etiquetas e o total no cabeçalho. */
-.grid {
+/* O funil ocupa o que sobra abaixo da barra: o trilho rola para o lado e cada coluna rola por dentro. */
+.funnel {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: var(--space-3);
-  padding: 0;
-  margin: 0;
-  list-style: none;
+  min-height: 0;
 }
 
-@media (min-width: 48rem) {
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-  }
-}
-
-/* A contagem e a barra, alinhadas à direita como o pé da tabela. */
 .foot {
   display: flex;
   flex-wrap: wrap;

@@ -32,7 +32,7 @@ export type ClientsTableProps = {
   range: { page: number; pageSize: number; total: number };
 };
 
-// A base de clientes em tabela, na mesma receita do catálogo (2026-09-08): densidade compacta, zebra,
+// A base de clientes em tabela, na mesma receita do catálogo (2026-09-08): no desenho da tabela da casa,
 // altura da tela com as linhas rolando por dentro e o cabeçalho preso, marcação por linha (a mesma seleção
 // dos cartões, para excluir de uma vez), a coluna de ações presa na ponta. Colunas: a pessoa com a foto e a
 // empresa ou o e-mail embaixo, e-mail, telefone com máscara, cidade, situação (com a estrela de favorito),
@@ -44,13 +44,14 @@ export function ClientsTable({ clients, group, selected, onSelectedChange, onOpe
   const columns: DataTableColumn<ClientListItem>[] = [
     {
       id: "name",
+      pinned: true,
       header: suppliers ? "Fornecedor" : "Cliente",
       cell: (client) => (
         <ClientHoverCard client={client}>
           <DataTableTitle
             title={client.name}
             caption={client.company ?? client.email ?? undefined}
-            media={<Avatar name={client.name} src={client.avatarUrl ?? undefined} size="sm" />}
+            media={<Avatar name={client.name} src={client.avatarUrl ?? undefined} size="xs" />}
             onClick={() => onOpen(client)}
           />
         </ClientHoverCard>
@@ -155,8 +156,6 @@ export function ClientsTable({ clients, group, selected, onSelectedChange, onOpe
       columns={columns}
       rows={clients}
       rowKey={(client) => client.id}
-      density="compact"
-      zebra
       fill
       selection={{ selected, onChange: onSelectedChange, rowLabel: (client) => `Selecionar ${client.name}` }}
       onRowClick={onOpen}

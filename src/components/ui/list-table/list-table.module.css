@@ -1,0 +1,229 @@
+/* A tabela das listas de trabalho, trazida do sistema da pousada (2026-10-26), no desenho do ERP de lá. A coluna que rola é esta (nos dois sentidos): o cabeçalho
+   fica preso no topo dela, e a seleção e a coluna do nome ficam coladas à esquerda. As cores são opacas de
+   propósito: as colunas coladas precisam cobrir o que rola por baixo, então o tom do mouse e o da seleção
+   são misturados com o fundo em vez de ficarem translúcidos por cima dele. */
+.scroll {
+  --check-width: 2.75rem;
+  --line-subtle: var(--color-border);
+  --line-faint: color-mix(in oklab, var(--color-border) 50%, transparent);
+  /* No escuro a mistura é em sRGB e mais forte: em oklab, pouca tinta sobre o preto quase não sai do preto, e o
+     hover e a seleção sumiam. 8% de branco dá o mesmo tom do hover das listas sobre o fundo escuro. */
+  --row-hover: light-dark(
+    color-mix(in oklab, var(--color-label) 3.5%, var(--color-bg)),
+    color-mix(in srgb, var(--color-label) 8%, var(--color-bg))
+  );
+  --row-selected: light-dark(
+    color-mix(in oklab, var(--color-accent) 8%, var(--color-bg)),
+    color-mix(in srgb, var(--color-accent) 16%, var(--color-bg))
+  );
+
+  flex: 1;
+  min-block-size: 0;
+  overflow: auto;
+}
+
+.table {
+  inline-size: 100%;
+  font-size: var(--text-footnote);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-label);
+  border-spacing: 0;
+  border-collapse: separate;
+}
+
+/* ---------- Cabeçalho ---------- */
+
+.th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  block-size: 2.25rem;
+  padding-inline: 0.625rem;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  text-align: start;
+  white-space: nowrap;
+  background-color: var(--color-bg);
+  border-block-end: 1px solid var(--line-subtle);
+}
+
+/* Fio vertical entre as colunas, menos depois da seleção e da última. */
+.th:not(.check):not(:last-child),
+.cell:not(.check):not(:last-child) {
+  border-inline-end: 1px solid var(--line-faint);
+}
+
+.th:first-child,
+.cell:first-child {
+  padding-inline-start: 1.25rem;
+}
+
+.th:last-child,
+.cell:last-child {
+  padding-inline-end: 1.25rem;
+}
+
+.th[data-align="end"],
+.cell[data-align="end"] {
+  text-align: end;
+}
+
+.th[data-align="center"],
+.cell[data-align="center"] {
+  text-align: center;
+}
+
+/* As colunas que saem nas telas estreitas, antes de a tabela precisar rolar para o lado. */
+@media (max-width: 47.9375rem) {
+  .th[data-hide="md"],
+  .cell[data-hide="md"] {
+    display: none;
+  }
+}
+
+@media (max-width: 63.9375rem) {
+  .th[data-hide="lg"],
+  .cell[data-hide="lg"] {
+    display: none;
+  }
+}
+
+/* A seleção e a coluna do nome: coladas à esquerda e acima das demais ao rolar para o lado. */
+.th[data-pin],
+.cell[data-pin] {
+  position: sticky;
+  z-index: 1;
+}
+
+.th[data-pin] {
+  z-index: 3;
+}
+
+.th[data-pin="check"],
+.cell[data-pin="check"] {
+  inset-inline-start: 0;
+}
+
+.th[data-pin="name"],
+.cell[data-pin="name"] {
+  inset-inline-start: var(--pin-left, 0);
+  /* O piso da coluna que identifica a linha (2026-10-26, correção): o nome corta com reticências, então numa
+     tabela mais larga que a tela o navegador a encolhia até a foto e uma letra ("F"), e as outras colunas
+     ficavam com a largura toda. */
+  min-inline-size: 13rem;
+}
+
+/* A coluna da seleção, no cabeçalho e nas linhas com o mesmo recuo. Classe dobrada com a da célula
+   (2026-10-26, correção: "os checkboxes não estão alinhados"): a regra `.cell` vem depois no arquivo e, com o
+   mesmo peso, devolvia às linhas o recuo das outras colunas, e a caixa da linha saía deslocada da do topo. */
+.th.check,
+.cell.check {
+  inline-size: var(--check-width);
+  padding-inline: 1.25rem 0.5rem;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+/* O fio de quem rolou: só aparece depois do primeiro pixel de rolagem lateral. */
+.scroll[data-scrolled] [data-edge] {
+  box-shadow: inset -1px 0 0 var(--line-subtle);
+}
+
+.sort {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: 0.125rem var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-xs);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.sort svg {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  opacity: 0.6;
+}
+
+.sort[data-active] {
+  color: var(--color-label);
+}
+
+.sort[data-active] svg {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .sort:hover {
+    color: var(--color-label);
+  }
+
+  .sort:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.count {
+  font-weight: var(--weight-regular);
+  color: var(--color-label-secondary);
+}
+
+/* ---------- Linhas ---------- */
+
+.row {
+  --row-bg: var(--color-bg);
+  animation: rise 340ms var(--ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+
+.row:hover {
+  --row-bg: var(--row-hover);
+}
+
+.row[data-clickable] {
+  cursor: pointer;
+}
+
+.row[data-selected],
+.row[data-selected]:hover {
+  --row-bg: var(--row-selected);
+}
+
+.cell {
+  block-size: 2.5rem;
+  padding-inline: 0.625rem;
+  white-space: nowrap;
+  background-color: var(--row-bg);
+  border-block-end: 1px solid var(--line-faint);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.cell[data-muted] {
+  color: var(--color-label-secondary);
+}
+
+.empty {
+  padding: var(--space-12) var(--space-5);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    animation: none;
+  }
+}

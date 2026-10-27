@@ -1,20 +1,11 @@
-/* O topo padrão da aplicação em cima e a caixa de entrada tomando o resto da altura. Quem rola é cada coluna da caixa,
+/* A caixa de entrada tomando a altura inteira, sem o topo padrão (2026-10-26). Quem rola é cada coluna da caixa,
    nunca a página: a coluna da grade é `minmax(0, 1fr)` para nenhuma linha longa alargar a tela. */
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
-}
-
-.topBones {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--topbar-height);
-  padding-inline: var(--space-4);
-  border-block-end: 0.0375rem solid var(--color-border);
 }
 
 .status {

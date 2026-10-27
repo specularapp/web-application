@@ -6,7 +6,7 @@ import type { ContractsListPage, ContractsQuery } from "./list-options";
 import { getContract, getContractLookups, listContracts, type ContractLookups } from "./service";
 import type { Contract } from "./summary";
 
-export type ContractsScreenData = { contracts: Contract[]; lookups: ContractLookups };
+export type ContractsScreenData = { page: ContractsListPage; lookups: ContractLookups };
 
 const queryKey = (query: ContractsQuery) =>
   [query.search, query.status, query.source, query.kind, query.page, query.pageSize].join("|");
@@ -36,4 +36,10 @@ export async function getContractLookupsData(next = "/contratos"): Promise<Contr
     { organizationId, tags: [cacheTags.contracts, cacheTags.clients, cacheTags.quotes], ttl: cacheTtl.summary },
     () => getContractLookups(supabase, organizationId),
   );
+}
+
+/** Tudo que a tela de contratos desenha: a página da lista e as bases que o editor na janela oferece. */
+export async function loadContractsScreenData(query: ContractsQuery, next = "/contratos"): Promise<ContractsScreenData> {
+  const [page, lookups] = await Promise.all([getContractsPage(query, next), getContractLookupsData(next)]);
+  return { page, lookups };
 }

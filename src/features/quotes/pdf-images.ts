@@ -2,8 +2,7 @@ import "server-only";
 import sharp, { type Sharp } from "sharp";
 import { avatarSvg } from "@/components/ui/avatar/shape";
 import { artworkSvg } from "@/lib/artwork";
-import { catalogHueFor } from "@/features/catalog/list-options";
-import { cornerRadius, iconButtonCornerRadius, roundedRectPath } from "@/lib/corners";
+import { iconButtonCornerRadius, roundedRectPath } from "@/lib/corners";
 import { svgToken } from "@/lib/generated-svg";
 import type { Quote, QuoteLine } from "./summary";
 
@@ -107,11 +106,9 @@ async function avatarTile(name: string, url: string | null, side: number, radius
   return roundedTile(face, side, radius, AVATAR_TILE, ring);
 }
 
-/* A mesma semente da tela, para o desenho ser o mesmo: o matiz nasce do nome do item e o traço, do id. */
-const artworkOf = (line: QuoteLine) => {
-  const hue = catalogHueFor(line.name);
-  return artworkSvg("icons", hue, svgToken(line.catalogItemId ?? line.id));
-};
+/* A mesma semente da tela, para o desenho ser o mesmo: o traço nasce do id, e o matiz é o cinza da folha
+   neutra (2026-10-26, a pedido: "tire essas cores do documento"). */
+const artworkOf = (line: QuoteLine) => artworkSvg("icons", "gray", svgToken(line.catalogItemId ?? line.id));
 
 /**
  * O azulejo do item na folha: **a foto do catálogo quando há**, e a arte gerada quando não há (2026-09-17, a
@@ -121,7 +118,7 @@ const artworkOf = (line: QuoteLine) => {
  */
 async function lineTile(line: QuoteLine): Promise<PdfImage> {
   const photo = line.imageUrl ? await fetchImage(line.imageUrl) : null;
-  if (photo) return roundedTile(photo, ARTWORK_SIDE, cornerRadius.sm, "#ffffff");
+  if (photo) return roundedTile(photo, ARTWORK_SIDE, ARTWORK_SIDE / 2, "#ffffff");
 
   return rasterize(artworkOf(line), ARTWORK_SIDE * DENSITY);
 }

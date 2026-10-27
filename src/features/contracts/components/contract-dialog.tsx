@@ -23,7 +23,6 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { Route } from "next";
-import Link from "next/link";
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
@@ -76,9 +75,9 @@ const eventMeta: Record<ContractEvent["kind"], { label: string; icon: typeof Fil
 
 // A janela do contrato (2026-09-14): a moldura de trabalho da casa, a `Dialog` `xl`, a mesma da ficha do
 // projeto e da tarefa. À esquerda o documento inteiro, como a parte o vê (a folha escrita ou as páginas do
-// PDF com os campos), os números em azulejo e os detalhes; à direita as partes, cada uma com a situação da
-// assinatura e o link pessoal para copiar, e a linha do tempo. Os atalhos do topo são só em glifo: editar e
-// enviar no rascunho, reenviar no que aguarda, baixar o PDF, e o leque com o resto. No celular, uma metade
+// PDF com os campos) e os números em azulejo; à direita os detalhes, as partes, cada uma com a situação da
+// assinatura e o link pessoal para copiar, e a linha do tempo. Os atalhos do topo são só em glifo: enviar no
+// rascunho, reenviar no que aguarda, editar, e o leque com o resto, baixar o PDF entre eles. No celular, uma metade
 // por vez, Documento ou Acompanhamento, com o `SheetSwitcher` acima da bandeja e o arrasto para o lado, e as
 // ações na barra flutuante.
 export function ContractDialog({ contract, onClose, ...actions }: ContractDialogProps) {
@@ -166,44 +165,27 @@ function ContractDetail({ contract, tab, onTabChange, onClose, onEdit, onSend, o
   return (
     <div className={styles.dialog}>
       <header className={styles.top}>
-        <nav className={styles.route} aria-label="Onde o contrato mora">
-          <Link href="/contratos" className={styles.crumb}>
-            Contratos
-          </Link>
-          {contract.client && (
-            <>
-              <span className={styles.slash} aria-hidden="true">
-                /
-              </span>
-              <Link href={`/clientes/${contract.client.id}` as Route} className={styles.crumb}>
-                <AddressBookIcon aria-hidden="true" />
-                {contract.client.company ?? contract.client.name}
-              </Link>
-            </>
-          )}
+        {/* O topo é só o código (2026-10-26, a pedido): o cliente está nos detalhes, e a rota até aqui é a lista
+            que está atrás da janela. */}
+        <div className={styles.route}>
           <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {contract.reference}
           </Badge>
-        </nav>
+        </div>
+        {/* As ações na ordem de peso (2026-10-26, a pedido): a que tem fundo primeiro, enviar ou reenviar, depois
+            editar no mesmo glifo sem fundo do fechar, o leque (onde baixar o PDF mora) e o fechar. */}
         <div className={styles.actions}>
-          {draft && onEdit && (
-            <Tooltip content="Editar contrato">
-              <IconButton label="Editar contrato" variant="outline" size="sm" radius="md" onClick={onEdit}>
-                <PencilSimpleIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-          {onDownload && (
-            <Tooltip content="Baixar PDF">
-              <IconButton label="Baixar PDF" variant="outline" size="sm" radius="md" onClick={onDownload}>
-                <DownloadSimpleIcon />
-              </IconButton>
-            </Tooltip>
-          )}
           {(draft || open) && onSend && (
             <Tooltip content={draft ? "Enviar para assinatura" : "Reenviar convite"}>
               <IconButton label={draft ? "Enviar para assinatura" : "Reenviar convite"} size="sm" radius="md" onClick={onSend}>
                 <PaperPlaneTiltIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+          {draft && onEdit && (
+            <Tooltip content="Editar contrato">
+              <IconButton label="Editar contrato" variant="ghost" size="sm" onClick={onEdit}>
+                <PencilSimpleIcon />
               </IconButton>
             </Tooltip>
           )}
@@ -262,11 +244,22 @@ function ContractDetail({ contract, tab, onTabChange, onClose, onEdit, onSend, o
             )}
           </div>
 
+        </section>
+
+        {/* A lateral é a ficha do contrato (2026-10-26, a pedido: os detalhes saíram do pé do documento): os
+            detalhes em cima, as partes com a situação de cada assinatura e a linha do tempo. */}
+        <aside className={styles.side} aria-label="Detalhes, partes e linha do tempo">
           <ProfileSection title="Detalhes">
             <ProfileFacts>
               <ProfileFact icon={AddressBookIcon} label="Cliente">
+                {/* O cliente com a foto e o nome numa linha só, cortado com reticências (2026-10-26, a pedido). */}
                 {contract.client ? (
-                  <TextLink href={`/clientes/${contract.client.id}` as Route}>{contract.client.company ?? contract.client.name}</TextLink>
+                  <span className={styles.person}>
+                    <Avatar name={contract.client.name} src={contract.client.avatarUrl ?? undefined} size="xs" />
+                    <TextLink href={`/clientes/${contract.client.id}` as Route} className={styles.personName} title={contract.client.company ?? contract.client.name}>
+                      {contract.client.company ?? contract.client.name}
+                    </TextLink>
+                  </span>
                 ) : (
                   <Text as="span" variant="subheadline" tone="tertiary">
                     Não escolhido
@@ -322,9 +315,6 @@ function ContractDetail({ contract, tab, onTabChange, onClose, onEdit, onSend, o
               </ProfileFact>
             </ProfileFacts>
           </ProfileSection>
-        </section>
-
-        <aside className={styles.side} aria-label="Partes e linha do tempo">
           <section className={styles.sideBlock} aria-labelledby="contract-parties">
             <Text as="h3" id="contract-parties" variant="callout" weight="semibold">
               Partes

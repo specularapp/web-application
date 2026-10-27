@@ -28,7 +28,7 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { useEventCallback } from "@/hooks/use-event-callback";
-import type { DocNode } from "@/lib/rich-doc";
+import { docFromEditor, type DocNode } from "@/lib/rich-doc";
 import { codeBlockNodeView } from "./code-block-node";
 import { lowlight } from "./highlight";
 import { Figure, TaskItem, TaskList } from "./nodes";
@@ -177,7 +177,7 @@ export function RichTextEditor({
         return true;
       },
     },
-    onUpdate: ({ editor: instance }) => change(instance.getJSON() as unknown as DocNode),
+    onUpdate: ({ editor: instance }) => change(docFromEditor(instance.getJSON())),
     /* O foco de abertura não rola a página: o `autofocus` do editor chama o `scrollIntoView` do navegador, e
        dentro da bandeja do celular isso dava o salto de zoom que a pessoa via ao tocar na descrição. */
     onCreate: ({ editor: instance }) => {

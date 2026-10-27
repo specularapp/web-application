@@ -105,7 +105,7 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
               <span className={styles.slash} aria-hidden="true">
                 /
               </span>
-              <Link href={`${`/clientes/${payer.clientId}`}${outgoing ? "?grupo=fornecedores" : ""}` as Route} className={styles.crumb}>
+              <Link href={`/${outgoing ? "fornecedores" : "clientes"}/${payer.clientId}` as Route} className={styles.crumb}>
                 {payer.company ?? payer.name}
               </Link>
             </>

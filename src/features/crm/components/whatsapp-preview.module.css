@@ -1,0 +1,255 @@
+/*
+ * A conversa da oportunidade ao lado da ficha, nas medidas do chat do lead da pousada (`lead-chat.module.css` e
+ * os balões de `inbox.module.css` de lá): o fundo da conversa, o cabeçalho curto com o link para o WhatsApp, as
+ * mensagens rolando e o campo no pé. As cores são os tokens `--chat-*`, os mesmos valores da pousada. A classe
+ * `screen` da caixa de entrada traz as variáveis do campo, e aqui só se desfaz a grade de três colunas dela.
+ */
+section.chat {
+  --tone-agent: var(--chat-tone-agent);
+  --tone-contact: var(--chat-tone-contact);
+  --tone-template: var(--chat-tone-template);
+  --tick-read: var(--chat-tick-read);
+
+  container: thread / inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  background-color: var(--chat-bg);
+  background-image: radial-gradient(color-mix(in oklab, var(--color-label) 7%, transparent) 0.0625rem, transparent 0.0625rem);
+  background-size: 1.125rem 1.125rem;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-bg);
+  border-block-end: var(--line);
+}
+
+.head > span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.head strong {
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+}
+
+.head small {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: var(--touch-target);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--sys-blue);
+  text-decoration: none;
+}
+
+.open svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (hover: hover) {
+  .open:hover {
+    text-decoration: underline;
+  }
+}
+
+.open:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---------- O dia e os balões, nas medidas das conversas da pousada ---------- */
+
+.dayGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.day {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-2);
+  pointer-events: none;
+}
+
+.day span {
+  padding: 0.25rem var(--space-3);
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  background-color: var(--glass-layer-bg);
+  border: var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.empty {
+  max-width: 18rem;
+  margin: var(--space-6) auto 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.row[data-out] {
+  align-items: flex-end;
+}
+
+.row[data-first] {
+  margin-top: var(--space-2);
+}
+
+.bubble {
+  --tail: 0.5rem;
+  --bubble-bg: var(--tone-contact);
+
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  max-width: min(36rem, 78%);
+  padding: 0.375rem 0.5625rem 0.3125rem;
+  color: var(--color-label);
+  background-color: var(--bubble-bg);
+  border-radius: 0.75rem;
+  box-shadow: var(--chat-bubble-shadow);
+}
+
+.row[data-out] .bubble {
+  --bubble-bg: var(--tone-agent);
+}
+
+/* O rabinho: um triângulo da cor do balão, colado no canto de cima, só no primeiro do bloco */
+.bubble[data-first]::before {
+  position: absolute;
+  top: 0;
+  width: var(--tail);
+  height: 0.8125rem;
+  content: "";
+  background-color: var(--bubble-bg);
+}
+
+.row[data-out] .bubble[data-first] {
+  border-start-end-radius: 0;
+}
+
+.row[data-out] .bubble[data-first]::before {
+  inset-inline-end: calc(var(--tail) * -1);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* A mensagem ainda não enviada: o brilho suave que as conversas usam para a que está subindo */
+.bubble[data-pending]::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(100deg, transparent 25%, color-mix(in oklab, var(--color-bg) 42%, transparent) 50%, transparent 75%);
+  background-size: 250% 100%;
+  border-radius: inherit;
+  animation: pendingShine 1.3s var(--ease-standard) infinite;
+}
+
+@keyframes pendingShine {
+  from {
+    background-position: 125% 0;
+  }
+
+  to {
+    background-position: -125% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble[data-pending]::after {
+    animation: none;
+  }
+}
+
+.author {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  font-size: var(--text-caption-1);
+  font-weight: var(--weight-semibold);
+  color: var(--sys-blue);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-subheadline);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Reserva o lugar da hora na última linha, para ela nunca cobrir o texto */
+.spacer {
+  display: inline-block;
+  width: 4.75rem;
+}
+
+.meta {
+  position: absolute;
+  inset-inline-end: 0.5625rem;
+  bottom: 0.25rem;
+  display: inline-flex;
+  gap: 0.1875rem;
+  align-items: center;
+  font-size: var(--text-caption-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.meta svg {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+/* O campo no pé, sem o degradê do campo flutuante das conversas: aqui ele fica embaixo da conversa */
+.composer > * {
+  padding-block-start: var(--space-2);
+}

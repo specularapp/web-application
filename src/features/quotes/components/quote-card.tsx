@@ -46,19 +46,12 @@ function readValidity(quote: Quote) {
   return { label: `Vence ${shortDate(quote.validUntil)}`, urgent: false };
 }
 
-// O cartão do orçamento (2026-09-10, a pedido). Ele nasceu na receita do cartão do catálogo e ficou igual
-// demais a ele (relato do mesmo dia), então foi redesenhado para dizer o que um orçamento é: **um documento
-// que foi para alguém, vale um valor e tem prazo**, e não uma ficha estável como o item do catálogo.
-//
-// A diferença está no eixo do cartão. No catálogo o que manda é a arte do item, e o preço é uma etiqueta na
-// ponta; aqui o que manda é **o valor**, escrito grande no corpo, porque é por ele que se lê uma lista de
-// orçamentos. Em cima a situação; no meio o código com a emissão, o título e o valor; depois **as duas
-// pessoas**, para quem foi e quem responde, lado a lado, o que o catálogo não tem; e no pé os itens nomeados,
-// e não contados, com o prazo na outra ponta, que é a conta que importa numa lista de coisas em aberto.
-//
-// O valor é preto neutro (pedido de 2026-09-10): pintado no matiz do cliente, cada cartão da grade puxava
-// para uma cor e a lista virava mostruário, quando o que se compara é o número. A cor do cliente fica no
-// rosto dele, que já a carrega.
+// O cartão do orçamento, que mora no funil (2026-10-26, a pedido: "otimize o card, não precisa ficar
+// minúsculo, mas adapte melhor as informações"). A coluna já diz a situação, então o cartão não repete a
+// etiqueta e sobe o que identifica o documento: o código com a emissão e o leque em cima, o título em duas
+// linhas, para quem foi, os itens pelo nome, e no pé, depois do fio, **o valor** com a forma de pagamento, o
+// prazo em palavras de urgência e o rosto de quem responde. O valor segue preto neutro (pedido de 2026-09-10):
+// o que se compara numa coluna é o número, e a cor do cliente fica no rosto dele.
 export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
   const status = quoteStatuses[quote.status];
   const totals = quoteTotals(quote);
@@ -93,79 +86,60 @@ export function QuoteCard({ quote, onOpen }: QuoteCardProps) {
         role="button"
         tabIndex={0}
         aria-haspopup="dialog"
-        aria-label={`Abrir ${quote.number}, ${quote.title}`}
+        aria-label={`Abrir ${quote.number}, ${quote.title}, ${status.label}`}
         className={styles.inner}
         onClick={onClick}
         onKeyDown={onKeyDown}
         {...roundedAuto({ clip: true })}
       >
-        {/* Em cima a situação e o leque, e nada mais: numa coluna de 16rem, que é a medida da grade, o código
-            do documento com uma etiqueta de "Visualizado" e o leque não cabem na mesma linha (medido em
-            2026-09-10), e o que sobrava era a etiqueta esmagando a data. Então a etiqueta manda no topo, onde
-            pode ceder pelo texto, e o código desce para a linha de contexto do corpo. */}
         <div className={styles.head}>
-          <Badge tone={status.tone} size="sm" icon={<status.icon />}>
-            {status.label}
-          </Badge>
+          <Text as="span" variant="caption1" tone="secondary" truncate className={styles.reference}>
+            <span className={styles.number}>{quote.number}</span>, {shortDate(quote.issuedAt)}
+          </Text>
           <span className={styles.menu}>
             <QuoteMenu quote={quote} onEdit={onOpen} />
           </span>
         </div>
 
-        {/* O miolo: o código com a emissão, o título e o valor. O código em algarismo tabular alinha de
-            cartão a cartão numa coluna da grade, e a emissão logo atrás dele é o "quando" do documento. O
-            valor é a peça grande do cartão, na tinta do rótulo, com a forma de pagamento embaixo, miúda: a
-            leitura é "quanto" e só depois "como". */}
         <div className={styles.body}>
-          <Text as="span" variant="caption1" tone="secondary" truncate className={styles.reference}>
-            <span className={styles.number}>{quote.number}</span>, {shortDate(quote.issuedAt)}
-          </Text>
-          <Text as="h2" variant="headline" weight="semibold" className={styles.title}>
+          <Text as="h3" variant="subheadline" weight="semibold" className={styles.title}>
             {quote.title}
           </Text>
+          <span className={styles.client}>
+            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="xs" />
+            <Text as="span" variant="footnote" tone="secondary" truncate>
+              {quote.client.company ? `${quote.client.company}, ${quote.client.name}` : quote.client.name}
+            </Text>
+          </span>
+          {lineNames && (
+            <Text as="p" variant="caption1" tone="tertiary" truncate className={styles.lines}>
+              {lineNames}
+              {extraLines > 0 ? ` +${extraLines}` : ""}
+            </Text>
+          )}
+        </div>
+
+        {/* O pé, depois do fio: quanto e como de um lado, o prazo e quem responde do outro. */}
+        <div className={styles.foot}>
           <p className={styles.amount}>
-            <Text as="span" variant="title3" weight="semibold" className={styles.total}>
+            <Text as="span" variant="headline" weight="semibold" className={styles.total}>
               {formatMoney(totals.total)}
             </Text>
             <Text as="span" variant="caption1" tone="secondary" truncate title={methods}>
               {payment}
             </Text>
           </p>
-        </div>
-
-        {/* As duas pessoas do documento, que é o que um orçamento tem e um item de catálogo não: para quem
-            foi, com a empresa, e quem da equipe responde, só o rosto, com o nome na dica e na voz. */}
-        <div className={styles.people}>
-          <span className={styles.client}>
-            <Avatar name={quote.client.name} src={quote.client.avatarUrl ?? undefined} size="sm" shape="rounded" />
-            <span className={styles.clientCopy}>
-              <Text as="span" variant="footnote" weight="medium" truncate>
-                {quote.client.company ?? quote.client.name}
-              </Text>
-              {quote.client.company && (
-                <Text as="span" variant="caption2" tone="secondary" truncate>
-                  {quote.client.name}
-                </Text>
-              )}
+          <span className={styles.signals}>
+            {validity && (
+              <Badge size="sm" tone={validity.urgent ? "danger" : undefined}>
+                {validity.label}
+              </Badge>
+            )}
+            <span className={styles.owner} title={`Responsável: ${quote.owner.name}`}>
+              <Avatar name={quote.owner.name} src={quote.owner.avatarUrl ?? undefined} size="xs" />
+              <VisuallyHidden>Responsável: {quote.owner.name}</VisuallyHidden>
             </span>
           </span>
-          <span className={styles.owner} title={`Responsável: ${quote.owner.name}`}>
-            <Avatar name={quote.owner.name} src={quote.owner.avatarUrl ?? undefined} size="xs" />
-            <VisuallyHidden>Responsável: {quote.owner.name}</VisuallyHidden>
-          </span>
-        </div>
-
-        {/* O pé é a linha do tempo do documento: o que ele lista de um lado, quanto ainda vale do outro. */}
-        <div className={styles.foot}>
-          <Text as="p" variant="caption1" tone="secondary" truncate className={styles.lines}>
-            {lineNames}
-            {extraLines > 0 ? ` +${extraLines}` : ""}
-          </Text>
-          {validity && (
-            <Badge size="sm" tone={validity.urgent ? "danger" : undefined}>
-              {validity.label}
-            </Badge>
-          )}
         </div>
       </div>
     </li>

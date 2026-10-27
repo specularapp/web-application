@@ -141,6 +141,7 @@ export function FlowsBoard({ flows: initial, author }: FlowsBoardProps) {
   const columns: DataTableColumn<Flow>[] = [
     {
       id: "name",
+      pinned: true,
       header: "Fluxo",
       width: "17rem",
       sortable: true,
@@ -363,7 +364,6 @@ export function FlowsBoard({ flows: initial, author }: FlowsBoardProps) {
           columns={columns}
           rows={visible}
           rowKey={(flow) => flow.id}
-          density="compact"
           fill
           sort={sort}
           onSortChange={setSort}

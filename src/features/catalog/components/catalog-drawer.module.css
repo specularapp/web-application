@@ -1,4 +1,4 @@
-/* O cabeçalho fica fixo no topo da gaveta e quem rola é o corpo: o nome do item é a referência de onde a
+/* O cabeçalho fica fixo no topo da janela e quem rola é o corpo: o nome do item é a referência de onde a
    pessoa está. Mesma moldura da ficha do cliente. */
 .head {
   display: flex;

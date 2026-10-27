@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, ArrowRightIcon, FilePdfIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarBlankIcon, CurrencyCircleDollarIcon, FilePdfIcon, ListNumbersIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { useId, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { useDropzone } from "react-dropzone";
@@ -38,28 +38,35 @@ type Step = "choose" | "upload" | "gallery";
    palavras. */
 const options: { source: ContractSource; hue: string; description: string; path: string }[] = [
   { source: "pdf", hue: "var(--sys-red)", description: "Envie o contrato que você já tem e marque no documento onde cada parte assina.", path: "Arquivo, campos, envio" },
-  { source: "template", hue: "var(--sys-blue)", description: "Um modelo da casa por tipo de trabalho, na forma da norma. Edite só o necessário.", path: "Modelo, ajustes, envio" },
+  { source: "template", hue: "var(--sys-blue)", description: "Um modelo por tipo de trabalho, com quadro resumo e cláusulas prontas. Edite só o necessário.", path: "Modelo, ajustes, envio" },
   { source: "scratch", hue: "var(--sys-purple)", description: "A folha em branco no editor, com as cláusulas e os dados do contrato à mão.", path: "Editor, envio" },
 ];
 
 const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 
-/** Quantos blocos da abertura do modelo cabem na folha em miniatura do cartão. */
-const PREVIEW_BLOCKS = 7;
+/** Quantos blocos da abertura do modelo cabem na folha em miniatura do cartão, depois do título. */
+const PREVIEW_BLOCKS = 9;
 
-type TemplatePreview = { title: string; lines: { text: string; heading: boolean }[]; clauses: number };
+type PreviewLine = { text: string; kind: "heading" | "text" | "box" };
+
+type TemplatePreview = { title: string; lines: PreviewLine[]; clauses: number };
 
 /* A miniatura de cada modelo: o documento de verdade, montado sem cliente (os colchetes ficam à vista, que é
-   o "só editar o necessário"), reduzido ao título e aos primeiros blocos. Uma vez por carga, porque o modelo
-   não muda. */
+   o "só editar o necessário"), reduzido ao título e aos primeiros blocos, com as linhas do quadro resumo no
+   painel delas. Uma vez por carga, porque o modelo não muda. */
 function previewOf(template: ContractTemplate): TemplatePreview {
   const { body } = template.build({ issuer: { name: "Nome do estúdio" }, client: null, amount: null, date: format(new Date(), "yyyy-MM-dd"), project: null });
   const blocks = body.content ?? [];
   const [first, ...rest] = blocks;
+  const lines = rest.flatMap((node): PreviewLine[] =>
+    node.type === "blockquote"
+      ? (node.content ?? []).map((child) => ({ text: plainText(child), kind: "box" }))
+      : [{ text: plainText(node), kind: node.type === "heading" ? "heading" : "text" }],
+  );
   return {
     title: first ? plainText(first) : template.name,
-    lines: rest.slice(0, PREVIEW_BLOCKS).map((node) => ({ text: plainText(node), heading: node.type === "heading" })),
-    clauses: blocks.filter((node) => node.type === "heading" && node.attrs?.level === 2).length,
+    lines: lines.slice(0, PREVIEW_BLOCKS),
+    clauses: blocks.filter((node) => node.type === "heading" && /^CLÁUSULA\b/.test(plainText(node))).length,
   };
 }
 
@@ -69,8 +76,9 @@ const previews = new Map(contractTemplates.map((template) => [template.id, previ
 // mais interessante", com as peças da casa): uma janela central com as três origens em cartões lado a lado,
 // cada um com o azulejo no matiz da origem, o nome, o que acontece depois e o caminho. Escolher segue no
 // mesmo lugar: o PDF pede o arquivo aqui, o modelo abre a galeria aqui, e o do zero já nasce e abre o
-// editor. A galeria mostra cada modelo como um cartão com a folha em miniatura do documento de verdade, o
-// tipo, o nome, a frase e as entregas. No celular é a bandeja da casa, com o sair na barra flutuante. Tem
+// editor. A galeria mostra cada modelo como um cartão deitado (2026-10-26, a pedido de cartões mais
+// organizados): a folha em miniatura do documento de verdade, em pé como uma A4, e ao lado o tipo, o nome, a
+// frase e, no pé, o prazo, o pagamento e as cláusulas. No celular é a bandeja da casa, com o sair na barra flutuante. Tem
 // endereço (`/contratos/novo`).
 export function NewContractDialog({ open, onClose, clientId, onCreated }: NewContractDialogProps) {
   const workingRef = useRef(false);
@@ -166,7 +174,7 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
   });
 
   const heading = step === "choose" ? "Novo contrato" : step === "upload" ? "Anexar o PDF" : "Escolher um modelo";
-  const subheading = step === "choose" ? "Como você quer começar?" : step === "upload" ? "O documento pronto, para marcar onde cada parte assina." : "Um por tipo de trabalho, na forma da norma e com as cláusulas de um estúdio. Depois é só editar o necessário.";
+  const subheading = step === "choose" ? "Como você quer começar?" : step === "upload" ? "O documento pronto, para marcar onde cada parte assina." : "Escolha pelo tipo de trabalho. O contrato já vem com quadro resumo e cláusulas, é só ajustar o necessário.";
 
   return (
     <div className={styles.dialog} data-step={step} aria-labelledby={titleId}>
@@ -197,17 +205,19 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
             return (
               <li key={source}>
                 <button type="button" className={styles.option} style={{ "--option-hue": hue } as CSSProperties} disabled={working} aria-busy={creating || undefined} onClick={() => choose(source)} {...rounded("lg")}>
-                  <span className={styles.glyph} aria-hidden="true" {...rounded("md")}>
-                    {creating ? <Spinner size="sm" label="" /> : <meta.icon weight="duotone" />}
-                  </span>
-                  <span className={styles.copy}>
+                  {/* O azulejo e o nome na mesma linha, a frase embaixo e o caminho no pé: três degraus iguais
+                      nos três cartões, para as origens lerem lado a lado (2026-10-26). */}
+                  <span className={styles.optionHead}>
+                    <span className={styles.glyph} aria-hidden="true" {...rounded("md")}>
+                      {creating ? <Spinner size="sm" label="" /> : <meta.icon weight="duotone" />}
+                    </span>
                     <Text as="span" variant="subheadline" weight="semibold">
                       {meta.label}
                     </Text>
-                    <Text as="span" variant="footnote" tone="secondary">
-                      {description}
-                    </Text>
                   </span>
+                  <Text as="span" variant="footnote" tone="secondary" className={styles.optionCopy}>
+                    {description}
+                  </Text>
                   <span className={styles.path}>
                     <Text as="span" variant="caption1" tone="tertiary" truncate>
                       {path}
@@ -277,11 +287,12 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
                   onClick={() => void create({ source: "template", templateId: template.id })}
                   {...rounded("lg")}
                 >
-                  {/* A folha em miniatura: o documento de verdade em corpo miúdo, esmaecendo no pé. */}
+                  {/* A folha em miniatura, em pé como uma A4: o documento de verdade em corpo miúdo, com o quadro
+                      resumo no painel dele, esmaecendo no pé. */}
                   <span className={styles.paper} data-scheme="light" aria-hidden="true">
                     <span className={styles.paperTitle}>{preview?.title}</span>
                     {preview?.lines.map((line, index) => (
-                      <span key={index} className={styles.paperLine} data-heading={line.heading || undefined}>
+                      <span key={index} className={styles.paperLine} data-kind={line.kind}>
                         {line.text}
                       </span>
                     ))}
@@ -291,29 +302,39 @@ function Chooser({ onClose, clientId, onCreated, workingRef }: Pick<NewContractD
                       </span>
                     )}
                   </span>
+                  {/* Ao lado, o que decide a escolha, em degraus: o tipo, o nome e a frase, e no pé, depois do fio, o
+                      prazo, o pagamento e quantas cláusulas o modelo traz. */}
                   <span className={styles.templateBody}>
-                    <span className={styles.templateHead}>
-                      <Badge size="sm" hue={kind.hue}>
-                        {kind.label}
-                      </Badge>
-                      {preview && (
-                        <Text as="span" variant="caption1" tone="tertiary">
-                          {preview.clauses} cláusulas
-                        </Text>
-                      )}
-                    </span>
+                    <Badge size="sm" hue={kind.hue} className={styles.templateKind}>
+                      {kind.label}
+                    </Badge>
                     <Text as="span" variant="subheadline" weight="semibold">
                       {template.name}
                     </Text>
                     <Text as="span" variant="footnote" tone="secondary" className={styles.summary}>
                       {template.summary}
                     </Text>
-                    <span className={styles.highlights}>
-                      {template.highlights.slice(0, 3).map((item) => (
-                        <Badge key={item} variant="outline" size="sm">
-                          {item}
-                        </Badge>
-                      ))}
+                    <span className={styles.facts}>
+                      <span className={styles.fact}>
+                        <CalendarBlankIcon aria-hidden="true" />
+                        <Text as="span" variant="caption1" tone="secondary" truncate>
+                          {template.terms.deadline}
+                        </Text>
+                      </span>
+                      <span className={styles.fact}>
+                        <CurrencyCircleDollarIcon aria-hidden="true" />
+                        <Text as="span" variant="caption1" tone="secondary" truncate>
+                          {template.terms.payment}
+                        </Text>
+                      </span>
+                      {preview && (
+                        <span className={styles.fact}>
+                          <ListNumbersIcon aria-hidden="true" />
+                          <Text as="span" variant="caption1" tone="secondary" truncate>
+                            {preview.clauses} cláusulas
+                          </Text>
+                        </span>
+                      )}
                     </span>
                   </span>
                 </button>

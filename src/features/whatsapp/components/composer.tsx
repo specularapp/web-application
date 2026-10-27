@@ -44,6 +44,11 @@ export type ComposerProps = {
   quickReplies: QuickReply[];
   onSend: (text: string, mode: "text" | "note", files: File[]) => void;
   onOpenTemplates: () => void;
+  /**
+   * Só a mensagem escrita, sem anexar, sem modelo e sem nota interna: é o campo da conversa de uma ficha, como
+   * o chat do lead da pousada, em que o que sai é texto (2026-10-26).
+   */
+  textOnly?: boolean;
 };
 
 /**
@@ -51,7 +56,7 @@ export type ComposerProps = {
  * nota interna, respostas rápidas, emojis e enviar). O "/" abre as respostas rápidas, Enter envia e Shift + Enter quebra
  * a linha. Com a janela de 24 horas fechada, o aviso fica acima do campo, que segue aberto para nota interna.
  */
-export function Composer({ contactName, open, closedAt, replyTo, onCancelReply, draft, onDraft, quickReplies, onSend, onOpenTemplates }: ComposerProps) {
+export function Composer({ contactName, open, closedAt, replyTo, onCancelReply, draft, onDraft, quickReplies, onSend, onOpenTemplates, textOnly = false }: ComposerProps) {
   const [text, setText] = useState(draft);
   const [mode, setMode] = useState<"message" | "note">("message");
   const [panel, setPanel] = useState<"quick" | "emoji" | null>(null);
@@ -264,25 +269,29 @@ export function Composer({ contactName, open, closedAt, replyTo, onCancelReply, 
 
         <div className={styles.tools}>
           <div className={styles.toolGroup}>
-            <DropdownMenu label="Anexar" triggerLabel={note ? "Enviar modelo aprovado" : "Anexar foto, documento e mais"} icon={<PlusIcon />} size="sm" searchable={false} sections={attachSections} />
-            <Tooltip content={open ? (note ? "Voltar para mensagem" : "Nota interna: só a equipe vê") : "Fora da janela de 24 horas, só nota interna"}>
-              <IconButton
-                label={note ? "Nota interna ligada" : "Escrever nota interna"}
-                variant="ghost"
-                size="sm"
-                className={styles.tool}
-                data-on={note || undefined}
-                aria-pressed={note}
-                disabled={!open}
-                onClick={() => {
-                  setMode(note ? "message" : "note");
-                  focusField();
-                }}
-              >
-                <LockSimpleIcon weight={note ? "fill" : "regular"} />
-              </IconButton>
-            </Tooltip>
-            <span className={styles.toolDivider} aria-hidden="true" />
+            {!textOnly && (
+              <>
+                <DropdownMenu label="Anexar" triggerLabel={note ? "Enviar modelo aprovado" : "Anexar foto, documento e mais"} icon={<PlusIcon />} size="sm" searchable={false} sections={attachSections} />
+                <Tooltip content={open ? (note ? "Voltar para mensagem" : "Nota interna: só a equipe vê") : "Fora da janela de 24 horas, só nota interna"}>
+                  <IconButton
+                    label={note ? "Nota interna ligada" : "Escrever nota interna"}
+                    variant="ghost"
+                    size="sm"
+                    className={styles.tool}
+                    data-on={note || undefined}
+                    aria-pressed={note}
+                    disabled={!open}
+                    onClick={() => {
+                      setMode(note ? "message" : "note");
+                      focusField();
+                    }}
+                  >
+                    <LockSimpleIcon weight={note ? "fill" : "regular"} />
+                  </IconButton>
+                </Tooltip>
+                <span className={styles.toolDivider} aria-hidden="true" />
+              </>
+            )}
             <IconButton label="Respostas rápidas" variant="ghost" size="sm" className={styles.tool} data-on={showQuick || undefined} aria-pressed={showQuick} onClick={() => setPanel((current) => (current === "quick" || showQuick ? null : "quick"))}>
               <LightningIcon weight={showQuick ? "fill" : "regular"} />
             </IconButton>

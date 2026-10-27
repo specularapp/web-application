@@ -9,7 +9,7 @@ import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { QuotesListPage, QuotesQuery } from "./list-options";
 import type { QuoteFormInput } from "./schemas";
-import type { LatestQuote, Quote, QuoteIssuer, QuoteLine, QuotePerson, QuoteStatus, QuotesSummary } from "./summary";
+import type { LatestQuote, Quote, QuoteIssuer, QuoteLine, QuotePerson, QuoteSeller, QuoteStatus, QuotesSummary } from "./summary";
 import { quoteTotals } from "./totals";
 
 /** A regra de orçamentos contra o banco, na mesma forma dos outros domínios. */
@@ -86,7 +86,7 @@ const toLine = (line: LineRow): QuoteLine => ({
   courtesy: line.courtesy,
 });
 
-function toQuote(row: Row, owner: QuotePerson, issuer: QuoteIssuer): Quote {
+function toQuote(row: Row, owner: QuoteSeller, issuer: QuoteIssuer): Quote {
   return {
     id: row.id,
     number: row.reference,
@@ -122,13 +122,18 @@ function toQuote(row: Row, owner: QuotePerson, issuer: QuoteIssuer): Quote {
 }
 
 async function peopleFor(client: QuotesClient, ids: (string | null)[]) {
-  const people = new Map<string, QuotePerson>();
+  const people = new Map<string, QuoteSeller>();
   const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
   if (unique.length === 0) return people;
 
-  const { data } = await client.from("profiles").select("id, full_name, email, avatar_url").in("id", unique);
+  const { data } = await client.from("profiles").select("id, full_name, email, avatar_url, headline").in("id", unique);
   for (const row of data ?? []) {
-    people.set(row.id, { name: row.full_name || row.email || "Equipe", avatarUrl: row.avatar_url });
+    people.set(row.id, {
+      name: row.full_name || row.email || "Equipe",
+      avatarUrl: row.avatar_url,
+      email: row.email ?? undefined,
+      role: row.headline?.trim() || undefined,
+    });
   }
   return people;
 }
@@ -477,7 +482,7 @@ export async function getQuoteByToken(
   const payload = data as unknown as {
     quote: Omit<Row, "quote_lines"> & { organization_id: string };
     issuer: QuoteIssuer;
-    owner: QuotePerson;
+    owner: QuoteSeller;
     lines: LineRow[];
   };
   const row = { ...payload.quote, quote_lines: payload.lines } as Row;

@@ -45,7 +45,7 @@ export async function listFeedbackProjects(client: FeedbackClient, organizationI
   const { data } = await client
     .from("projects")
     .select("id, reference, name, client_id, hue, logo_url, clients(name)")
-    .eq("organization_id", organizationId)
+    .eq("organization_id", organizationId).eq("board_only", false)
     .order("created_at", { ascending: false });
   return ((data ?? []) as unknown as FeedbackRow["projects"][]).map(projectOf);
 }

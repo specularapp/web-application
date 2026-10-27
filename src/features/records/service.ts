@@ -58,7 +58,7 @@ export async function listAppRecords(client: RecordsClient, organizationId: stri
     client
       .from("projects")
       .select("id, reference, name, description, status, progress, started_at, due_at, clients(name)")
-      .eq("organization_id", organizationId)
+      .eq("organization_id", organizationId).eq("board_only", false)
       .order("started_at", { ascending: false })
       .limit(PER_KIND),
     client

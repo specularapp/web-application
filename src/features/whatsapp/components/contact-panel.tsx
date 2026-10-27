@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  ArrowClockwiseIcon,
   CameraIcon,
   CaretDownIcon,
+  CaretLeftIcon,
   CopyIcon,
   DotsThreeIcon,
   FileTextIcon,
@@ -11,39 +11,39 @@ import {
   FunnelIcon,
   IdentificationCardIcon,
   MicrophoneIcon,
-  SparkleIcon,
+  PlusIcon,
+  TagSimpleIcon,
   TargetIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconButton } from "@/components/ui/icon-button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { TagDot, TagPicker } from "@/components/ui/tag-picker";
+import { TagDot, tagSections } from "@/components/ui/tag-picker";
 import { Text } from "@/components/ui/text";
 import { useTabList } from "@/hooks/use-tab-list";
+import { cx } from "@/lib/utils/cx";
 import { documentType, firstName, formatDuration, formatFull, formatListTime, formatPhone, formatSize, formatTime, sourceLabels, statusLabels, windowOpen } from "../inbox";
 import { whatsappTagCatalog } from "../tags";
 import type { ContactStage, TeamMember, WhatsappContact, WhatsappConversation } from "../types";
+/* O desenho da ficha do lead da Le Ange, o mesmo da ficha da oportunidade (2026-10-26, a pedido: "seguindo
+   literalmente o padrão da Le Ange"): o contato da conversa é o lead do funil, então a lateral do WhatsApp é a
+   mesma ficha, e as classes vêm de lá para as duas nunca saírem de sincronia. */
+import profile from "@/features/crm/components/opportunity-profile.module.css";
 import styles from "./contact-panel.module.css";
 
-type PanelTab = "ficha" | "origem" | "midia" | "resumo";
+type PanelTab = "ficha" | "origem" | "midia";
 
 const TABS: { value: PanelTab; label: string; icon: typeof IdentificationCardIcon }[] = [
-  { value: "ficha", label: "Ficha", icon: IdentificationCardIcon },
-  { value: "origem", label: "Origem", icon: TargetIcon },
+  { value: "ficha", label: "Principal", icon: IdentificationCardIcon },
+  { value: "origem", label: "Rastreio", icon: TargetIcon },
   { value: "midia", label: "Mídia", icon: FolderOpenIcon },
-  { value: "resumo", label: "Resumo", icon: SparkleIcon },
 ];
 
 const TAB_VALUES = TABS.map((tab) => tab.value);
-
-/** Quanto o resumo de exemplo leva para aparecer, para o estado de carregando ficar à vista. */
-const SUMMARY_DELAY = 900;
 
 const MAX_CONTACT_TAGS = 6;
 
@@ -56,117 +56,45 @@ export type ContactPanelProps = {
   onContactChange: (patch: Partial<WhatsappContact>, notice?: string) => void;
 };
 
-/** Uma linha da ficha: o rótulo apagado à esquerda e o valor à direita. */
+/** Uma linha da ficha, na receita da ficha do lead: o rótulo apagado à esquerda e o valor à direita. */
 function Fact({ label, children }: { label: string; children?: ReactNode }) {
   return (
-    <div className={styles.fact}>
-      <dt>{label}</dt>
-      <dd data-empty={!children || undefined}>{children || "Sem dado"}</dd>
+    <div className={profile.field}>
+      <dt title={label}>{label}</dt>
+      <dd>
+        <span className={profile.static} data-empty={!children || undefined}>
+          {children || "Selecione"}
+        </span>
+      </dd>
     </div>
   );
 }
 
-/** Um grupo de linhas com o título e quantas têm dado. */
+/** Um grupo de linhas com o título e quantas têm dado, no bloco de rastreio da ficha do lead. */
 function Group({ title, rows }: { title: string; rows: { label: string; value?: string }[] }) {
   const filled = rows.filter((row) => row.value).length;
   return (
-    <section className={styles.group}>
-      <header>
-        <strong>{title}</strong>
-        <span>
-          {filled} de {rows.length}
-        </span>
-      </header>
-      <dl className={styles.counts}>
+    <div className={profile.tracked}>
+      <strong>{title}</strong>
+      <span>
+        {filled} de {rows.length}
+      </span>
+      <dl className={profile.counts}>
         {rows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
+            <dt title={row.label}>{row.label}</dt>
             <dd data-empty={!row.value || undefined}>{row.value || "Sem dado"}</dd>
           </div>
         ))}
       </dl>
-    </section>
-  );
-}
-
-/** O resumo da conversa, de exemplo enquanto a IA não lê as mensagens de verdade. */
-function SummaryTab({ conversation, stages }: { conversation: WhatsappConversation; stages: ContactStage[] }) {
-  const [state, setState] = useState<"idle" | "loading" | "ready">("idle");
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const generate = () => {
-    setState("loading");
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setState("ready"), SUMMARY_DELAY);
-  };
-
-  const { contact } = conversation;
-  const name = firstName(contact.name);
-
-  if (state === "loading")
-    return (
-      <div className={styles.summaryLoading} aria-busy="true" aria-label="Gerando o resumo">
-        <Skeleton height="0.875rem" width="40%" />
-        <Skeleton height="0.875rem" />
-        <Skeleton height="0.875rem" width="85%" />
-        <Skeleton shape="rect" height="2rem" />
-        <Skeleton shape="rect" height="2rem" />
-      </div>
-    );
-
-  if (state === "idle")
-    return (
-      <div className={styles.empty}>
-        <EmptyState icon={SparkleIcon} size="sm" title="Resumo da conversa" description={`Organiza o que ${name} quer, onde a conversa parou e o próximo passo.`}>
-          <Button size="sm" radius="md" iconStart={<SparkleIcon />} onClick={generate}>
-            Gerar resumo
-          </Button>
-        </EmptyState>
-      </div>
-    );
-
-  const stage = stages.find((item) => item.id === contact.stage);
-  const lastFromContact = conversation.messages.filter((message) => message.author === "contact").at(-1);
-  return (
-    <div className={styles.stack}>
-      <p className={styles.lead}>
-        <strong>Resumo</strong>
-        {name}
-        {contact.company ? `, da ${contact.company},` : ""} conversa com a equipe sobre {contact.tags.length > 0 ? contact.tags.join(", ").toLowerCase() : "um novo projeto"}. A conversa está em {stage?.label.toLowerCase() ?? "andamento"}
-        {lastFromContact?.text ? ` e a última mensagem foi: "${lastFromContact.text}"` : ""}.
-      </p>
-      <Group
-        title="Andamento"
-        rows={[
-          { label: "Etapa", value: stage?.label },
-          { label: "Situação", value: statusLabels[conversation.status] },
-          { label: "Mensagens trocadas", value: String(conversation.messages.filter((message) => message.kind !== "note").length) },
-        ]}
-      />
-      <section className={styles.group}>
-        <header>
-          <strong>Próximos passos</strong>
-        </header>
-        <ol className={styles.steps}>
-          {conversation.status === "resolvida" ? <li>Nada pendente: a conversa foi resolvida.</li> : <li>Responder {name} e confirmar o que falta para avançar.</li>}
-          {contact.stage === "proposta" && <li>Retomar a proposta enviada e combinar uma data de decisão.</li>}
-          {contact.stage === "novo" && <li>Entender o projeto e marcar uma chamada.</li>}
-        </ol>
-      </section>
-      <footer className={styles.summaryFoot}>
-        <small>Resumo de exemplo. A leitura pela IA entra junto com a integração do WhatsApp.</small>
-        <Button variant="ghost" size="sm" radius="md" iconStart={<ArrowClockwiseIcon />} onClick={generate}>
-          Gerar de novo
-        </Button>
-      </footer>
     </div>
   );
 }
 
 /**
- * A ficha do contato ao lado da conversa: quem é, as etiquetas, a etapa do funil com a barra das etapas e, em abas, a
- * ficha, a origem, os arquivos trocados e o resumo.
+ * A ficha do contato ao lado da conversa, no desenho compacto da ficha do lead da Le Ange: quem é, as etiquetas, a
+ * etapa do funil com a barra das etapas e, em abas, a ficha, o rastreio e os arquivos trocados. O resumo saiu
+ * (2026-10-26, a pedido).
  */
 export function ContactPanel({ conversation, team, stages, now, onClose, onContactChange }: ContactPanelProps) {
   const { toast } = useToast();
@@ -193,17 +121,18 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
     if (next.id !== contact.stage) onContactChange({ stage: next.id }, `Etapa: ${next.label}`);
   };
 
+  const removeTag = (tag: string) => onContactChange({ tags: contact.tags.filter((item) => item !== tag) });
+
   return (
-    <aside className={styles.panel} aria-label={`Ficha de ${contact.name}`}>
-      <header className={styles.head}>
-        <div className={styles.titleRow}>
-          <Avatar name={contact.name} seed={contact.id} size="md" />
-          <span className={styles.identity}>
-            <Text as="h2" variant="headline" weight="semibold" truncate>
+    <aside className={cx(styles.panel, profile.profile, profile.compact)} aria-label={`Ficha de ${contact.name}`}>
+      <header className={profile.head}>
+        <div className={profile.titleRow}>
+          <IconButton label="Fechar a ficha" variant="ghost" size="sm" className={profile.headButton} onClick={onClose}>
+            <CaretLeftIcon />
+          </IconButton>
+          <span className={profile.name}>
+            <Text as="h2" variant="title3" weight="semibold">
               {contact.name}
-            </Text>
-            <Text as="span" variant="footnote" tone="secondary" numeric>
-              {formatPhone(contact.phone)}
             </Text>
           </span>
           <DropdownMenu
@@ -223,22 +152,45 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
               },
             ]}
           />
-          <IconButton label="Fechar a ficha" variant="ghost" size="sm" onClick={onClose}>
-            <XIcon />
-          </IconButton>
         </div>
 
-        <TagPicker catalog={whatsappTagCatalog} label={`Etiquetas de ${contact.name}`} value={contact.tags} max={MAX_CONTACT_TAGS} onChange={(tags) => onContactChange({ tags })} />
+        {/* O telefone no lugar do código do lead, copiável, e as etiquetas com o X e o "+" de acrescentar. */}
+        <div className={profile.tagRow}>
+          <button type="button" className={profile.number} title="Copiar o telefone" onClick={() => void copy(formatPhone(contact.phone), "Telefone")}>
+            {formatPhone(contact.phone)}
+          </button>
+          {contact.tags.map((tag) => (
+            <span key={tag} className={profile.tag} style={{ "--tag": whatsappTagCatalog.hueOf(tag) } as CSSProperties}>
+              <span className={profile.tagIcon} aria-hidden="true">
+                <TagSimpleIcon weight="fill" />
+              </span>
+              {tag}
+              <button type="button" aria-label={`Tirar a etiqueta ${tag}`} onClick={() => removeTag(tag)}>
+                <XIcon />
+              </button>
+            </span>
+          ))}
+          <DropdownMenu
+            label={`Etiquetas de ${contact.name}`}
+            triggerLabel={contact.tags.length === 0 ? "Adicionar etiqueta" : `Escolher etiquetas, ${contact.tags.length} de ${MAX_CONTACT_TAGS}`}
+            sections={tagSections(whatsappTagCatalog, contact.tags, (tags) => onContactChange({ tags }), MAX_CONTACT_TAGS)}
+            triggerContent={
+              <span className={profile.addTag}>
+                <PlusIcon aria-hidden="true" />
+                {contact.tags.length === 0 ? "Adicionar etiqueta" : `${contact.tags.length}/${MAX_CONTACT_TAGS}`}
+              </span>
+            }
+          />
+        </div>
 
-        <div className={styles.funnel}>
-          <span className={styles.funnelName}>Funil de vendas</span>
+        <div className={profile.funnel}>
+          <span className={profile.funnelName}>Funil de vendas</span>
           <DropdownMenu
             label="Mover de etapa"
             triggerLabel={`Etapa: ${stage?.label ?? "sem etapa"}. Mover de etapa`}
             searchable={false}
             triggerContent={
-              <span className={styles.stage}>
-                {stage && <TagDot hue={stage.hue} />}
+              <span className={profile.stage}>
                 <strong>{stage?.label ?? "Sem etapa"}</strong>
                 <CaretDownIcon aria-hidden="true" />
               </span>
@@ -258,12 +210,14 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
               },
             ]}
           />
-          <div className={styles.progress} role="group" aria-label={`Etapa ${stageIndex + 1} de ${stages.length}. Mover para outra etapa`} onPointerLeave={() => setHoverStage(null)}>
+          {/* A linha das etapas também move: cada pedaço é a etapa, na cor dela; passar o mouse mostra o nome e
+              acende até ali, e o clique leva o contato para lá. */}
+          <div className={profile.progress} role="group" aria-label={`Etapa ${stageIndex + 1} de ${stages.length}. Mover para outra etapa`} onPointerLeave={() => setHoverStage(null)}>
             {stages.map((item, index) => (
               <button
                 key={item.id}
                 type="button"
-                className={styles.step}
+                className={profile.step}
                 data-on={index <= (hoverStage ?? stageIndex) || undefined}
                 data-current={index === stageIndex || undefined}
                 style={{ "--tone": item.hue } as CSSProperties}
@@ -276,14 +230,14 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
               />
             ))}
           </div>
-          <span className={styles.stepHint} aria-hidden="true" data-visible={(hoverStage !== null && hoverStage !== stageIndex) || undefined}>
+          <span className={profile.stepHint} aria-hidden="true" data-visible={(hoverStage !== null && hoverStage !== stageIndex) || undefined}>
             {hoverStage !== null && hoverStage !== stageIndex ? `Mover para ${stages[hoverStage]?.label}` : " "}
           </span>
         </div>
 
-        <div className={styles.tabs} aria-label="Seções da ficha" {...tabs.listProps}>
+        <div className={profile.sections} aria-label="Seções da ficha" {...tabs.listProps}>
           {TABS.map(({ value, label, icon: Glyph }) => (
-            <button key={value} type="button" id={`ficha-aba-${value}`} aria-controls={`ficha-painel-${value}`} className={styles.tab} {...tabs.tabProps(value)} onClick={() => setTab(value)}>
+            <button key={value} type="button" id={`ficha-aba-${value}`} aria-controls={`ficha-painel-${value}`} className={profile.section} {...tabs.tabProps(value)} onClick={() => setTab(value)}>
               <Glyph weight={tab === value ? "duotone" : "regular"} aria-hidden="true" />
               {label}
             </button>
@@ -291,9 +245,9 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
         </div>
       </header>
 
-      <div key={tab} className={styles.body} role="tabpanel" id={`ficha-painel-${tab}`} aria-labelledby={`ficha-aba-${tab}`}>
+      <div key={tab} className={profile.body} role="tabpanel" id={`ficha-painel-${tab}`} aria-labelledby={`ficha-aba-${tab}`}>
         {tab === "ficha" && (
-          <dl className={styles.facts}>
+          <dl className={profile.fields}>
             <Fact label="Responsável">
               {assignee && (
                 <span className={styles.person}>
@@ -303,15 +257,15 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
               )}
             </Fact>
             <Fact label="Situação">{statusLabels[conversation.status]}</Fact>
-            <Fact label="Janela de 24 horas">{open && conversation.windowExpiresAt ? `Aberta até ${formatTime(conversation.windowExpiresAt)}` : "Fechada"}</Fact>
+            <Fact label="Janela 24h">{open && conversation.windowExpiresAt ? `Aberta até ${formatTime(conversation.windowExpiresAt)}` : "Fechada"}</Fact>
             <Fact label="Telefone">
-              <a className={styles.link} href={`tel:+${contact.phone}`}>
+              <a className={profile.link} href={`tel:+${contact.phone}`}>
                 {formatPhone(contact.phone)}
               </a>
             </Fact>
             <Fact label="E-mail">
               {contact.email && (
-                <a className={styles.link} href={`mailto:${contact.email}`}>
+                <a className={profile.link} href={`mailto:${contact.email}`}>
                   {contact.email}
                 </a>
               )}
@@ -324,11 +278,17 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
         )}
 
         {tab === "origem" && (
-          <div className={styles.stack}>
-            <p className={styles.lead}>
+          <div className={profile.stats}>
+            <div className={profile.tracked}>
               <strong>Origem</strong>
-              {sourceLabels[contact.source]}, {formatFull(contact.createdAt).split(" às")[0]}
-            </p>
+              <span>{sourceLabels[contact.source]}</span>
+              <dl className={profile.counts}>
+                <div>
+                  <dt>Entrou em</dt>
+                  <dd>{formatFull(contact.createdAt).split(" às")[0]}</dd>
+                </div>
+              </dl>
+            </div>
             <Group
               title="Campanha"
               rows={[
@@ -378,7 +338,6 @@ export function ContactPanel({ conversation, team, stages, now, onClose, onConta
             </ul>
           ))}
 
-        {tab === "resumo" && <SummaryTab conversation={conversation} stages={stages} />}
       </div>
     </aside>
   );

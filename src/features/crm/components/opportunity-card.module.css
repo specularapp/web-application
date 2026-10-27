@@ -21,13 +21,15 @@
 }
 
 /* O mesmo raio da caixa de fora, e não o concêntrico, pelo mesmo motivo do `Card`: com raio menor a curva de
-   dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. */
+   dentro chega perto demais da de fora na quina e o antialias apaga o fio ali. Respiro menor que o do cartão
+   de tarefa (2026-10-26, a pedido de um cartão mais compacto): são três linhas, e o vão de 12px em volta fazia
+   o cartão parecer maior do que o que ele diz. */
 .inner {
   display: grid;
   gap: var(--space-2);
   align-content: start;
   min-width: 0;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   cursor: pointer;
   background-color: var(--color-bg);
   border-radius: var(--card-corner);
@@ -49,120 +51,49 @@
   background-color: var(--color-fill-quaternary);
 }
 
-/* A temperatura e o aviso de parada de um lado, o leque na outra ponta. */
+/* O rosto do cliente, o nome da venda com para quem é embaixo, e o leque na ponta, alinhado ao topo. */
 .head {
   display: flex;
-  gap: var(--space-1);
-  align-items: center;
-  min-width: 0;
-}
-
-.menu {
-  margin-inline-start: auto;
-}
-
-/* O nome da venda em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. */
-.title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-/* Para quem é a venda, no bloco de cliente da casa: o rosto e, ao lado, duas linhas empilhadas que cedem
-   por reticências. Sem separador de ponto e sem linha corrida, que é o que apertava a leitura num cartão de
-   19rem. */
-.client {
-  display: flex;
   gap: var(--space-2);
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
 }
 
 .who {
   display: grid;
   flex: 1;
+  gap: var(--space-half);
   min-width: 0;
 }
 
-/* A descrição em duas linhas: o suficiente para saber do que se trata sem abrir. */
-.description {
+.menu {
+  flex-shrink: 0;
+  margin-block-start: calc(var(--space-1) * -1);
+}
+
+/* O nome da venda em até duas linhas: numa coluna estreita um nome longo tomaria o cartão inteiro. */
+.title {
   display: -webkit-box;
   overflow: hidden;
+  line-height: var(--leading-tight);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-/* As etiquetas numa linha só, sem quebrar: as duas primeiras cedem por reticências e o resto vira "+N". Duas
-   classes para vencer o `flex-shrink: 0` que o `Badge` declara. */
-.tags {
-  display: flex;
-  gap: var(--space-1);
-  align-items: center;
-  min-width: 0;
-}
-
-.tags .tag {
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-/* O dinheiro e a chance: o valor à esquerda, forte, e a barra com a porcentagem tomando o resto da linha.
-   O valor é o número que se procura no cartão, então ele não encolhe nunca. */
-.deal {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
-}
-
-/* Sem algarismo tabular (a pedido, 2026-09-15): ele existe para coluna de tabela, em que os dígitos caem um
-   embaixo do outro; solto num cartão, só deixa o número com espaçamento estranho. */
-.value {
-  flex-shrink: 0;
-}
-
-.chance {
-  display: inline-flex;
-  flex: 1;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
-}
-
-.probability {
-  flex: 1;
-  min-width: 0;
-}
-
-.percent {
-  flex-shrink: 0;
-}
-
-/* O pé, com mais ar em cima: ele é a outra metade do cartão. Quem cede espaço são os rostos; a previsão e as
-   contagens não encolhem. */
+/* O pé: quanto vale de um lado, os sinais do outro. */
 .foot {
   display: flex;
   gap: var(--space-2);
   align-items: center;
   justify-content: space-between;
   min-width: 0;
-  margin-block-start: var(--space-1);
+  padding-inline-end: var(--space-1);
 }
 
-.people {
-  display: inline-flex;
-  gap: var(--space-1);
-  align-items: center;
+/* Sem algarismo tabular (a pedido, 2026-09-15): ele existe para coluna de tabela, em que os dígitos caem um
+   embaixo do outro; solto num cartão, só deixa o número com espaçamento estranho. */
+.value {
   min-width: 0;
-}
-
-.faces {
-  flex-shrink: 0;
-}
-
-.more {
-  flex-shrink: 0;
 }
 
 .meta {
@@ -172,19 +103,15 @@
   align-items: center;
 }
 
-/* Uma contagem do pé: o glifo apagado e o número na tinta secundária. */
-.count {
+/* Um sinal do pé: só o glifo, na cor do que ele diz, com o nome na dica e na leitura por voz. */
+.signal {
   display: inline-flex;
-  gap: var(--space-half);
-  align-items: center;
-  color: var(--color-label-secondary);
+  color: var(--signal);
 }
 
-.count svg {
-  flex-shrink: 0;
+.signal svg {
   width: 0.875rem;
   height: 0.875rem;
-  color: var(--color-label-tertiary);
 }
 
 /* O arraste do quadro: o cartão inteiro é a alça, então ele mostra a mão aberta ao apontar e a mão fechada

@@ -1,24 +1,22 @@
 /* A imagem do react-pdf entra como `Picture`: com o nome `Image` a regra de acessibilidade a confunde com a
    imagem do Next e pede texto alternativo, que não existe no desenho de PDF. */
-import { Document, Defs, Image as Picture, Page, Path, RadialGradient, Rect, Stop, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Document, Image as Picture, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { ComponentProps, ReactNode } from "react";
-import { avatarHue } from "@/components/ui/avatar";
 import type { BadgeTone } from "@/components/ui/badge";
-import { catalogHueFor } from "@/features/catalog/list-options";
 import type { CatalogUnit } from "@/features/catalog/summary";
 import { cornerRadius } from "@/lib/corners";
 import { applyPattern } from "@/lib/masks";
 import { siteConfig } from "@/lib/metadata";
-import { auraCorners, sysHues, withAlpha, type SysHue } from "@/lib/palette";
+import { sysHues, withAlpha } from "@/lib/palette";
 import { formatMoney } from "@/lib/utils/format";
-import { paymentBrandLogos, paymentMethods } from "./labels";
+import { paymentBrandLogos, paymentMethods, placeOf, siteOf } from "./labels";
 import { pdfBrands, pdfIcons } from "./pdf-glyphs";
 import { LOGO_RING, SIGNATURE_SEAL, type QuotePdfImages } from "./pdf-images";
 import { signatureStamp } from "./signature";
-import { badgeTone, brandOpacity, CONTENT_WIDTH, glyphInk, glyphOpacity, hairline, ink, leading, oneLine, PAGE_HEIGHT, PAGE_WIDTH, pt, space, text, tracking, type, weight } from "./pdf-theme";
-import type { Quote, QuoteLine } from "./summary";
+import { badgeTone, brandOpacity, CONTENT_WIDTH, glyphInk, glyphOpacity, hairline, ink, leading, oneLine, pt, space, text, tracking, type, weight } from "./pdf-theme";
+import type { Quote } from "./summary";
 import { isCourtesy, lineTotal, quoteTotals } from "./totals";
 
 /**
@@ -117,8 +115,8 @@ const styles = StyleSheet.create({
   last: { paddingRight: 0 },
   end: { textAlign: "right" },
   line: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
-  lineArt: { width: pt(32), height: pt(32), alignItems: "center", justifyContent: "center", borderRadius: pt(cornerRadius.sm) },
-  lineArtImage: { width: pt(32), height: pt(32) },
+  lineArt: { width: pt(32), height: pt(32), alignItems: "center", justifyContent: "center", borderRadius: pt(16), overflow: "hidden" },
+  lineArtImage: { width: pt(32), height: pt(32), borderRadius: pt(16) },
   lineCopy: { width: LINE_COPY },
   lineName: { flexDirection: "row", alignItems: "center", gap: space.s2, minWidth: 0 },
   lineTitle: { flexShrink: 1, minWidth: 0, ...text(type.footnote), fontWeight: weight.medium, ...oneLine },
@@ -229,65 +227,13 @@ function WithGlyph({ glyph, size = type.footnote, style, children }: { glyph: re
   );
 }
 
-/**
- * A aura: as quatro bolas de cor sangrando pelas quinas, na mesma receita do CSS. O quadro da aura passa 32
- * pontos de cada lado da folha, como o `inset` negativo do CSS, e o que sobra é cortado pela página, então
- * o centro de cada gradiente fica fora do papel e a cor entra pela quina em vez de virar mancha redonda.
- *
- * O gradiente do CSS é uma elipse de 60% por 40% do quadro; em SVG o gradiente é sempre circular, e a
- * `gradientTransform` achata o círculo até a elipse. A opacidade da camada (0,22) já vem multiplicada em
- * cada parada, porque aqui não há camada para receber opacidade.
- */
-function Aura({ hue }: { hue: SysHue }) {
-  const pad = space.s8;
-  const width = PAGE_WIDTH + pad * 2;
-  const height = PAGE_HEIGHT + pad * 2;
-  const corners = auraCorners[hue];
-  const spots = [
-    { color: corners[0], cx: -pad, cy: -pad, rx: width * 0.6, ry: height * 0.4, alpha: 0.62 },
-    { color: corners[1], cx: PAGE_WIDTH + pad, cy: -pad, rx: width * 0.52, ry: height * 0.34, alpha: 0.5 },
-    { color: corners[2], cx: -pad, cy: PAGE_HEIGHT + pad, rx: width * 0.52, ry: height * 0.34, alpha: 0.4 },
-    { color: corners[3], cx: PAGE_WIDTH + pad, cy: PAGE_HEIGHT + pad, rx: width * 0.6, ry: height * 0.4, alpha: 0.48 },
-  ];
-
-  return (
-    <View fixed style={{ position: "absolute", top: 0, left: 0 }}>
-      <Svg width={PAGE_WIDTH} height={PAGE_HEIGHT} viewBox={`0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}`}>
-        <Defs>
-          {spots.map((spot, index) => (
-            <RadialGradient
-              key={index}
-              id={`aura-${index}`}
-              gradientUnits="userSpaceOnUse"
-              cx={spot.cx}
-              cy={spot.cy}
-              r={spot.rx}
-              gradientTransform={`translate(0 ${spot.cy}) scale(1 ${spot.ry / spot.rx}) translate(0 ${-spot.cy})`}
-            >
-              <Stop offset="0" stopColor={spot.color} stopOpacity={spot.alpha * 0.22} />
-              <Stop offset="0.64" stopColor={spot.color} stopOpacity={0} />
-            </RadialGradient>
-          ))}
-        </Defs>
-        {spots.map((spot, index) => (
-          <Rect key={index} x={0} y={0} width={PAGE_WIDTH} height={PAGE_HEIGHT} fill={`url(#aura-${index})`} />
-        ))}
-      </Svg>
-    </View>
-  );
-}
-
-/** O azulejo da linha do item: a arte solta sobre o véu do matiz do item, como no catálogo. */
-function LineArt({ line, image }: { line: QuoteLine; image: QuotePdfImages["lines"][string] }) {
-  const hue = catalogHueFor(line.name) as SysHue;
-  return (
-    <View style={[styles.lineArt, { backgroundColor: withAlpha(sysHues[hue], 0.12) }]}>{image && <Picture src={image} style={styles.lineArtImage} />}</View>
-  );
+/** A bolinha da linha do item: a arte em cinza sobre o véu cinza, como a folha da tela (2026-10-26). */
+function LineArt({ image }: { image: QuotePdfImages["lines"][string] }) {
+  return <View style={[styles.lineArt, { backgroundColor: withAlpha(sysHues.gray, 0.12) }]}>{image && <Picture src={image} style={styles.lineArtImage} />}</View>;
 }
 
 export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
   const totals = quoteTotals(quote);
-  const hue = avatarHue(quote.issuer.name) as SysHue;
   const methods = quote.paymentMethods.length > 0 ? quote.paymentMethods : (["pix"] as const);
   const verifyUrl = `${siteConfig.url.replace(/^https?:\/\//i, "")}/orcamento`;
   const cashLine = quote.cashDiscount > 0 ? `À vista com ${quote.cashDiscount}% de desconto, por ${formatMoney(totals.cash)}` : null;
@@ -297,8 +243,6 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
   return (
     <Document title={`Orçamento ${quote.number}`} author={quote.issuer.name} subject={quote.title} creator="Specular" producer="Specular">
       <Page size="A4" style={styles.page}>
-        <Aura hue={hue} />
-
         <View style={styles.sheet}>
           <View style={styles.masthead}>
             <View style={styles.brand}>
@@ -356,7 +300,7 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
               <View style={styles.details}>
                 {quote.client.email && <WithGlyph glyph={pdfIcons.envelope}>{quote.client.email}</WithGlyph>}
                 {quote.client.phone && <WithGlyph glyph={pdfIcons.phone}>{applyPattern("phone", quote.client.phone)}</WithGlyph>}
-                {quote.client.city && <WithGlyph glyph={pdfIcons.pin}>{quote.client.city}</WithGlyph>}
+                {(quote.client.city || quote.client.state) && <WithGlyph glyph={pdfIcons.pin}>{placeOf(quote.client)}</WithGlyph>}
               </View>
             </View>
             <View style={styles.party}>
@@ -368,16 +312,15 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
                     {quote.owner.name}
                   </Text>
                   <Text style={styles.personMeta}>
-                    {quote.issuer.name}
+                    {quote.owner.role ? `${quote.owner.role}, ${quote.issuer.name}` : quote.issuer.name}
                   </Text>
                 </View>
               </View>
               <View style={styles.details}>
-                {quote.issuer.email && <WithGlyph glyph={pdfIcons.envelope}>{quote.issuer.email}</WithGlyph>}
+                {(quote.owner.email || quote.issuer.email) && <WithGlyph glyph={pdfIcons.envelope}>{quote.owner.email || quote.issuer.email}</WithGlyph>}
                 {quote.issuer.phone && <WithGlyph glyph={pdfIcons.phone}>{applyPattern("phone", quote.issuer.phone)}</WithGlyph>}
-                {(quote.issuer.city || quote.issuer.state) && (
-                  <WithGlyph glyph={pdfIcons.pin}>{[quote.issuer.city, quote.issuer.state].filter(Boolean).join(" — ")}</WithGlyph>
-                )}
+                {quote.issuer.website && <WithGlyph glyph={pdfIcons.globe}>{siteOf(quote.issuer.website)}</WithGlyph>}
+                {(quote.issuer.city || quote.issuer.state) && <WithGlyph glyph={pdfIcons.pin}>{placeOf(quote.issuer)}</WithGlyph>}
               </View>
             </View>
           </View>
@@ -395,13 +338,13 @@ export function QuotePdfDocument({ quote, images }: QuotePdfDocumentProps) {
                 <View key={line.id} style={styles.row} wrap={false}>
                   <View style={[styles.cell, styles.first]}>
                     <View style={styles.line}>
-                      <LineArt line={line} image={images.lines[line.id]} />
+                      <LineArt image={images.lines[line.id]} />
                       <View style={styles.lineCopy}>
                         <View style={styles.lineName}>
                           <Text style={styles.lineTitle}>
                             {line.name}
                           </Text>
-                          {isCourtesy(line) && <Badge tone={line.courtesy === "today" ? "danger" : "success"}>{line.courtesy === "today" ? "Cortesia hoje" : "Cortesia"}</Badge>}
+                          {isCourtesy(line) && <Badge tone="neutral">{line.courtesy === "today" ? "Cortesia hoje" : "Cortesia"}</Badge>}
                         </View>
                         {line.description && (
                           <Text style={styles.lineDescription}>

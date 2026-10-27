@@ -242,7 +242,7 @@ export type ContractLookups = {
 export async function getContractLookups(client: ContractsClient, organizationId: string): Promise<ContractLookups> {
   const [clients, projects, quotes] = await Promise.all([
     client.from("clients").select("id, name, company, email, avatar_url").eq("organization_id", organizationId).eq("active", true).order("name"),
-    client.from("projects").select("id, name, client_id, url").eq("organization_id", organizationId).order("started_at", { ascending: false }),
+    client.from("projects").select("id, name, client_id, url").eq("organization_id", organizationId).eq("board_only", false).order("started_at", { ascending: false }),
     client
       .from("quotes")
       .select("id, reference, title, client_id, discount_kind, discount_value, quote_lines(quantity, unit_price, courtesy)")

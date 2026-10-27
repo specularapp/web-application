@@ -51,7 +51,10 @@ const styles = StyleSheet.create({
   listItem: { flexDirection: "row", marginBottom: space.s1 },
   marker: { width: space.s5, fontSize: BODY, lineHeight: LEADING },
   listBody: { flex: 1 },
-  quote: { paddingLeft: space.s4, marginVertical: space.s3, borderLeftWidth: pt(3), color: ink.secondary },
+  /* O bloco destacado, o mesmo da tela: o quadro resumo dos modelos e a citação, num painel cinza leve com o fio
+     do acento à esquerda. */
+  quote: { paddingVertical: space.s3, paddingHorizontal: space.s4, marginVertical: space.s3, borderLeftWidth: pt(3), backgroundColor: ink.card, borderTopRightRadius: pt(8), borderBottomRightRadius: pt(8) },
+  quoteLine: { fontSize: BODY, lineHeight: LEADING, marginBottom: space.s1 },
   rule: { height: pt(0.6), backgroundColor: ink.border, marginVertical: space.s6 },
   signatures: { flexDirection: "row", gap: space.s8, marginTop: space.s8, paddingTop: space.s4 },
   signer: { flex: 1 },
@@ -124,8 +127,16 @@ function block(node: DocNode, accent: string, key: number, ordered = false, posi
       );
     case "blockquote":
       return (
-        <View key={key} style={[styles.quote, { borderLeftColor: accent }]}>
-          {node.content?.map((child, index) => block(child, accent, index))}
+        <View key={key} style={[styles.quote, { borderLeftColor: accent }]} wrap={false}>
+          {node.content?.map((child, index) =>
+            child.type === "paragraph" ? (
+              <Text key={index} style={[styles.quoteLine, alignOf(child) ?? {}]}>
+                {child.content?.length ? inlines(child, accent) : " "}
+              </Text>
+            ) : (
+              block(child, accent, index)
+            ),
+          )}
         </View>
       );
     case "horizontalRule":

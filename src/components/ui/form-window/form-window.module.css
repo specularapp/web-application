@@ -1,0 +1,507 @@
+/*
+ * A janela dupla de criar e editar (2026-10-26, nascida na ficha do item do catálogo, na receita da ficha do
+ * prato da Le Ange, e levada para cá quando a de clientes e fornecedores pediu o mesmo desenho): dois cartões
+ * soltos na janela grande. À esquerda o formulário, com o cabeçalho escuro da ficha da oportunidade, as abas
+ * de pasta e as seções numeradas em painel; à direita a prévia, um container só em blocos. Os fios seguem o
+ * menu, 0,6px em `--color-border`.
+ */
+
+.window.window:not([data-mode="sheet"]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: var(--space-3);
+  width: min(72rem, calc(100vw - var(--space-12)));
+  max-width: none;
+  height: min(52rem, calc(100dvh - var(--space-12)));
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.window.window:not([data-mode="sheet"]) > * {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Abaixo de 64rem a prévia sai e fica só o formulário, na largura de uma janela média. */
+@media (max-width: 63.9375rem) {
+  .window.window:not([data-mode="sheet"]) {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(40rem, calc(100vw - var(--space-8)));
+  }
+
+  .preview {
+    display: none;
+  }
+}
+
+/* Na bandeja do celular, só o formulário, na altura da bandeja. */
+.window.window[data-mode="sheet"] {
+  height: 85dvh;
+}
+
+.window.window[data-mode="sheet"] .preview {
+  display: none;
+}
+
+/* ---------- O formulário ---------- */
+
+.formCard {
+  --panel-line: 0.0375rem solid color-mix(in oklab, var(--color-border) 60%, transparent);
+
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+/* O cabeçalho da janela: no escuro o cinza-escuro da ficha da oportunidade ("senão fica preto no preto"), e
+   no claro um cinza levíssimo com tinta escura (2026-10-26, a pedido: no claro a faixa escura pesava). As
+   cores da casa são redefinidas aqui dentro pela tinta do cabeçalho, então o título, os botões fantasma e as
+   abas leem certo nos dois. Os menus abrem em portal, fora daqui, e seguem com as cores normais. */
+.head {
+  --head-ink: var(--form-head-ink);
+  --color-label: var(--head-ink);
+  --color-label-secondary: color-mix(in oklab, var(--head-ink) 62%, transparent);
+  --color-label-tertiary: color-mix(in oklab, var(--head-ink) 45%, transparent);
+  --color-border: color-mix(in oklab, var(--head-ink) 18%, transparent);
+  --color-fill-quaternary: color-mix(in oklab, var(--head-ink) 8%, transparent);
+  --color-fill-tertiary: color-mix(in oklab, var(--head-ink) 12%, transparent);
+  --color-fill-secondary: color-mix(in oklab, var(--head-ink) 16%, transparent);
+  --color-focus: color-mix(in oklab, var(--head-ink) 85%, transparent);
+
+  color: var(--head-ink);
+  background-color: var(--form-head-bg);
+}
+
+.cardHead {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+/* As abas de pasta da ficha da oportunidade: no cabeçalho escuro, e a escolhida no fundo do corpo, com a
+   curvinha nas duas pontas, como uma pasta de arquivo. Cada aba acende na cor dela. */
+.tabs {
+  --tab-radius: 0.625rem;
+
+  padding-block-start: var(--space-1);
+}
+
+.tabList {
+  display: flex;
+  gap: 0.125rem;
+  align-items: flex-end;
+  padding-inline: calc(var(--space-5) - var(--tab-radius));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--tab-radius) var(--tab-radius) 0 0;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.tab svg {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.tab:nth-child(1) {
+  --tab-on: var(--profile-tab-main);
+}
+
+.tab:nth-child(2) {
+  --tab-on: var(--profile-tab-tracking);
+}
+
+/* As curvinhas das pontas da aba escolhida, que fazem a passagem para o fundo da ficha. */
+.tab::before,
+.tab::after {
+  position: absolute;
+  bottom: 0;
+  width: var(--tab-radius);
+  height: var(--tab-radius);
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tab::before {
+  left: calc(var(--tab-radius) * -1);
+  background: radial-gradient(circle at 0 0, transparent calc(var(--tab-radius) - 0.5px), var(--color-bg) var(--tab-radius));
+}
+
+.tab::after {
+  right: calc(var(--tab-radius) * -1);
+  background: radial-gradient(circle at 100% 0, transparent calc(var(--tab-radius) - 0.5px), var(--color-bg) var(--tab-radius));
+}
+
+@media (hover: hover) {
+  .tab:not([aria-selected="true"]):hover {
+    color: var(--head-ink);
+    background-color: color-mix(in oklab, var(--head-ink) 8%, transparent);
+  }
+}
+
+.tab[aria-selected="true"] {
+  z-index: 1;
+  font-weight: var(--weight-semibold);
+  color: var(--tab-on);
+  background-color: var(--color-bg);
+}
+
+.tab[aria-selected="true"]::before,
+.tab[aria-selected="true"]::after {
+  opacity: 1;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--tab-on);
+  outline-offset: -2px;
+}
+
+/* O corpo que rola, com os painéis das seções numeradas. */
+.body {
+  container-type: inline-size;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* No celular o corpo leva a folga da barra flutuante embaixo, para o último campo fechar acima dela. */
+@media (max-width: 47.9375rem) {
+  .body {
+    padding: var(--space-3) var(--space-4) var(--floating-bar-inset);
+  }
+}
+
+/* A seção numerada dos editores da Le Ange, num painel de fundo leve que destaca o grupo (2026-10-26, a
+   pedido): à esquerda o número em texto com o nome e a dica curta; à direita os campos. Os painéis empilham
+   com o vão do corpo entre eles, sem fio. Na coluna estreita o texto sobe para cima dos campos. */
+.part {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  /* No claro o painel é branco com o fio da casa, sem cinza por baixo dos campos (2026-10-26, a pedido: "no
+     tema claro ficou tudo ruim por causa do cinza"); no escuro o véu de 7%, senão sumia no fundo preto. */
+  background-color: light-dark(var(--color-bg-grouped-secondary), color-mix(in oklab, var(--color-label) 7%, var(--color-bg)));
+  border: 0.0375rem solid light-dark(var(--color-border), color-mix(in oklab, var(--color-border) 70%, transparent));
+  border-radius: var(--radius-lg);
+}
+
+@container (max-width: 34rem) {
+  .part {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+}
+
+.partAside {
+  display: grid;
+  align-content: start;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+/* O número é texto puro, na tinta apagada, antes do nome: "1. Imagem". */
+.partNumber {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-tertiary);
+}
+
+.partFields {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Dois campos lado a lado; na coluna estreita empilham, porque nome e categoria são compridos. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+/* Os três números do estoque cabem lado a lado até no celular: são contagens curtas. */
+.triple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+@container (max-width: 26rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A imagem do registro em 52px, com enviar ou trocar ao lado. */
+.media {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.mediaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* O campo de arquivo fica fora da vista, mas não fora da árvore: o botão ao lado é quem o abre. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.alert {
+  padding-block-start: var(--space-3);
+}
+
+.cardFoot {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border-block-start: var(--panel-line);
+}
+
+/* No celular o rodapé some: salvar e sair estão na barra flutuante. Declarado depois do rodapé, senão ele
+   voltava por cima da regra. */
+@media (max-width: 47.9375rem) {
+  .cardFoot {
+    display: none;
+  }
+}
+
+/* ---------- A prévia ---------- */
+
+/* A prévia é o próprio cartão da direita, um container só (2026-10-26, a pedido): a capa encostada em cima e
+   os blocos embaixo, separados por fio e no mesmo recuo, rolando juntos. A superfície é a elevada da casa,
+   para não ser preto no preto ao lado do formulário. */
+.preview {
+  --sheet-bg: var(--color-bg-grouped-secondary);
+
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.window.window:not([data-mode="sheet"]) > .preview {
+  overflow-y: auto;
+  background-color: var(--sheet-bg);
+}
+
+/* A capa: a foto cobrindo, ou a arte grande no véu do matiz do item. */
+.cover {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
+  background-color: light-dark(
+    color-mix(in oklab, var(--cover-hue) 12%, var(--sheet-bg)),
+    color-mix(in oklab, var(--cover-hue) 18%, var(--sheet-bg))
+  );
+}
+
+.coverPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Um bloco da ficha: o mesmo recuo em todos, e o fio em cima de cada um menos do primeiro. */
+.block {
+  display: grid;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.cover + .block {
+  gap: var(--space-3);
+  border-block-start: 0;
+}
+
+.sheetBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.sheetNaming {
+  display: grid;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.sheetName {
+  overflow-wrap: anywhere;
+}
+
+.sheetDescription {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* O preço com a cobrança embaixo de um lado e a margem do outro. */
+.amountRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.amount {
+  display: grid;
+  min-width: 0;
+}
+
+.sheetEyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* As linhas de rótulo e valor dos números e das condições: o rótulo à esquerda, o valor à direita, uma linha
+   cada, sem fio entre elas, porque o bloco já separa. */
+.rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-footnote);
+}
+
+.rows > div {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rows dt {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-label-secondary);
+}
+
+.rows dt svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.rows dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-weight: var(--weight-semibold);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheetList {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-footnote);
+  list-style: none;
+}
+
+.sheetList li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.sheetList svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-block-start: 0.2em;
+  color: var(--color-success);
+}
+
+.sheetMore {
+  padding-inline-start: calc(0.875rem + var(--space-2));
+  color: var(--color-label-tertiary);
+}
+
+/* Uma linha como ela aparece em outra tela (a do item no orçamento, a do contato na escolha do cliente): a
+   bolinha, o nome com o detalhe embaixo e o valor na ponta. */
+.previewLine {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.previewLineName {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}

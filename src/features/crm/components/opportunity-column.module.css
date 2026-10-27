@@ -1,5 +1,5 @@
-/* A coluna não tem caixa, como a do quadro de tarefas: ela é o cabeçalho e a pilha, soltos na página, e quem
-   separa uma etapa da outra é o vão do trilho. Largura fixa, porque quem rola é o trilho. */
+/* A coluna é o cabeçalho e a pilha sobre o véu da etapa, como a do quadro de tarefas. Largura fixa, porque
+   quem rola é o trilho. */
 .column {
   --column-width: 19rem;
 
@@ -11,6 +11,18 @@
   width: var(--column-width);
   min-width: var(--column-width);
   min-height: 0;
+  /* O fundo da etapa, o mesmo do quadro de tarefas (2026-10-26, a pedido): um véu do matiz dela, quase
+     invisível, e a coluna medindo o que tem, e não a altura do quadro. Passando da tela, a pilha rola por
+     dentro. No escuro o véu sobe, porque 4% sobre o fundo quase preto some. */
+  align-self: flex-start;
+  max-height: 100%;
+  padding: var(--space-2);
+  background-color: light-dark(
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 4%, transparent),
+    color-mix(in oklab, var(--stage-hue, var(--sys-gray)) 11%, transparent)
+  );
+  border-radius: var(--radius-xl);
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
 /* No celular a coluna para no centro da tela, com a mesma espiada da vizinha dos dois lados: a medida vem do
@@ -20,6 +32,12 @@
     --column-width: var(--mobile-column, min(80vw, 19rem));
 
     scroll-snap-align: center;
+  }
+
+  /* A coluna passa um pouco por baixo da barra flutuante, então o fim da pilha ganha essa mesma sobra por
+     dentro: o último cartão e o "Adicionar" rolam até acima da barra. */
+  .body {
+    padding-block-end: var(--space-6);
   }
 }
 
@@ -194,19 +212,61 @@
   list-style: none;
 }
 
-/* Etapa sem oportunidade continua no quadro, com a frase no lugar da pilha: coluna é lugar, e não conteúdo. */
-.empty {
-  display: grid;
-  place-content: center;
-  min-height: 5rem;
-  padding: var(--space-4);
-  text-align: center;
+/* O "Adicionar oportunidade" no pé da etapa, na tinta dela, como o "Adicionar tarefa" do quadro de tarefas:
+   na etapa vazia ele é o que ocupa o lugar da pilha, e na cheia fica logo depois do último cartão. */
+.add {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-height-sm);
+  padding-inline: var(--space-2);
+  margin-block-start: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: color-mix(in oklab, var(--stage-hue) 72%, var(--color-label));
+  cursor: pointer;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* "Oportunidade" é longa para a coluna estreita do celular: o rótulo fica numa linha e cede por reticências. */
+.addLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list:empty + .add {
+  margin-block-start: 0;
+}
+
+.add svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (hover: hover) {
+  .add:hover {
+    background-color: color-mix(in oklab, var(--stage-hue) 10%, transparent);
+    transition-duration: var(--duration-base);
+  }
+
+  .add:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* A etapa que vai receber o cartão: um véu do matiz dela por baixo da pilha, para a coluna inteira responder
    ao gesto, e não só o lugar onde ele cai. */
 .column[data-landing] {
-  background-color: color-mix(in oklab, var(--stage-hue) 6%, transparent);
+  background-color: color-mix(in oklab, var(--stage-hue) 9%, transparent);
   border-radius: var(--radius-xl);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--stage-hue) 24%, transparent);
 }

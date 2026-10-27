@@ -1,13 +1,10 @@
 "use client";
 
-import styled from "@emotion/styled";
-import { CaretDoubleLeftIcon, CaretDoubleRightIcon, CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
-import { MOBILE_QUERY } from "@/hooks/use-media-query";
 import { IconButton } from "../icon-button";
-import { Listbox, type ListboxOption } from "../listbox";
-import { Separator } from "../separator";
-import { VisuallyHidden } from "../visually-hidden";
+import { Select } from "../select";
+import styles from "./pagination.module.css";
 
 export type PaginationProps = {
   page: number;
@@ -15,6 +12,7 @@ export type PaginationProps = {
   total: number;
   pageSizeOptions?: number[];
   onPageChange: (page: number) => void;
+  /** Com isto aparece o "Por página" com o seletor de quantas linhas. */
   onPageSizeChange?: (pageSize: number) => void;
   label?: string;
   className?: string;
@@ -23,120 +21,78 @@ export type PaginationProps = {
 
 export const defaultPageSizeOptions = [10, 20, 30, 50, 100];
 
-const numberFormat = new Intl.NumberFormat("pt-BR");
+/** As páginas que cabem na fila: a primeira, a última e as vizinhas da atual, com reticências onde pulou. */
+function pagesToShow(page: number, count: number): (number | "gap-start" | "gap-end")[] {
+  if (count <= 7) return Array.from({ length: count }, (_, index) => index + 1);
+  const near = new Set([1, count, page - 1, page, page + 1]);
+  if (page <= 3) [2, 3, 4].forEach((value) => near.add(value));
+  if (page >= count - 2) [count - 3, count - 2, count - 1].forEach((value) => near.add(value));
+  const sorted = [...near].filter((value) => value >= 1 && value <= count).toSorted((a, b) => a - b);
+  const result: (number | "gap-start" | "gap-end")[] = [];
+  sorted.forEach((value, index) => {
+    const before = sorted[index - 1];
+    if (before !== undefined && value - before > 1) result.push(before < page ? "gap-start" : "gap-end");
+    result.push(value);
+  });
+  return result;
+}
 
-/* Uma caixa só, com o fio da casa, e as peças separadas por fios dentro dela: primeira, anterior, a
-   página em vigor, próxima e última. O menu de quantidade, quando existe, se veste como o resto da caixa:
-   sem fundo nem fio próprios, na altura do controle pequeno. */
-const Bar = styled.nav`
-  --listbox-trigger-height: var(--control-height-sm);
-  --listbox-trigger-radius: var(--radius-sm);
-  --listbox-trigger-background: transparent;
-  --listbox-trigger-background-hover: var(--color-fill-quaternary);
-  --listbox-trigger-font-size: var(--text-footnote);
-  --listbox-trigger-weight: var(--weight-medium);
-  --listbox-trigger-padding: var(--space-3);
-
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  max-width: 100%;
-  height: calc(var(--control-height-sm) + 2 * var(--space-half));
-  padding: var(--space-half);
-  background-color: var(--color-bg);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-md);
-
-  & > * {
-    flex-shrink: 0;
-  }
-
-  /* Os fios de dentro ficam mais baixos que a caixa e no fio fino da casa, para dividir sem desenhar
-     cela: o Separator puro traz o separador cheio, quase três vezes mais opaco, que aqui vira grade. */
-  & > [data-divider] {
-    align-self: center;
-    height: calc(var(--control-height-sm) - var(--space-3));
-    min-height: 0;
-    margin-inline: var(--space-half);
-    background-color: var(--color-border);
-  }
-
-  @media ${MOBILE_QUERY} {
-    & > [data-desktop] {
-      display: none;
-    }
-  }
-`;
-
-/* A página em vigor e o total, "1/12", em algarismo tabular e com largura mínima para a caixa não pulsar
-   ao trocar de página. Só texto: a lista para pular de página durou uma rodada e saiu a pedido. */
-const Indicator = styled.p`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.5rem;
-  height: var(--control-height-sm);
-  margin: 0;
-  padding-inline: var(--space-3);
-  font-size: var(--text-footnote);
-  font-weight: var(--weight-medium);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: var(--tracking-tight);
-  white-space: nowrap;
-  color: var(--color-label);
-`;
-
-export function Pagination({
-  page,
-  pageSize,
-  total,
-  pageSizeOptions = defaultPageSizeOptions,
-  onPageChange,
-  onPageSizeChange,
-  label = "Paginação",
-  className,
-  style,
-}: PaginationProps) {
+/**
+ * O controle de páginas do pé de toda lista, no desenho da pousada (2026-10-26, a pedido: "padronize a tabela de
+ * todo o sistema"): quantas linhas por página, qual faixa está à vista ("1–50 de 644") e as páginas, com as
+ * vizinhas da atual e reticências onde pula. Quem manda na página é quem chama (a URL, nas listas que paginam no
+ * servidor, ou `useListPagination`, nas que cortam no navegador); aqui só se desenha e se avisa.
+ */
+export function Pagination({ page, pageSize, total, pageSizeOptions = defaultPageSizeOptions, onPageChange, onPageSizeChange, label = "Paginação", className, style }: PaginationProps) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(Math.max(1, page), pageCount);
-  const first = total === 0 ? 0 : (current - 1) * pageSize + 1;
-  const last = Math.min(total, current * pageSize);
-  const sizes: ListboxOption<number>[] = pageSizeOptions.map((size) => ({ value: size, label: String(size) }));
+  const from = total === 0 ? 0 : (current - 1) * pageSize + 1;
+  const to = Math.min(total, current * pageSize);
 
   return (
-    <Bar aria-label={label} className={className} style={style}>
+    <nav className={className ? `${styles.pagination} ${className}` : styles.pagination} style={style} aria-label={label}>
       {onPageSizeChange && (
-        <>
-          <span data-desktop>
-            <Listbox label="Itens por página" prefix="Mostrar" placement="above" options={sizes} value={pageSize} onChange={onPageSizeChange} />
-          </span>
-          <Separator orientation="vertical" data-divider data-desktop />
-        </>
+        <div className={styles.size}>
+          <span>Por página</span>
+          <div className={styles.select}>
+            <Select
+              label="Linhas por página"
+              size="sm"
+              value={String(pageSize)}
+              options={pageSizeOptions.map((value) => ({ value: String(value), label: String(value) }))}
+              onChange={(value) => onPageSizeChange(Number(value))}
+            />
+          </div>
+        </div>
       )}
-      <IconButton label="Primeira página" variant="ghost" size="sm" radius="md" disabled={current <= 1} onClick={() => onPageChange(1)}>
-        <CaretDoubleLeftIcon />
-      </IconButton>
-      <Separator orientation="vertical" data-divider />
-      <IconButton label="Página anterior" variant="ghost" size="sm" radius="md" disabled={current <= 1} onClick={() => onPageChange(current - 1)}>
-        <CaretLeftIcon />
-      </IconButton>
-      <Separator orientation="vertical" data-divider />
-      <Indicator aria-live="polite">
-        <span aria-hidden="true">
-          {numberFormat.format(current)}/{numberFormat.format(pageCount)}
-        </span>
-        <VisuallyHidden>
-          {total === 0 ? "Nenhum item" : `Página ${current} de ${pageCount}, itens ${first} a ${last} de ${total}`}
-        </VisuallyHidden>
-      </Indicator>
-      <Separator orientation="vertical" data-divider />
-      <IconButton label="Próxima página" variant="ghost" size="sm" radius="md" disabled={current >= pageCount} onClick={() => onPageChange(current + 1)}>
-        <CaretRightIcon />
-      </IconButton>
-      <Separator orientation="vertical" data-divider />
-      <IconButton label="Última página" variant="ghost" size="sm" radius="md" disabled={current >= pageCount} onClick={() => onPageChange(pageCount)}>
-        <CaretDoubleRightIcon />
-      </IconButton>
-    </Bar>
+
+      <span className={styles.range} aria-live="polite">
+        {total === 0 ? "Nenhum item" : `${from}–${to} de ${total}`}
+      </span>
+
+      <div className={styles.pages}>
+        <IconButton label="Página anterior" variant="secondary" size="sm" radius="full" className={styles.step} disabled={current <= 1} onClick={() => onPageChange(current - 1)}>
+          <CaretLeftIcon />
+        </IconButton>
+        <ol className={styles.numbers}>
+          {pagesToShow(current, pageCount).map((entry) =>
+            typeof entry === "number" ? (
+              <li key={entry}>
+                <button type="button" className={styles.number} aria-label={`Página ${entry}`} aria-current={entry === current ? "page" : undefined} onClick={() => onPageChange(entry)}>
+                  {entry}
+                </button>
+              </li>
+            ) : (
+              <li key={entry} className={styles.gap} aria-hidden="true">
+                …
+              </li>
+            ),
+          )}
+        </ol>
+        <IconButton label="Próxima página" variant="secondary" size="sm" radius="full" className={styles.step} disabled={current >= pageCount} onClick={() => onPageChange(current + 1)}>
+          <CaretRightIcon />
+        </IconButton>
+      </div>
+    </nav>
   );
 }

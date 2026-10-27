@@ -21,7 +21,7 @@ import { ClientSections } from "./client-sections";
 import styles from "./client-drawer.module.css";
 
 export type ClientDrawerProps = {
-  /** O cliente aberto; nulo mantém a gaveta montada e fechada, para a saída animar. */
+  /** O cliente aberto; nulo mantém a janela montada e fechada, para a saída animar. */
   client: ClientListItem | null;
   onClose: () => void;
   /** Abre a edição do cliente aberto, no lugar. */
@@ -33,16 +33,18 @@ const longDate = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy",
 /* Links que saem da aplicação abrem em outra aba. */
 const external = { target: "_blank", rel: "noreferrer" };
 
-// A ficha do cliente na gaveta lateral, aberta ao clicar no cartão da listagem. A moldura segue a
+// A ficha do contato numa janela centrada, sólida e sobre o véu, aberta ao clicar no cartão da listagem
+// (2026-10-26, a pedido: "abrir no meio da tela", igual para clientes e fornecedores; antes era a gaveta
+// lateral). A moldura segue a
 // referência: o nome como título com as ações na outra ponta, a linha de identidade com os botões de
 // contato, os números da relação em azulejos com fio, e abaixo o miolo, que é o mesmo `ClientSections`
-// que o cartão de perfil do painel mostra. Uma gaveta só para a tela inteira, e não uma por cartão.
+// que o cartão de perfil do painel mostra. Uma janela só para a tela inteira, e não uma por cartão.
 //
 // A ficha completa é buscada ao abrir, e não mandada junto da listagem: ela tem anotações, orçamentos e
 // projetos, e vinte e quatro delas por página encheriam a carga com o que a grade nem desenha. Enquanto
-// vem, o cabeçalho já mostra o que o cartão sabia, então a gaveta nunca abre vazia.
+// vem, o cabeçalho já mostra o que o cartão sabia, então a janela nunca abre vazia.
 export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
-  // Quem está desenhado na gaveta: segue o cliente aberto e fica quando ele zera, senão o painel sairia
+  // Quem está desenhado na janela: segue o cliente aberto e fica quando ele zera, senão o painel sairia
   // vazio, com só a moldura pintada, porque a `Dialog` só desmonta os filhos no fim da animação de saída
   // (2026-09-22, na varredura). É o que o JSDoc do prop promete, e o que a janela de edição já fazia.
   const [shown, setShown] = useState<ClientListItem | null>(client);
@@ -59,9 +61,6 @@ export function ClientDrawer({ client, onClose, onEdit }: ClientDrawerProps) {
       onClose={onClose}
       label={shown ? `Ficha de ${shown.name}` : "Ficha do contato"}
       size="lg"
-      placement="end"
-      surface="page"
-      scrim={false}
       focusOnOpen={false}
     >
       {shown && (

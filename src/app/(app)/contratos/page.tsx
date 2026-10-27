@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { getAiUsageData } from "@/features/ai/queries";
 import { ContractsScreen } from "@/features/contracts/components/contracts-screen";
-import { CONTRACTS_GRID_COOKIE, parseContractsGridSize, parseContractsQuery } from "@/features/contracts/list";
-import { getContractsPage } from "@/features/contracts/queries";
+import { CONTRACTS_VIEW_COOKIE, contractsQueryFrom, parseContractsView } from "@/features/contracts/list";
+import { loadContractsScreenData } from "@/features/contracts/queries";
+import { hasAi } from "@/lib/env";
 import { createMetadata } from "@/lib/metadata";
-import { first } from "@/lib/utils/search-params";
 
 export const metadata = createMetadata({
   title: "Contratos",
@@ -14,21 +14,11 @@ export const metadata = createMetadata({
 
 export default async function ContractsPage({ searchParams }: PageProps<"/contratos">) {
   const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
-  // Quantos por página, quando a URL não diz, é o que a grade mediu e guardou no cookie na última visita.
-  const gridSize = parseContractsGridSize(cookieStore.get(CONTRACTS_GRID_COOKIE)?.value);
-  const query = parseContractsQuery(
-    {
-      busca: first(params.busca),
-      situacao: first(params.situacao),
-      origem: first(params.origem),
-      tipo: first(params.tipo),
-      pagina: first(params.pagina),
-      porPagina: first(params.porPagina),
-    },
-    gridSize,
-  );
+  // A visão vem do cookie, e com ela a medida da página: trinta na tabela, cem no funil.
+  const view = parseContractsView(cookieStore.get(CONTRACTS_VIEW_COOKIE)?.value);
+  const query = contractsQueryFrom(params, view);
 
-  const [page, ai] = await Promise.all([getContractsPage(query), getAiUsageData()]);
+  const [data, ai] = await Promise.all([loadContractsScreenData(query), getAiUsageData()]);
 
-  return <ContractsScreen page={page} query={query} ai={ai} />;
+  return <ContractsScreen page={data.page} lookups={data.lookups} query={query} view={view} ai={ai} aiAvailable={hasAi()} />;
 }

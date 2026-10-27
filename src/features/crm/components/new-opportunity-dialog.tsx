@@ -166,10 +166,9 @@ function OpportunityForm(props: NewOpportunityDialogProps) {
       title: editing ? "Oportunidade atualizada" : "Oportunidade criada",
       description: editing ? "As mudanças já aparecem na ficha." : `Ela entrou em ${crmStageMeta[result.opportunity.stage].label}.`,
       tone: "success",
-      feedback: {
-        visual: <Avatar name={result.opportunity.client.name} src={result.opportunity.client.avatarUrl ?? undefined} size="lg" shape="rounded" />,
-        confetti: !editing,
-      },
+      feedback: editing
+        ? false
+        : { visual: <Avatar name={result.opportunity.client.name} src={result.opportunity.client.avatarUrl ?? undefined} size="lg" shape="rounded" />, confetti: true },
     });
     props.onSaved(result.opportunity);
   };

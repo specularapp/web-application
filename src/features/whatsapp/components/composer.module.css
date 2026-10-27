@@ -7,11 +7,13 @@
   display: grid;
 }
 
+/* No escuro a barra ganha um destaque suave sobre a conversa (2026-10-26, a pedido): no fundo quase preto, a
+   mesma cor da página fazia o campo sumir; no claro ela continua a da página. */
 .box {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-3) clamp(var(--space-3), 4%, var(--space-12)) var(--space-2);
-  background-color: var(--color-bg);
+  background-color: light-dark(var(--color-bg), color-mix(in oklab, var(--color-label) 8%, var(--color-bg)));
   border-block-start: var(--line);
 }
 

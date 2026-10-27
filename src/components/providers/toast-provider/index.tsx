@@ -40,7 +40,7 @@ export type ToastOptions = {
   tone?: ToastTone;
   action?: ToastAction;
   duration?: number;
-  /** Ajusta o retorno visual de uma ação bem sucedida. `false` preserva o recibo discreto no canto. */
+  /** Ajusta a janela de uma criação bem sucedida. `false` preserva o recibo discreto no canto. */
   feedback?: false | ToastFeedback;
 };
 
@@ -170,7 +170,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((options: ToastOptions) => {
     counter.current += 1;
     const id = `toast-${counter.current}`;
-    if ((options.tone === "success" || (options.tone === "neutral" && isCompletedAction(options.title))) && options.feedback !== false) {
+    /* Só a criação abre a janela: excluir, editar, mover, copiar e o resto ficam no recibo do canto. */
+    const created = /\bcriad[oa]s?\b/i.test(options.title);
+    if (created && (options.tone === "success" || (options.tone === "neutral" && isCompletedAction(options.title))) && options.feedback !== false) {
       const feedback = options.feedback ?? {};
       const preset = feedbackPreset(options.title);
       celebrate({

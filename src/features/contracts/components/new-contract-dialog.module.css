@@ -91,12 +91,28 @@
   padding: var(--space-4);
 }
 
+/* O azulejo e o nome da origem numa linha só, em cima. */
+.optionHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+/* A frase toma o meio e empurra o caminho para o pé, então os três cartões alinham o pé. */
+.optionCopy {
+  flex: 1;
+}
+
+/* O cartão do modelo deitado: a folha em pé à esquerda e o que decide a escolha ao lado. */
 .template {
   --card-hue: var(--template-hue);
 
-  flex-direction: column;
+  flex-direction: row;
+  gap: var(--space-4);
   align-items: stretch;
   height: 100%;
+  padding: var(--space-3);
   overflow: hidden;
 }
 
@@ -191,16 +207,24 @@
   }
 }
 
-/* No celular a origem vira linha: o azulejo à esquerda, o texto ao lado e a seta na ponta, sem o pé. */
+/* No celular a origem vira linha: o azulejo e o nome à esquerda, a frase embaixo deles e a seta na ponta,
+   sem o pé. */
 @media (max-width: 47.9375rem) {
   .option {
-    flex-direction: row;
-    gap: var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-3);
     align-items: center;
     padding: var(--space-3);
   }
 
+  .optionCopy {
+    grid-column: 1;
+  }
+
   .path {
+    grid-row: 1 / span 2;
+    grid-column: 2;
     padding: 0;
     border: 0;
   }
@@ -251,62 +275,78 @@
   }
 }
 
-/* A folha em miniatura no topo do cartão do modelo: papel branco em qualquer tema (é uma ilha de tema claro,
-   como a folha de verdade), o título em caixa alta centrado e os blocos da abertura em corpo miúdo, esmaecendo
-   no pé para dizer que continua. `pointer-events: none` porque é só ilustração do botão. */
+/* A folha em miniatura à esquerda do cartão do modelo, em pé como uma A4: papel branco em qualquer tema (é
+   uma ilha de tema claro, como a folha de verdade), com o fio e o canto de folha, o título em caixa alta
+   centrado, as linhas do quadro resumo no painel cinza delas e os blocos seguintes em corpo miúdo,
+   esmaecendo no pé para dizer que continua. `pointer-events: none` porque é só ilustração do botão. */
 .paper {
   position: relative;
-  display: grid;
-  gap: 0.2rem;
-  align-content: start;
-  aspect-ratio: 5 / 3;
-  padding: 0.85rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0.15rem;
+  width: 6.5rem;
+  aspect-ratio: 210 / 297;
+  padding: 0.6rem 0.55rem 0;
   overflow: hidden;
   font-family: var(--font-body);
   color: var(--color-label);
   pointer-events: none;
-  background-color: var(--color-bg-tertiary);
-  border-block-end: 0.0375rem solid var(--color-border);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .paper::after {
   position: absolute;
   inset: auto 0 0;
-  height: 45%;
+  height: 40%;
   content: "";
-  background: linear-gradient(to bottom, transparent, var(--color-bg-tertiary));
+  background: linear-gradient(to bottom, transparent, var(--color-bg));
 }
 
 .paperTitle {
   display: -webkit-box;
-  margin-block-end: 0.25rem;
+  flex-shrink: 0;
+  margin-block-end: 0.2rem;
   overflow: hidden;
-  font-size: 0.5rem;
+  font-size: 0.3rem;
   font-weight: var(--weight-semibold);
-  line-height: 1.3;
+  line-height: 1.35;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
 .paperLine {
   display: -webkit-box;
+  flex-shrink: 0;
   overflow: hidden;
-  font-size: 0.4rem;
-  line-height: 1.4;
+  font-size: 0.26rem;
+  line-height: 1.45;
   text-align: justify;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
 
-.paperLine[data-heading] {
-  margin-block-start: 0.2rem;
+.paperLine[data-kind="heading"] {
+  margin-block-start: 0.15rem;
   font-weight: var(--weight-semibold);
   text-align: start;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* As linhas do quadro resumo, no painel dele: o cinza do cartão e o fio à esquerda, uma linha cada. */
+.paperLine[data-kind="box"] {
+  padding-inline: 0.2rem;
+  text-align: start;
+  -webkit-line-clamp: 1;
+  background-color: color-mix(in oklab, var(--color-label) 4%, var(--color-bg));
+  border-inline-start: 0.06rem solid var(--color-label);
 }
 
 /* O giro de criar por cima da folha, no lugar de escurecer o cartão inteiro. */
@@ -316,21 +356,21 @@
   z-index: 1;
   display: grid;
   place-items: center;
-  background-color: color-mix(in oklab, var(--color-bg-tertiary) 70%, transparent);
+  background-color: color-mix(in oklab, var(--color-bg) 70%, transparent);
 }
 
-/* O corpo do cartão do modelo: o tipo e a contagem de cláusulas, o nome, a frase e as entregas. */
+/* O corpo do cartão do modelo em degraus: o tipo, o nome, a frase e, no pé depois do fio, os fatos. */
 .templateBody {
-  display: grid;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: var(--space-1);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  min-width: 0;
+  padding-block: var(--space-1);
 }
 
-.templateHead {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
+.templateKind {
+  align-self: flex-start;
   margin-block-end: var(--space-1);
 }
 
@@ -341,9 +381,25 @@
   -webkit-line-clamp: 2;
 }
 
-.highlights {
+/* O prazo, o pagamento e as cláusulas, um por linha com o glifo, assentados no pé do cartão. */
+.facts {
+  display: grid;
+  gap: var(--space-half);
+  padding-block-start: var(--space-2);
+  margin-block-start: auto;
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.fact {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-1);
-  margin-block-start: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--color-label-tertiary);
+}
+
+.fact svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
 }

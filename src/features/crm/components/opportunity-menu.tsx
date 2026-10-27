@@ -13,7 +13,7 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/providers/toast-provider";
 import { callAction } from "@/lib/action";
@@ -34,6 +34,8 @@ export type OpportunityMenuProps = {
   onDelete?: () => void;
   /** Abre o editor completo, já preenchido. */
   onEdit?: () => void;
+  /** O desenho do gatilho, quando não é o chevron de sempre: os três pontos no cabeçalho escuro da ficha. */
+  icon?: ReactNode;
 };
 
 // As opções de uma oportunidade, no padrão do menu da tarefa, do cliente e do orçamento: abrir a ficha,
@@ -43,7 +45,7 @@ export type OpportunityMenuProps = {
 // Ganhar e perder são **ações de menu**, e não só etapas de coluna: fechar uma venda é a coisa mais decisiva
 // que se faz com ela, e pedir que a pessoa arraste o cartão até a última coluna para isso seria esconder o
 // que o funil existe para fazer. Cada uma só aparece enquanto ainda não é o caso.
-export function OpportunityMenu({ opportunity, onOpen, stages: providedStages, onMove, onDelete, onEdit }: OpportunityMenuProps) {
+export function OpportunityMenu({ opportunity, onOpen, stages: providedStages, onMove, onDelete, onEdit, icon }: OpportunityMenuProps) {
   const { toast } = useToast();
   const status = statusOf(opportunity);
   const crmStageMeta = useCrmStages();
@@ -55,13 +57,13 @@ export function OpportunityMenu({ opportunity, onOpen, stages: providedStages, o
       toast({ title: "Não deu para duplicar", description: result.error, tone: "danger" });
       return;
     }
-    toast({ title: "Oportunidade duplicada", description: "A cópia entrou em aberto, na primeira etapa.", tone: "success" });
+    toast({ title: "Oportunidade duplicada", description: "A cópia entrou em aberto, na primeira etapa.", tone: "success", feedback: false });
   };
 
   const copyReference = async () => {
     try {
       await navigator.clipboard.writeText(opportunity.reference);
-      toast({ title: "Identificador copiado", description: `${opportunity.reference} está na área de transferência.`, tone: "success" });
+      toast({ title: "Identificador copiado", description: `${opportunity.reference} está na área de transferência.`, tone: "success", feedback: false });
     } catch {
       toast({ title: "Não deu para copiar", description: opportunity.reference, tone: "warning" });
     }
@@ -138,6 +140,7 @@ export function OpportunityMenu({ opportunity, onOpen, stages: providedStages, o
       label={`Opções de ${opportunity.reference}`}
       triggerLabel={`Mais opções de ${opportunity.title}`}
       sections={sections}
+      icon={icon}
       size="sm"
     />
   );

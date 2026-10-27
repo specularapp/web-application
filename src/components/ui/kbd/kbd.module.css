@@ -1,15 +1,22 @@
+/* A tecla de atalho é dica, e não conteúdo (2026-10-26, a pedido: a monoespaçada com borda pesava e destoava):
+   a fonte é a do texto, menor e em peso médio, num véu discreto sem contorno, para ler de relance sem disputar
+   com o rótulo ao lado. */
 .kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
   padding: 0 var(--space-1);
-  font-family: var(--font-code);
-  font-size: var(--text-caption-1);
-  line-height: 1.5;
-  color: var(--color-label-secondary);
-  background-color: var(--color-fill-tertiary);
-  border: 1px solid var(--color-separator);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--color-label-tertiary);
+  background-color: var(--color-fill-quaternary);
   border-radius: var(--radius-sm);
 }
 

@@ -23,6 +23,12 @@
    O recuo do trilho é devolvido em margem negativa para a rolagem começar na borda da tela: sem isso a
    primeira e a última coluna ficavam presas dentro do recuo e o trilho parecia estreito no meio da página.
    O recuo lateral entra de volta por dentro, então a coluna da ponta continua respirando. */
+/* A tabela enche o que sobra abaixo da barra, como o trilho: as linhas rolam por dentro e o pé fica à vista. */
+.table {
+  display: grid;
+  min-height: 0;
+}
+
 .rail {
   /* A medida da coluna no celular, lida aqui e pela coluna: o próprio trilho menos a espiada das duas
      vizinhas e os dois vãos entre elas, com teto na largura de sempre para o tablet estreito não esticar a
