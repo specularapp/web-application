@@ -10,6 +10,10 @@ import { quoteTotals } from "@/features/quotes/totals";
 import { shareCredentials, shareTokenHash } from "@/lib/security/share-token";
 import { logRecordEvent } from "@/features/records/history";
 import type { Database } from "@/types/database";
+import type { FinanceAccount } from "./accounts";
+import { listFinanceAccounts } from "./accounts-service";
+import type { FinanceCategory } from "./installments";
+import { listCategories } from "./installments-service";
 import { chargeDirections, installmentLabel, recurrenceMonths } from "./labels";
 import type { CreateChargeInput, CreateTransactionInput, PayInstallmentInput } from "./schemas";
 import { chargeUrl } from "./share";
@@ -44,7 +48,7 @@ export type ReportResult =
 
 const columns = `
   id, reference, direction, title, description, client_id, client_name, client_company, client_email,
-  client_avatar_url, image_url, recurrence, recurring_from_id, owner_id, amount, method, payment_info, notes, token_version,
+  client_avatar_url, image_url, recurrence, recurring_from_id, owner_id, amount, method, payment_info, notes, token_version, category_id, account_id,
   created_at, sent_at, viewed_at, cancelled_at,
   quotes(id, reference),
   contracts(id, reference),
@@ -65,6 +69,8 @@ type Row = {
   client_email: string | null;
   client_avatar_url: string | null;
   image_url: string | null;
+  category_id?: string | null;
+  account_id?: string | null;
   recurrence: ChargeRecurrence;
   recurring_from_id: string | null;
   owner_id: string | null;
@@ -120,6 +126,8 @@ function toCharge(row: Row, owner: { name: string; avatarUrl: string | null }): 
     direction: row.direction,
     title: row.title,
     description: row.description,
+    categoryId: row.category_id ?? null,
+    accountId: row.account_id ?? null,
     /* Sem nome não há contraparte: é a cobrança avulsa, e a tela mostra o título e a foto no lugar. */
     client: row.client_name
       ? {
@@ -224,10 +232,13 @@ export type ChargeLookups = {
   customers: { id: string; name: string; company?: string; email: string | null; avatarUrl: string | null }[];
   suppliers: { id: string; name: string; company?: string; email: string | null; avatarUrl: string | null }[];
   quotes: { id: string; number: string; title: string; clientId: string | null; amount: number; installments: number }[];
+  /** As contas e as categorias, para a cobrança já nascer dizendo onde o dinheiro cai e do que se trata (2026-10-27). */
+  accounts: FinanceAccount[];
+  categories: FinanceCategory[];
 };
 
 export async function getChargeLookups(client: FinanceClient, organizationId: string): Promise<ChargeLookups> {
-  const [clients, quotes, taken] = await Promise.all([
+  const [clients, quotes, taken, accounts, categories] = await Promise.all([
     client.from("clients").select("id, kind, name, company, email, avatar_url").eq("organization_id", organizationId).eq("active", true).order("name"),
     client
       .from("quotes")
@@ -235,6 +246,8 @@ export async function getChargeLookups(client: FinanceClient, organizationId: st
       .eq("organization_id", organizationId)
       .eq("status", "approved"),
     client.from("charges").select("quote_id").eq("organization_id", organizationId).not("quote_id", "is", null),
+    listFinanceAccounts(client, organizationId, []),
+    listCategories(client, organizationId),
   ]);
 
   /* As três contam: com o erro engolido, a janela abria sem contato nenhum, sem orçamento nenhum, ou pior,
@@ -255,6 +268,8 @@ export async function getChargeLookups(client: FinanceClient, organizationId: st
     }));
 
   return {
+    accounts,
+    categories,
     customers: contacts.filter((contact) => contact.kind === "customer" || contact.kind === "both"),
     suppliers: contacts.filter((contact) => contact.kind === "supplier" || contact.kind === "both"),
     quotes: (quotes.data ?? [])
@@ -286,6 +301,7 @@ const methodLabels: Record<ChargeMethod, string> = {
   card: "Cartão",
   boleto: "Boleto",
   transfer: "Transferência bancária",
+  cash: "Dinheiro",
 };
 
 /** Cria a cobrança e as parcelas na mesma transação lógica: a soma das duas é conferida pelo banco. */
@@ -333,6 +349,13 @@ export async function createCharge(
   const id = crypto.randomUUID();
   const { hash } = shareCredentials("charge", id);
 
+  /* A categoria precisa ser do lado da cobrança: a baixa vira movimentação com ela, e o banco recusa entrada
+     com categoria de saída, o que só estouraria na hora de receber (2026-10-27). */
+  if (input.categoryId) {
+    const { data: category } = await client.from("finance_categories").select("kind").eq("organization_id", organizationId).eq("id", input.categoryId).maybeSingle();
+    if (!category || category.kind !== (input.direction === "outgoing" ? "expense" : "income")) return { ok: false, error: "Essa categoria não é deste lado do financeiro." };
+  }
+
   const { error } = await client.from("charges").insert({
     id,
     organization_id: organizationId,
@@ -351,6 +374,8 @@ export async function createCharge(
     notes: input.notes,
     quote_id: input.quoteId,
     recurrence: input.recurrence,
+    category_id: input.categoryId ?? null,
+    account_id: input.accountId ?? null,
     token_hash: hash,
   });
 
@@ -481,6 +506,7 @@ export async function payInstallment(
     p_method: input.method ?? charge.method,
     /* Sem data escolhida, a chave nem vai: quem decide é a função do banco, que usa o fuso da casa. */
     ...(input.paidOn ? { p_paid_on: input.paidOn } : {}),
+    ...(input.accountId ? { p_account_id: input.accountId } : {}),
   });
   if (error) return { ok: false, error: dbMessage(error, "Não foi possível concluir a operação. Tente de novo em instantes.") };
 
@@ -535,6 +561,8 @@ async function spawnNextRecurrence(client: FinanceClient, organizationId: string
     notes: charge.notes,
     recurrence: charge.recurrence,
     recurring_from_id: charge.id,
+    category_id: charge.categoryId,
+    account_id: charge.accountId,
     token_hash: hash,
   });
 
@@ -652,6 +680,9 @@ export async function createTransaction(
       method_type: input.method,
       method_label: input.method ? methodLabels[input.method] : null,
       created_by: userId,
+      /* Sem conta, o gatilho do banco põe a padrão (2026-10-27). */
+      ...(input.accountId ? { account_id: input.accountId } : {}),
+      category_id: input.categoryId ?? null,
     })
     .select("*")
     .single();
@@ -734,21 +765,20 @@ function periodStart(period: FinancePeriod) {
   return null;
 }
 
-/** O saldo em caixa: o que havia antes de a base começar, mais tudo que entrou, menos tudo que saiu. */
+/**
+ * O saldo em caixa: a soma do saldo de cada conta, que o banco calcula pela abertura dela mais o que entrou e
+ * saiu nela (2026-10-27, com as contas bancárias). Transferência entre contas some na soma, porque sai de uma e
+ * entra na outra, e por isso o total não precisa saber delas.
+ */
 async function balanceOf(client: FinanceClient, organizationId: string) {
-  const [{ data: settings, error: settingsError }, { data: rows, error }] = await Promise.all([
-    client.from("finance_settings").select("opening_balance").eq("organization_id", organizationId).maybeSingle(),
-    client.from("transactions").select("kind, amount, status").eq("organization_id", organizationId).eq("status", "confirmed"),
-  ]);
-
-  ensureRead(settingsError);
+  const { data, error } = await client.from("finance_account_balances").select("balance").eq("organization_id", organizationId);
   ensureRead(error);
-
-  return (rows ?? []).reduce(
-    (sum, row) => sum + (row.kind === "income" ? row.amount : row.kind === "expense" ? -row.amount : 0),
-    settings?.opening_balance ?? 0,
-  );
+  return (data ?? []).reduce((sum, row) => sum + (row.balance ?? 0), 0);
 }
+
+/* Só o que entrou ou saiu da empresa conta no fluxo: transferência entre contas e ajuste de saldo mexem numa
+   conta, e somá-los como receita ou despesa inflaria os dois lados (2026-10-27). */
+const flowOrigins: Database["public"]["Enums"]["transaction_origin"][] = ["manual", "charge"];
 
 const sortTransactions = (list: Transaction[]) =>
   [...list].sort((a, b) => (a.date === b.date ? (b.time ?? "").localeCompare(a.time ?? "") : b.date.localeCompare(a.date)));
@@ -767,7 +797,7 @@ export async function getFinanceOverview(
      do ano, embaixo do rótulo "Desde o começo", enquanto o saldo em caixa, que não passa por este recorte,
      seguia contando tudo. O piso é o mais antigo entre o período pedido e a janela do gráfico. */
   const floor = start ? (start < sixMonthsAgo ? start : sixMonthsAgo) : null;
-  const scope = client.from("transactions").select("*").eq("organization_id", organizationId);
+  const scope = client.from("transactions").select("*").eq("organization_id", organizationId).in("origin", flowOrigins);
 
   const [balance, pending, { data: all, error }] = await Promise.all([
     balanceOf(client, organizationId),
@@ -834,7 +864,13 @@ export async function getFinanceSummary(client: FinanceClient, organizationId: s
     balanceOf(client, organizationId),
     /* O painel só mostra o que cai nesta semana, então é só isso que ele lê. */
     upcomingOf(client, organizationId, today, { from: today, to: day(7) }),
-    client.from("transactions").select("*").eq("organization_id", organizationId).order("date", { ascending: false }).limit(10),
+    client
+      .from("transactions")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .in("origin", flowOrigins)
+      .order("date", { ascending: false })
+      .limit(10),
   ]);
 
   ensureRead(error);

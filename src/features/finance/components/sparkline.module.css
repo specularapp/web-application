@@ -1,0 +1,18 @@
+.spark {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 2.75rem;
+}
+
+.area {
+  fill: color-mix(in oklab, var(--account, var(--sys-blue)) 18%, transparent);
+}
+
+.line {
+  fill: none;
+  stroke: var(--account, var(--sys-blue));
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}

@@ -251,6 +251,7 @@ export function OpportunitiesTable({ opportunities, onOpen, stages, onMove, onDe
               id: "actions",
               header: "Ações",
               align: "end",
+              pinnedEnd: true,
               cell: (item) => (
                 <span className={styles.tableActions}>
                   <OpportunityMenu

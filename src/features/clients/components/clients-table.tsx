@@ -44,7 +44,6 @@ export function ClientsTable({ clients, group, selected, onSelectedChange, onOpe
   const columns: DataTableColumn<ClientListItem>[] = [
     {
       id: "name",
-      pinned: true,
       header: suppliers ? "Fornecedor" : "Cliente",
       cell: (client) => (
         <ClientHoverCard client={client}>

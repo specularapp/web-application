@@ -1,0 +1,115 @@
+/* Sem o cabeçalho escuro, o cartão do formulário tem duas faixas: o corpo e o rodapé. Com as três da janela dupla,
+   o rodapé caía na faixa elástica e o botão de confirmar esticava até o fim do cartão. */
+.card.card {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+/* O resumo da parcela no alto da janela de receber e pagar (2026-10-27): a foto, quem e o quê, o prazo e o valor
+   à direita, num painel do mesmo fundo das seções numeradas. */
+.summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4);
+  background-color: light-dark(var(--color-bg-grouped-secondary), color-mix(in oklab, var(--color-label) 7%, transparent));
+  border: 0.0375rem solid color-mix(in oklab, var(--color-border) 60%, transparent);
+  border-radius: var(--radius-lg);
+}
+
+.who {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-block-start: var(--space-1);
+}
+
+.amount {
+  display: grid;
+  justify-items: end;
+  gap: 0.125rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .amount {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+}
+
+/* Os campos das janelas de receber, pagar e lançar (2026-10-27, a pedido: "o gap precisa ser mais suave"): o
+   rótulo menor e mais perto do campo, na tinta secundária, para o formulário ler em blocos e não em degraus. */
+.field.field {
+  gap: 0.375rem;
+}
+
+.field.field > label {
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+/* Entrada ou saída no segmento da casa (2026-10-27, a pedido: "use os toggles"), de ponta a ponta: o fundo
+   agrupado e a escolhida na superfície com sombra, com o ponto verde no que entra e vermelho no que sai, a
+   mesma leitura das listas de cobranças. */
+.sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-half);
+  padding: var(--space-half);
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.side {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  font-family: var(--font-body);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  color: var(--color-label-secondary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.side[aria-checked="true"] {
+  font-weight: var(--weight-semibold);
+  color: var(--color-label);
+  background-color: var(--color-bg-tertiary);
+  box-shadow: var(--shadow-sm);
+}
+
+.side:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.sideDot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  background-color: var(--color-success);
+  border-radius: var(--radius-full);
+}
+
+.sideDot[data-kind="expense"] {
+  background-color: var(--color-danger);
+}

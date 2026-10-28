@@ -1,0 +1,41 @@
+/* A prancha das transferências: a barra e a tabela, que rola por dentro no desktop, como as outras listas. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+.table {
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+}
+
+/* A ação por extenso no desktop e em ícone no celular, como nas cobranças. */
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}

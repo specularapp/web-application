@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { BankIcon, BarcodeIcon, CheckCircleIcon, ClockIcon, CreditCardIcon, EyeIcon, FileDashedIcon, HourglassIcon, PixLogoIcon, XCircleIcon } from "@phosphor-icons/react/ssr";
+import { BankIcon, BarcodeIcon, CheckCircleIcon, ClockIcon, CreditCardIcon, EyeIcon, FileDashedIcon, HourglassIcon, MoneyIcon, PixLogoIcon, XCircleIcon } from "@phosphor-icons/react/ssr";
 import type { BadgeTone } from "@/components/ui/badge";
 import type { QuotePaymentMethod, QuoteStatus } from "./summary";
 
@@ -29,6 +29,7 @@ export const paymentMethods: Record<QuotePaymentMethod, { label: string; icon: I
   transfer: { label: "Transferência bancária", icon: BankIcon },
   boleto: { label: "Boleto", icon: BarcodeIcon },
   card: { label: "Cartão de crédito", icon: CreditCardIcon },
+  cash: { label: "Dinheiro", icon: MoneyIcon },
 };
 
 /* Cidade e UF juntas, como se escreve num endereço: "Curitiba, PR". A tela e o PDF do documento leem daqui. */

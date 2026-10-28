@@ -1,32 +1,32 @@
 "use client";
 
-import { CheckIcon, ImageSquareIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { addDays, addMonths, format, parseISO } from "date-fns";
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useId, useRef, useState, type RefObject } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { useToast } from "@/components/providers/toast-provider";
-import { SOURCE_MAX_BYTES } from "@/lib/images/compress";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
-import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
-import { Textarea } from "@/components/ui/textarea";
-import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
-import { uploadImage } from "@/features/uploads/upload";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { formWindow, FormWindowPart as Part } from "@/components/ui/form-window";
 import { onlyDigits } from "@/lib/masks";
-import { formatMoney } from "@/lib/utils/format";
 import { createChargeAction } from "../actions";
-import { chargeMethods, recurrenceLabels, shortDate } from "../labels";
+import { recurrenceLabels } from "../labels";
 import { chargeLimits, chargeMethodValues, chargeRecurrenceValues } from "../schemas";
 import type { ChargeLookups } from "../service";
 import { type Charge, type ChargeDirection, type ChargeMethod, type ChargeRecurrence } from "../summary";
 import { callAction } from "@/lib/action";
-import styles from "./new-charge-dialog.module.css";
+import { AccountMark } from "./account-mark";
+import { ChargePreview } from "./charge-preview";
+import { emptyOptionMedia, installmentsMedia, methodOption, OptionIcon, optionGlyphs, recurrenceMedia } from "./option-icon";
+import local from "./settle-dialog.module.css";
+import windowStyles from "./transfer-dialog.module.css";
 
 export type NewChargeDialogProps = {
   open: boolean;
@@ -39,13 +39,16 @@ export type NewChargeDialogProps = {
   onCreated: (charge: Charge) => void;
 };
 
-type Values = { direction: ChargeDirection; partyName: string; quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string; recurrence: ChargeRecurrence };
+type Values = { direction: ChargeDirection; partyName: string; quoteId: string | null; clientId: string | null; title: string; description: string; amount: string; installments: number; firstDueDate: string; method: ChargeMethod; paymentInfo: string; notes: string; recurrence: ChargeRecurrence; categoryId: string; accountId: string };
 
-const blank = (clientId: string | null = null, direction: ChargeDirection = "incoming"): Values => ({ direction, partyName: "", quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none" });
+const blank = (clientId: string | null = null, direction: ChargeDirection = "incoming"): Values => ({ direction, partyName: "", quoteId: null, clientId, title: "", description: "", amount: "", installments: 1, firstDueDate: format(addDays(new Date(), 7), "yyyy-MM-dd"), method: "pix", paymentInfo: "", notes: "", recurrence: "none", categoryId: NO_CATEGORY, accountId: DEFAULT_ACCOUNT });
 
-const installmentOptions = Array.from({ length: chargeLimits.installments }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas` }));
+const NO_CATEGORY = "none";
+const DEFAULT_ACCOUNT = "padrao";
 
-const methodOptions = chargeMethodValues.map((value) => ({ value, label: chargeMethods[value].label }));
+const installmentOptions = Array.from({ length: chargeLimits.installments }, (_, index) => ({ value: index + 1, label: index === 0 ? "À vista" : `${index + 1} parcelas`, media: installmentsMedia(index + 1) }));
+
+const methodOptions = chargeMethodValues.map(methodOption);
 
 const NO_QUOTE = "__none__";
 
@@ -54,20 +57,19 @@ const NO_QUOTE = "__none__";
    mais, e não uma segunda decisão. */
 const NO_CLIENT = "__avulsa__";
 
-const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label: recurrenceLabels[value] }));
+const recurrenceOptions = chargeRecurrenceValues.map((value) => ({ value, label: recurrenceLabels[value], media: recurrenceMedia(value) }));
 
-// A gaveta de nova cobrança (2026-09-15): nasce de um orçamento aprovado, que já traz o cliente, o título, o
-// valor e as parcelas, ou do zero. Cliente com busca e rosto, título, descrição, valor, quantas parcelas e o
-// primeiro vencimento (as outras caem mês a mês), a forma de pagar com as instruções que o cliente vê, e as
-// observações. Embaixo, as parcelas como vão ficar. Salva no servidor e abre a ficha.
+// A nova cobrança (2026-09-15): nasce de um orçamento aprovado, que já traz o cliente, o título, o valor e as
+// parcelas, ou do zero. Desde 2026-10-27 (a pedido: "na mesma pegada") é a janela dupla da casa, como a de
+// receber: sem cabeçalho, três seções numeradas (a cobrança, valor e vencimento, pagamento) e, à direita, o
+// resumo dela em blocos com as parcelas como vão ficar. Era uma gaveta lateral. Salva no servidor e abre a ficha.
 export function NewChargeDialog({ open, lookups, clientId, direction = "incoming", onClose, onCreated }: NewChargeDialogProps) {
-  const mobile = useMediaQuery(MOBILE_QUERY);
   const savingRef = useRef(false);
   const close = () => {
     if (!savingRef.current) onClose();
   };
   return (
-    <Dialog open={open} onClose={close} label={direction === "outgoing" ? "Nova despesa" : "Nova cobrança"} size="md" placement="end" surface="page" scrim={mobile} focusOnOpen={false}>
+    <Dialog open={open} onClose={close} label={direction === "outgoing" ? "Nova despesa" : "Nova cobrança"} size="xl" surface="solid" focusOnOpen={false} className={`${formWindow.window} ${windowStyles.window}`}>
       <ChargeForm lookups={lookups} clientId={clientId} direction={direction} onClose={onClose} onCreated={onCreated} savingRef={savingRef} />
     </Dialog>
   );
@@ -80,32 +82,14 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
 
-  /* A foto sobe **depois** de a cobrança existir: o arquivo mora numa pasta com o id dela, e na criação esse
-     id só aparece agora. Até lá o que a tela mostra é um endereço local, que só vale nesta aba. */
-  const fileInput = useRef<HTMLInputElement>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
-  useEffect(
-    () => () => {
-      if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);
-    },
-    [imageUrl],
-  );
-
-  const pickImage = (file: File | null) => {
-    if (file && file.size > SOURCE_MAX_BYTES) {
-      toast({ title: "Imagem grande demais", description: "A foto passa de 25 MB. Escolha uma menor.", tone: "warning" });
-      return;
-    }
-    if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);
-    setImageUrl(file ? URL.createObjectURL(file) : null);
-    setImageFile(file);
-  };
-
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((current) => ({ ...current, [key]: value }));
 
-  const quoteOptions = [{ value: NO_QUOTE, label: "Sem orçamento", caption: "Cobrança avulsa" }, ...lookups.quotes.map((quote) => ({ value: quote.id, label: quote.number, caption: `${quote.title}, ${formatMoney(quote.amount)}` }))];
+  /* Uma linha por opção, sem a segunda embaixo (2026-10-27, a pedido: "tudo precisa ter o mesmo tamanho"): o
+     seletor fechado fica da altura dos outros campos. */
+  const quoteOptions = [
+    { value: NO_QUOTE, label: "Sem orçamento", media: emptyOptionMedia(optionGlyphs.noQuote) },
+    ...lookups.quotes.map((quote) => ({ value: quote.id, label: `${quote.title} (${quote.number})`, media: <OptionIcon icon={optionGlyphs.quote} hue="orange" /> })),
+  ];
   const outgoing = values.direction === "outgoing";
   const availableClients = outgoing ? lookups.suppliers : lookups.customers;
   const selectedClient = availableClients.find((client) => client.id === values.clientId);
@@ -155,6 +139,8 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
         paymentInfo: values.paymentInfo,
         notes: values.notes,
         quoteId: values.quoteId,
+        categoryId: values.categoryId === NO_CATEGORY ? null : values.categoryId,
+        accountId: values.accountId === DEFAULT_ACCOUNT ? null : values.accountId,
       }),
     );
     if (!result.ok) {
@@ -163,18 +149,6 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
       setError({ message: result.error, field: result.field });
       return;
     }
-    /* A foto vai depois do salvamento, e não junto: falha dela não desfaz a cobrança, que já está gravada. */
-    if (imageFile) {
-      try {
-        const sent = await uploadImage("charge-image", result.charge.id, imageFile);
-        if (!sent.ok) toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada, foto não`, description: sent.error, tone: "warning" });
-      } catch {
-        /* A cobrança já existe; uma imagem que falhou não pode deixar o botão preso nem induzir uma segunda
-           criação. A ficha abre normalmente e a pessoa recebe o aviso específico. */
-        toast({ title: `${outgoing ? "Despesa" : "Cobrança"} criada, foto não`, description: "Não foi possível preparar a imagem.", tone: "warning" });
-      }
-    }
-
     savingRef.current = false;
     setSaving(false);
     toast({
@@ -201,149 +175,142 @@ function ChargeForm({ lookups, clientId, direction = "incoming", onClose, onCrea
   });
 
   return (
-    <div className={styles.drawer} aria-labelledby={titleId}>
-      <header className={styles.head}>
-        <div className={styles.heading}>
-          <Text as="h2" id={titleId} variant="headline" weight="semibold">
-            {outgoing ? "Nova despesa" : "Nova cobrança"}
-          </Text>
-        </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" disabled={saving} onClick={close}>
-          <XIcon />
-        </IconButton>
-      </header>
+    <>
+      <div className={`${formWindow.formCard} ${local.card}`} aria-labelledby={titleId}>
+        <VisuallyHidden as="h2" id={titleId}>
+          {outgoing ? "Nova despesa" : "Nova cobrança"}
+        </VisuallyHidden>
 
-      <div className={styles.body}>
-        {/* Despesa não nasce de orçamento: orçamento é o que a equipe cobra. */}
-        {!outgoing && (
-          <Field label="Orçamento aprovado">
-            <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
-          </Field>
-        )}
-
-        <Field label={outgoing ? "Fornecedor" : "Quem paga"} error={error?.field === "clientId" ? error.message : undefined}>
-          <Select<string>
-            label={outgoing ? "Fornecedor" : "Quem paga"}
-            size="sm"
-            options={[{ value: NO_CLIENT, label: outgoing ? "Despesa avulsa" : "Cobrança avulsa", caption: outgoing ? "Fornecedor ainda não cadastrado" : "Contato fora da base" }, ...clientOptions]}
-            value={values.clientId ?? NO_CLIENT}
-            searchable
-            searchPlaceholder={outgoing ? "Buscar fornecedor" : "Buscar cliente"}
-            invalid={error?.field === "clientId"}
-            onChange={(value) => setValues((current) => ({ ...current, clientId: value === NO_CLIENT ? null : value, partyName: value === NO_CLIENT ? current.partyName : "" }))}
-          />
-        </Field>
-        {outgoing && !values.clientId && (
-          <Field label="Nome do fornecedor" error={error?.field === "partyName" ? error.message : undefined}>
-            <Input type="text" size="sm" value={values.partyName} maxLength={80} placeholder="Para quem a equipe paga" invalid={error?.field === "partyName"} onChange={(event) => set("partyName", event.target.value)} />
-          </Field>
-        )}
-        <Field label="Título" required error={error?.field === "title" ? error.message : undefined}>
-          <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder={outgoing ? "Do que é a despesa" : "Do que é a cobrança"} invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
-        </Field>
-        <Field label="Descrição">
-          <Input type="text" size="sm" value={values.description} maxLength={chargeLimits.description} placeholder="Uma frase que aparece para o cliente" onChange={(event) => set("description", event.target.value)} />
-        </Field>
-
-        {/* A foto do que está sendo cobrado. Aparece no link de quem paga, e é o que separa "Assinatura do
-            sistema" de "Serviço de manutenção" numa lista de avulsas, que sem cliente ficariam iguais. */}
-        <Field label="Foto">
-          <div className={styles.photo}>
-            <span className={styles.photoFrame}>
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- é o arquivo que a pessoa acabou de escolher, num endereço local que o next/image não busca
-                <img src={imageUrl} alt="" className={styles.photoImage} />
-              ) : (
-                <ImageSquareIcon weight="duotone" aria-hidden="true" />
-              )}
-            </span>
-            <div className={styles.photoActions}>
-              <Button variant="outline" size="sm" radius="md" iconStart={<UploadSimpleIcon />} disabled={saving} onClick={() => fileInput.current?.click()}>
-                {imageUrl ? "Trocar" : "Enviar"}
-              </Button>
-              {imageUrl && (
-                <IconButton label="Remover foto" variant="ghost" size="sm" radius="md" disabled={saving} onClick={() => pickImage(null)}>
-                  <XIcon />
-                </IconButton>
-              )}
+        <div className={formWindow.body}>
+          {/* Três seções, uma pergunta cada (2026-10-27, a pedido: "muita coisa inútil e mal segmentado"): a foto, a
+              descrição e as observações saíram; o que sobrou é o que a cobrança precisa para existir e ser paga. */}
+          <Part number={1} title={outgoing ? "A despesa" : "A cobrança"}>
+            {/* Despesa não nasce de orçamento: orçamento é o que a equipe cobra. */}
+            {!outgoing && (
+              <Field className={local.field} label="Orçamento aprovado">
+                <Select<string> label="Orçamento de origem" size="sm" options={quoteOptions} value={values.quoteId ?? NO_QUOTE} searchable searchPlaceholder="Buscar orçamento" onChange={chooseQuote} />
+              </Field>
+            )}
+            <Field className={local.field} label="Título" required error={error?.field === "title" ? error.message : undefined}>
+              <Input type="text" size="sm" value={values.title} maxLength={chargeLimits.title} placeholder={outgoing ? "Do que é a despesa" : "Do que é a cobrança"} invalid={error?.field === "title"} onChange={(event) => set("title", event.target.value)} />
+            </Field>
+            <div className={formWindow.pair}>
+              <Field className={local.field} label={outgoing ? "Fornecedor" : "Quem paga"} error={error?.field === "clientId" ? error.message : undefined}>
+                <Select<string>
+                  label={outgoing ? "Fornecedor" : "Quem paga"}
+                  size="sm"
+                  options={[{ value: NO_CLIENT, label: outgoing ? "Despesa avulsa" : "Cobrança avulsa", media: emptyOptionMedia(optionGlyphs.standalone) }, ...clientOptions.map(({ caption: _caption, ...option }) => option)]}
+                  value={values.clientId ?? NO_CLIENT}
+                  searchable
+                  searchPlaceholder={outgoing ? "Buscar fornecedor" : "Buscar cliente"}
+                  invalid={error?.field === "clientId"}
+                  onChange={(value) => setValues((current) => ({ ...current, clientId: value === NO_CLIENT ? null : value, partyName: value === NO_CLIENT ? current.partyName : "" }))}
+                />
+              </Field>
+              <Field className={local.field} label="Categoria">
+                <Select<string>
+                  label="Categoria"
+                  size="sm"
+                  options={[
+                    { value: NO_CATEGORY, label: "Sem categoria", media: emptyOptionMedia() },
+                    ...lookups.categories.filter((category) => category.kind === (outgoing ? "expense" : "income")).map((category) => ({ value: category.id, label: category.name, media: <OptionIcon icon={optionGlyphs.category} hue={category.hue} /> })),
+                  ]}
+                  value={values.categoryId}
+                  onChange={(value) => set("categoryId", value)}
+                />
+              </Field>
             </div>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/avif"
-              className={styles.fileInput}
-              aria-label="Enviar foto da cobrança"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                event.target.value = "";
-                pickImage(file);
-              }}
-            />
-          </div>
-        </Field>
-        <div className={styles.pair}>
-          <Field label="Valor total" required error={error?.field === "amount" ? error.message : undefined}>
-            <Input type="text" size="sm" mask="currency" inputMode="numeric" value={values.amount} placeholder="0,00" invalid={error?.field === "amount"} onChange={(event) => set("amount", onlyDigits(event.target.value))} />
-          </Field>
-          <Field label="Parcelas">
-            <Select<number> label="Quantas parcelas" size="sm" options={installmentOptions} value={values.installments} onChange={(installments) => set("installments", installments)} />
-          </Field>
-        </div>
-        <div className={styles.pair}>
-          <Field label={values.installments > 1 ? "Primeiro vencimento" : "Vencimento"} required>
-            <DatePicker size="sm" value={parseISO(values.firstDueDate)} onChange={(date) => set("firstDueDate", format(date ?? new Date(), "yyyy-MM-dd"))} />
-          </Field>
-          <Field label="Forma">
-            <Select<ChargeMethod> label="Forma de pagamento" size="sm" options={methodOptions} value={values.method} onChange={(value) => set("method", value)} />
-          </Field>
-        </div>
-        {/* Repetir: a próxima nasce quando esta fecha, e não por relógio. Assim ninguém acumula doze
-            cobranças abertas de uma assinatura que o pagador parou de pagar. */}
-        <Field label="Repetir">
-          <Select<ChargeRecurrence> label="Com que frequência se repete" size="sm" options={recurrenceOptions} value={values.recurrence} onChange={(value) => set("recurrence", value)} />
-        </Field>
-        <Field label="Como pagar">
-          <Textarea size="sm" rows={2} value={values.paymentInfo} maxLength={chargeLimits.paymentInfo} placeholder={values.method === "pix" ? "Chave Pix: contato@empresa.com" : "O que o cliente precisa para pagar"} onChange={(event) => set("paymentInfo", event.target.value)} />
-        </Field>
-        <Field label="Observações">
-          <Textarea size="sm" rows={2} value={values.notes} maxLength={chargeLimits.notes} onChange={(event) => set("notes", event.target.value)} />
-        </Field>
+            {outgoing && !values.clientId && (
+              <Field className={local.field} label="Nome do fornecedor" error={error?.field === "partyName" ? error.message : undefined}>
+                <Input type="text" size="sm" value={values.partyName} maxLength={80} placeholder="Para quem a equipe paga" invalid={error?.field === "partyName"} onChange={(event) => set("partyName", event.target.value)} />
+              </Field>
+            )}
+          </Part>
 
-        {amount > 0 && (
-          <section className={styles.preview} aria-label="Como as parcelas vão ficar">
-            <Text as="h3" variant="caption1" weight="semibold" tone="secondary" className={styles.previewTitle}>
-              Como fica
+          <Part number={2} title="Valor e vencimento">
+            <div className={formWindow.pair}>
+              <Field className={local.field} label="Valor total" required error={error?.field === "amount" ? error.message : undefined}>
+                <Input type="text" size="sm" mask="currency" inputMode="numeric" value={values.amount} placeholder="0,00" invalid={error?.field === "amount"} onChange={(event) => set("amount", onlyDigits(event.target.value))} />
+              </Field>
+              <Field className={local.field} label="Parcelas">
+                <Select<number> label="Quantas parcelas" size="sm" options={installmentOptions} value={values.installments} onChange={(installments) => set("installments", installments)} />
+              </Field>
+            </div>
+            <div className={formWindow.pair}>
+              <Field className={local.field} label={values.installments > 1 ? "Primeiro vencimento" : "Vencimento"} required>
+                <DatePicker size="sm" value={parseISO(values.firstDueDate)} onChange={(date) => set("firstDueDate", format(date ?? new Date(), "yyyy-MM-dd"))} />
+              </Field>
+              {/* Repetir: a próxima nasce quando esta fecha, e não por relógio. Assim ninguém acumula doze
+                  cobranças abertas de uma assinatura que o pagador parou de pagar. */}
+              <Field className={local.field} label="Repetir">
+                <Select<ChargeRecurrence> label="Com que frequência se repete" size="sm" options={recurrenceOptions} value={values.recurrence} onChange={(value) => set("recurrence", value)} />
+              </Field>
+            </div>
+          </Part>
+
+          <Part number={3} title="Pagamento">
+            {/* A forma e a conta onde o dinheiro cai ou de onde sai (2026-10-27): a baixa de cada parcela herda a
+                conta, e é o que alimenta o extrato. As instruções só na cobrança, que tem o link do cliente. */}
+            <div className={formWindow.pair}>
+              <Field className={local.field} label="Forma">
+                <Select<ChargeMethod> label="Forma de pagamento" size="sm" options={methodOptions} value={values.method} onChange={(value) => set("method", value)} />
+              </Field>
+              <Field className={local.field} label={outgoing ? "Conta de saída" : "Conta de entrada"}>
+                <Select<string>
+                  label="Conta"
+                  size="sm"
+                  options={[
+                    { value: DEFAULT_ACCOUNT, label: "A conta padrão", media: <OptionIcon icon={optionGlyphs.account} hue="gray" /> },
+                    ...lookups.accounts.filter((account) => account.active).map((account) => ({ value: account.id, label: account.name, media: <AccountMark account={account} /> })),
+                  ]}
+                  value={values.accountId}
+                  onChange={(value) => set("accountId", value)}
+                />
+              </Field>
+            </div>
+            {!outgoing && (
+              <Field className={local.field} label="Instruções para o cliente">
+                <Input type="text" size="sm" value={values.paymentInfo} maxLength={chargeLimits.paymentInfo} placeholder={values.method === "pix" ? "Chave Pix: contato@empresa.com" : "O que o cliente precisa para pagar"} onChange={(event) => set("paymentInfo", event.target.value)} />
+              </Field>
+            )}
+          </Part>
+
+          {error && (
+            <Text variant="footnote" tone="danger" role="alert" className={formWindow.alert}>
+              {error.message}
             </Text>
-            <ul className={styles.previewList}>
-              {preview.map((installment) => (
-                <li key={installment.number} className={styles.previewItem}>
-                  <Text as="span" variant="footnote" tone="secondary">
-                    {values.installments > 1 ? `Parcela ${installment.number}` : "Parcela única"}, {shortDate(installment.dueDate)}
-                  </Text>
-                  <Text as="span" variant="footnote" weight="semibold" numeric>
-                    {formatMoney(installment.amount)}
-                  </Text>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+          )}
+        </div>
 
-        {error && (
-          <Text variant="footnote" tone="danger" role="alert">
-            {error.message}
-          </Text>
-        )}
+        <footer className={formWindow.cardFoot}>
+          <Button variant="ghost" size="sm" radius="md" disabled={saving} onClick={close}>
+            Cancelar
+          </Button>
+          <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>
+            {saving ? "Criando" : `Criar ${outgoing ? "despesa" : "cobrança"}`}
+          </Button>
+        </footer>
       </div>
 
-      <DialogFooter>
-        <Button variant="outline" size="sm" radius="md" disabled={saving} onClick={close}>
-          Cancelar
-        </Button>
-        <Button size="sm" radius="md" iconStart={<CheckIcon />} loading={saving} onClick={() => void save()}>
-          {saving ? "Criando" : `Criar ${outgoing ? "despesa" : "cobrança"}`}
-        </Button>
-      </DialogFooter>
-    </div>
+      <aside className={formWindow.preview} aria-label={outgoing ? "Prévia da despesa" : "Prévia da cobrança"}>
+        <ChargePreview
+          draft={{
+            direction: values.direction,
+            party: selectedClient ? (selectedClient.company ?? selectedClient.name) : values.partyName.trim() || (outgoing ? "Despesa avulsa" : "Cobrança avulsa"),
+            avatar: selectedClient ? { name: selectedClient.name, url: selectedClient.avatarUrl } : null,
+            title: values.title.trim() || (outgoing ? "Do que é a despesa" : "Do que é a cobrança"),
+            amount,
+            method: values.method,
+            recurrence: values.recurrence,
+            account: values.accountId === DEFAULT_ACCOUNT ? "A conta padrão" : (lookups.accounts.find((account) => account.id === values.accountId)?.name ?? "A conta padrão"),
+            category: (() => {
+              const found = lookups.categories.find((category) => category.id === values.categoryId);
+              return found ? { name: found.name, hue: found.hue } : null;
+            })(),
+            installments: preview,
+          }}
+        />
+      </aside>
+    </>
   );
 }

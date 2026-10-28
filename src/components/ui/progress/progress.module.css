@@ -55,3 +55,26 @@
 @keyframes wave {
   35% { opacity: 1; }
 }
+
+/* A barra lisa: o trilho inteiro arredondado e o preenchimento de uma peça só, que cresce com transição. */
+.track[data-variant="bar"] {
+  gap: 0;
+  height: var(--tick-height);
+  overflow: hidden;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background-color: var(--tone);
+  border-radius: inherit;
+  transition: inline-size var(--duration-base) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}

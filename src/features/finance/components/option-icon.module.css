@@ -1,0 +1,16 @@
+/* O quadradinho da opção no matiz dela, do tamanho da marca de conta, para todas as opções alinharem. */
+.icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--hue);
+  background-color: color-mix(in oklab, var(--hue) 16%, transparent);
+  border-radius: 0.3125rem;
+  place-items: center;
+}
+
+.icon svg {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}

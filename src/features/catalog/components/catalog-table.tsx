@@ -71,7 +71,6 @@ export function CatalogTable({ items, isActive, onActiveChange, onOpen, onEdit, 
     },
     {
       id: "name",
-      pinned: true,
       header: "Item",
       cell: (item) => (
         <CatalogHoverCard item={item} active={isActive(item)}>

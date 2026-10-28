@@ -173,7 +173,7 @@
 
 @media (max-width: 47.9375rem) {
   .canvas {
-    height: calc(100dvh - var(--topbar-height, 3.5rem) - 6.5rem);
+    height: calc(100dvh - 6.5rem);
     min-height: 26rem;
   }
 }

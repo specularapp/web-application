@@ -39,9 +39,10 @@ export function FormWindowTabs<T extends string>({ label, steps, value, onChange
 
 /**
  * Uma seção numerada, na receita dos editores da Le Ange, num painel de fundo leve que destaca o grupo: o
- * número em texto puro com o nome e a dica em poucas palavras à esquerda, e os campos à direita.
+ * número em texto puro com o nome e a dica em poucas palavras à esquerda, e os campos à direita. A dica é
+ * opcional desde 2026-10-27: na janela de receber e pagar a pessoa pediu a seção sem ela.
  */
-export function FormWindowPart({ number, title, hint, children }: { number: number; title: string; hint: string; children: ReactNode }) {
+export function FormWindowPart({ number, title, hint, children }: { number: number; title: string; hint?: string; children: ReactNode }) {
   const id = useId();
   return (
     <section className={styles.part} aria-labelledby={id}>
@@ -49,9 +50,11 @@ export function FormWindowPart({ number, title, hint, children }: { number: numb
         <Text as="h3" id={id} variant="subheadline" weight="semibold">
           <span className={styles.partNumber}>{number}.</span> {title}
         </Text>
-        <Text as="span" variant="caption1" tone="secondary">
-          {hint}
-        </Text>
+        {hint && (
+          <Text as="span" variant="caption1" tone="secondary">
+            {hint}
+          </Text>
+        )}
       </header>
       <div className={styles.partFields}>{children}</div>
     </section>

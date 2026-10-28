@@ -1,9 +1,15 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   AddressBookIcon,
+  ArrowCircleDownIcon,
+  ArrowCircleUpIcon,
+  ArrowsDownUpIcon,
+  ArrowsLeftRightIcon,
+  BankIcon,
   BellIcon,
   BriefcaseIcon,
   ChartBarIcon,
+  ChartLineUpIcon,
   ClipboardTextIcon,
   ChatCircleTextIcon,
   CheckSquareOffsetIcon,
@@ -67,10 +73,20 @@ export function isFolder(entry: NavEntry): entry is NavFolder {
   return "items" in entry;
 }
 
-/** A página em vigor é a própria rota ou qualquer coisa abaixo dela: `/clientes/abc` é `/clientes`. */
+const under = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+/**
+ * A página em vigor é a própria rota ou qualquer coisa abaixo dela: `/clientes/abc` é `/clientes`. Menos quando
+ * outra página do menu é mais específica (2026-10-27, com as contas bancárias): `/financeiro/contas` é a página
+ * das contas, e a visão geral em `/financeiro` não pode acender junto.
+ */
 export function isCurrent(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (!under(pathname, href)) return false;
+  if (pathname === href) return true;
+  return !navHrefs().some((other) => other.length > href.length && other.startsWith(`${href}/`) && under(pathname, other));
 }
+
+const navHrefs = () => navGroups.flatMap((group) => group.entries.flatMap((entry) => (isFolder(entry) ? entry.items.map((item) => item.href as string) : [entry.href as string])));
 
 /** Um degrau da rota que o topo mostra: o nome e o glifo com que o menu o desenha. */
 export type NavCrumb = { label: string; icon: Icon };
@@ -221,15 +237,20 @@ export const navGroups: NavGroup[] = [
     icon: CurrencyCircleDollarIcon,
     hue: "var(--sys-green)",
     entries: [
+      /* Liberado em 2026-10-27, a pedido: "libere o financeiro, vamos começar a trabalhar nele". */
       {
         label: "Financeiro",
         icon: CurrencyCircleDollarIcon,
         hue: "var(--sys-green)",
-        locked: true,
         items: [
-          { label: "Visão geral", href: "/financeiro", icon: CurrencyCircleDollarIcon },
+          { label: "Fluxo de caixa", href: "/financeiro", icon: ChartLineUpIcon },
+          { label: "Contas a receber", href: "/financeiro/a-receber", icon: ArrowCircleDownIcon },
+          { label: "Contas a pagar", href: "/financeiro/a-pagar", icon: ArrowCircleUpIcon },
+          { label: "Movimentações", href: "/financeiro/movimentacoes", icon: ArrowsDownUpIcon },
           { label: "Cobranças", href: "/cobrancas", icon: CreditCardIcon },
           { label: "Despesas", href: "/despesas", icon: ReceiptIcon },
+          { label: "Contas bancárias", href: "/financeiro/contas", icon: BankIcon },
+          { label: "Transferências", href: "/financeiro/transferencias", icon: ArrowsLeftRightIcon },
         ],
       },
       {

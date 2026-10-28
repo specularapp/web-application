@@ -861,8 +861,10 @@ export type Database = {
       }
       charges: {
         Row: {
+          account_id: string | null
           amount: number
           cancelled_at: string | null
+          category_id: string | null
           client_avatar_url: string | null
           client_company: string | null
           client_email: string | null
@@ -892,8 +894,10 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           cancelled_at?: string | null
+          category_id?: string | null
           client_avatar_url?: string | null
           client_company?: string | null
           client_email?: string | null
@@ -923,8 +927,10 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           cancelled_at?: string | null
+          category_id?: string | null
           client_avatar_url?: string | null
           client_company?: string | null
           client_email?: string | null
@@ -954,6 +960,27 @@ export type Database = {
           viewed_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "charges_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "charges_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "charges_client_id_fkey"
             columns: ["client_id"]
@@ -1588,6 +1615,118 @@ export type Database = {
           },
         ]
       }
+      finance_accounts: {
+        Row: {
+          active: boolean
+          agency: string | null
+          bank: string | null
+          created_at: string
+          created_by: string | null
+          hue: Database["public"]["Enums"]["palette_hue"]
+          id: string
+          is_default: boolean
+          kind: Database["public"]["Enums"]["finance_account_kind"]
+          last_digits: string | null
+          name: string
+          opening_balance: number
+          opening_date: string
+          organization_id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          agency?: string | null
+          bank?: string | null
+          created_at?: string
+          created_by?: string | null
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["finance_account_kind"]
+          last_digits?: string | null
+          name: string
+          opening_balance?: number
+          opening_date?: string
+          organization_id: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          agency?: string | null
+          bank?: string | null
+          created_at?: string
+          created_by?: string | null
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["finance_account_kind"]
+          last_digits?: string | null
+          name?: string
+          opening_balance?: number
+          opening_date?: string
+          organization_id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_categories: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          hue: Database["public"]["Enums"]["palette_hue"]
+          id: string
+          kind: Database["public"]["Enums"]["finance_category_kind"]
+          name: string
+          nature: Database["public"]["Enums"]["finance_category_nature"] | null
+          organization_id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          kind: Database["public"]["Enums"]["finance_category_kind"]
+          name: string
+          nature?: Database["public"]["Enums"]["finance_category_nature"] | null
+          organization_id: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          hue?: Database["public"]["Enums"]["palette_hue"]
+          id?: string
+          kind?: Database["public"]["Enums"]["finance_category_kind"]
+          name?: string
+          nature?: Database["public"]["Enums"]["finance_category_nature"] | null
+          organization_id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_settings: {
         Row: {
           opening_balance: number
@@ -1611,6 +1750,84 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          date: string
+          from_account_id: string
+          id: string
+          note: string
+          organization_id: string
+          reference: string
+          to_account_id: string
+          undone_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          date: string
+          from_account_id: string
+          id?: string
+          note?: string
+          organization_id: string
+          reference?: string
+          to_account_id: string
+          undone_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          from_account_id?: string
+          id?: string
+          note?: string
+          organization_id?: string
+          reference?: string
+          to_account_id?: string
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "finance_transfers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_account_balances"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -3532,7 +3749,9 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string
           amount: number
+          category_id: string | null
           charge_id: string | null
           created_at: string
           created_by: string | null
@@ -3543,17 +3762,21 @@ export type Database = {
           method_label: string | null
           method_type: Database["public"]["Enums"]["payment_method"] | null
           organization_id: string
+          origin: Database["public"]["Enums"]["transaction_origin"]
           reference: string
           status: Database["public"]["Enums"]["transaction_status"]
           time: string | null
           title: string
+          transfer_id: string | null
           updated_at: string
           visual_avatar_url: string | null
           visual_name: string | null
           visual_type: Database["public"]["Enums"]["transaction_visual"] | null
         }
         Insert: {
+          account_id?: string
           amount: number
+          category_id?: string | null
           charge_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3564,17 +3787,21 @@ export type Database = {
           method_label?: string | null
           method_type?: Database["public"]["Enums"]["payment_method"] | null
           organization_id: string
+          origin?: Database["public"]["Enums"]["transaction_origin"]
           reference?: string
           status?: Database["public"]["Enums"]["transaction_status"]
           time?: string | null
           title: string
+          transfer_id?: string | null
           updated_at?: string
           visual_avatar_url?: string | null
           visual_name?: string | null
           visual_type?: Database["public"]["Enums"]["transaction_visual"] | null
         }
         Update: {
+          account_id?: string
           amount?: number
+          category_id?: string | null
           charge_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3585,16 +3812,39 @@ export type Database = {
           method_label?: string | null
           method_type?: Database["public"]["Enums"]["payment_method"] | null
           organization_id?: string
+          origin?: Database["public"]["Enums"]["transaction_origin"]
           reference?: string
           status?: Database["public"]["Enums"]["transaction_status"]
           time?: string | null
           title?: string
+          transfer_id?: string | null
           updated_at?: string
           visual_avatar_url?: string | null
           visual_name?: string | null
           visual_type?: Database["public"]["Enums"]["transaction_visual"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_charge_id_fkey"
             columns: ["charge_id"]
@@ -3609,14 +3859,46 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transfers"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      finance_account_balances: {
+        Row: {
+          account_id: string | null
+          balance: number | null
+          organization_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      adjust_finance_account: {
+        Args: {
+          p_account_id: string
+          p_balance: number
+          p_date: string
+          p_note?: string
+          p_organization_id: string
+        }
+        Returns: undefined
+      }
       approval_by_token: { Args: { p_token_hash: string }; Returns: Json }
       attach_billing_customer: {
         Args: { p_organization_id: string; p_stripe_customer_id: string }
@@ -3641,6 +3923,7 @@ export type Database = {
           p_operation: string
           p_organization_id: string
           p_paid_on?: string
+          p_account_id?: string
         }
         Returns: undefined
       }
@@ -3683,9 +3966,24 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["billing_plan"]
       }
+      create_finance_transfer: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_from_account_id: string
+          p_note?: string
+          p_organization_id: string
+          p_to_account_id: string
+        }
+        Returns: string
+      }
       delete_task_stage: {
         Args: { p_id: string; p_move_to?: string }
         Returns: undefined
+      }
+      finance_account_balance: {
+        Args: { p_account_id: string }
+        Returns: number
       }
       gamification_summary: {
         Args: never
@@ -3916,6 +4214,10 @@ export type Database = {
         Args: { p_max: number; p_min: number; p_value: string }
         Returns: boolean
       }
+      undo_finance_transfer: {
+        Args: { p_organization_id: string; p_transfer_id: string }
+        Returns: undefined
+      }
       trial_available: {
         Args: {
           p_organization_id: string
@@ -3994,6 +4296,9 @@ export type Database = {
         | "target"
         | "buildings"
         | "tray"
+      finance_account_kind: "checking" | "savings" | "cash" | "acquirer"
+      finance_category_kind: "income" | "expense"
+      finance_category_nature: "fixed" | "variable"
       history_action:
         | "created"
         | "updated"
@@ -4054,7 +4359,7 @@ export type Database = {
         | "pink"
         | "brown"
         | "gray"
-      payment_method: "pix" | "transfer" | "boleto" | "card"
+      payment_method: "pix" | "transfer" | "boleto" | "card" | "cash"
       plan_feature_kind: "flag" | "limit"
       project_glyph:
         | "kanban"
@@ -4178,6 +4483,7 @@ export type Database = {
         | "palette"
       task_stage_kind: "upcoming" | "ongoing" | "done"
       transaction_kind: "income" | "expense" | "scheduled"
+      transaction_origin: "manual" | "charge" | "transfer" | "adjustment"
       transaction_status: "confirmed" | "pending" | "cancelled"
       transaction_visual: "person" | "brand"
     }
@@ -4385,6 +4691,9 @@ export const Constants = {
         "buildings",
         "tray",
       ],
+      finance_account_kind: ["checking", "savings", "cash", "acquirer"],
+      finance_category_kind: ["income", "expense"],
+      finance_category_nature: ["fixed", "variable"],
       history_action: ["created", "updated", "archived", "restored", "deleted"],
       intake_form_status: ["draft", "published", "closed"],
       intake_profile_field: [
@@ -4445,7 +4754,7 @@ export const Constants = {
         "brown",
         "gray",
       ],
-      payment_method: ["pix", "transfer", "boleto", "card"],
+      payment_method: ["pix", "transfer", "boleto", "card", "cash"],
       plan_feature_kind: ["flag", "limit"],
       project_glyph: [
         "kanban",
@@ -4575,6 +4884,7 @@ export const Constants = {
       ],
       task_stage_kind: ["upcoming", "ongoing", "done"],
       transaction_kind: ["income", "expense", "scheduled"],
+      transaction_origin: ["manual", "charge", "transfer", "adjustment"],
       transaction_status: ["confirmed", "pending", "cancelled"],
       transaction_visual: ["person", "brand"],
     },

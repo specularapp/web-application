@@ -33,7 +33,6 @@ function QuotesTableBase({ quotes, onOpen, footer, range }: QuotesTableProps) {
   const columns: DataTableColumn<Quote>[] = [
     {
       id: "title",
-      pinned: true,
       header: "Orçamento",
       cell: (quote) => (
         <QuoteHoverCard quote={quote}>

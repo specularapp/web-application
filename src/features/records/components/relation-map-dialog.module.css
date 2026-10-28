@@ -1,12 +1,15 @@
-/* A janela do mapa: **o quadro ocupa o modal inteiro** e o título flutua por cima (2026-09-17, a pedido: o
-   quadro saía recortado). Em linhas separadas o cabeçalho comia altura do desenho, e num mapa fundo isso era
-   justamente a parte que faltava; sobreposto, ele não tira nada e continua legível pelo vidro. A altura é
-   declarada porque o React Flow mede o pai, e pai sem altura desenha um quadro de zero pixel. */
+/* A janela do mapa: **o quadro ocupa o modal inteiro** (2026-09-17), e desde 2026-10-27 sem cabeçalho nenhum,
+   só o fechar flutuando na quina. A altura é declarada porque o React Flow mede o pai, e pai sem altura desenha
+   um quadro de zero pixel. */
+/* O quadro toma a janela inteira, que já tem a altura da tela (2026-10-27, correção: com a altura própria do
+   quadro, menor que a da janela, sobrava uma faixa vazia embaixo). */
 .dialog {
   display: grid;
+  flex: 1 1 auto;
   grid-template-areas: "canvas";
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
-  height: min(88vh, 52rem);
+  height: 100%;
 }
 
 @media (max-width: 47.9375rem) {
@@ -15,28 +18,30 @@
   }
 }
 
-.head {
+/* O título só para o leitor de tela: a janela inteira é o mapa (2026-10-27). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* O fechar, a única coisa por cima do quadro na quina de cima: um botão redondo no vidro da casa. */
+.close {
   grid-area: canvas;
-  z-index: 3;
-  display: flex;
-  gap: var(--space-2);
+  z-index: 5;
   align-self: start;
-  align-items: center;
-  justify-content: space-between;
+  justify-self: end;
   margin: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  padding: var(--space-half);
   background-color: var(--glass-sheet-bg);
   border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   box-shadow: var(--shadow-md);
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
-}
-
-.heading {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
 }
 
 /* O quadro, com os tokens da casa nas variáveis do React Flow: os mesmos do editor de automação, porque é o
@@ -44,8 +49,8 @@
 .canvas {
   grid-area: canvas;
 
-  --xy-background-color: var(--color-bg);
-  --xy-background-pattern-color: var(--color-fill);
+  --xy-background-color: light-dark(var(--color-bg-grouped), var(--color-bg));
+  --xy-background-pattern-color: light-dark(color-mix(in oklab, var(--color-label) 14%, transparent), color-mix(in oklab, var(--color-label) 16%, transparent));
   --xy-edge-stroke: var(--color-label-tertiary);
   --xy-edge-stroke-width: 2;
   --xy-handle-background-color: var(--color-bg-tertiary);
@@ -77,16 +82,11 @@
   max-width: none;
 }
 
-/* O nome da ligação ("virou", "formaliza", "cobra") sobre o fio, na caixinha do fundo da página para não
-   sumir em cima do pontilhado. */
+/* O nome da ligação ("virou", "formaliza", "cobra") numa pílula sobre o fio, no matiz do registro a que ela chega
+   (a cor vem da própria ligação). */
 .canvas :global(.react-flow__edge-text) {
   font-family: var(--font-body);
-  font-size: 0.625rem;
-  fill: var(--color-label-secondary);
-}
-
-.canvas :global(.react-flow__edge-textbg) {
-  fill: var(--color-bg);
+  font-size: 0.6875rem;
 }
 
 .center {
@@ -96,13 +96,15 @@
   padding: var(--space-12) var(--space-5) var(--space-5);
 }
 
-/* O dock flutuante de aproximar e enquadrar, o mesmo do editor de automação. */
+/* Aproximar, afastar e enquadrar numa coluna presa na borda direita, no meio da altura, como nos quadros de
+   referência. */
 .dock {
   position: absolute;
-  inset-block-end: var(--space-4);
-  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-3);
   z-index: 4;
   display: inline-flex;
+  flex-direction: column;
   gap: var(--space-half);
   align-items: center;
   padding: var(--space-half);
@@ -110,33 +112,87 @@
   border: 0.0375rem solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  translate: -50% 0;
+  translate: 0 -50%;
   -webkit-backdrop-filter: var(--glass-layer-blur);
   backdrop-filter: var(--glass-layer-blur);
 }
 
+/* A legenda no pé, à esquerda: os tipos que estão no quadro, cada um com o ponto da cor e a contagem. */
+.legend {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-start: var(--space-3);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  max-width: calc(100% - var(--space-12));
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  list-style: none;
+  background-color: var(--glass-sheet-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--glass-layer-blur);
+  backdrop-filter: var(--glass-layer-blur);
+}
+
+.legend li {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.legendDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--node-hue);
+  border-radius: var(--radius-full);
+}
+
+.legendCount {
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label);
+}
+
 @media (max-width: 47.9375rem) {
-  .dock {
+  .legend {
     inset-block-end: var(--floating-bar-inset, 5rem);
   }
 }
 
-/* Um registro no mapa: caixa com o fio da casa e uma trilha do matiz do domínio na borda de entrada, que é
-   o que deixa distinguir orçamento de contrato antes de ler. */
+/* Um registro no mapa, no desenho dos quadros de referência: o cartão na superfície elevada com a borda no matiz
+   do domínio (apagada nos ligados, cheia na raiz), para distinguir orçamento de contrato antes de ler. */
 .node {
   position: relative;
-  width: 17rem;
-  background-color: var(--color-bg-tertiary);
-  border: 0.0375rem solid var(--color-border);
-  border-inline-start: 0.1875rem solid var(--node-hue);
+  width: 15.5rem;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.09375rem solid color-mix(in oklab, var(--node-hue) 45%, var(--color-border));
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-/* A raiz é o cliente: ganha o fio de acento inteiro, porque é dela que todo o resto pende. */
+/* A raiz é o cliente: a borda inteira no matiz e um halo dele, porque é dela que todo o resto pende. */
 .node[data-root] {
   border-color: var(--node-hue);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    0 0 0 0.25rem color-mix(in oklab, var(--node-hue) 16%, transparent),
+    var(--shadow-md);
+}
+
+@media (hover: hover) {
+  .node:hover {
+    border-color: var(--node-hue);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* O card inteiro é o link: é o que faz o mapa servir de navegação, e não só de desenho. */
@@ -154,59 +210,27 @@
   outline-offset: -2px;
 }
 
-@media (hover: hover) {
-  a.nodeLink:hover {
-    background-color: var(--color-fill-tertiary);
-  }
-}
-
-/* O topo do nó: a imagem ou o glifo de um lado, e o identificador, o nome e o domínio do outro. */
+/* O topo: o glifo ou a foto num círculo, o tipo em caixa alta e a situação na ponta. */
 .nodeHead {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  display: flex;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
 }
 
-/* A foto do registro no mesmo azulejo do glifo, cobrindo o quadrado. */
+.nodeGlyph,
 .nodePhoto {
-  width: 2.25rem;
-  height: 2.25rem;
-  object-fit: cover;
-  background-color: var(--color-fill-tertiary);
-}
-
-/* Os campos do registro, um por linha: o nome do campo à esquerda e o valor à direita, alinhados entre si
-   para a coluna de valores ler de cima a baixo. */
-.nodeFields {
-  display: grid;
-  gap: var(--space-half);
-  padding-block-start: var(--space-2);
-  border-block-start: 0.0375rem solid var(--color-border);
-}
-
-.nodeField {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--space-2);
-  align-items: baseline;
-}
-
-.nodeField dd {
-  min-width: 0;
-  margin: 0;
-  text-align: end;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
 }
 
 .nodeGlyph {
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
   color: var(--node-hue);
-  background-color: light-dark(color-mix(in oklab, var(--node-hue) 14%, transparent), color-mix(in oklab, var(--node-hue) 22%, transparent));
-  border-radius: var(--radius-md);
+  background-color: light-dark(color-mix(in oklab, var(--node-hue) 14%, transparent), color-mix(in oklab, var(--node-hue) 24%, transparent));
 }
 
 .nodeGlyph svg {
@@ -214,19 +238,71 @@
   height: 1rem;
 }
 
+.nodePhoto {
+  object-fit: cover;
+  background-color: var(--color-fill-tertiary);
+}
+
+/* O tipo do registro como rótulo de seção: miúdo, em caixa alta e espaçado, como nos quadros de referência. */
+.nodeKind {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-tertiary);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
 .nodeCopy {
   display: grid;
-  gap: var(--space-half);
+  gap: 0.0625rem;
   min-width: 0;
 }
 
-/* O identificador que a pessoa lê e a etiqueta da situação, na mesma linha acima do nome. */
-.nodeTop {
+.nodeReference {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Os campos do registro em linhas curtas, o nome à esquerda e o valor à direita, depois de um fio. */
+.nodeFields {
+  display: grid;
+  gap: 0.1875rem;
+  padding-block-start: var(--space-2);
+  margin: 0;
+  font-size: var(--text-caption-1);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.nodeField {
   display: flex;
   gap: var(--space-2);
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   min-width: 0;
+}
+
+.nodeField dt {
+  flex-shrink: 0;
+  color: var(--color-label-tertiary);
+}
+
+.nodeField dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-weight: var(--weight-medium);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Arrastar o nó é da pessoa, então o cursor diz isso; o link de dentro volta ao cursor de link. */
@@ -242,11 +318,12 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* As alças existem só para o fio saber onde encostar: aqui nada se liga a nada com o mouse. */
+/* As alças são os pontos onde a ligação encosta, no matiz do domínio, como nos quadros de referência: aqui nada se
+   liga a nada com o mouse. */
 .canvas :global(.react-flow__handle).handle {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.5625rem;
+  height: 0.5625rem;
   pointer-events: none;
-  background-color: var(--color-bg-tertiary);
-  border-width: 0.0625rem;
+  background-color: var(--node-hue);
+  border: 0.125rem solid var(--color-bg-grouped-secondary);
 }

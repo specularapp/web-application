@@ -1,0 +1,21 @@
+/* A janela de transferir é mais estreita que a do catálogo: quatro campos e a folha do comprovante. */
+.window.window.window:not([data-mode="sheet"]) {
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  align-items: stretch;
+  width: min(60rem, calc(100vw - var(--space-12)));
+  height: auto;
+  max-height: calc(100dvh - var(--space-12));
+}
+
+/* A janela na altura do que tem, e não numa altura fixa com um vão embaixo: cada cartão do tamanho do conteúdo,
+   rolando por dentro só se passar da tela. */
+.window.window.window:not([data-mode="sheet"]) > * {
+  height: auto;
+  max-height: calc(100dvh - var(--space-12));
+}
+
+/* O comprovante: o cabeçalho, a folha no palco e o rodapé. */
+.receipt {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}

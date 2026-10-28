@@ -22,8 +22,12 @@
   overflow: auto;
 }
 
+/* A tabela toma a largura natural das colunas e rola para o lado quando não cabe (2026-10-27, a pedido: "todas
+   as tabelas scrolláveis para o lado"), em vez de espremer as colunas até cortar tudo em reticências; quando
+   cabe, ela enche a largura como antes. */
 .table {
-  inline-size: 100%;
+  inline-size: max-content;
+  min-inline-size: 100%;
   font-size: var(--text-footnote);
   letter-spacing: var(--tracking-tight);
   color: var(--color-label);
@@ -74,22 +78,11 @@
   text-align: center;
 }
 
-/* As colunas que saem nas telas estreitas, antes de a tabela precisar rolar para o lado. */
-@media (max-width: 47.9375rem) {
-  .th[data-hide="md"],
-  .cell[data-hide="md"] {
-    display: none;
-  }
-}
+/* Nenhuma coluna sai nas telas estreitas desde 2026-10-27: a tabela rola para o lado, com a primeira coluna e
+   a das ações presas, e o `hideBelow` das colunas ficou sem efeito. */
 
-@media (max-width: 63.9375rem) {
-  .th[data-hide="lg"],
-  .cell[data-hide="lg"] {
-    display: none;
-  }
-}
-
-/* A seleção e a coluna do nome: coladas à esquerda e acima das demais ao rolar para o lado. */
+/* A seleção e a primeira coluna coladas à esquerda, e a das ações colada à direita, acima das demais ao rolar
+   para o lado. */
 .th[data-pin],
 .cell[data-pin] {
   position: sticky;
@@ -125,9 +118,19 @@
   vertical-align: middle;
 }
 
-/* O fio de quem rolou: só aparece depois do primeiro pixel de rolagem lateral. */
+.th[data-pin="end"],
+.cell[data-pin="end"] {
+  inset-inline-end: 0;
+}
+
+/* Os fios das colunas presas: o da esquerda depois do primeiro pixel de rolagem, e o da direita enquanto ainda
+   há coluna escondida embaixo da das ações. */
 .scroll[data-scrolled] [data-edge] {
   box-shadow: inset -1px 0 0 var(--line-subtle);
+}
+
+.scroll[data-more-right] [data-pin="end"] {
+  box-shadow: inset 1px 0 0 var(--line-subtle);
 }
 
 .sort {

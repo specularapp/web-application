@@ -9,16 +9,14 @@ import {
   TrashIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { format, formatDistanceToNowStrict, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useFloatingActionsRegistration } from "@/components/layout/floating-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Dialog, DialogHeader } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { Timeline } from "@/components/ui/timeline";
 import { loadHistoryAction } from "../actions";
 import type { HistoryAction, HistoryEntry, HistoryKind } from "../history";
 import styles from "./history-dialog.module.css";
@@ -41,11 +39,9 @@ const actions: Record<HistoryAction, { icon: Icon; hue: string }> = {
   deleted: { icon: TrashIcon, hue: "var(--sys-red)" },
 };
 
-const agoLabel = (iso: string) => `há ${formatDistanceToNowStrict(parseISO(iso), { locale: ptBR })}`;
-const exactLabel = (iso: string) => format(parseISO(iso), "d 'de' MMM. 'de' yyyy, HH:mm", { locale: ptBR });
-
 /**
- * O histórico de um registro, na gaveta lateral: quem mexeu, o quê e quando.
+ * O histórico de um registro numa janela centrada (2026-10-27, a pedido: "faça o modal abrir ao centro da tela,
+ * organize melhor e padronize o histórico"), na linha do tempo da casa: quem mexeu, o quê e quando, por dia.
  *
  * É a **mesma** janela para todo domínio, e por isso recebe o tipo e o id em vez de um cliente: a linha
  * "Histórico" existe no leque do cliente, do item de catálogo, do projeto e da automação, e uma cópia por
@@ -73,14 +69,13 @@ export type HistoryDrawerProps = {
 };
 
 /**
- * A gaveta de histórico em si, sem saber de onde vêm as entradas: o registro de alterações e o de tempo de
- * uma tarefa são a mesma pergunta ("o que aconteceu aqui?") e usam a mesma peça (2026-09-22).
+ * A janela de histórico em si, sem saber de onde vêm as entradas: o registro de alterações e o de tempo de
+ * uma tarefa são a mesma pergunta ("o que aconteceu aqui?") e usam a mesma peça (2026-09-22). Centrada, sólida
+ * e sobre o véu desde 2026-10-27, como as outras janelas da casa; no celular, a bandeja.
  */
 export function HistoryDrawer({ open, onClose, label, title, description, children }: HistoryDrawerProps) {
-  const mobile = useMediaQuery(MOBILE_QUERY);
-
   return (
-    <Dialog open={open} onClose={onClose} label={label} size="md" placement="end" scrim={mobile} focusOnOpen={false}>
+    <Dialog open={open} onClose={onClose} label={label} size="lg" focusOnOpen={false}>
       <DrawerBody title={title} description={description} onClose={onClose}>
         {children}
       </DrawerBody>
@@ -96,37 +91,6 @@ function DrawerBody({ title, description, onClose, children }: { title: string; 
       <DialogHeader title={title} description={description} onClose={onClose} />
       <div className={styles.body}>{children}</div>
     </div>
-  );
-}
-
-/** A linha do tempo: uma lista ordenada de `HistoryItem`. */
-export function HistoryTimeline({ children }: { children: ReactNode }) {
-  return <ol className={styles.entries}>{children}</ol>;
-}
-
-/** Uma entrada da linha do tempo: o glifo no matiz do ato, o que aconteceu, quando, e o que vier por baixo. */
-export function HistoryItem({ icon: Glyph, hue, title, when, whenTitle, children }: { icon: Icon; hue: string; title: ReactNode; when: ReactNode; whenTitle?: string; children?: ReactNode }) {
-  return (
-    <li className={styles.entry}>
-      {/* A trilha: o glifo do ato e o fio que desce até o próximo, que é o que faz a lista virar linha do tempo. */}
-      <span className={styles.rail} aria-hidden="true">
-        <span className={styles.glyph} style={{ "--act-hue": hue } as CSSProperties}>
-          <Glyph weight="duotone" />
-        </span>
-      </span>
-
-      <div className={styles.copy}>
-        <div className={styles.line}>
-          <Text as="span" variant="footnote" weight="semibold">
-            {title}
-          </Text>
-          <Text as="span" variant="caption1" tone="secondary" title={whenTitle}>
-            {when}
-          </Text>
-        </div>
-        {children}
-      </div>
-    </li>
   );
 }
 
@@ -165,28 +129,30 @@ function History({ recordType, recordId }: Pick<HistoryDialogProps, "recordType"
   }
 
   return (
-    <HistoryTimeline>
-      {entries.map((entry) => {
+    <Timeline
+      label="Histórico do registro"
+      entries={entries.map((entry) => {
         const act = actions[entry.action];
-
-        return (
-          <HistoryItem key={entry.id} icon={act.icon} hue={act.hue} title={entry.summary} when={agoLabel(entry.at)} whenTitle={exactLabel(entry.at)}>
-            <div className={styles.actor}>
-              {entry.actor ? (
-                <>
-                  <Avatar name={entry.actor.name} src={entry.actor.avatarUrl ?? undefined} size="xs" />
-                  <Text as="span" variant="caption1" tone="secondary" truncate>
-                    {entry.actor.name}
-                  </Text>
-                </>
-              ) : (
-                <Text as="span" variant="caption1" tone="secondary">
-                  Pela aplicação
-                </Text>
-              )}
-            </div>
-
-            {entry.changes.length > 0 && (
+        return {
+          id: entry.id,
+          at: entry.at,
+          icon: act.icon,
+          hue: act.hue,
+          title: entry.summary,
+          meta: entry.actor ? (
+            <>
+              <Avatar name={entry.actor.name} src={entry.actor.avatarUrl ?? undefined} size="xs" />
+              <Text as="span" variant="caption1" tone="secondary" truncate>
+                {entry.actor.name}
+              </Text>
+            </>
+          ) : (
+            <Text as="span" variant="caption1" tone="secondary">
+              Pela aplicação
+            </Text>
+          ),
+          children:
+            entry.changes.length > 0 ? (
               <dl className={styles.changes}>
                 {entry.changes.map((change) => (
                   <div key={change.field} className={styles.change}>
@@ -209,10 +175,9 @@ function History({ recordType, recordId }: Pick<HistoryDialogProps, "recordType"
                   </div>
                 ))}
               </dl>
-            )}
-          </HistoryItem>
-        );
+            ) : undefined,
+        };
       })}
-    </HistoryTimeline>
+    />
   );
 }

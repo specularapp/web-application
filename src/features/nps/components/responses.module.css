@@ -20,7 +20,7 @@
 
 @media (max-width: 47.9375rem) {
   .inbox {
-    height: calc(100dvh - var(--topbar-height));
+    height: 100dvh;
   }
 }
 

@@ -71,90 +71,57 @@
   }
 }
 
+/* O corpo em duas colunas a partir de 64rem, como a ficha do contrato: o conteúdo à esquerda e o painel à
+   direita, cada um rolando por dentro; abaixo disso o painel desce para baixo do conteúdo. */
 .body {
   display: grid;
-  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
-  padding: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-@media (max-width: 47.9375rem) {
+@media (width >= 64rem) {
   .body {
-    gap: var(--space-4);
-    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    overflow: hidden;
+  }
+
+  .main,
+  .side {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .side {
+    border-inline-start: 0.0375rem solid var(--color-border);
   }
 }
 
-/* O topo do corpo: o título com a situação e a descrição, e o cliente na outra ponta. */
-.hero {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-4);
-  align-items: flex-start;
-  justify-content: space-between;
+@media (width < 64rem) {
+  .side {
+    border-block-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+.main {
+  display: grid;
+  align-content: start;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-5);
 }
 
 .heading {
   display: grid;
-  flex: 1 1 18rem;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.titleRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.client {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.clientCopy {
-  display: grid;
-  min-width: 0;
-}
-
-/* Os quatro números, na receita dos azulejos das fichas: caixa com o fio, rótulo, valor e apoio. */
-.facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: start;
   gap: var(--space-2);
 }
 
-@media (min-width: 48rem) {
-  .facts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.fact {
-  display: grid;
-  gap: var(--space-half);
-  min-width: 0;
-  padding: var(--space-3);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.fact[data-tone="success"] > :nth-child(2) {
-  color: var(--sys-green);
-}
-
-.fact[data-tone="danger"] > :nth-child(2) {
-  color: var(--sys-red);
-}
-
-.fact[data-tone="warning"] > :nth-child(2) {
-  color: var(--sys-orange);
+.title {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .section {
@@ -163,13 +130,21 @@
   min-width: 0;
 }
 
-/* As parcelas: uma linha por parcela, com o número no azulejo, o que é, o valor com a situação e a ação. */
+.sectionHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* As parcelas: o número num círculo, o valor com a data embaixo, a etiqueta do prazo e a ação na ponta. */
 .installments {
   display: grid;
-  gap: var(--space-2);
   padding: 0;
   margin: 0;
   list-style: none;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .installment {
@@ -177,47 +152,45 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: var(--space-3);
   align-items: center;
+  min-height: 3.5rem;
   padding: var(--space-2) var(--space-3);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
-.installment[data-status="paid"] {
-  background-color: light-dark(color-mix(in oklab, var(--sys-green) 6%, transparent), color-mix(in oklab, var(--sys-green) 10%, transparent));
-}
-
-.installment[data-status="overdue"] {
-  border-color: color-mix(in oklab, var(--sys-red) 45%, var(--color-border));
+.installment + .installment {
+  border-block-start: 0.0375rem solid var(--color-border);
 }
 
 .installmentNumber {
   display: grid;
-  place-items: center;
   width: 1.75rem;
   height: 1.75rem;
-  font-family: var(--font-body);
-  font-size: var(--text-caption1);
+  font-size: var(--text-caption-1);
   font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
   color: var(--color-label-secondary);
-  background-color: var(--color-fill-quaternary);
+  background-color: var(--color-fill-tertiary);
   border-radius: var(--radius-full);
+  place-items: center;
+}
+
+.installment[data-status="paid"] .installmentNumber {
+  color: var(--color-success);
+  background-color: color-mix(in oklab, var(--color-success) 14%, transparent);
+}
+
+.installment[data-status="overdue"] .installmentNumber {
+  color: var(--color-danger);
+  background-color: color-mix(in oklab, var(--color-danger) 14%, transparent);
 }
 
 .installmentCopy {
   display: grid;
-  gap: var(--space-half);
+  gap: 0.0625rem;
   min-width: 0;
 }
 
-.installmentEnd {
-  display: grid;
-  gap: var(--space-half);
-  justify-items: end;
-  white-space: nowrap;
-}
-
 .installmentAction {
-  display: contents;
+  display: inline-flex;
 }
 
 .wide {
@@ -229,16 +202,6 @@
 }
 
 @media (max-width: 47.9375rem) {
-  .installment {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .installmentEnd {
-    grid-column: 2 / -1;
-    grid-row: 2;
-    justify-items: start;
-  }
-
   .wide {
     display: none;
   }
@@ -248,86 +211,164 @@
   }
 }
 
-/* Como pagar e a linha do tempo, lado a lado no desktop. */
-.columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-}
-
-@media (min-width: 48rem) {
-  .columns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
+/* Como pagar: a forma em cima com o copiar, e as instruções embaixo. */
 .payment {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .paymentHead {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  min-height: 2rem;
 }
 
 .paymentHead svg {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
   color: var(--color-label-secondary);
 }
 
-.paymentHead > :last-child {
+.paymentHead > :last-child:not(:nth-child(2)) {
   margin-inline-start: auto;
 }
 
 .paymentInfo {
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-/* A linha do tempo: bolinha por evento, na cor do que aconteceu. */
-.events {
+/* ---------- O painel ---------- */
+
+.side {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5) var(--space-4);
+  background-color: light-dark(color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)), color-mix(in oklab, var(--color-label) 4%, var(--color-bg)));
+}
+
+.client {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+@media (hover: hover) {
+  a.client:hover {
+    border-color: color-mix(in oklab, var(--color-label) 24%, transparent);
+  }
+}
+
+.clientCopy {
+  display: grid;
+  min-width: 0;
+}
+
+/* Os valores: o total grande, a barra e o recebido e o em aberto lado a lado. */
+.values {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.values > [role="progressbar"],
+.values > :nth-child(3) {
+  margin-block: var(--space-2);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.split div {
+  display: grid;
+  gap: 0.0625rem;
+}
+
+.split dt {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.split dd {
+  margin: 0;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.split dd[data-tone="danger"] {
+  color: var(--color-danger);
+}
+
+/* Os detalhes em linhas de rótulo e valor. */
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.facts div {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  font-size: var(--text-footnote);
+}
+
+.facts dt {
+  flex-shrink: 0;
+  color: var(--color-label-secondary);
+}
+
+.facts dd {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  font-weight: var(--weight-medium);
+  text-align: end;
+}
+
+.facts dd svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.sideBlock {
   display: grid;
   gap: var(--space-3);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.event {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-}
-
-.eventDot {
-  flex-shrink: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-block-start: 0.4rem;
-  background-color: var(--color-label-tertiary);
-  border-radius: var(--radius-full);
-}
-
-.eventDot[data-kind="paid"] {
-  background-color: var(--sys-green);
-}
-
-.eventDot[data-kind="reported"],
-.eventDot[data-kind="viewed"] {
-  background-color: var(--sys-blue);
-}
-
-.eventDot[data-kind="cancelled"] {
-  background-color: var(--sys-red);
-}
-
-.eventCopy {
-  display: grid;
-  gap: var(--space-half);
   min-width: 0;
+}
+
+@media (max-width: 47.9375rem) {
+  .main {
+    padding: var(--space-4);
+  }
+
+  .side {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  }
 }

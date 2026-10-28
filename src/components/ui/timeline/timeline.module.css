@@ -1,0 +1,156 @@
+/*
+ * A linha do tempo da casa (2026-10-27): três colunas, a hora, a trilha e o conteúdo, como numa agenda em trilha.
+ *
+ * O fio é contínuo: cada linha da lista (entrada ou nome de dia) desenha o próprio trecho na altura inteira dela,
+ * na coluna da trilha, então os trechos emendam sem vão; o da primeira entrada nasce no centro do círculo e o da
+ * última morre no centro do dele. Os círculos ficam por cima do fio, encostados nele.
+ */
+.timeline {
+  --time-width: 2.75rem;
+  --node-size: 2.5rem;
+  --col-gap: var(--space-3);
+  --row-gap: var(--space-5);
+  /* O meio da coluna da trilha, medido da borda esquerda da linha: é onde o fio corre. */
+  --rail-x: calc(var(--time-width) + var(--col-gap) + var(--node-size) / 2);
+
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* O primeiro dia, por cima da lista e fora do fio, alinhado com o conteúdo. */
+.dayLabel {
+  margin: 0;
+  padding-inline-start: calc(var(--time-width) + var(--node-size) + var(--col-gap) * 2);
+  color: var(--color-label-secondary);
+}
+
+.entries {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* O trecho do fio desta linha, na altura inteira dela. */
+.entry::before,
+.dayRow::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--rail-x) - 0.0625rem);
+  width: 0.125rem;
+  content: "";
+  background-color: var(--color-border);
+}
+
+/* O fio nasce no centro do primeiro círculo e morre no centro do último. */
+.entry:first-child::before {
+  inset-block-start: calc(var(--node-size) / 2);
+}
+
+.entry:last-child::before {
+  inset-block-end: auto;
+  height: calc(var(--node-size) / 2);
+}
+
+.entry:only-child::before {
+  display: none;
+}
+
+.entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--time-width) var(--node-size) minmax(0, 1fr);
+  gap: var(--col-gap);
+  min-width: 0;
+  padding-block-end: var(--row-gap);
+}
+
+.entry:last-child {
+  padding-block-end: 0;
+}
+
+/* O nome de um dia novo no meio da lista: o fio passa ao lado dele, e o nome se alinha com o conteúdo. */
+.dayRow {
+  position: relative;
+  padding-block: var(--space-1) var(--row-gap);
+  padding-inline-start: calc(var(--time-width) + var(--node-size) + var(--col-gap) * 2);
+}
+
+.dayName {
+  margin: 0;
+  color: var(--color-label-secondary);
+}
+
+/* A hora, na altura do centro do círculo, em algarismo tabular para as horas alinharem de linha a linha. */
+.time {
+  padding-block-start: calc((var(--node-size) - 1.25rem) / 2);
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  color: var(--color-label-secondary);
+  text-align: end;
+}
+
+/* O círculo do ato, por cima do fio e encostado nele: o ícone na cor do ato sobre o véu dela, opaco para cobrir o
+   fio sem anel em volta (o anel abria um respiro que lia como fio interrompido). A entrada mais recente leva o
+   círculo cheio, com o ícone em branco. */
+.node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--node-size);
+  height: var(--node-size);
+  color: var(--tone);
+  background-color: light-dark(color-mix(in oklab, var(--tone) 14%, var(--color-bg)), color-mix(in oklab, var(--tone) 24%, var(--color-bg)));
+  border-radius: var(--radius-full);
+}
+
+.node svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.entry[data-latest] .node {
+  color: var(--color-on-accent);
+  background-color: var(--tone);
+}
+
+/* O conteúdo começa na altura do círculo: o título no meio dele e a linha de apoio logo embaixo. */
+.content {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  min-width: 0;
+  padding-block-start: calc((var(--node-size) - 1.4rem) / 2);
+}
+
+.title {
+  margin: 0;
+  line-height: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+/* Quem fez e há quanto tempo, numa linha só, o tempo depois de quem. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.ago {
+  color: var(--color-label-tertiary);
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .timeline {
+    --time-width: 2.5rem;
+    --node-size: 2.125rem;
+  }
+}

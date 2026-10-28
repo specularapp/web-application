@@ -113,7 +113,7 @@ export function ChargeCard({ charge, onOpen, ...actions }: ChargeCardProps) {
         </div>
 
         <div className={styles.progress}>
-          <Progress value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : charge.direction === "outgoing" ? "accent" : "success"} aria-label={`${charge.direction === "outgoing" ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
+          <Progress variant="bar" value={received} max={charge.amount} size="sm" tone={chargeStatusOf(charge) === "overdue" ? "danger" : charge.direction === "outgoing" ? "accent" : "success"} aria-label={`${charge.direction === "outgoing" ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
           <span className={styles.progressLine}>
             <Text as="span" variant="caption1" tone="secondary">
               {paidCount} de {charge.installments.length} {charge.installments.length === 1 ? "parcela" : "parcelas"}

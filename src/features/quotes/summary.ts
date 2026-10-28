@@ -9,7 +9,7 @@ export type QuotePerson = { name: string; avatarUrl: string | null };
 export type QuoteSeller = QuotePerson & { email?: string; role?: string };
 
 /** Como o cliente paga, escrito no documento junto das parcelas. */
-export type QuotePaymentMethod = "pix" | "transfer" | "boleto" | "card";
+export type QuotePaymentMethod = "pix" | "transfer" | "boleto" | "card" | "cash";
 
 /** Se a linha é cortesia: não, sim, ou só se o cliente fechar hoje (2026-09-09, a pedido). */
 export type QuoteCourtesy = "no" | "yes" | "today";

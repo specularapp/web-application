@@ -1,0 +1,49 @@
+/* A prancha de contas a receber e a pagar: a barra de busca e filtros e a tabela, que rola por dentro no
+   desktop, como as outras listas. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+.table {
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+}
+
+.category,
+.account {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  max-width: 14rem;
+}
+
+.category i {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--category);
+  border-radius: var(--radius-full);
+}
+
+/* O valor e a parcela na mesma linha, alinhados à direita como a coluna. */
+.amount {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+  justify-content: flex-end;
+  white-space: nowrap;
+}

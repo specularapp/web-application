@@ -1,8 +1,6 @@
 "use client";
 
-import { AddressBookIcon, GlobeSimpleIcon, KanbanIcon, PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { AddressBookIcon, CheckSquareOffsetIcon, GlobeSimpleIcon, KanbanIcon, PencilSimpleIcon, XIcon } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { IconButton } from "@/components/ui/icon-button";
 import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { Text } from "@/components/ui/text";
+import { Timeline } from "@/components/ui/timeline";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { loadProjectAction } from "../actions";
 import { siteLabel } from "../labels";
@@ -44,7 +43,6 @@ const projectTabs = [
   { id: "activity", label: "Atividade" },
 ] as const satisfies readonly { id: ProjectTab; label: string }[];
 
-const whenLabel = (iso: string) => format(parseISO(iso), "d MMM., HH:mm", { locale: ptBR });
 const firstName = (name: string) => name.split(" ")[0] ?? name;
 
 // A janela do projeto (2026-09-13, a pedido): a moldura de trabalho da casa, a `Dialog` `xl` centrada, a
@@ -241,32 +239,25 @@ function ProjectDetail({ project, tab, onTabChange, onClose, onEdit, onDelete }:
                     Nada registrado ainda
                   </Text>
                 ) : (
-                  <ol className={styles.events}>
-                    {full.activity.map((event) => (
-                      <li key={event.id} className={styles.event}>
-                        <Avatar name={event.person.name} src={event.person.avatarUrl ?? undefined} size="xs" />
-                        <div className={styles.eventCopy}>
-                          <Text as="p" variant="footnote">
-                            <Text as="span" variant="footnote" weight="medium">
-                              {firstName(event.person.name)}
-                            </Text>{" "}
-                            {event.action}
-                            {event.task && (
-                              <Text as="span" variant="footnote" tone="secondary">
-                                {" "}
-                                em {event.task}
-                              </Text>
-                            )}
+                  /* A linha do tempo da casa, a mesma do histórico de edições (2026-10-27). */
+                  <Timeline
+                    label="Atividade do projeto"
+                    entries={full.activity.map((event) => ({
+                      id: event.id,
+                      at: event.at,
+                      icon: CheckSquareOffsetIcon,
+                      hue: "var(--sys-blue)",
+                      title: `${firstName(event.person.name)} ${event.action}`,
+                      meta: event.task ? (
+                        <>
+                          <Avatar name={event.person.name} src={event.person.avatarUrl ?? undefined} size="xs" />
+                          <Text as="span" variant="caption1" tone="secondary" truncate>
+                            em {event.task}
                           </Text>
-                          <time dateTime={event.at}>
-                            <Text as="span" variant="caption1" tone="tertiary">
-                              {whenLabel(event.at)}
-                            </Text>
-                          </time>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
+                        </>
+                      ) : undefined,
+                    }))}
+                  />
                 )}
               </section>
             </>

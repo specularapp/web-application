@@ -8,6 +8,9 @@ type ProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   tone?: "accent" | "success" | "warning" | "danger";
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   segments?: number;
+  /** `bar` é a barra lisa, de uma peça só (2026-10-27, a pedido, no financeiro: "otimize para ficar fluido
+   *  mesmo"); o padrão continua o tracejado em segmentos. */
+  variant?: "segments" | "bar";
 };
 
 function fillOf(index: number, segments: number, ratio: number) {
@@ -25,6 +28,7 @@ export function Progress({
   tone = "accent",
   size = "md",
   segments = 32,
+  variant = "segments",
   className,
   ...props
 }: ProgressProps) {
@@ -41,15 +45,20 @@ export function Progress({
       data-tone={tone}
       data-size={size}
       data-indeterminate={indeterminate || undefined}
+      data-variant={variant}
       {...props}
     >
-      {Array.from({ length: segments }, (_, index) => (
+      {variant === "bar" ? (
+        <span className={styles.fill} style={{ inlineSize: `${ratio * 100}%` }} />
+      ) : (
+        Array.from({ length: segments }, (_, index) => (
         <span
           key={index}
           className={styles.tick}
           style={tickStyle(indeterminate ? { "--index": index } : { "--fill": fillOf(index, segments, ratio) })}
         />
-      ))}
+      ))
+      )}
     </div>
   );
 }

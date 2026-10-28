@@ -34,6 +34,7 @@ import { TextLink } from "@/components/ui/link";
 import { ProfileFact, ProfileFacts, ProfileSection } from "@/components/ui/profile";
 import { SheetSwitcher } from "@/components/ui/sheet-switcher";
 import { Text } from "@/components/ui/text";
+import { Timeline } from "@/components/ui/timeline";
 import { Tooltip } from "@/components/ui/tooltip";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { formatMoney } from "@/lib/utils/format";
@@ -64,13 +65,13 @@ const contractTabs = [
 const whenLabel = (iso: string) => format(parseISO(iso), "d MMM., HH:mm", { locale: ptBR });
 
 /* O que cada registro da linha do tempo diz e com que glifo. */
-const eventMeta: Record<ContractEvent["kind"], { label: string; icon: typeof FileDashedIcon }> = {
-  created: { label: "criou o contrato", icon: FileDashedIcon },
-  sent: { label: "enviou para assinatura", icon: PaperPlaneTiltIcon },
-  resent: { label: "reenviou o convite", icon: PaperPlaneTiltIcon },
-  viewed: { label: "abriu o documento", icon: EyeIcon },
-  signed: { label: "assinou", icon: SignatureIcon },
-  cancelled: { label: "cancelou o contrato", icon: XCircleIcon },
+const eventMeta: Record<ContractEvent["kind"], { label: string; icon: typeof FileDashedIcon; hue: string }> = {
+  created: { label: "criou o contrato", icon: FileDashedIcon, hue: "var(--sys-gray)" },
+  sent: { label: "enviou para assinatura", icon: PaperPlaneTiltIcon, hue: "var(--sys-blue)" },
+  resent: { label: "reenviou o convite", icon: PaperPlaneTiltIcon, hue: "var(--sys-blue)" },
+  viewed: { label: "abriu o documento", icon: EyeIcon, hue: "var(--sys-cyan)" },
+  signed: { label: "assinou", icon: SignatureIcon, hue: "var(--sys-green)" },
+  cancelled: { label: "cancelou o contrato", icon: XCircleIcon, hue: "var(--sys-red)" },
 };
 
 // A janela do contrato (2026-09-14): a moldura de trabalho da casa, a `Dialog` `xl`, a mesma da ficha do
@@ -355,33 +356,14 @@ function ContractDetail({ contract, tab, onTabChange, onClose, onEdit, onSend, o
             <Text as="h3" id="contract-timeline" variant="callout" weight="semibold">
               Linha do tempo
             </Text>
-            <ol className={styles.events}>
-              {events.map((event) => {
+            {/* A linha do tempo da casa, a mesma do histórico de edições (2026-10-27). */}
+            <Timeline
+              label="Linha do tempo do contrato"
+              entries={events.map((event) => {
                 const meta = eventMeta[event.kind];
-                return (
-                  <li key={event.id} className={styles.event}>
-                    <span className={styles.eventGlyph} aria-hidden="true">
-                      <meta.icon weight="duotone" />
-                    </span>
-                    <div className={styles.eventCopy}>
-                      <Text as="p" variant="footnote">
-                        {event.actor && (
-                          <Text as="span" variant="footnote" weight="medium">
-                            {event.actor}{" "}
-                          </Text>
-                        )}
-                        {meta.label}
-                      </Text>
-                      <time dateTime={event.at}>
-                        <Text as="span" variant="caption1" tone="tertiary">
-                          {whenLabel(event.at)}
-                        </Text>
-                      </time>
-                    </div>
-                  </li>
-                );
+                return { id: event.id, at: event.at, icon: meta.icon, hue: meta.hue, title: `${event.actor ?? "O sistema"} ${meta.label}` };
               })}
-            </ol>
+            />
           </section>
         </aside>
       </div>

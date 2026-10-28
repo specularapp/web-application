@@ -1,0 +1,313 @@
+/*
+ * As contas bancárias (2026-10-27, da Le Ange): um cartão por conta. A face leva o matiz da conta num tom
+ * leve (`--account`): a marca, o nome, o saldo e a curva dos últimos 30 dias. Embaixo, no fundo do cartão, o
+ * tipo e o número, o que entrou e saiu com a barra da proporção, o último movimento e os atalhos.
+ */
+
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+.scroll {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+
+  .scroll {
+    padding-block-end: var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* A soma das contas ativas, discreta, acima da grade: é o mesmo número do caixa da visão geral. */
+.total {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+.total strong {
+  font-size: var(--text-headline);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label);
+}
+
+.total strong[data-negative] {
+  color: var(--color-danger);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Todos os cartões da mesma altura, com a borda suave: os detalhes no meio e os atalhos sempre no pé. */
+.card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 23rem;
+  overflow: hidden;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.card[data-inactive] .face,
+.card[data-inactive] .details {
+  opacity: 0.55;
+}
+
+/* ---------- A face, no matiz da conta ---------- */
+
+.face {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+  background-color: color-mix(in oklab, var(--account) 10%, var(--color-bg-grouped-secondary));
+}
+
+.faceHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.ident {
+  display: grid;
+  flex: 1;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+.ident strong {
+  overflow: hidden;
+  font-size: var(--text-callout);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ident small {
+  overflow: hidden;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.balance span {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.balance strong {
+  font-size: var(--text-title-1);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.balance strong[data-negative] {
+  color: var(--color-danger);
+}
+
+/* A curva encostada nas bordas e no pé da face. */
+.spark {
+  margin-inline: calc(var(--space-4) * -1);
+}
+
+/* ---------- Os detalhes ---------- */
+
+.details {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.digits {
+  margin-inline-start: auto;
+  font-size: var(--text-footnote);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+/* Entrou e saiu, lado a lado, com a seta num quadradinho da cor de cada um. */
+.flow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.flow > div {
+  --tone: var(--color-success);
+
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.flow > div[data-kind="out"] {
+  --tone: var(--color-danger);
+}
+
+.flow > div > span:last-child {
+  display: grid;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+.flowIcon {
+  display: grid;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--tone);
+  background-color: color-mix(in oklab, var(--tone) 14%, transparent);
+  border-radius: var(--radius-sm);
+  place-items: center;
+}
+
+.flowIcon svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.flow dt {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.flow dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A proporção entre o que entrou e o que saiu, numa barra fina. */
+.flowBar {
+  display: flex;
+  gap: 0.125rem;
+  height: 0.375rem;
+  overflow: hidden;
+  background-color: var(--color-fill-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.flowBar i {
+  display: block;
+  min-width: 0.125rem;
+  height: 100%;
+}
+
+.flowBar i[data-kind="in"] {
+  background-color: var(--color-success);
+}
+
+.flowBar i[data-kind="out"] {
+  background-color: var(--color-danger);
+}
+
+/* O último movimento numa linha: o que foi à esquerda, cortado com reticências, e o valor com sinal. */
+.last {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.last span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.last strong {
+  flex-shrink: 0;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.last strong[data-kind="in"] {
+  color: var(--color-success);
+}
+
+.last strong[data-kind="out"] {
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.actions > * {
+  flex: 1;
+}
+
+/* A ação por extenso no desktop e em ícone no celular, como nas cobranças. */
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}

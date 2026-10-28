@@ -1,0 +1,23 @@
+/* O glifo do recibo no centro da capa, na cobrança avulsa que não tem foto: o tamanho do avatar grande, no
+   matiz da capa. */
+.glyph {
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  color: var(--cover-hue);
+  background-color: color-mix(in oklab, var(--cover-hue) 18%, var(--sheet-bg));
+  border-radius: var(--radius-full);
+  place-items: center;
+}
+
+.glyph svg {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.lineGlyph {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-label-tertiary);
+}

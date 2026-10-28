@@ -141,7 +141,6 @@ export function FlowsBoard({ flows: initial, author }: FlowsBoardProps) {
   const columns: DataTableColumn<Flow>[] = [
     {
       id: "name",
-      pinned: true,
       header: "Fluxo",
       width: "17rem",
       sortable: true,

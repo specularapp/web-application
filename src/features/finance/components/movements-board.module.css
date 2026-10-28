@@ -1,0 +1,123 @@
+/* As movimentações: a barra de busca e filtros e a tabela, que rola por dentro no desktop. */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 100%;
+  padding: var(--space-4);
+}
+
+.table {
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .board {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: var(--space-6);
+  }
+}
+
+.direction {
+  --tone: var(--color-success);
+
+  display: grid;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--tone);
+  background-color: color-mix(in oklab, var(--tone) 14%, transparent);
+  border-radius: var(--radius-full);
+  place-items: center;
+}
+
+.direction[data-kind="expense"] {
+  --tone: var(--color-danger);
+}
+
+.direction svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  max-width: 14rem;
+}
+
+.chip > svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-label-tertiary);
+}
+
+.chip i {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--category);
+  border-radius: var(--radius-full);
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A entrada sem verde (2026-10-27, a pedido): o valor na cor do texto, com o sinal e a seta dizendo o lado. */
+.amount[data-kind="expense"] {
+  color: var(--color-danger);
+}
+
+.amount[data-reversed] {
+  color: var(--color-label-tertiary);
+  text-decoration: line-through;
+}
+
+/* O recibo: o ticket no palco, que ocupa a janela, e as ações no pé. */
+.receipt {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 0;
+}
+
+.receiptStage {
+  padding: var(--space-6) var(--space-5);
+}
+
+.receiptFoot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.wide {
+  display: contents;
+}
+
+.narrow {
+  display: none;
+}
+
+@media (max-width: 47.9375rem) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: contents;
+  }
+}

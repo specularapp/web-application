@@ -3,8 +3,15 @@ import { cache } from "react";
 import { cacheKey, cacheTtl, cached } from "@/lib/cache";
 import { cacheTags } from "@/lib/cache/tags";
 import { getOrganizationContext, requireOrganization } from "@/features/organizations/context";
-import { getCharge, getChargeLookups, getFinanceOverview, getFinanceSummary, listCharges, type ChargeLookups } from "./service";
-import type { Charge, FinanceOverview, FinancePeriod, FinanceSummary } from "./summary";
+import { getCharge, getChargeLookups, getFinanceSummary, listCharges, type ChargeLookups } from "./service";
+import type { AccountsScreenData, TransfersScreenData } from "./accounts";
+import { financeToday, listAccountMovements, listFinanceAccounts, listTransfers } from "./accounts-service";
+import type { InstallmentsScreenData } from "./installments";
+import type { CashFlowData, MovementsScreenData } from "./movements";
+import { listMovements } from "./movements-service";
+import { listCategories, listInstallments } from "./installments-service";
+import type { ChargeDirection } from "./summary";
+import type { Charge, FinanceSummary } from "./summary";
 
 export type ChargesScreenData = { charges: Charge[]; lookups: ChargeLookups };
 
@@ -46,16 +53,6 @@ export const getChargeById = cache(
   },
 );
 
-export async function getFinanceOverviewData(period: FinancePeriod, next = "/financeiro"): Promise<FinanceOverview> {
-  const { supabase, organizationId } = await requireOrganization(next);
-
-  return cached(
-    cacheKey(organizationId, "finance:overview", period),
-    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.summary },
-    () => getFinanceOverview(supabase, organizationId, period),
-  );
-}
-
 const EMPTY_BLOCK: FinanceSummary = { balance: 0, transactions: [] };
 
 /* Como os demais blocos do painel: sem time o painel ainda abre, com a configuração inicial por cima. */
@@ -68,5 +65,97 @@ export async function getFinanceBlock(): Promise<FinanceSummary> {
     cacheKey(organizationId, "finance:block"),
     { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.summary },
     () => getFinanceSummary(supabase, organizationId),
+  );
+}
+
+/* As contas com os movimentos, que a tela de contas usa para a curva de cada cartão e para o extrato, e a de
+   transferências para mostrar as duas pontas (2026-10-27). Uma leitura só por tela, no cache do financeiro. */
+export async function loadAccountsScreenData(next = "/financeiro/contas"): Promise<AccountsScreenData> {
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  return cached(
+    cacheKey(organizationId, "finance:accounts"),
+    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.list },
+    async () => {
+      const movements = await listAccountMovements(supabase, organizationId);
+      const accounts = await listFinanceAccounts(supabase, organizationId, movements);
+      return { accounts, movements, today: financeToday() };
+    },
+  );
+}
+
+export async function loadTransfersScreenData(next = "/financeiro/transferencias"): Promise<TransfersScreenData> {
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  return cached(
+    cacheKey(organizationId, "finance:transfers"),
+    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.list },
+    async () => {
+      const movements = await listAccountMovements(supabase, organizationId);
+      const [accounts, transfers] = await Promise.all([listFinanceAccounts(supabase, organizationId, movements), listTransfers(supabase, organizationId)]);
+      return { accounts, transfers, today: financeToday() };
+    },
+  );
+}
+
+/* Contas a receber e a pagar (2026-10-27): as parcelas do lado, as contas para a janela de baixa e as categorias
+   para o filtro. As contas vêm sem os movimentos, porque aqui só o saldo de agora importa. */
+export async function loadInstallmentsScreenData(direction: ChargeDirection): Promise<InstallmentsScreenData> {
+  const next = direction === "outgoing" ? "/financeiro/a-pagar" : "/financeiro/a-receber";
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  return cached(
+    cacheKey(organizationId, "finance:installments", direction),
+    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.list },
+    async () => {
+      const [entries, accounts, categories] = await Promise.all([
+        listInstallments(supabase, organizationId, direction),
+        listFinanceAccounts(supabase, organizationId, []),
+        listCategories(supabase, organizationId),
+      ]);
+      return { direction, entries, accounts, categories, today: financeToday() };
+    },
+  );
+}
+
+export async function loadMovementsScreenData(next = "/financeiro/movimentacoes"): Promise<MovementsScreenData> {
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  return cached(
+    cacheKey(organizationId, "finance:movements"),
+    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.list },
+    async () => {
+      const [movements, accounts, categories] = await Promise.all([listMovements(supabase, organizationId), listFinanceAccounts(supabase, organizationId, []), listCategories(supabase, organizationId)]);
+      return { movements, accounts, categories, today: financeToday() };
+    },
+  );
+}
+
+/* O fluxo de caixa (2026-10-27, fase 5 da vinda do financeiro da Le Ange): o que entrou e saiu, o que está por
+   receber e por pagar dos dois lados, as contas e as categorias. As contas e o período são da tela, que faz as
+   somas no navegador, como na Le Ange: trocar de período não volta ao servidor. */
+export async function loadCashFlowData(next = "/financeiro"): Promise<CashFlowData> {
+  const { supabase, organizationId } = await requireOrganization(next);
+
+  return cached(
+    cacheKey(organizationId, "finance:cash-flow"),
+    { organizationId, tags: [cacheTags.finance], ttl: cacheTtl.summary },
+    async () => {
+      const [movements, receivables, payables, accounts, categories] = await Promise.all([
+        listMovements(supabase, organizationId),
+        listInstallments(supabase, organizationId, "incoming"),
+        listInstallments(supabase, organizationId, "outgoing"),
+        listFinanceAccounts(supabase, organizationId, []),
+        listCategories(supabase, organizationId),
+      ]);
+      const pending = (entry: { status: string }) => entry.status === "open" || entry.status === "overdue";
+      return {
+        movements: movements.filter((entry) => entry.status === "confirmed"),
+        dues: [...receivables.filter(pending), ...payables.filter(pending)],
+        accounts,
+        categories,
+        today: financeToday(),
+      };
+    },
   );
 }

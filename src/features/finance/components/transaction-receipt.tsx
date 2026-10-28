@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { BankIcon, BarcodeIcon, CheckIcon, ClockIcon, CreditCardIcon, PixLogoIcon, XIcon } from "@phosphor-icons/react/ssr";
+import { BankIcon, BarcodeIcon, CheckIcon, ClockIcon, CreditCardIcon, MoneyIcon, PixLogoIcon, XIcon } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -51,6 +51,7 @@ const methodIcons: Record<PaymentMethod["type"], Icon> = {
   card: CreditCardIcon,
   boleto: BarcodeIcon,
   transfer: BankIcon,
+  cash: MoneyIcon,
 };
 
 function whenOf(transaction: Transaction) {

@@ -32,9 +32,6 @@ export type DataTableColumn<Row> = {
   sortValue?: (row: Row) => string | number | null;
   /** Coluna que sai nas telas estreitas, para as que importam caberem sem rolar. */
   hideBelow?: "md" | "lg";
-  /** A coluna que identifica a linha: gruda à esquerda ao rolar para o lado e tem piso de largura, para o nome
-   *  não encolher até uma letra quando a tabela não cabe (2026-10-26). */
-  pinned?: boolean;
   cell: (row: Row) => ReactNode;
 };
 
@@ -141,7 +138,6 @@ export function DataTable<Row>({
         align: column.align,
         width: column.width,
         hideBelow: column.hideBelow,
-        pinned: column.pinned,
         sortable: column.sortable,
         firstDirection: "asc",
         cell: column.cell,
@@ -153,6 +149,7 @@ export function DataTable<Row>({
             id: "actions",
             header: "Ações",
             align: "end" as const,
+            pinnedEnd: true,
             cell: (row: Row) => <span className={styles.actions}>{actions(row)}</span>,
           },
         ]

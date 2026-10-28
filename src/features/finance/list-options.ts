@@ -44,7 +44,7 @@ export const directionFilterLabels: Record<ChargesDirectionFilter, string> = {
 };
 
 export const statusFilterValues = ["todas", "open", "partial", "overdue", "paid", "cancelled"] as const;
-export const methodFilterValues = ["todas", "pix", "boleto", "transfer", "card"] as const;
+export const methodFilterValues = ["todas", "pix", "boleto", "transfer", "card", "cash"] as const;
 
 export type ChargesStatusFilter = (typeof statusFilterValues)[number];
 export type ChargesMethodFilter = (typeof methodFilterValues)[number];
@@ -67,6 +67,7 @@ export const methodFilterLabels: Record<ChargesMethodFilter, string> = {
   boleto: chargeMethods.boleto.label,
   transfer: chargeMethods.transfer.label,
   card: chargeMethods.card.label,
+  cash: chargeMethods.cash.label,
 };
 
 export type ChargesQuery = {

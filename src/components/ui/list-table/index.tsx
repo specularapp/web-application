@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownIcon, ArrowUpIcon, CaretUpDownIcon } from "@phosphor-icons/react";
-import { useState, type ComponentPropsWithoutRef, type CSSProperties, type ReactNode, type UIEvent } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentPropsWithoutRef, type CSSProperties, type ReactNode, type UIEvent } from "react";
 import { cx } from "@/lib/utils/cx";
 import { Checkbox } from "../checkbox";
 import styles from "./list-table.module.css";
@@ -27,8 +27,8 @@ export type ListTableColumn<Row> = {
   hideBelow?: "md" | "lg";
   /** Tinta secundária, para o dado que acompanha e não protagoniza (telefone, datas). */
   muted?: boolean;
-  /** A coluna que gruda à esquerda ao rolar para o lado, logo depois da seleção: a que identifica a linha. */
-  pinned?: boolean;
+  /** A coluna que gruda à direita ao rolar para o lado: a das ações da linha (2026-10-27). */
+  pinnedEnd?: boolean;
 };
 
 export type ListTableSelection<Row> = {
@@ -72,11 +72,33 @@ const STAGGER_LIMIT = 15;
  */
 export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange, selection, count, empty, className, tableClassName, rowProps }: ListTableProps<Row>) {
   const [scrolled, setScrolled] = useState(false);
+  /* Se ainda há coluna escondida à direita: é o que acende o fio na borda da coluna de ações presa ali. */
+  const [moreRight, setMoreRight] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
 
-  const onScroll = (event: UIEvent<HTMLDivElement>) => {
-    const next = event.currentTarget.scrollLeft > 0;
-    if (next !== scrolled) setScrolled(next);
+  const measure = (element: HTMLDivElement) => {
+    const nextScrolled = element.scrollLeft > 0;
+    const nextRight = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
+    setScrolled((current) => (current === nextScrolled ? current : nextScrolled));
+    setMoreRight((current) => (current === nextRight ? current : nextRight));
   };
+
+  const onScroll = (event: UIEvent<HTMLDivElement>) => measure(event.currentTarget);
+
+  /* A medida também vale sem rolagem nenhuma: na primeira pintura e quando a janela muda de largura, a tabela
+     pode passar a caber ou deixar de caber. */
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    measure(element);
+    const observer = new ResizeObserver(() => measure(element));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [rows.length, columns.length]);
+
+  /* A primeira coluna é a que gruda à esquerda, em toda tabela (2026-10-27, a pedido: "faça a primeira coluna
+     ficar fixa e a coluna de ação também"), e a das ações gruda à direita. */
+  const pinStart = (index: number) => index === 0;
 
   const selectedRows = selection ? rows.filter((row) => selection.selected.has(rowId(row))) : [];
   const allSelected = rows.length > 0 && selectedRows.length === rows.length;
@@ -110,7 +132,7 @@ export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange
   const span = columns.length + (selection ? 1 : 0);
 
   return (
-    <div className={cx(styles.scroll, className)} data-list-scroll="" data-scrolled={scrolled || undefined} onScroll={onScroll}>
+    <div ref={scroller} className={cx(styles.scroll, className)} data-list-scroll="" data-scrolled={scrolled || undefined} data-more-right={moreRight || undefined} onScroll={onScroll}>
       <table className={cx(styles.table, tableClassName)} aria-label={label} style={{ "--pin-left": selection ? "var(--check-width)" : "0px" } as CSSProperties}>
         <thead>
           <tr>
@@ -124,8 +146,9 @@ export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange
                 />
               </th>
             )}
-            {columns.map((column) => {
+            {columns.map((column, index) => {
               const active = sort?.id === column.id;
+              const start = pinStart(index);
               return (
                 <th
                   key={column.id}
@@ -135,15 +158,15 @@ export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange
                   data-col={column.id}
                   data-align={column.align}
                   data-hide={column.hideBelow}
-                  data-pin={column.pinned ? "name" : undefined}
-                  data-edge={column.pinned ? "" : undefined}
+                  data-pin={start ? "name" : column.pinnedEnd ? "end" : undefined}
+                  data-edge={start ? "" : undefined}
                   style={column.width ? { width: column.width, minWidth: column.width } : undefined}
                   aria-sort={column.sortable && onSortChange ? (active ? (sort?.direction === "asc" ? "ascending" : "descending") : "none") : undefined}
                 >
                   {column.sortable && onSortChange ? (
                     <button type="button" className={styles.sort} data-active={active || undefined} onClick={() => sortBy(column)}>
                       {column.header}
-                      {column.pinned && count !== undefined && <span className={styles.count}>({count})</span>}
+                      {start && count !== undefined && <span className={styles.count}>({count})</span>}
                       {active ? (
                         sort?.direction === "asc" ? (
                           <ArrowUpIcon aria-hidden="true" />
@@ -191,7 +214,7 @@ export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange
                     <Checkbox aria-label={selection.label(row)} checked={isSelected} onChange={() => toggleRow(id)} />
                   </td>
                 )}
-                {columns.map((column) => (
+                {columns.map((column, index) => (
                   <td
                     key={column.id}
                     className={styles.cell}
@@ -200,8 +223,8 @@ export function ListTable<Row>({ label, rows, rowId, columns, sort, onSortChange
                     data-align={column.align}
                     data-hide={column.hideBelow}
                     data-muted={column.muted || undefined}
-                    data-pin={column.pinned ? "name" : undefined}
-                    data-edge={column.pinned ? "" : undefined}
+                    data-pin={pinStart(index) ? "name" : column.pinnedEnd ? "end" : undefined}
+                    data-edge={pinStart(index) ? "" : undefined}
                   >
                     {column.cell(row)}
                   </td>

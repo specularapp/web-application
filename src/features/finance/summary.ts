@@ -7,7 +7,7 @@ export type TransactionKind = "income" | "expense" | "scheduled";
 export type TransactionStatus = "confirmed" | "pending" | "cancelled";
 
 /** Por onde o dinheiro passou. */
-export type PaymentMethod = { type: "pix" | "card" | "boleto" | "transfer"; label: string };
+export type PaymentMethod = { type: "pix" | "card" | "boleto" | "transfer" | "cash"; label: string };
 
 /** Quem aparece na linha: a foto da pessoa (ou o rosto gerado pelo `Avatar`) ou a logo do serviço em `public/brands`. Sem nada, entra o ícone do tipo. */
 export type TransactionVisual = { type: "person"; avatarUrl: string | null } | { type: "brand"; name: string };
@@ -127,6 +127,9 @@ export type Charge = {
   direction: ChargeDirection;
   title: string;
   description: string;
+  /** A categoria e a conta combinadas (2026-10-27); a baixa de cada parcela herda as duas. */
+  categoryId: string | null;
+  accountId: string | null;
   /** Nulo na cobrança avulsa, que não é de ninguém da base. */
   client: ChargeClient | null;
   /** A foto do que está sendo cobrado, quando isso tem rosto; aparece também no link do pagador. */

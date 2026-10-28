@@ -172,6 +172,8 @@
      seguirem emendando no corpo sem a faixa escura em cima. */
   --form-head-bg: light-dark(#f3f3f5, #25272b);
   --form-head-ink: light-dark(#1d1d1f, #ffffff);
+  /* O fundo do logo de banco que é só o símbolo (2026-10-27): claro nos dois temas, porque o símbolo foi desenhado para fundo claro. */
+  --bank-logo-bg: #ffffff;
 
   /* A cor da IA (2026-09-14): um azul calmo, mais lavado e mais frio que o azul de acento, que é o da ação e
      não podia virar marca de outra coisa. É ela que veste a marca da casa dentro do assistente, o cursor da

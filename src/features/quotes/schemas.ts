@@ -2,7 +2,7 @@ import { z } from "zod";
 import { catalogUnits } from "@/features/catalog/schemas";
 import type { QuotePaymentMethod } from "./summary";
 
-export const paymentMethodValues = ["pix", "transfer", "boleto", "card"] as const satisfies readonly QuotePaymentMethod[];
+export const paymentMethodValues = ["pix", "transfer", "boleto", "card", "cash"] as const satisfies readonly QuotePaymentMethod[];
 
 /** Quantas linhas um orçamento aceita. */
 export const MAX_LINES = 30;

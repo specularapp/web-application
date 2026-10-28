@@ -29,7 +29,6 @@ function ContractsTableBase({ contracts, actionsFor, footer, range }: ContractsT
   const columns: DataTableColumn<Contract>[] = [
     {
       id: "title",
-      pinned: true,
       header: "Contrato",
       cell: (contract) => <DataTableTitle title={contract.title} caption={contract.reference} onClick={actionsFor(contract).onOpen} />,
     },

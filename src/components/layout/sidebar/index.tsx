@@ -52,6 +52,7 @@ import { rounded } from "@/lib/corners";
 import { AccountMenu, ThemePicker, accountLinks } from "../account-menu";
 import { useFloatingActions } from "../floating-actions";
 import { alertKindLabels, type SidebarAlert } from "../alerts";
+import { AiTrigger } from "@/features/ai/components/ai-trigger";
 import { markNotificationsReadAction } from "@/features/organizations/actions";
 import { Notifications, type AppNotification } from "../notifications";
 import { pathToFunnel, type CrmTreeItem } from "@/features/crm/tree";
@@ -552,6 +553,8 @@ export function SidebarPanel({
             </Text>
           </span>
           <span className={styles.profileActions}>
+            {/* O SpeculAI mora aqui desde que o topo das páginas saiu (2026-10-27). */}
+            <AiTrigger size={mobile ? "md" : "sm"} />
             <Notifications
               items={notifications}
               onChange={onNotificationsChange}

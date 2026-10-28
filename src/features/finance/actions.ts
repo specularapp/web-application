@@ -52,7 +52,7 @@ export async function createChargeAction(input: unknown): Promise<{ ok: true; ch
   const created = await createCharge(supabase, organizationId, user.id, parsed.data);
   if (!created.ok) return { ok: false, error: created.error };
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro", "/financeiro/a-receber", "/financeiro/a-pagar", "/financeiro/contas"]);
   return { ok: true, charge: created.charge };
 }
 
@@ -93,7 +93,7 @@ export async function payInstallmentAction(input: unknown): Promise<{ ok: true; 
   const result = await payInstallment(supabase, organizationId, user.id, parsed.data);
   if (!result.ok) return result;
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro", "/financeiro/a-receber", "/financeiro/a-pagar", "/financeiro/contas"]);
   return { ok: true, charge: result.charge, warning: result.warning };
 }
 
@@ -112,7 +112,7 @@ export async function reopenInstallmentAction(input: unknown): Promise<{ ok: tru
   );
   if (!result.ok) return result;
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro", "/financeiro/a-receber", "/financeiro/a-pagar", "/financeiro/contas"]);
   return { ok: true, charge: result.charge };
 }
 
@@ -127,7 +127,7 @@ export async function stopRecurrenceAction(input: unknown): Promise<{ ok: true; 
   const stopped = await stopRecurrence(guard.context.supabase, guard.context.organizationId, parsed.data.id);
   if (!stopped.ok) return stopped;
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro", "/financeiro/a-receber", "/financeiro/a-pagar", "/financeiro/contas"]);
   return { ok: true, charge: stopped.charge };
 }
 
@@ -142,7 +142,7 @@ export async function cancelChargeAction(input: unknown): Promise<{ ok: true; ch
   const cancelled = await cancelCharge(supabase, organizationId, parsed.data.id, user.fullName ?? user.email ?? "Equipe");
   if (!cancelled.ok) return cancelled;
 
-  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro"]);
+  await revalidateDomain(guard.context.organizationId, [cacheTags.finance], ["/cobrancas", "/despesas", "/financeiro", "/financeiro/a-receber", "/financeiro/a-pagar", "/financeiro/contas"]);
   return { ok: true, charge: cancelled.charge };
 }
 

@@ -404,47 +404,6 @@ export function ChargesBoard({ page, query, view: saved, lookups, direction, vie
         }
       />
 
-      <div className={styles.totals} aria-label={`Resumo de ${plural}`}>
-        {/* A receber e a pagar são dois números, e nunca um saldo: somá-los diria que a equipe tem mais
-            dinheiro a caminho do que tem, que é o engano que a despesa existe para não deixar acontecer. */}
-        {direction === "incoming" && (
-          <span className={styles.total}>
-            <Text as="span" variant="caption1" tone="secondary">
-              A receber
-            </Text>
-            <Text as="span" variant="footnote" weight="semibold" numeric>
-              {formatMoney(page.totals.receivable)}
-            </Text>
-          </span>
-        )}
-        {direction === "outgoing" && (
-          <span className={styles.total} data-tone={page.totals.payable > 0 ? "danger" : undefined}>
-            <Text as="span" variant="caption1" tone="secondary">
-              A pagar
-            </Text>
-            <Text as="span" variant="footnote" weight="semibold" numeric>
-              {formatMoney(page.totals.payable)}
-            </Text>
-          </span>
-        )}
-        <span className={styles.total} data-tone={page.totals.overdue > 0 ? "danger" : undefined}>
-          <Text as="span" variant="caption1" tone="secondary">
-            Vencido
-          </Text>
-          <Text as="span" variant="footnote" weight="semibold" numeric>
-            {formatMoney(page.totals.overdue)}
-          </Text>
-        </span>
-        <span className={styles.total}>
-          <Text as="span" variant="caption1" tone="secondary">
-            Lançamentos
-          </Text>
-          <Text as="span" variant="footnote" weight="semibold" numeric>
-            {numberFormat.format(page.counts.open + page.counts.partial + page.counts.overdue)} em aberto, {numberFormat.format(page.counts.paid)} liquidados
-          </Text>
-        </span>
-      </div>
-
       {asTable ? (
         <div className={styles.tableArea}>
           <ChargesTable charges={page.items} onOpen={(charge) => show(charge, false)} actionsOf={actionsOf} footer={pagination} range={{ page: live.page, pageSize: live.pageSize, total: page.total }} />

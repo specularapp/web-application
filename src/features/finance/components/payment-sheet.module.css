@@ -1,0 +1,212 @@
+/*
+ * O ticket do recibo (2026-10-27): papel claro nos dois temas (`data-scheme="light"`), em duas peças que se
+ * encostam no picote. Os recortes das laterais são furos de verdade, feitos no fundo de cada peça com gradiente
+ * radial transparente, então mostram o palco atrás em qualquer tema. A sombra é `drop-shadow`, que contorna os
+ * furos e o serrilhado, e não a caixa.
+ */
+.ticket {
+  --tone: var(--color-success);
+  --paper: var(--color-bg-grouped-secondary);
+  --notch: 0.75rem;
+  --scallop: 0.375rem;
+
+  display: grid;
+  width: 100%;
+  max-width: 21rem;
+  margin: auto;
+  color: var(--color-label);
+  filter: drop-shadow(0 0.75rem 1.25rem color-mix(in oklab, var(--color-label) 14%, transparent)) drop-shadow(0 0.125rem 0.25rem color-mix(in oklab, var(--color-label) 8%, transparent));
+}
+
+.ticket[data-tone="out"] {
+  --tone: var(--sys-orange);
+}
+
+.ticket[data-tone="reversed"] {
+  --tone: var(--color-danger);
+}
+
+/* Cada peça pinta o próprio fundo em duas metades, cada uma com o furo no canto do picote. */
+.top,
+.body {
+  --piece: var(--paper);
+  --at: 100%;
+
+  background:
+    radial-gradient(circle at 0 var(--at), transparent var(--notch), var(--piece) calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% var(--at), transparent var(--notch), var(--piece) calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+}
+
+/* A faixa de cima no tom do lado, com o selo, o valor em destaque e o dia. */
+.top {
+  --piece: color-mix(in oklab, var(--tone) 9%, var(--paper));
+
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  text-align: center;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.seal {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin-block-end: var(--space-2);
+  color: var(--tone);
+  background-color: var(--paper);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 0.375rem color-mix(in oklab, var(--tone) 14%, transparent);
+  place-items: center;
+}
+
+.seal svg {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.title {
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+  color: var(--tone);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.amount {
+  font-size: var(--text-title-1);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.date {
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+/* A peça de baixo: o picote tracejado no alto, entre os furos, e o serrilhado no pé. */
+.body {
+  --at: 0;
+
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-6);
+}
+
+.body::before {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: calc(var(--notch) + var(--space-2));
+  content: "";
+  border-block-start: 0.125rem dashed color-mix(in oklab, var(--color-label) 16%, transparent);
+}
+
+.ticket::after {
+  display: block;
+  height: var(--scallop);
+  content: "";
+  background: radial-gradient(circle at 50% 100%, transparent calc(var(--scallop) - 0.5px), var(--paper) var(--scallop)) 0 0 / calc(var(--scallop) * 2.5) var(--scallop) repeat-x;
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.rows div {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rows dt {
+  flex-shrink: 0;
+  font-size: var(--text-footnote);
+  color: var(--color-label-secondary);
+}
+
+.rows dd {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-medium);
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* A forma e a conta, lado a lado num bloco cinza. */
+.how {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-fill-quaternary);
+  border-radius: var(--radius-md);
+}
+
+.how > div {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.how > div > span {
+  font-size: var(--text-caption-2);
+  font-weight: var(--weight-semibold);
+  color: var(--color-label-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.how strong {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--text-footnote);
+  font-weight: var(--weight-semibold);
+}
+
+.how strong > svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-label-secondary);
+}
+
+.how small {
+  font-size: var(--text-caption-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label-secondary);
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O palco do ticket: um fundo levemente tingido, que é o que os furos e o serrilhado mostram. Na prévia da
+   janela dupla ele é o próprio cartão da direita (pela variável do cartão); no recibo, o corpo da janela. */
+.ticketStage {
+  --sheet-bg: light-dark(color-mix(in oklab, var(--color-label) 5%, var(--color-bg-grouped)), color-mix(in oklab, var(--color-label) 6%, var(--color-bg)));
+
+  display: grid;
+  align-content: center;
+  min-height: 0;
+  padding: var(--space-6) var(--space-5);
+  overflow-y: auto;
+  background-color: var(--sheet-bg);
+}
+

@@ -52,11 +52,22 @@ const kinds: Record<RelationKind, { label: string; icon: Icon; hue: string }> = 
   charge: { label: "Cobrança", icon: HandCoinsIcon, hue: "var(--sys-green)" },
 };
 
-/** A medida de uma coluna do mapa e a altura de uma folha: é o que separa os níveis sem deixar fio cruzando.
- *  Cresceram com os campos do registro dentro do nó (2026-09-17): com a lista de campos o cartão ficou mais
- *  alto, e na medida antiga um nó encostava no de baixo. */
-const COL = 340;
-const ROW = 150;
+/** A medida de uma coluna do mapa: a largura do card (15,5rem) e o vão por onde a ligação passa. */
+const COL = 344;
+/** O vão entre dois cards empilhados na mesma coluna. */
+const GAP = 36;
+
+/**
+ * A altura que o card vai ter, pelo que ele mostra (2026-10-27, correção: "o mapa está deixando os cards tudo
+ * grudado"). Com uma altura fixa por linha, o card com campos era mais alto que a linha e encostava no de baixo;
+ * agora cada um ocupa o que mede, e o vão entre eles é sempre o mesmo. As medidas são as do CSS do card: o topo
+ * com o círculo, o nome e o código, e cada linha de campo depois do fio.
+ */
+const heightOf = (node: RelationNode) => {
+  const base = 24 + 32 + 8 + 20 + (node.reference ? 17 : 0);
+  const fields = node.fields?.length ?? 0;
+  return base + (fields > 0 ? 16 + 1 + fields * 19 : 0);
+};
 
 type MapNodeData = { relation: RelationNode; root: boolean; leaf: boolean };
 type MapNodeType = Node<MapNodeData, "record">;
@@ -130,21 +141,23 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
     setEdges(graph?.edges ?? []);
   }, [graph, setNodes, setEdges]);
 
+  /* Quantos de cada tipo o mapa tem, para a legenda do pé dizer o que está no quadro e em que cor. */
+  const legend = map
+    ? (Object.keys(kinds) as RelationKind[])
+        .map((kind) => ({ kind, count: [map.root, ...map.nodes].filter((node) => node.kind === kind).length }))
+        .filter((entry) => entry.count > 0)
+    : [];
+
   return (
     <div className={styles.dialog}>
-      <header className={styles.head}>
-        <div className={styles.heading}>
-          <Text as="h2" variant="headline" weight="semibold">
-            Mapa de relação
-          </Text>
-          <Text variant="footnote" tone="secondary" truncate>
-            {linked > 0 ? `${name}, com ${linked} ${linked === 1 ? "registro ligado" : "registros ligados"}` : name}
-          </Text>
-        </div>
-        <IconButton label="Fechar" variant="ghost" size="sm" onClick={onClose}>
+      {/* A janela inteira é o mapa (2026-10-27, a pedido: "remova esse header e deixe apenas o X"): o título
+          fica só para o leitor de tela, e o fechar flutua na quina. */}
+      <h2 className={styles.srOnly}>{linked > 0 ? `Mapa de relação de ${name}, com ${linked} ${linked === 1 ? "registro ligado" : "registros ligados"}` : `Mapa de relação de ${name}`}</h2>
+      <span className={styles.close}>
+        <IconButton label="Fechar o mapa" variant="ghost" size="sm" onClick={onClose}>
           <XIcon />
         </IconButton>
-      </header>
+      </span>
 
       <div className={styles.canvas}>
         {failed ? (
@@ -210,22 +223,37 @@ function RelationCanvas({ clientId, name, onClose }: Omit<RelationMapDialogProps
               maxZoom={1.6}
               zoomOnDoubleClick={false}
               fitView
-              fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+              fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             >
-              <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} />
+              <Background variant={BackgroundVariant.Dots} gap={20} size={1.25} />
             </ReactFlow>
 
+            {/* Aproximar, afastar e enquadrar numa coluna na borda direita, como nos quadros de referência. */}
             <div className={styles.dock} role="toolbar" aria-label="Ferramentas do mapa">
-              <IconButton label="Afastar" variant="ghost" size="sm" radius="md" onClick={() => void zoomOut()}>
-                <MagnifyingGlassMinusIcon />
-              </IconButton>
               <IconButton label="Aproximar" variant="ghost" size="sm" radius="md" onClick={() => void zoomIn()}>
                 <MagnifyingGlassPlusIcon />
               </IconButton>
-              <IconButton label="Enquadrar o mapa" variant="ghost" size="sm" radius="md" onClick={() => void fitView({ padding: 0.2, maxZoom: 1, duration: 300 })}>
+              <IconButton label="Afastar" variant="ghost" size="sm" radius="md" onClick={() => void zoomOut()}>
+                <MagnifyingGlassMinusIcon />
+              </IconButton>
+              <IconButton label="Enquadrar o mapa" variant="ghost" size="sm" radius="md" onClick={() => void fitView({ padding: 0.18, maxZoom: 1, duration: 300 })}>
                 <CornersOutIcon />
               </IconButton>
             </div>
+
+            {/* A legenda no pé: cada tipo que está no quadro, na cor dele, com quantos há. */}
+            <ul className={styles.legend} aria-label="O que está no mapa">
+              {legend.map(({ kind, count }) => {
+                const meta = kinds[kind];
+                return (
+                  <li key={kind} style={{ "--node-hue": meta.hue } as CSSProperties}>
+                    <span className={styles.legendDot} aria-hidden="true" />
+                    {meta.label}
+                    <span className={styles.legendCount}>{count}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </>
         )}
       </div>
@@ -248,27 +276,32 @@ function toFlow(map: RelationMap) {
     else childrenOf.set(edge.from, [edge.to]);
   }
 
+  const byId = new Map(all.map((node) => [node.id, node]));
   const placed = new Map<string, { x: number; y: number }>();
-  let row = 0;
+  /* Onde a próxima folha começa: cada uma desce o que mede mais o vão. */
+  let cursor = 0;
 
+  /* Devolve o centro do card na vertical, que é o que o pai usa para se centrar entre os filhos. */
   const place = (id: string, depth: number): number => {
+    const height = heightOf(byId.get(id) ?? map.root);
     /* Trava contra ciclo: o serviço monta árvore, mas um dado torto não pode travar a tela. */
-    if (placed.has(id)) return placed.get(id)!.y;
+    const seen = placed.get(id);
+    if (seen) return seen.y + height / 2;
 
     const children = childrenOf.get(id) ?? [];
     placed.set(id, { x: depth * COL, y: 0 });
 
-    let y: number;
+    let center: number;
     if (children.length === 0) {
-      y = row * ROW;
-      row += 1;
+      center = cursor + height / 2;
+      cursor += height + GAP;
     } else {
-      const ys = children.map((child) => place(child, depth + 1));
-      y = (ys[0] + ys[ys.length - 1]) / 2;
+      const centers = children.map((child) => place(child, depth + 1));
+      center = (centers[0] + centers[centers.length - 1]) / 2;
     }
 
-    placed.set(id, { x: depth * COL, y });
-    return y;
+    placed.set(id, { x: depth * COL, y: center - height / 2 });
+    return center;
   };
 
   place(map.root.id, 0);
@@ -282,20 +315,35 @@ function toFlow(map: RelationMap) {
       data: { relation: node, root: node.id === map.root.id, leaf: (childrenOf.get(node.id) ?? []).length === 0 },
     }));
 
-  const edges: Edge[] = map.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.from,
-    target: edge.to,
-    label: edge.label,
-    type: "smoothstep",
-  }));
+  const kindOf = new Map(all.map((node) => [node.id, node.kind]));
+
+  /* A ligação pontilhada e de curva arredondada, na cor do registro a que ela chega, com o nome da ligação numa
+     pílula no meio, como nos quadros de referência (2026-10-27). */
+  const edges: Edge[] = map.edges.map((edge) => {
+    const hue = kinds[kindOf.get(edge.to) ?? "client"].hue;
+    return {
+      id: edge.id,
+      source: edge.from,
+      target: edge.to,
+      label: edge.label,
+      type: "smoothstep",
+      pathOptions: { borderRadius: 20, offset: 24 },
+      style: { stroke: `color-mix(in oklab, ${hue} 75%, var(--color-label-tertiary))`, strokeWidth: 2, strokeDasharray: "0.5 6", strokeLinecap: "round" },
+      labelStyle: { fill: "var(--color-label)", fontWeight: 600 },
+      labelBgStyle: { fill: `color-mix(in oklab, ${hue} 22%, var(--color-bg-grouped-secondary))`, stroke: `color-mix(in oklab, ${hue} 45%, transparent)`, strokeWidth: 1 },
+      labelBgPadding: [8, 4] as [number, number],
+      labelBgBorderRadius: 6,
+    };
+  });
 
   return { nodes, edges };
 }
 
-// Um registro no mapa: o glifo no matiz do domínio, o identificador que a pessoa lê, o nome, a linha de
-// apoio e a etiqueta da situação. O card inteiro é o link para a tela do registro, que é o que faz o mapa
-// servir de navegação e não só de desenho. Memorizado porque o React Flow redesenha os nós a cada movimento.
+// Um registro no mapa (refeito em 2026-10-27, a pedido: "melhore os cards e deixe mais otimizado", sobre os
+// quadros de referência): no topo a imagem ou o glifo num círculo no matiz do domínio, o tipo em caixa alta e a
+// situação na ponta; o nome e o código embaixo; e os campos do registro em linhas curtas, separados por um fio. A
+// borda é a do matiz do domínio, cheia na raiz; as alças são os pontos onde a ligação encosta. O card inteiro é o
+// link para a tela do registro. Memorizado porque o React Flow redesenha os nós a cada movimento.
 const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
   const { relation, root, leaf } = data;
   const kind = kinds[relation.kind];
@@ -303,51 +351,34 @@ const MapNode = memo(function MapNode({ data }: NodeProps<MapNodeType>) {
   const body = (
     <>
       <span className={styles.nodeHead}>
-        {/* A imagem do registro quando ele tem uma (a logo da marca, a do projeto, a capa), e o glifo do
-            domínio quando não tem: é o que deixa reconhecer o registro antes de ler o nome. */}
         {relation.imageUrl ? (
-          <StoredImage src={relation.imageUrl} alt="" width={36} height={36} className={styles.nodePhoto} {...rounded("md", { clip: true })} />
+          <StoredImage src={relation.imageUrl} alt="" width={32} height={32} className={styles.nodePhoto} />
         ) : (
-          <span className={styles.nodeGlyph} aria-hidden="true" {...rounded("md")}>
+          <span className={styles.nodeGlyph} aria-hidden="true">
             <kind.icon weight="duotone" />
           </span>
         )}
-        <span className={styles.nodeCopy}>
-          <span className={styles.nodeTop}>
-            <Text as="span" variant="caption1" tone="secondary" truncate>
-              {relation.reference ?? kind.label}
-            </Text>
-            {relation.status && (
-              <Badge tone={relation.status.tone} variant="soft" size="sm">
-                {relation.status.label}
-              </Badge>
-            )}
-          </span>
-          <Text as="span" variant="footnote" weight="semibold" truncate>
-            {relation.name}
-          </Text>
-          <Text as="span" variant="caption2" tone="tertiary" truncate>
-            {kind.label}
-          </Text>
-        </span>
+        <span className={styles.nodeKind}>{kind.label}</span>
+        {relation.status && (
+          <Badge tone={relation.status.tone} variant="soft" size="sm">
+            {relation.status.label}
+          </Badge>
+        )}
       </span>
 
-      {/* Os campos do registro, nomeados e um por linha: é o que responde "qual destes é o certo" sem abrir
-          cada um, que era o que o mapa pedia para servir de ponto de partida (2026-09-17, a pedido). */}
+      <span className={styles.nodeCopy}>
+        <Text as="span" variant="subheadline" weight="semibold" truncate>
+          {relation.name}
+        </Text>
+        {relation.reference && <span className={styles.nodeReference}>{relation.reference}</span>}
+      </span>
+
       {relation.fields && relation.fields.length > 0 && (
         <dl className={styles.nodeFields}>
           {relation.fields.map((field) => (
             <div key={field.label} className={styles.nodeField}>
-              <dt>
-                <Text as="span" variant="caption2" tone="tertiary" truncate>
-                  {field.label}
-                </Text>
-              </dt>
-              <dd>
-                <Text as="span" variant="caption1" weight="medium" truncate>
-                  {field.value}
-                </Text>
-              </dd>
+              <dt>{field.label}</dt>
+              <dd>{field.value}</dd>
             </div>
           ))}
         </dl>

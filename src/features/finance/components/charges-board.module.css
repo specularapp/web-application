@@ -10,7 +10,7 @@
 
 @media (min-width: 48rem) {
   .board {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
     padding: var(--space-6);
@@ -28,7 +28,6 @@
   }
 }
 
-/* O resumo: a receber, vencido e a contagem, em uma linha de fatos, com o vencido em vermelho quando há. */
 /* O segmento do lado: as três abas no fundo agrupado da casa, a escolhida na superfície com sombra, na
    mesma receita do seletor do editor de projeto. O ponto colorido é a leitura de relance, verde no que
    entra e vermelho no que sai, igual à das movimentações. */
@@ -74,23 +73,6 @@
 
 .sideDot[data-side="outgoing"] {
   background-color: var(--sys-red);
-}
-
-.totals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  align-items: center;
-}
-
-.total {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: baseline;
-}
-
-.total[data-tone="danger"] > :last-child {
-  color: var(--sys-red);
 }
 
 .grid {

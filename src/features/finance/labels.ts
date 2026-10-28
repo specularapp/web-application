@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { ArrowDownLeftIcon, ArrowUpRightIcon, BankIcon, BarcodeIcon, CalendarCheckIcon, CheckCircleIcon, ClockIcon, CreditCardIcon, HourglassMediumIcon, PixLogoIcon, WarningCircleIcon, XCircleIcon } from "@phosphor-icons/react/ssr";
+import { ArrowDownLeftIcon, ArrowUpRightIcon, BankIcon, BarcodeIcon, CalendarCheckIcon, CheckCircleIcon, ClockIcon, CreditCardIcon, HourglassMediumIcon, MoneyIcon, PixLogoIcon, WarningCircleIcon, XCircleIcon } from "@phosphor-icons/react/ssr";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { BadgeTone } from "@/components/ui/badge";
@@ -106,6 +106,7 @@ export const chargeMethods: Record<ChargeMethod, { label: string; icon: Icon; hi
   boleto: { label: "Boleto", icon: BarcodeIcon, hint: "Onde o cliente pega o boleto, ou o código" },
   transfer: { label: "Transferência", icon: BankIcon, hint: "Banco, agência e conta" },
   card: { label: "Cartão", icon: CreditCardIcon, hint: "O link de pagamento do cartão" },
+  cash: { label: "Dinheiro", icon: MoneyIcon, hint: "Onde e com quem acertar em espécie" },
 };
 
 export const transactionKinds: Record<TransactionKind, { label: string; tone: BadgeTone; icon: Icon; sign: string }> = {
