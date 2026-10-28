@@ -43,6 +43,7 @@ import {
   WhatsappLogoIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
+import { tasksRoleAllows } from "@/features/organizations/tasks-role";
 
 /** `locked`: página à vista no menu, com cadeado, mas que ainda não abre nem aparece na busca. */
 export type NavLink = { label: string; href: Route; icon: Icon; locked?: boolean };
@@ -341,3 +342,21 @@ export const navHighlights: NavHighlight[] = [
   { label: "Orçamentos", href: "/orcamentos", icon: ReceiptIcon, hue: "var(--sys-orange)" },
   { label: "Contratos", href: "/contratos", icon: FileTextIcon, hue: "var(--sys-purple)" },
 ];
+
+/**
+ * O menu do cargo só de tarefas (2026-10-28): a pasta Tarefas, com a árvore do que foi liberado, e as
+ * configurações da própria conta. O resto do produto nem aparece, porque o servidor devolveria a pessoa às tarefas.
+ */
+export function tasksRoleNav(): NavGroup[] {
+  return navGroups
+    .map((group) => ({
+      ...group,
+      entries: group.entries.flatMap((entry): NavEntry[] => {
+        if (!isFolder(entry)) return tasksRoleAllows(entry.href) ? [entry] : [];
+        if (entry.tree === "tarefas") return [entry];
+        const items = entry.items.filter((item) => tasksRoleAllows(item.href));
+        return items.length > 0 && !entry.tree ? [{ ...entry, items }] : [];
+      }),
+    }))
+    .filter((group) => group.entries.length > 0);
+}

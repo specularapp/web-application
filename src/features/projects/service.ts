@@ -105,7 +105,7 @@ function toProject(row: Row, owner: Person, memberIds: string[] = []): Project {
 const NOBODY: Person = { name: "Sem responsável", avatarUrl: null };
 
 /** A função no time como a pessoa a lê, usada tanto no seletor do formulário quanto na equipe da ficha. */
-const teamRoles: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro" };
+const teamRoles: Record<string, string> = { owner: "Dono", admin: "Administrador", member: "Membro", tasks: "Só tarefas" };
 
 /**
  * Quem colabora em cada projeto, numa consulta para a página inteira: com uma por cartão seriam doze idas ao

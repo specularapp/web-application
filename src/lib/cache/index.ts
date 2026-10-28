@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { getRedis } from "@/lib/redis/client";
 
 /**
@@ -46,6 +47,15 @@ function redisOrNull() {
   }
 }
 
+/* A marca, por requisição, de que quem pede não pode ler nem gravar o cache do time (2026-10-28): o cargo só
+   de tarefas vê uma fatia da organização pela RLS, e a chave daqui carrega só a organização. Sem isto ele
+   receberia a lista que um administrador carregou, ou deixaria a dele, recortada, para o time inteiro. */
+const personal = cache(() => ({ on: false }));
+
+export function markPersonalCache() {
+  personal().on = true;
+}
+
 /**
  * Lê do cache ou executa a leitura e guarda. As tags são registradas junto, num conjunto por tag, para
  * `dropTags` saber o que apagar sem varrer o Redis com `KEYS`, que trava o servidor numa base grande.
@@ -55,6 +65,7 @@ export async function cached<T>(
   options: { organizationId: string; tags: CacheTag[]; ttl: number },
   load: () => Promise<T>,
 ): Promise<T> {
+  if (personal().on) return load();
   const redis = redisOrNull();
   if (!redis) return load();
 

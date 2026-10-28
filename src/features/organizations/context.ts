@@ -1,14 +1,17 @@
 import "server-only";
 import { cache } from "react";
 import { refresh, revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSessionUser, requireUser, type SessionUser } from "@/features/auth/session";
-import { dropTags } from "@/lib/cache";
+import { dropTags, markPersonalCache } from "@/lib/cache";
 import { tagsToDrop, type DomainTag } from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { rememberedOrganization } from "./current-cache";
+import type { MemberRole } from "./schemas";
+import { TASKS_HOME, TASKS_ROLE, tasksRoleAllows } from "./tasks-role";
 import { organizationOf } from "./service";
 
 /**
@@ -23,7 +26,17 @@ export type OrganizationContext = {
   supabase: SupabaseClient<Database>;
   user: SessionUser;
   organizationId: string;
+  /** O cargo da pessoa no time; `tasks` é o cargo só de tarefas (2026-10-28). */
+  role: MemberRole | null;
 };
+
+/* O cargo só de tarefas lê só o que a RLS libera para ele, então nada dele entra no cache do time (que é por
+   organização) nem sai dele: cada leitura vai ao banco. E a página fora das tarefas volta para elas. */
+async function enforceTasksRole() {
+  markPersonalCache();
+  const pathname = (await headers()).get("x-pathname");
+  if (pathname && !tasksRoleAllows(pathname)) redirect(TASKS_HOME);
+}
 
 /* Memorizado por requisição: a página chama `requireOrganization` uma vez e cada `queries.ts` que ela usa
    chama de novo. Sem isto, abrir a tela de orçamentos resolvia o time quatro vezes, com a consulta ao
@@ -40,7 +53,14 @@ const resolve = cache(async function resolve(user: SessionUser) {
     return organizationOf(supabase, user.id, profile?.current_organization_id ?? null);
   });
 
-  return { supabase, organizationId };
+  let role: MemberRole | null = null;
+  if (organizationId) {
+    const { data } = await supabase.from("organization_members").select("role").eq("organization_id", organizationId).eq("user_id", user.id).maybeSingle();
+    role = data?.role ?? null;
+    if (role === TASKS_ROLE) await enforceTasksRole();
+  }
+
+  return { supabase, organizationId, role };
 });
 
 /** O contexto quando há sessão e time; nulo em qualquer outro caso. Para quem sabe seguir sem os dois. */
@@ -48,10 +68,10 @@ export const getOrganizationContext = cache(async function getOrganizationContex
   const user = await getSessionUser();
   if (!user) return null;
 
-  const { supabase, organizationId } = await resolve(user);
+  const { supabase, organizationId, role } = await resolve(user);
   if (!organizationId) return null;
 
-  return { supabase, user, organizationId };
+  return { supabase, user, organizationId, role };
 });
 
 export const DASHBOARD_PATH = "/dashboard";
@@ -68,13 +88,13 @@ export const DASHBOARD_PATH = "/dashboard";
  */
 export async function requireOrganization(next = DASHBOARD_PATH): Promise<OrganizationContext> {
   const user = await requireUser(next);
-  const { supabase, organizationId } = await resolve(user);
+  const { supabase, organizationId, role } = await resolve(user);
   if (!organizationId) {
     if (next === DASHBOARD_PATH) throw new Error(`${NO_TEAM} (requireOrganization com destino ${DASHBOARD_PATH})`);
     redirect(DASHBOARD_PATH);
   }
 
-  return { supabase, user, organizationId };
+  return { supabase, user, organizationId, role };
 }
 
 export const TOO_MANY = "Muitas ações em pouco tempo. Aguarde um instante e tente de novo.";

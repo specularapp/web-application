@@ -48,6 +48,8 @@ export type ShellData = {
   ai: AiUsage;
   /** O plano que vale agora, que é o que o portão de plano consulta em toda ação bloqueada. */
   effectivePlan: PlanId;
+  /** O cargo só de tarefas (2026-10-28): o menu mostra só as tarefas e a conta. */
+  restricted: boolean;
 };
 
 async function load(context: OrganizationContext | null): Promise<ShellData> {
@@ -74,6 +76,7 @@ async function load(context: OrganizationContext | null): Promise<ShellData> {
     })),
     currentTeamId: state.team?.id ?? null,
     effectivePlan: billing.effectivePlan,
+    restricted: context?.role === "tasks",
   };
 
   /* Sem time em vigor a concha abre vazia em vez de mandar a pessoa embora: quem decide o que fazer nesse

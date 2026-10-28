@@ -132,7 +132,7 @@ export function TeamPeoplePanel({
   const [name, setName] = useState("");
   const [inviting, setInviting] = useState(false);
 
-  const canManage = viewer.role !== "member";
+  const canManage = viewer.role === "owner" || viewer.role === "admin";
   /* Trocar o papel de quem está na equipe é só de quem é dono: a policy de update de `organization_members`
      exige owner, enquanto convidar, cancelar convite e remover gente valem também para administrador. Com um
      seletor de papel só para administrador, a opção estava na tela para quem o banco nunca deixa usá-la. */

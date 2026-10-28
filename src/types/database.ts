@@ -3327,6 +3327,58 @@ export type Database = {
           },
         ]
       }
+      task_access: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          folder_id: string | null
+          id: string
+          organization_id: string
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          id?: string
+          organization_id: string
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          id?: string
+          organization_id?: string
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_access_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_access_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_attachments: {
         Row: {
           created_at: string
@@ -4004,6 +4056,7 @@ export type Database = {
       }
       intake_form_by_token: { Args: { p_token_hash: string }; Returns: Json }
       is_member: { Args: { p_organization_id: string }; Returns: boolean }
+      is_any_member: { Args: { p_organization_id: string }; Returns: boolean }
       log_record_event: {
         Args: {
           p_action: Database["public"]["Enums"]["history_action"]
@@ -4323,7 +4376,7 @@ export type Database = {
         | "single_choice"
         | "multiple_choice"
         | "date"
-      member_role: "owner" | "admin" | "member"
+      member_role: "owner" | "admin" | "member" | "tasks"
       notification_kind: "acao" | "revisao" | "sistema"
       opportunity_source:
         | "whatsapp"
@@ -4715,7 +4768,7 @@ export const Constants = {
         "multiple_choice",
         "date",
       ],
-      member_role: ["owner", "admin", "member"],
+      member_role: ["owner", "admin", "member", "tasks"],
       notification_kind: ["acao", "revisao", "sistema"],
       opportunity_source: [
         "whatsapp",

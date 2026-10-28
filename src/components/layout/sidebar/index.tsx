@@ -57,7 +57,7 @@ import { markNotificationsReadAction } from "@/features/organizations/actions";
 import { Notifications, type AppNotification } from "../notifications";
 import { pathToFunnel, type CrmTreeItem } from "@/features/crm/tree";
 import { pathToItem, type TaskTreeItem } from "@/features/tasks/tree";
-import { isCurrent, isFolder, navGroups, type NavFolder, type NavLink } from "../nav";
+import { isCurrent, isFolder, navGroups, tasksRoleNav, type NavFolder, type NavLink } from "../nav";
 import { TeamSwitcher, type SwitcherTeam } from "../team-switcher";
 import { NavTree, fromCrmTree, fromTaskTree } from "./nav-tree";
 import styles from "./sidebar.module.css";
@@ -100,6 +100,8 @@ export type SidebarProps = {
   taskRoute?: string;
   /** O funil em vigor, pela mesma razão do `taskRoute`. */
   funnelRoute?: string;
+  /** O cargo só de tarefas: o menu mostra só as tarefas e a conta, e a árvore não se edita (2026-10-28). */
+  restricted?: boolean;
 };
 
 /* Quantas bolinhas o aviso mostra antes de resumir o resto em "+N". */
@@ -211,6 +213,7 @@ export function SidebarPanel({
   funnels,
   taskRoute,
   funnelRoute,
+  restricted = false,
   variant,
   onSearch,
   onNotificationsChange,
@@ -414,7 +417,7 @@ export function SidebarPanel({
       </button>
 
       <nav ref={navRef} className={styles.nav} aria-label="Navegação principal">
-        {navGroups.map((group, index) => (
+        {(restricted ? tasksRoleNav() : navGroups).map((group, index) => (
           // O título do grupo saiu da tela e virou nome do grupo para leitor de tela: quem separa
           // um do outro agora é a linha, que sangra até a borda do menu.
           <Fragment key={group.title}>
@@ -456,7 +459,7 @@ export function SidebarPanel({
                         <CaretDownIcon aria-hidden="true" className={styles.chevron} data-open={open || undefined} />
                       </button>
                       )}
-                      {open && entry.tree && (
+                      {open && entry.tree && !restricted && (
                         <DropdownMenu
                           label={`Criar em ${entry.label}`}
                           triggerLabel={entry.tree === "funis" ? "Criar pasta ou funil" : "Criar página, projeto ou pasta"}
@@ -483,7 +486,7 @@ export function SidebarPanel({
                         ))}
                         {entry.tree === "tarefas" && (
                           <div className={styles.treeBranch}>
-                            <NavTree items={fromTaskTree(tasks)} basePath="/tarefas" current={currentProject} openFolders={openBranch} label="Pastas e projetos" onNavigate={onNavigate} branched />
+                            <NavTree items={fromTaskTree(tasks)} basePath="/tarefas" current={currentProject} openFolders={openBranch} label="Pastas e projetos" onNavigate={onNavigate} branched readOnly={restricted} />
                           </div>
                         )}
                         {entry.tree === "funis" && (
@@ -702,7 +705,7 @@ export function Sidebar(props: SidebarProps) {
   }, []);
 
   const searchReady = useOpenedOnce(searching);
-  const search = searchReady ? <CommandPalette key={searchKey} open={searching} onClose={() => setSearching(false)} /> : null;
+  const search = searchReady ? <CommandPalette key={searchKey} open={searching} restricted={props.restricted} onClose={() => setSearching(false)} /> : null;
   const panel = {
     ...props,
     notifications,

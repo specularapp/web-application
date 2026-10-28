@@ -58,10 +58,12 @@ import {
   recentRoutesCookie,
   rememberRoute,
 } from "@/lib/recent-routes";
+import { tasksRoleAllows } from "@/features/organizations/tasks-role";
 import { navHighlights, navLinks, type NavResult } from "../nav";
 import { createCommands } from "./commands";
 
-export type CommandPaletteProps = { open: boolean; onClose: () => void };
+/** `restricted` é o cargo só de tarefas: a busca oferece só as páginas e os atalhos que ele pode abrir (2026-10-28). */
+export type CommandPaletteProps = { open: boolean; onClose: () => void; restricted?: boolean };
 
 const SUGGESTION_LIMIT = 5;
 /** Quantas páginas aparecem antes dos registros: os grupos do banco já chegam com até cinco cada. */
@@ -485,7 +487,7 @@ const pageItem = (page: NavResult, recent = false): Item => ({
 // procura nas páginas do menu na hora e, depois de uma pausa na digitação, nos registros da equipe pela
 // `searchAction`, que passa pela busca de cada quadro. As páginas saem de `nav.ts`, que tem `href` tipado
 // por rota, então a paleta nunca oferece uma página que não existe.
-export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, restricted = false }: CommandPaletteProps) {
   const router = useRouter();
   const sheet = useMediaQuery(MOBILE_QUERY);
   const listId = useId();
@@ -498,7 +500,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     typeof document === "undefined" ? [] : readRecentRoutes(readCookie(RECENT_COOKIE)),
   );
 
-  const pages = useMemo(() => navLinks(), []);
+  const pages = useMemo(() => navLinks().filter((page) => !restricted || tasksRoleAllows(page.href)), [restricted]);
   const term = query.trim();
   const needle = fold(term);
   const highlight = plain(term);
@@ -685,7 +687,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
       {!needle && (
         <Pills>
-          {navHighlights.map((item) => (
+          {navHighlights.filter((item) => !restricted || tasksRoleAllows(item.href)).map((item) => (
             <Pill
               key={item.href}
               type="button"

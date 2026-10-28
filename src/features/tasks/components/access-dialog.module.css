@@ -1,0 +1,44 @@
+/* A janela de quem acessa: o cabeçalho e a lista de pessoas do cargo só de tarefas, uma por linha. */
+.body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  max-height: 100%;
+}
+
+.list {
+  min-height: 0;
+  padding: var(--space-2) var(--space-4) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) 0;
+}
+
+.people {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-1);
+}
+
+.person + .person {
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+}

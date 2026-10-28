@@ -2,7 +2,7 @@
 export type TeamMemberStatus = "active" | "pending";
 
 /** O papel de acesso no time, o mesmo de `organization_members`. */
-export type TeamMemberAccess = "owner" | "admin" | "member";
+export type TeamMemberAccess = "owner" | "admin" | "member" | "tasks";
 
 /** Os números que dizem o que a pessoa produziu no sistema. */
 export type TeamMemberMetrics = {

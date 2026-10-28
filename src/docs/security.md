@@ -46,6 +46,7 @@ Levantamento contra a lista de API e Web Top 10.
 | --- | --- | --- |
 | BOLA e IDOR | coberto | RLS com `is_member` em toda tabela; trocar o id na URL não vaza porque o filtro é do banco, não da aplicação |
 | BFLA | coberto | `has_role` por operação; excluir organização exige `owner` |
+| Cargo só de tarefas | coberto | Desde 2026-10-28 `is_member` exclui o cargo `tasks` (o sentido antigo virou `is_any_member`, usado só na equipe, pessoas, avisos, plano e ponteiro), então toda policy de domínio nega esse cargo por padrão. Ele vê as páginas de tarefa liberadas em `task_access` (por página ou por pasta, que libera o que está dentro) por `task_board_visible`, `task_folder_visible` e `task_visible`, escreve nelas por `can_write_task(_board)`, e o cache Redis do time é ignorado para ele (`markPersonalCache`), porque a chave é por organização. Os anexos de tarefa (`task-files`) ele lê da organização inteira, pelo caminho, sem checar a tarefa. |
 | Elevação de privilégio | coberto | `create_invite` recusa `p_role = 'owner'` e exige `owner` ou `admin` para convidar |
 | SQL injection | coberto | Supabase parametriza; funções `security definer` com `search_path` vazio |
 | XSS | coberto | escape padrão do React e CSP por nonce com `strict-dynamic` |

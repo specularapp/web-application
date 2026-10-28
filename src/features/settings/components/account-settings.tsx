@@ -20,7 +20,7 @@ import {
   ShieldCheckIcon,
   TrashIcon,
   TrophyIcon,
-  UserIcon,
+  ListChecksIcon, UserIcon,
   XIcon,
   type Icon,
 } from "@phosphor-icons/react";
@@ -79,6 +79,7 @@ const accessMeta: Record<TeamMember["role"], { icon: Icon; tone: BadgeTone }> = 
   owner: { icon: CrownIcon, tone: "yellow" },
   admin: { icon: ShieldCheckIcon, tone: "info" },
   member: { icon: UserIcon, tone: "neutral" },
+  tasks: { icon: ListChecksIcon, tone: "teal" },
 };
 
 const number = new Intl.NumberFormat("pt-BR");

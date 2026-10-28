@@ -9,7 +9,7 @@ import {
   PhoneIcon,
   ShieldCheckIcon,
   StarIcon,
-  UserIcon,
+  ListChecksIcon, UserIcon,
   WhatsappLogoIcon,
 } from "@phosphor-icons/react/ssr";
 import { format, parseISO } from "date-fns";
@@ -45,6 +45,7 @@ const accessMeta: Record<TeamMemberAccess, { label: string; tone: BadgeTone; ico
   owner: { label: "Proprietário", tone: "yellow", icon: CrownIcon },
   admin: { label: "Administrador", tone: "info", icon: ShieldCheckIcon },
   member: { label: "Membro", tone: "neutral", icon: UserIcon },
+  tasks: { label: "Só tarefas", tone: "teal", icon: ListChecksIcon },
 };
 
 const points = new Intl.NumberFormat("pt-BR");

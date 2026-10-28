@@ -2,8 +2,9 @@ import { z } from "zod";
 import { slugify } from "@/lib/utils/slug";
 
 export const organizationKindSchema = z.enum(["freelancer", "agency"]);
-export const memberRoleSchema = z.enum(["owner", "admin", "member"]);
-export const invitableRoleSchema = z.enum(["admin", "member"]);
+/* "tasks" é o cargo só de tarefas (2026-10-28): vê só as páginas de tarefa liberadas para ele. */
+export const memberRoleSchema = z.enum(["owner", "admin", "member", "tasks"]);
+export const invitableRoleSchema = z.enum(["admin", "member", "tasks"]);
 export const organizationIndustrySchema = z.enum([
   "web_development",
   "mobile_development",

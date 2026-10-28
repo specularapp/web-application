@@ -1281,6 +1281,16 @@ O menu Financeiro tem oito páginas desde 2026-10-27: o fluxo de caixa (`/financ
 - **A página pública** (`/cobranca/<token>`, `ChargePublicView`): quem cobra e o que é, o total com o já pago e o em aberto, as parcelas com o vencimento em palavras e o botão **"Já paguei"**, que marca a parcela como avisada e manda o e-mail à equipe, e como pagar com as instruções para copiar. Abrir registra a visualização na linha do tempo.
 - Pendências: a configuração do financeiro da Le Ange (formas, categorias e contas padrão); o relógio para os gatilhos de cobrança perto de vencer e vencida (com as automações); cobrança de verdade por Pix e cartão (Stripe Connect ou gateway) no lugar das instruções e do "Já paguei"; recibo em PDF; exportar as movimentações; a cobrança nascendo do contrato assinado.
 
+### Cargo só de tarefas
+
+Desde 2026-10-28 (a pedido: "crie um cargo no sistema que terá acesso apenas a tarefas e as tarefas que colocar ele com permissão na página, faça essa funcionalidade ficar direto na edição da pasta e página"):
+
+- **O cargo** é o valor `tasks` de `member_role` ("Só tarefas"), escolhido no papel do membro ou do convite em Configurações, Equipe. Ele vê só as páginas de tarefa liberadas para ele, e as pastas no caminho até elas.
+- **O muro é o banco** (`db/migrations/tasks/20261028090100_create_task_access.sql`): `is_member` passou a excluir o cargo e `is_any_member` guarda o sentido antigo para a equipe, as pessoas, os avisos, o plano e o ponteiro do time. `task_access` guarda o que foi liberado (página ou pasta; pasta libera tudo dentro, pelas pastas de baixo também). As policies de pastas, páginas, etapas, tarefas e filhas, histórico de tarefa, contadores do menu e arquivos de tarefa aceitam o cargo só no que ele vê, pelas funções `task_board_visible`, `task_folder_visible`, `task_visible` e `can_write_task(_board)`. Tarefa sem página é só da equipe.
+- **O servidor** lê o cargo em `resolve` (`organizations/context.ts`): para o cargo de tarefas, o cache Redis do time é ignorado na requisição (`markPersonalCache` em `lib/cache`) e qualquer página fora de `tasksRoleAllows` (`organizations/tasks-role.ts`: tarefas, convite e as configurações da conta, segurança e notificações) volta para `/tarefas`, pelo caminho que o proxy grava em `x-pathname`.
+- **A tela**: a concha manda `restricted`, o menu mostra só a pasta Tarefas e a conta (`tasksRoleNav` em `nav.ts`), sem o "+" e com a árvore só para navegar (`NavTree readOnly`), e a busca filtra páginas, atalhos e "Criar" pela mesma regra.
+- **Quem acessa**: no leque de cada pasta e de cada página de tarefas, "Quem acessa" abre `TaskAccessDialog` com as pessoas do cargo e um interruptor por pessoa, que salva na hora (`setTaskAccessAction`). Quem já vê por uma pasta de cima aparece ligado e travado, com o nome da pasta.
+
 ### Primeiros passos
 
 - Configuração inicial do time **não tem rota própria**: é um modal sobre o painel, renderizado pelo próprio `/dashboard` quando `getOnboardingGate()` diz que falta configurar. Assim o primeiro acesso já cai no produto, com a configuração por cima, em vez de mandar a pessoa para outra página.
@@ -1354,7 +1364,7 @@ cada uma faz:
   aqui: é o de entrada, e mudar isso é coisa de Segurança.
 - **`/configuracoes/equipe`**: a lista de membros e convites do passo de equipe dos primeiros passos, na
   moldura de página (`TeamSettings`, adaptado de `MembersStep`): convidar, mudar papel, remover, reenviar e
-  cancelar convite. Só quem não é `member` mexe.
+  cancelar convite. Só dono e administrador mexem (corrigido em 2026-10-28: era "quem não é `member`", e o cargo só de tarefas passaria).
 - **`/configuracoes/seguranca`**: e-mail e como a pessoa entra (senha ou provedores), trocar a senha
   (`changePasswordAction`; com MFA cadastrado o Supabase exige o segundo fator, e a tela manda para
   `/mfa?next=/configuracoes/seguranca`), e os autenticadores TOTP com **Remover** em `ConfirmDialog`.

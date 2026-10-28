@@ -739,7 +739,7 @@ export async function getTeamSummary(client: TeamClient, organizationId: string)
     );
   }
 
-  const roleLabel: Record<MemberRole, string> = { owner: "Proprietário", admin: "Administrador", member: "Membro" };
+  const roleLabel: Record<MemberRole, string> = { owner: "Proprietário", admin: "Administrador", member: "Membro", tasks: "Só tarefas" };
 
   const members: SummaryMember[] = people.map((member) => ({
     id: member.userId,

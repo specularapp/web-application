@@ -33,6 +33,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           alert={shell.alert}
           tasks={shell.tasks}
           funnels={shell.funnels}
+          restricted={shell.restricted}
         />
       }
     >

@@ -36,6 +36,7 @@ import {
   TrashIcon,
   TrayIcon,
   type Icon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -45,6 +46,8 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownSection } from "@/components/ui/dropdown-menu";
+import type { TaskAccessTarget } from "@/features/tasks/access";
+import { TaskAccessDialog } from "@/features/tasks/components/access-dialog";
 import { NameDialog } from "@/components/ui/name-dialog";
 import { deleteCrmFolderAction, deleteFunnelAction, moveFunnelAction, saveCrmFolderAction, saveFunnelAction } from "@/features/crm/actions";
 import type { CrmTreeItem } from "@/features/crm/tree";
@@ -114,6 +117,8 @@ export type NavTreeProps = {
   onNavigate?: () => void;
   /** A raiz pende da pasta do menu, cada item no seu galho, como as subpáginas (2026-10-25). */
   branched?: boolean;
+  /** Só navegar, sem criar nem editar: o cargo só de tarefas vê a árvore e não mexe nela (2026-10-28). */
+  readOnly?: boolean;
 };
 
 /**
@@ -167,9 +172,10 @@ type Opened =
   | { kind: "rename-leaf"; node: Leaf }
   | { kind: "stages"; node: Leaf }
   | { kind: "delete-folder"; node: Folder }
-  | { kind: "delete-leaf"; node: Leaf };
+  | { kind: "delete-leaf"; node: Leaf }
+  | { kind: "access"; target: TaskAccessTarget };
 
-export function NavTree({ items, basePath, current, openFolders, label, onNavigate, branched = false }: NavTreeProps) {
+export function NavTree({ items, basePath, current, openFolders, label, onNavigate, branched = false, readOnly = false }: NavTreeProps) {
   const router = useRouter();
   const { toast } = useToast();
   const domain = basePath === "/tarefas" ? "tarefas" : "funis";
@@ -351,6 +357,25 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
             }]),
       ],
     },
+    /* Quem do cargo só de tarefas vê a pasta, e com ela tudo o que está dentro (2026-10-28). */
+    ...(domain === "tarefas"
+      ? [
+          {
+            id: "access",
+            items: [
+              {
+                id: "access",
+                label: "Quem acessa",
+                icon: UsersThreeIcon,
+                onSelect: () => {
+                  closeEditor();
+                  setOpened({ kind: "access", target: { kind: "folder", id: node.id, name: node.name } });
+                },
+              },
+            ],
+          },
+        ]
+      : []),
     {
       id: "danger",
       items: [
@@ -381,6 +406,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
                   ]
                 : [{ id: "edit", label: "Editar projeto", icon: PencilSimpleIcon, href: `/projetos/${node.id}/editar` as Route }]),
               { id: "stages", label: "Etapas do quadro", icon: ListDashesIcon, onSelect: () => setOpened({ kind: "stages", node }) },
+              { id: "access", label: "Quem acessa", icon: UsersThreeIcon, onSelect: () => setOpened({ kind: "access", target: { kind: "board", id: node.id, name: node.name } }) },
             ],
           },
           ...moveSection(node, parentId),
@@ -510,10 +536,10 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
               </Badge>
             )}
           </button>
-          {folderEditor(node, parentId)}
+          {!readOnly && folderEditor(node, parentId)}
         </div>
         {expanded && node.children.length > 0 && <div className={tree.children}>{limbs(node.children, node.id)}</div>}
-        {expanded && node.children.length === 0 && files && (
+        {expanded && node.children.length === 0 && files && !readOnly && (
           <div className={tree.children}>
             <div className={tree.limb} data-last>
               <div className={tree.item}>
@@ -569,7 +595,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
           )}
         </Link>
         {/* O balde não se edita: ele é o que sobra, e não um quadro que alguém criou. */}
-        {!node.bucket && actions(node, leafSections(node, parentId))}
+        {!node.bucket && !readOnly && actions(node, leafSections(node, parentId))}
       </div>
     );
   };
@@ -589,6 +615,7 @@ export function NavTree({ items, basePath, current, openFolders, label, onNaviga
       </div>
 
       {/* As janelas, uma de cada vez, montadas só enquanto algo está aberto. */}
+      <TaskAccessDialog target={opened?.kind === "access" ? opened.target : null} onClose={() => setOpened(null)} />
       {domain === "tarefas" && opened?.kind === "new-folder" && (
         <TaskAppearanceDialog
           open
