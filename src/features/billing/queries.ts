@@ -1,10 +1,12 @@
 import "server-only";
 import { requireUser } from "@/features/auth/session";
+import { listTeamMembers } from "@/features/organizations/service";
 import { createClient } from "@/lib/supabase/server";
 import {
   getBillingState,
   getPlanCatalogState,
   listInvoices,
+  planLimit,
   resolveOrganization,
   type BillingState,
   type Invoice,
@@ -36,16 +38,21 @@ export async function getCurrentBillingState(next = PLAN_PATH): Promise<BillingS
   return getBillingState(supabase, organizationId);
 }
 
+/** Quem está no time e quantas pessoas o plano em vigor deixa, para o cartão do plano (2026-10-29). Nulo é sem teto. */
+export type BillingSeats = { members: { name: string; avatarUrl: string | null }[]; limit: number | null };
+
 export async function getCurrentBillingPage(
   next = PLAN_PATH,
-): Promise<{ state: BillingState; invoices: Invoice[] } | null> {
+): Promise<{ state: BillingState; invoices: Invoice[]; seats: BillingSeats } | null> {
   const { supabase, organizationId } = await currentScope(next);
   if (!organizationId) return null;
 
-  const [state, invoices] = await Promise.all([
+  const [state, invoices, members, limit] = await Promise.all([
     getBillingState(supabase, organizationId),
     listInvoices(supabase, organizationId),
+    listTeamMembers(supabase, organizationId),
+    planLimit(supabase, organizationId, "team_members").catch(() => null),
   ]);
 
-  return { state, invoices };
+  return { state, invoices, seats: { members: members.map((member) => ({ name: member.name ?? member.email ?? "Pessoa do time", avatarUrl: member.avatarUrl })), limit } };
 }

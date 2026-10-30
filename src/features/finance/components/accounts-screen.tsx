@@ -6,11 +6,12 @@ import { AccountsBoard } from "./accounts-board";
 import { InstallmentsBoard } from "./installments-board";
 import { MovementsBoard } from "./movements-board";
 import { TransfersBoard } from "./transfers-board";
+import type { ChargesView } from "../view-cookie";
 import styles from "./finance-screen.module.css";
 
 // As telas de contas bancárias, transferências e contas a receber e a pagar (2026-10-27): o topo escondido com o `h1` e a prancha, na
 // moldura das outras telas do financeiro. Server Components; quem tem estado são as pranchas.
-export function AccountsScreen(data: AccountsScreenData) {
+export function AccountsScreen(data: AccountsScreenData & { view: ChargesView }) {
   return (
     <div className={styles.screen}>
       <Topbar />
@@ -19,7 +20,7 @@ export function AccountsScreen(data: AccountsScreenData) {
   );
 }
 
-export function TransfersScreen(data: TransfersScreenData) {
+export function TransfersScreen(data: TransfersScreenData & { view: ChargesView }) {
   return (
     <div className={styles.screen}>
       <Topbar />
@@ -28,7 +29,7 @@ export function TransfersScreen(data: TransfersScreenData) {
   );
 }
 
-export function InstallmentsScreen(data: InstallmentsScreenData) {
+export function InstallmentsScreen(data: InstallmentsScreenData & { view: ChargesView }) {
   return (
     <div className={styles.screen}>
       <Topbar />
@@ -37,7 +38,7 @@ export function InstallmentsScreen(data: InstallmentsScreenData) {
   );
 }
 
-export function MovementsScreen(data: MovementsScreenData) {
+export function MovementsScreen(data: MovementsScreenData & { view: ChargesView }) {
   return (
     <div className={styles.screen}>
       <Topbar />

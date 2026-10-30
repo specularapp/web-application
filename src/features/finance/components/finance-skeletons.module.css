@@ -1,0 +1,184 @@
+/* Os esqueletos do fluxo de caixa e das contas bancárias (2026-10-29): as mesmas caixas, grades e medidas das
+   telas, com os blocos no lugar do conteúdo. */
+
+.line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.stack {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.pill.pill {
+  height: 1.375rem;
+  border-radius: var(--radius-full);
+}
+
+.bar.bar {
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+}
+
+/* ---------- O fluxo de caixa ---------- */
+
+.flow {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.highlight,
+.kpi,
+.chart {
+  min-width: 0;
+  background-color: var(--color-bg-grouped-secondary);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.highlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .highlight {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .gauges {
+    padding-inline-start: var(--space-4);
+    border-inline-start: 0.0625rem solid var(--color-border);
+  }
+}
+
+.result,
+.gauges {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.gauge {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-3);
+}
+
+.kpi {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 6.5rem;
+  padding: var(--space-4) var(--space-4) 0;
+  overflow: hidden;
+}
+
+.kpi:not(:has(.spark)) {
+  padding-block-end: var(--space-4);
+}
+
+/* A curva encostada nas bordas e no pé, como a do número de verdade. */
+.spark.spark {
+  height: 1rem;
+  margin-block-start: var(--space-3);
+  margin-inline: calc(var(--space-4) * -1);
+  border-radius: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-3);
+}
+
+.chart {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.plot.plot {
+  height: 12rem;
+  border-radius: var(--radius-md);
+}
+
+/* ---------- As contas bancárias ---------- */
+
+.accounts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.account {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+/* A face com o véu sumindo para baixo, como o tom do banco no cartão, em cinza porque ainda não há banco. */
+.face {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+  background-image: linear-gradient(to bottom, color-mix(in oklab, var(--sys-gray) 16%, transparent), color-mix(in oklab, var(--sys-gray) 3%, transparent));
+}
+
+.curve.curve {
+  height: 1.25rem;
+  margin-block-start: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
+  border-radius: 0;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.halves {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.thin.thin {
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.outline {
+  flex: 1;
+  height: 2rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}

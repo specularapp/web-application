@@ -9,7 +9,7 @@ import { createContract, listContracts } from "@/features/contracts/service";
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "contracts-read");
+  const auth = await authorizeDomain(request, "contracts-read", "action", "contratos:ler");
   if ("response" in auth) return auth.response;
 
   const params = new URL(request.url).searchParams;

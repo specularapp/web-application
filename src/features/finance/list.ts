@@ -2,9 +2,9 @@ import { z } from "zod";
 import { partyOf } from "./labels";
 import { GRID_PER_PAGE_DEFAULT, MAX_PER_PAGE, TABLE_PER_PAGE, defaultQuery, directionFilterValues, methodFilterValues, statusFilterValues, type ChargesListPage, type ChargesQuery } from "./list-options";
 import { chargeOpen, chargeStatusOf, nextInstallment, todayIso, type Charge, type ChargeDirection, type ChargeStatus } from "./summary";
-import { DEFAULT_CHARGES_VIEW, chargesViewValues, type ChargesView } from "./view-cookie";
+import { DEFAULT_CHARGES_VIEW, chargesViewValues, financeViews, type ChargesView, type FinanceViewScreen } from "./view-cookie";
 
-export { CHARGES_GRID_COOKIE, CHARGES_VIEW_COOKIE, type ChargesView } from "./view-cookie";
+export { CHARGES_GRID_COOKIE, CHARGES_VIEW_COOKIE, financeViews, type ChargesView } from "./view-cookie";
 
 /**
  * A regra da listagem de cobranças: ler o que a URL e os cookies pedem, filtrar, ordenar e cortar a página.
@@ -23,6 +23,10 @@ const querySchema = z.object({
 
 export function parseChargesView(raw: string | undefined): ChargesView {
   return z.enum(chargesViewValues).catch(DEFAULT_CHARGES_VIEW).parse(raw);
+}
+
+export function parseFinanceView(screen: FinanceViewScreen, raw: string | undefined): ChargesView {
+  return z.enum(chargesViewValues).catch(financeViews[screen].fallback).parse(raw);
 }
 
 export function parseChargesGridSize(raw: string | undefined) {

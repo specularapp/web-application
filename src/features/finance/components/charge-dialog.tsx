@@ -53,13 +53,15 @@ const eventLabels: Record<ChargeEvent["kind"], string> = {
   cancelled: "cancelou a cobrança",
 };
 
-// A ficha da cobrança (2026-09-15, reorganizada em 2026-10-27 na janela grande do contrato): o topo com a rota
-// e as ações; à esquerda o título com a situação, as parcelas com confirmar e reabrir e como pagar; à direita o
-// painel com quem paga, os valores, os detalhes e a linha do tempo. No celular as ações moram na barra flutuante.
+// A ficha da cobrança (2026-09-15; desde 2026-10-29, a pedido: "está enorme e bagunçado, arrume isso tudo", numa
+// janela centrada do tamanho do conteúdo e numa coluna só): o topo com a rota e as ações; o resumo com a
+// situação, o título, quem paga, o total, a barra e os três números; as parcelas com confirmar e reabrir; o
+// pagamento e os detalhes lado a lado; e a linha do tempo na largura toda. Cada dado aparece uma vez só. No
+// celular as ações moram na barra flutuante.
 export function ChargeDialog({ charge, onClose, ...rest }: ChargeDialogProps) {
   const label = charge ? `${chargeDirections[charge.direction].label} ${charge.reference}` : "Lançamento";
   return (
-    <Dialog open={Boolean(charge)} onClose={onClose} label={label} size="xl" focusOnOpen={false}>
+    <Dialog open={Boolean(charge)} onClose={onClose} label={label} size="lg" focusOnOpen={false}>
       {charge && <ChargeDetail key={charge.id} charge={charge} onClose={onClose} {...rest} />}
     </Dialog>
   );
@@ -110,16 +112,6 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
           <Link href={outgoing ? "/despesas" : "/cobrancas"} className={styles.crumb}>
             {outgoing ? "Despesas" : "Cobranças"}
           </Link>
-          {payer.clientId && (
-            <>
-              <span className={styles.slash} aria-hidden="true">
-                /
-              </span>
-              <Link href={`/${outgoing ? "fornecedores" : "clientes"}/${payer.clientId}` as Route} className={styles.crumb}>
-                {payer.company ?? payer.name}
-              </Link>
-            </>
-          )}
           <Badge tone="neutral" variant="soft" size="sm" className={styles.reference}>
             {charge.reference}
           </Badge>
@@ -142,215 +134,213 @@ function ChargeDetail({ charge, onClose, onSend: sendProp, onCopyLink: copyProp,
         </div>
       </header>
 
-      {/* O corpo em duas colunas, como a ficha do contrato (2026-10-27, a pedido: "reorganizar melhor e otimizar
-          mais"): à esquerda o que se faz (o título, as parcelas com confirmar e reabrir, e como pagar); à direita,
-          num painel, quem paga, os números num bloco só, os detalhes e a linha do tempo. Os quatro azulejos e a
-          barra solta saíram: viraram o bloco de valores do painel. */}
       <div className={styles.body}>
-        <div className={styles.main}>
-          <section className={styles.heading}>
-            <Badge tone={status.tone} size="sm" icon={<status.icon />}>
-              {status.label}
-            </Badge>
-            <Text as="h2" variant="title3" weight="semibold" className={styles.title}>
-              {charge.title}
-            </Text>
-            {charge.description && (
-              <Text variant="footnote" tone="secondary">
-                {charge.description}
+        <section className={styles.summary} aria-label="Resumo">
+          <div className={styles.summaryHead}>
+            <div className={styles.heading}>
+              <Badge tone={status.tone} size="sm" icon={<status.icon />}>
+                {status.label}
+              </Badge>
+              <Text as="h2" variant="title3" weight="semibold" className={styles.title}>
+                {charge.title}
               </Text>
-            )}
-          </section>
-
-          <section className={styles.section} aria-label="Parcelas">
-            <header className={styles.sectionHead}>
-              <Text as="h3" variant="subheadline" weight="semibold">
-                Parcelas
-              </Text>
-              <Text as="span" variant="caption1" tone="secondary">
-                {charge.installments.filter((installment) => installment.paidAt).length} de {charge.installments.length} {outgoing ? "pagas" : "recebidas"}
-              </Text>
-            </header>
-            <ul className={styles.installments}>
-              {charge.installments.map((installment) => {
-                const state = installmentStatusOf(installment, charge);
-                const meta = installmentStatuses[state];
-                const busy = busyInstallment === installment.id;
-                const reported = !outgoing && installment.reported && !installment.paidAt;
-                return (
-                  <li key={installment.id} className={styles.installment} data-status={state}>
-                    <span className={styles.installmentNumber} aria-hidden="true">
-                      {installment.number}
-                    </span>
-                    <span className={styles.installmentCopy}>
-                      <Text as="span" variant="footnote" weight="semibold" numeric>
-                        {formatMoney(installment.amount)}
-                      </Text>
-                      <Text as="span" variant="caption1" tone="secondary">
-                        {installment.paidAt
-                          ? `${outgoing ? "Paga" : "Recebida"} em ${shortDate(installment.paidAt.slice(0, 10))}${installment.paidMethod ? `, ${chargeMethods[installment.paidMethod].label}` : ""}`
-                          : `Vence em ${shortDate(installment.dueDate)}`}
-                      </Text>
-                    </span>
-                    <Badge tone={reported ? "info" : installment.paidAt || charge.cancelledAt ? meta.tone : dueTone(installment.dueDate)} size="sm">
-                      {reported ? "Pagamento avisado" : installment.paidAt || charge.cancelledAt ? meta.label : dueLabel(installment.dueDate)}
-                    </Badge>
-                    {!charge.cancelledAt &&
-                      (installment.paidAt ? (
-                        onReopen && (
-                          <IconButton label={`Reabrir a parcela ${installment.number}`} variant="ghost" size="sm" radius="md" loading={busy} onClick={() => onReopen(installment)}>
-                            <ArrowCounterClockwiseIcon />
-                          </IconButton>
-                        )
-                      ) : (
-                        onPay && (
-                          <span className={styles.installmentAction}>
-                            <span className={styles.wide}>
-                              <Button variant={reported ? "primary" : "outline"} size="sm" radius="md" iconStart={<CheckCircleIcon />} loading={busy} onClick={() => onPay(installment)}>
-                                Confirmar
-                              </Button>
-                            </span>
-                            <span className={styles.narrow}>
-                              <IconButton label={`Confirmar o pagamento da parcela ${installment.number}`} variant={reported ? "primary" : "outline"} size="sm" radius="md" loading={busy} onClick={() => onPay(installment)}>
-                                <CheckCircleIcon />
-                              </IconButton>
-                            </span>
-                          </span>
-                        )
-                      ))}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-
-          <section className={styles.section} aria-label="Como pagar">
-            <Text as="h3" variant="subheadline" weight="semibold">
-              {outgoing ? "Como é pago" : "Como o cliente paga"}
-            </Text>
-            <div className={styles.payment}>
-              <span className={styles.paymentHead}>
-                <method.icon aria-hidden="true" />
-                <Text as="span" variant="footnote" weight="semibold">
-                  {method.label}
+              {charge.description && (
+                <Text variant="footnote" tone="secondary">
+                  {charge.description}
                 </Text>
-                {charge.paymentInfo && (
-                  <IconButton label="Copiar as instruções" variant="ghost" size="sm" onClick={() => void copyInfo()}>
-                    <CopyIcon />
-                  </IconButton>
-                )}
-              </span>
-              <Text variant="footnote" tone="secondary" className={styles.paymentInfo}>
-                {charge.paymentInfo || (outgoing ? "Sem instruções registradas." : "Sem instruções escritas. O cliente vê só a forma.")}
-              </Text>
-            </div>
-            {charge.notes && (
-              <Text variant="footnote" tone="secondary">
-                {charge.notes}
-              </Text>
-            )}
-          </section>
-        </div>
-
-        <aside className={styles.side} aria-label={`Resumo da ${side.label.toLocaleLowerCase("pt-BR")}`}>
-          {payer.clientId ? (
-            <Link href={`/${outgoing ? "fornecedores" : "clientes"}/${payer.clientId}` as Route} className={styles.client}>
-              <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="md" />
-              <span className={styles.clientCopy}>
-                <Text as="span" variant="footnote" weight="semibold" truncate>
-                  {payer.company ?? payer.name}
-                </Text>
-                <Text as="span" variant="caption1" tone="secondary" truncate>
-                  {payer.company ? payer.name : (payer.email ?? "Sem e-mail")}
-                </Text>
-              </span>
-            </Link>
-          ) : (
-            <div className={styles.client}>
-              <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="md" />
-              <span className={styles.clientCopy}>
-                <Text as="span" variant="footnote" weight="semibold" truncate>
-                  {payer.name}
-                </Text>
-                <Text as="span" variant="caption1" tone="secondary" truncate>
+              )}
+              {payer.clientId ? (
+                <Link href={`/${outgoing ? "fornecedores" : "clientes"}/${payer.clientId}` as Route} className={styles.party}>
+                  <Avatar name={payer.name} src={payer.avatarUrl ?? undefined} size="xs" />
+                  <Text as="span" variant="footnote" weight="medium" truncate>
+                    {payer.company ?? payer.name}
+                  </Text>
+                </Link>
+              ) : (
+                <Text as="span" variant="footnote" tone="secondary">
                   {outgoing ? "Despesa avulsa" : "Cobrança avulsa"}
                 </Text>
-              </span>
+              )}
             </div>
-          )}
-
-          {/* Os números num bloco só: o total, a barra do que já entrou ou saiu, e o recebido e o em aberto */}
-          <section className={styles.values} aria-label="Valores">
-            <Text as="span" variant="caption1" tone="secondary">
-              Total
-            </Text>
-            <Text as="strong" variant="title2" weight="bold" numeric>
-              {formatMoney(charge.amount)}
-            </Text>
-            <Progress variant="bar" value={received} max={charge.amount} size="xs" tone={chargeStatusOf(charge) === "overdue" ? "danger" : outgoing ? "accent" : "success"} aria-label={`${outgoing ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
-            <dl className={styles.split}>
-              <div>
-                <dt>{outgoing ? "Pago" : "Recebido"}</dt>
-                <dd>{formatMoney(received)}</dd>
-              </div>
-              <div>
-                <dt>Em aberto</dt>
-                <dd data-tone={chargeStatusOf(charge) === "overdue" ? "danger" : undefined}>{formatMoney(open)}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <dl className={styles.facts}>
+            <div className={styles.total}>
+              <Text as="span" variant="caption1" tone="secondary">
+                Total
+              </Text>
+              <Text as="strong" variant="title2" weight="bold" numeric>
+                {formatMoney(charge.amount)}
+              </Text>
+            </div>
+          </div>
+          <Progress variant="bar" value={received} max={charge.amount} size="xs" tone={chargeStatusOf(charge) === "overdue" ? "danger" : outgoing ? "accent" : "success"} aria-label={`${outgoing ? "Pago" : "Recebido"} ${formatMoney(received)} de ${formatMoney(charge.amount)}`} />
+          <dl className={styles.stats}>
+            <div>
+              <dt>{outgoing ? "Pago" : "Recebido"}</dt>
+              <dd>{formatMoney(received)}</dd>
+            </div>
+            <div>
+              <dt>Em aberto</dt>
+              <dd data-tone={chargeStatusOf(charge) === "overdue" ? "danger" : undefined}>{formatMoney(open)}</dd>
+            </div>
             <div>
               <dt>Próxima parcela</dt>
               <dd>{next && !charge.cancelledAt ? shortDate(next.dueDate) : "Nenhuma"}</dd>
             </div>
-            <div>
-              <dt>Forma</dt>
-              <dd>
-                <method.icon aria-hidden="true" />
+          </dl>
+        </section>
+
+        <section className={styles.section} aria-label="Parcelas">
+          <header className={styles.sectionHead}>
+            <Text as="h3" variant="subheadline" weight="semibold">
+              Parcelas
+            </Text>
+            <Text as="span" variant="caption1" tone="secondary">
+              {charge.installments.length > 1 ? `${charge.installments.filter((installment) => installment.paidAt).length} de ${charge.installments.length} ${outgoing ? "pagas" : "recebidas"}` : "À vista"}
+            </Text>
+          </header>
+          <ul className={styles.installments}>
+            {charge.installments.map((installment) => {
+              const state = installmentStatusOf(installment, charge);
+              const meta = installmentStatuses[state];
+              const busy = busyInstallment === installment.id;
+              const reported = !outgoing && installment.reported && !installment.paidAt;
+              return (
+                <li key={installment.id} className={styles.installment} data-status={state}>
+                  <span className={styles.installmentNumber} aria-hidden="true">
+                    {installment.number}
+                  </span>
+                  <span className={styles.installmentCopy}>
+                    <Text as="span" variant="footnote" weight="semibold" numeric>
+                      {formatMoney(installment.amount)}
+                    </Text>
+                    <Text as="span" variant="caption1" tone="secondary">
+                      {installment.paidAt
+                        ? `${outgoing ? "Paga" : "Recebida"} em ${shortDate(installment.paidAt.slice(0, 10))}${installment.paidMethod ? `, ${chargeMethods[installment.paidMethod].label}` : ""}`
+                        : `Vence em ${shortDate(installment.dueDate)}`}
+                    </Text>
+                  </span>
+                  <Badge tone={reported ? "info" : installment.paidAt || charge.cancelledAt ? meta.tone : dueTone(installment.dueDate)} size="sm">
+                    {reported ? "Pagamento avisado" : installment.paidAt || charge.cancelledAt ? meta.label : dueLabel(installment.dueDate)}
+                  </Badge>
+                  {!charge.cancelledAt &&
+                    (installment.paidAt ? (
+                      onReopen && (
+                        <IconButton label={`Reabrir a parcela ${installment.number}`} variant="ghost" size="sm" radius="md" loading={busy} onClick={() => onReopen(installment)}>
+                          <ArrowCounterClockwiseIcon />
+                        </IconButton>
+                      )
+                    ) : (
+                      onPay && (
+                        <span className={styles.installmentAction}>
+                          <span className={styles.wide}>
+                            <Button variant={reported ? "primary" : "outline"} size="sm" radius="md" iconStart={<CheckCircleIcon />} loading={busy} onClick={() => onPay(installment)}>
+                              Confirmar
+                            </Button>
+                          </span>
+                          <span className={styles.narrow}>
+                            <IconButton label={`Confirmar o pagamento da parcela ${installment.number}`} variant={reported ? "primary" : "outline"} size="sm" radius="md" loading={busy} onClick={() => onPay(installment)}>
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </span>
+                        </span>
+                      )
+                    ))}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <div className={styles.pair}>
+          <section className={styles.card} aria-label="Como pagar">
+            <header className={styles.cardHead}>
+              <Text as="h3" variant="subheadline" weight="semibold">
+                {outgoing ? "Como é pago" : "Como o cliente paga"}
+              </Text>
+              {charge.paymentInfo && (
+                <IconButton label="Copiar as instruções" variant="ghost" size="sm" onClick={() => void copyInfo()}>
+                  <CopyIcon />
+                </IconButton>
+              )}
+            </header>
+            <span className={styles.method}>
+              <method.icon aria-hidden="true" />
+              <Text as="span" variant="footnote" weight="semibold">
                 {method.label}
-              </dd>
-            </div>
-            <div>
-              <dt>Parcelas</dt>
-              <dd>{charge.installments.length > 1 ? `${charge.installments.length}x` : "À vista"}</dd>
-            </div>
-            {charge.recurrence !== "none" && (
+              </Text>
+            </span>
+            <Text variant="footnote" tone="secondary" className={styles.paymentInfo}>
+              {charge.paymentInfo || (outgoing ? "Sem instruções registradas." : "Sem instruções escritas. O cliente vê só a forma.")}
+            </Text>
+          </section>
+
+          <section className={styles.card} aria-label="Detalhes">
+            <header className={styles.cardHead}>
+              <Text as="h3" variant="subheadline" weight="semibold">
+                Detalhes
+              </Text>
+            </header>
+            <dl className={styles.facts}>
+              <div>
+                <dt>Responsável</dt>
+                <dd>
+                  <Avatar name={charge.owner.name} src={charge.owner.avatarUrl ?? undefined} size="xs" />
+                  <span className={styles.ellipsis}>{charge.owner.name}</span>
+                </dd>
+              </div>
               <div>
                 <dt>Repete</dt>
                 <dd>{recurrenceLabels[charge.recurrence]}</dd>
               </div>
-            )}
-            {charge.quote && (
+              {charge.quote && (
+                <div>
+                  <dt>Orçamento</dt>
+                  <dd>{charge.quote.number}</dd>
+                </div>
+              )}
+              {charge.contract && (
+                <div>
+                  <dt>Contrato</dt>
+                  <dd>{charge.contract.reference}</dd>
+                </div>
+              )}
               <div>
-                <dt>Orçamento</dt>
-                <dd>{charge.quote.number}</dd>
+                <dt>Criada</dt>
+                <dd>{momentLabel(charge.createdAt)}</dd>
               </div>
-            )}
-            {!outgoing && (
-              <div>
-                <dt>Enviada</dt>
-                <dd>{charge.sentAt ? momentLabel(charge.sentAt) : "Ainda não"}</dd>
-              </div>
-            )}
-          </dl>
-
-          <section className={styles.sideBlock} aria-label="Linha do tempo">
-            <Text as="h3" variant="subheadline" weight="semibold">
-              Linha do tempo
-            </Text>
-            {/* A linha do tempo da casa, a mesma do histórico de edições (2026-10-27). */}
-            <Timeline
-              label="Linha do tempo da cobrança"
-              entries={events.map((entry) => {
-                const meta = eventMeta[entry.kind];
-                const what = outgoing && entry.kind === "created" ? "criou a despesa" : outgoing && entry.kind === "cancelled" ? "cancelou a despesa" : eventLabels[entry.kind];
-                return { id: entry.id, at: entry.at, icon: meta.icon, hue: meta.hue, title: `${entry.actor ?? "O sistema"} ${what}`, meta: entry.detail };
-              })}
-            />
+              {!outgoing && (
+                <div>
+                  <dt>Enviada</dt>
+                  <dd>{charge.sentAt ? momentLabel(charge.sentAt) : "Ainda não"}</dd>
+                </div>
+              )}
+            </dl>
           </section>
-        </aside>
+        </div>
+
+        {charge.notes && (
+          <section className={styles.section} aria-label="Observações">
+            <Text as="h3" variant="subheadline" weight="semibold">
+              Observações
+            </Text>
+            <Text variant="footnote" tone="secondary" className={styles.paymentInfo}>
+              {charge.notes}
+            </Text>
+          </section>
+        )}
+
+        <section className={styles.section} aria-label="Linha do tempo">
+          <Text as="h3" variant="subheadline" weight="semibold">
+            Linha do tempo
+          </Text>
+          <Timeline
+            label="Linha do tempo da cobrança"
+            entries={events.map((entry) => {
+              const meta = eventMeta[entry.kind];
+              const what = outgoing && entry.kind === "created" ? "criou a despesa" : outgoing && entry.kind === "cancelled" ? "cancelou a despesa" : eventLabels[entry.kind];
+              return { id: entry.id, at: entry.at, icon: meta.icon, hue: meta.hue, title: `${entry.actor ?? "O sistema"} ${what}`, meta: entry.detail };
+            })}
+          />
+        </section>
       </div>
     </div>
   );

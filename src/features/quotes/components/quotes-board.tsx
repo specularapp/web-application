@@ -12,7 +12,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
-import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { SCROLL_CONTAINER } from "@/lib/scroll";
 import { remapPage } from "@/lib/utils/paging";
@@ -72,8 +71,6 @@ const TYPING_PAUSE = 320;
 
 /** Quanto a prancha espera a janela parar de mudar de largura antes de pedir outro tamanho de página. */
 const RESIZE_PAUSE = 200;
-
-const numberFormat = new Intl.NumberFormat("pt-BR");
 
 /* Os dois jeitos de ver a mesma lista, no seletor da barra: a tabela primeiro, porque é o padrão daqui. */
 const viewOptions = [
@@ -220,8 +217,6 @@ export function QuotesBoard({ page, query, view: saved, editor, creating = false
   );
 
   const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
-  const from = (live.page - 1) * live.pageSize + 1;
-  const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeQuotesFilters(live);
   const filtering = Boolean(live.search) || active.length > 0;
   /* Uma página deixa de existir quando o último item dela some (exclusão, ou filtro que encolheu a base): a
@@ -359,20 +354,11 @@ export function QuotesBoard({ page, query, view: saved, editor, creating = false
         </div>
       )}
 
-      {/* O pé do funil, preso embaixo e à direita no desktop, como no catálogo: a contagem e, passando de uma
-          página, a barra. Na tabela ele mora no pé da própria tabela.
-
-          A condição olha `page.total`, e não `page.items.length`: uma página que ficou para trás do fim
-          (o efeito acima já está levando de volta) tem itens vazios com total maior que zero, e o pé
-          precisa continuar visível, com a barra, para a pessoa não ficar presa numa tela sem paginação. */}
-      {!asTable && page.total > 0 && (
-        <div className={styles.foot}>
-          <Text as="span" variant="footnote" tone="secondary">
-            {pastEnd ? "Ajustando a página" : `Mostrando ${numberFormat.format(from)} a ${numberFormat.format(to)} de ${numberFormat.format(page.total)}`}
-          </Text>
-          {pagination}
-        </div>
-      )}
+      {/* O pé do funil só existe quando há mais de uma página, e só com a barra de páginas (2026-10-29, a pedido:
+          "tire esse footer, para aproveitar 100% a tela"): a contagem saiu, e com uma página só o funil vai até o
+          pé da tela. Na tabela as páginas moram no pé da própria tabela. A página que ficou para trás do fim
+          (`pastEnd`) mantém a barra, para a pessoa não ficar presa numa tela sem paginação. */}
+      {!asTable && (pages > 1 || pastEnd) && <div className={styles.foot}>{pagination}</div>}
 
       {/* A janela de gerar: a de trabalho da casa, quase a tela inteira, com o editor de sempre por dentro. O
           Escape e o toque fora passam pela pergunta do editor, que só fecha direto quando nada foi mexido. */}

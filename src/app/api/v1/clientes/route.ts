@@ -9,7 +9,7 @@ import { listClients, saveClient } from "@/features/clients/service";
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "clients-read");
+  const auth = await authorizeDomain(request, "clients-read", "action", "clientes:ler");
   if ("response" in auth) return auth.response;
 
   const params = new URL(request.url).searchParams;
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await authorizeDomain(request, "clients-write");
+  const auth = await authorizeDomain(request, "clients-write", "action", "clientes:escrever");
   if ("response" in auth) return auth.response;
 
   const body = await readPayload(request, clientFormSchema);

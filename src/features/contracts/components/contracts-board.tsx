@@ -14,7 +14,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
-import { Text } from "@/components/ui/text";
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { useOpenedOnce } from "@/hooks/use-opened-once";
 import { callAction } from "@/lib/action";
@@ -85,8 +84,6 @@ const TYPING_PAUSE = 320;
 
 /** Quanto a prancha espera antes de pedir a página na medida da outra visão. */
 const RESIZE_PAUSE = 200;
-
-const numberFormat = new Intl.NumberFormat("pt-BR");
 
 /* Os dois jeitos de ver a mesma lista, no seletor da barra: o funil primeiro, porque é o padrão daqui. */
 const viewOptions = [
@@ -294,8 +291,6 @@ export function ContractsBoard({ page, query, view: saved, lookups, aiAvailable,
   const changePage = useCallback((next: number) => go({ page: next }), [go]);
 
   const pages = Math.max(1, Math.ceil(page.total / live.pageSize));
-  const from = (live.page - 1) * live.pageSize + 1;
-  const to = Math.min(live.page * live.pageSize, page.total);
   const active = activeContractsFilters(live);
   const filtering = Boolean(live.search) || active.length > 0;
   /* Uma página que ficou para trás do fim (o último item dela saiu) volta para a última que existe. */
@@ -435,16 +430,11 @@ export function ContractsBoard({ page, query, view: saved, lookups, aiAvailable,
         </div>
       )}
 
-      {/* O pé do funil, preso embaixo e à direita no desktop: a contagem e, passando de uma página, a barra. Na
-          tabela ele mora no pé da própria tabela. */}
-      {!asTable && page.total > 0 && (
-        <div className={styles.foot}>
-          <Text as="span" variant="footnote" tone="secondary">
-            {pastEnd ? "Ajustando a página" : `Mostrando ${numberFormat.format(from)} a ${numberFormat.format(to)} de ${numberFormat.format(page.total)}`}
-          </Text>
-          {pagination}
-        </div>
-      )}
+      {/* O pé do funil só existe quando há mais de uma página, e só com a barra de páginas (2026-10-29, a pedido:
+          "tire esse footer, para aproveitar 100% a tela"): a contagem saiu, e com uma página só o funil vai até o
+          pé da tela. Na tabela as páginas moram no pé da própria tabela. A página que ficou para trás do fim
+          (`pastEnd`) mantém a barra, para a pessoa não ficar presa numa tela sem paginação. */}
+      {!asTable && (pages > 1 || pastEnd) && <div className={styles.foot}>{pagination}</div>}
 
       {viewReady && (
         <ContractDialog

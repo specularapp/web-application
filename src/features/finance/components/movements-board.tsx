@@ -36,11 +36,15 @@ import { formatMoney } from "@/lib/utils/format";
 import { deleteTransactionAction, reverseTransactionAction } from "../accounts-actions";
 import { chargeMethods } from "../labels";
 import type { MovementEntry, MovementsScreenData } from "../movements";
+import type { ChargesView } from "../view-cookie";
 import { AccountMark } from "./account-mark";
+import { useFinanceView } from "./finance-view";
+import { MovementCard } from "./movement-card";
 import { dayBefore, signedMoney } from "./money";
 import { PaymentSheet } from "./payment-sheet";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import ticket from "./payment-sheet.module.css";
+import cards from "./finance-cards.module.css";
 import styles from "./movements-board.module.css";
 
 type KindFilter = "todas" | "income" | "expense";
@@ -59,9 +63,10 @@ const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, ""
  * abre o recibo. O leque edita e exclui a avulsa, estorna as duas (a avulsa fica riscada na lista; a baixa reabre
  * a parcela) e abre a cobrança de onde a baixa veio.
  */
-export function MovementsBoard({ movements, accounts, categories, today }: MovementsScreenData) {
+export function MovementsBoard({ movements, accounts, categories, today, view }: MovementsScreenData & { view: ChargesView }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { asTable, toolbar } = useFinanceView("movimentacoes", view);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("todas");
   const [status, setStatus] = useState<StatusFilter>("confirmadas");
@@ -283,12 +288,55 @@ export function MovementsBoard({ movements, accounts, categories, today }: Movem
   const receiptAccount = receipt ? accountOf(receipt.accountId) : null;
   const filtered = query !== "" || activeFilters.length > 0;
 
+  // O leque e o vazio, os mesmos na tabela e nos cartões
+  const menuOf = (entry: MovementEntry) => (
+    <DropdownMenu
+      label={`Ações de ${entry.title}`}
+      triggerLabel={`Abrir ações de ${entry.title}`}
+      size="sm"
+      sections={[
+        {
+          id: "actions",
+          items: [
+            { id: "receipt", label: "Ver o recibo", icon: ReceiptIcon, onSelect: () => setReceipt(entry) },
+            ...(entry.origin === "manual" && entry.status === "confirmed" ? [{ id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: () => setEditing(entry) }] : []),
+            ...(entry.chargeId ? [{ id: "charge", label: entry.kind === "expense" ? "Abrir a despesa" : "Abrir a cobrança", icon: EyeIcon, onSelect: () => router.push(`${entry.kind === "expense" ? "/despesas" : "/cobrancas"}/${entry.chargeId}` as Route) }] : []),
+          ],
+        },
+        {
+          id: "danger",
+          items: [
+            ...(entry.status === "confirmed" ? [{ id: "reverse", label: "Estornar", icon: ArrowUUpLeftIcon, tone: "danger" as const, onSelect: () => setReversing(entry) }] : []),
+            ...(entry.origin === "manual" ? [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: () => setRemoving(entry) }] : []),
+          ],
+        },
+      ].filter((section) => section.items.length > 0)}
+    />
+  );
+
+  const empty = (
+    <EmptyState
+      icon={ReceiptIcon}
+      title={filtered ? "Nenhuma movimentação encontrada" : "Nenhuma movimentação no período"}
+      description={filtered ? "Ajuste a busca ou os filtros." : "As baixas de parcela e os lançamentos avulsos aparecem aqui, com o recibo de cada um."}
+    >
+      {!filtered && (
+        <Button size="sm" iconStart={<PlusIcon />} onClick={() => setCreating(true)}>
+          Nova movimentação
+        </Button>
+      )}
+    </EmptyState>
+  );
+
+  const pagination = pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label="Páginas de movimentações" /> : undefined;
+
   return (
     <div className={styles.board}>
       <PageToolbar
         search={{ value: query, onChange: (value) => (setQuery(value), setPage(1)), placeholder: "Buscar movimentação", label: "Buscar movimentações por nome, descrição ou código" }}
         filters={filterSections}
         activeFilters={activeFilters}
+        view={toolbar}
         action={
           <>
             <span className={styles.wide}>
@@ -305,55 +353,37 @@ export function MovementsBoard({ movements, accounts, categories, today }: Movem
         }
       />
 
-      <div className={styles.table}>
-        <DataTable
-          label="Movimentações"
-          rows={shown}
-          rowKey={(entry) => entry.id}
-          columns={columns}
-          fill
-          onRowClick={setReceipt}
-          range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
-          footer={pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label="Páginas de movimentações" /> : undefined}
-          actions={(entry) => (
-            <DropdownMenu
-              label={`Ações de ${entry.title}`}
-              triggerLabel={`Abrir ações de ${entry.title}`}
-              size="sm"
-              sections={[
-                {
-                  id: "actions",
-                  items: [
-                    { id: "receipt", label: "Ver o recibo", icon: ReceiptIcon, onSelect: () => setReceipt(entry) },
-                    ...(entry.origin === "manual" && entry.status === "confirmed" ? [{ id: "edit", label: "Editar", icon: PencilSimpleIcon, onSelect: () => setEditing(entry) }] : []),
-                    ...(entry.chargeId ? [{ id: "charge", label: entry.kind === "expense" ? "Abrir a despesa" : "Abrir a cobrança", icon: EyeIcon, onSelect: () => router.push(`${entry.kind === "expense" ? "/despesas" : "/cobrancas"}/${entry.chargeId}` as Route) }] : []),
-                  ],
-                },
-                {
-                  id: "danger",
-                  items: [
-                    ...(entry.status === "confirmed" ? [{ id: "reverse", label: "Estornar", icon: ArrowUUpLeftIcon, tone: "danger" as const, onSelect: () => setReversing(entry) }] : []),
-                    ...(entry.origin === "manual" ? [{ id: "delete", label: "Excluir", icon: TrashIcon, tone: "danger" as const, onSelect: () => setRemoving(entry) }] : []),
-                  ],
-                },
-              ].filter((section) => section.items.length > 0)}
-            />
+      {asTable ? (
+        <div className={styles.table}>
+          <DataTable
+            label="Movimentações"
+            rows={shown}
+            rowKey={(entry) => entry.id}
+            columns={columns}
+            fill
+            onRowClick={setReceipt}
+            range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
+            footer={pagination}
+            actions={menuOf}
+            empty={empty}
+          />
+        </div>
+      ) : (
+        <div className={cards.area}>
+          {shown.length === 0 ? (
+            empty
+          ) : (
+            <ul className={cards.grid}>
+              {shown.map((entry) => (
+                <li key={entry.id}>
+                  <MovementCard entry={entry} type={typeOf(entry)} category={categoryOf(entry.categoryId)} account={accountOf(entry.accountId)} menu={menuOf(entry)} onOpen={() => setReceipt(entry)} />
+                </li>
+              ))}
+            </ul>
           )}
-          empty={
-            <EmptyState
-              icon={ReceiptIcon}
-              title={filtered ? "Nenhuma movimentação encontrada" : "Nenhuma movimentação no período"}
-              description={filtered ? "Ajuste a busca ou os filtros." : "As baixas de parcela e os lançamentos avulsos aparecem aqui, com o recibo de cada um."}
-            >
-              {!filtered && (
-                <Button size="sm" iconStart={<PlusIcon />} onClick={() => setCreating(true)}>
-                  Nova movimentação
-                </Button>
-              )}
-            </EmptyState>
-          }
-        />
-      </div>
+          {pagination && <div className={cards.pager}>{pagination}</div>}
+        </div>
+      )}
 
       <TransactionFormDialog
         open={creating || editing !== null}

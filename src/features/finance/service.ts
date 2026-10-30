@@ -5,6 +5,7 @@ import { addMonths, format, parseISO, startOfMonth, startOfQuarter, startOfYear,
 import { ptBR } from "date-fns/locale/pt-BR";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dispatchAutomationEvent } from "@/features/automations/service";
+import { emitWebhookEvent } from "@/features/integrations/service";
 import { listTeamMembers } from "@/features/organizations/service";
 import { quoteTotals } from "@/features/quotes/totals";
 import { shareCredentials, shareTokenHash } from "@/lib/security/share-token";
@@ -516,6 +517,7 @@ export async function payInstallment(
   /* O fluxo de "pagamento recebido" é do dinheiro que entra: disparar nele a baixa de uma despesa mandaria
      o agradecimento ao fornecedor que a equipe acabou de pagar. */
   if (!outgoing) void dispatchAutomationEvent(organizationId, "payment_received", automationContext(updated)).catch(() => undefined);
+  if (!outgoing) emitWebhookEvent(organizationId, "pagamento.recebido", { id: updated.id, ...automationContext(updated) });
 
   /* Quitada a última parcela, a próxima do ciclo nasce. É aqui, e não num relógio: a casa ainda não tem um,
      e amarrar a repetição ao fechamento tem uma vantagem própria: nunca se acumulam doze cobranças abertas

@@ -9,7 +9,7 @@ import { listTasks, saveTask } from "@/features/tasks/service";
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "tasks-read");
+  const auth = await authorizeDomain(request, "tasks-read", "action", "tarefas:ler");
   if ("response" in auth) return auth.response;
 
   const params = new URL(request.url).searchParams;

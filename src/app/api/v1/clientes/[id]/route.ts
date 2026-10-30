@@ -7,7 +7,7 @@ import { deleteClients, getClient } from "@/features/clients/service";
 import { authorizeDomain, fromMutation } from "@/lib/api/domain";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await authorizeDomain(request, "client-read");
+  const auth = await authorizeDomain(request, "client-read", "action", "clientes:ler");
   if ("response" in auth) return auth.response;
 
   const { id } = await params;

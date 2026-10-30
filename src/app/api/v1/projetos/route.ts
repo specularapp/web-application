@@ -9,7 +9,7 @@ import { listProjects, saveProject } from "@/features/projects/service";
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "projects-read");
+  const auth = await authorizeDomain(request, "projects-read", "action", "projetos:ler");
   if ("response" in auth) return auth.response;
 
   const params = new URL(request.url).searchParams;

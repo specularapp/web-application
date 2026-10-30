@@ -2,6 +2,7 @@ import "server-only";
 import { dbMessage } from "@/lib/db/message";
 import { format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emitWebhookEvent } from "@/features/integrations/service";
 import { getIssuer } from "@/features/organizations/service";
 import { shareCredentials, shareToken, shareTokenHash } from "@/lib/security/share-token";
 import { houseDay } from "@/lib/utils/day";
@@ -510,6 +511,17 @@ export async function respondToQuote(
   /* O time sai do próprio documento: quem responde pelo link não tem sessão, e a action precisa dele para
      derrubar o cache da listagem da equipe. */
   const found = await getQuoteByToken(admin, token);
+  if (found) {
+    const { quote } = found;
+    emitWebhookEvent(found.organizationId, approved ? "orcamento.aprovado" : "orcamento.recusado", {
+      id: quote.id,
+      numero: quote.number,
+      titulo: quote.title,
+      cliente_id: quote.clientId,
+      cliente: { nome: quote.client.name, email: quote.client.email },
+      total_centavos: quoteTotals(quote).total,
+    });
+  }
 
   return {
     ok: true,

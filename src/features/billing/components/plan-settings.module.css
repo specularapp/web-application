@@ -1,126 +1,37 @@
-.summary {
+/*
+ * O plano e a assinatura (2026-10-29): só o que as peças das configurações não trazem. Os blocos são o
+ * `SettingsSection`, os fatos, a linha do cartão e as ações vêm de `settings.module.css`, e as faturas, da
+ * `DataTable`.
+ */
+
+/* Os dois blocos lado a lado quando cabem com folga, pela largura da prancha e não da janela. */
+.top {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
   gap: var(--space-4);
+  align-items: stretch;
 }
 
-.summaryTop {
+/* O nome do plano à esquerda e o preço por mês à direita, na mesma linha. */
+.plan {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-  margin: 0;
-}
-
-.fact {
-  display: grid;
-  gap: var(--space-half);
-}
-
-.fact dt,
-.fact dd {
-  margin: 0;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.options {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-}
-
-.option {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
-}
-
-.optionHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.optionPrice {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.optionAmount {
-  font-family: var(--font-body);
-  font-size: var(--text-title-2);
-  font-weight: var(--weight-bold);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: var(--tracking-tighter);
-  color: var(--color-label);
-}
-
-.optionPeriod {
-  font-size: var(--text-footnote);
-  color: var(--color-label-tertiary);
-}
-
-.card {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
 }
 
-.cardInfo {
+.price {
   display: grid;
-  gap: var(--space-half);
+  justify-items: end;
+  gap: 0.125rem;
+  margin: 0;
 }
 
-.brand {
-  text-transform: capitalize;
-}
-
-.link {
-  color: var(--color-link);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-@media (hover: hover) {
-  .link:hover {
-    text-decoration-thickness: 2px;
-  }
-}
-
-@media (hover: hover) {
-  .link:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-    border-radius: var(--radius-xs);
-  }
-}
-
-.empty {
-  padding-block: var(--space-4);
-}
-
-@media (min-width: 48rem) {
-  .facts {
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: var(--space-5);
-  }
-
-  .options {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* Os rostos do time e a contagem ao lado. */
+.seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
 }

@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="rows" label="Carregando as conquistas" />;
+  return <PageSkeleton shape="sections" toolbar={false} label="Carregando as conquistas" />;
 }

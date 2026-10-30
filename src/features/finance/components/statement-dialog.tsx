@@ -1,18 +1,19 @@
 "use client";
 
-import { ArrowCounterClockwiseIcon, ArrowDownLeftIcon, ArrowUpRightIcon, CalendarBlankIcon, DownloadSimpleIcon, ListBulletsIcon, TagIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ArrowDownLeftIcon, ArrowUpRightIcon, CalendarBlankIcon, DownloadSimpleIcon, ListBulletsIcon, TagIcon, XIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { PageToolbar } from "@/components/layout/page-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DataTable, DataTableDate, DataTableMoney, DataTableTitle, type DataTableColumn } from "@/components/ui/data-table";
-import { Dialog, DialogHeader } from "@/components/ui/dialog";
+import { DataTable, DataTableDate, DataTableTitle, type DataTableColumn } from "@/components/ui/data-table";
+import { Dialog } from "@/components/ui/dialog";
 import type { DropdownSection } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconButton } from "@/components/ui/icon-button";
 import { Pagination } from "@/components/ui/pagination";
 import { Text } from "@/components/ui/text";
 import { formatMoney } from "@/lib/utils/format";
-import { accountDigits, accountIdentity, isFlow, movementOrigins, signedOf, type AccountMovement, type FinanceAccount, type MovementOrigin } from "../accounts";
+import { accountDigits, accountIdentity, movementOrigins, signedOf, type AccountMovement, type FinanceAccount, type MovementOrigin } from "../accounts";
 import { AccountMark, accountTone } from "./account-mark";
 import { dateBr, signedMoney } from "./money";
 import styles from "./statement-dialog.module.css";
@@ -44,16 +45,13 @@ export function StatementDialog({ account, movements, today, onClose }: { accoun
   return (
     <Dialog open={account !== null} onClose={onClose} label={account ? `Extrato de ${account.name}` : "Extrato"} size="xl" surface="solid" focusOnOpen={false} className={styles.window}>
       {account && (
-        <>
-          <DialogHeader title="Extrato" description={account.name} onClose={onClose} />
-          <Statement key={account.id} account={account} movements={movements} today={today} />
-        </>
+        <Statement key={account.id} account={account} movements={movements} today={today} onClose={onClose} />
       )}
     </Dialog>
   );
 }
 
-function Statement({ account, movements, today }: { account: FinanceAccount; movements: AccountMovement[]; today: string }) {
+function Statement({ account, movements, today, onClose }: { account: FinanceAccount; movements: AccountMovement[]; today: string; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("30");
   const [origins, setOrigins] = useState<MovementOrigin[]>([]);
@@ -76,13 +74,6 @@ function Statement({ account, movements, today }: { account: FinanceAccount; mov
       .filter((row) => (origins.length === 0 || origins.includes(row.movement.origin)) && (!search || normalize(`${row.movement.title} ${row.movement.description}`).includes(search)))
       .toReversed();
   }, [inPeriod, origins, query]);
-
-  // O que entrou e saiu no período, pela regra do cartão: só o que é dinheiro da empresa
-  const totals = useMemo(() => {
-    const real = inPeriod.filter((row) => isFlow(row.movement.origin));
-    const sum = (kind: AccountMovement["kind"]) => real.filter((row) => row.movement.kind === kind).reduce((total, row) => total + row.movement.amount, 0);
-    return { in: sum("in"), out: sum("out") };
-  }, [inPeriod]);
 
   const toggleOrigin = (origin: MovementOrigin) => setOrigins((current) => (current.includes(origin) ? current.filter((value) => value !== origin) : [...current, origin]));
 
@@ -133,8 +124,10 @@ function Statement({ account, movements, today }: { account: FinanceAccount; mov
     URL.revokeObjectURL(link.href);
   };
 
-  /* As colunas no desenho das tabelas da casa (2026-10-27, a pedido: "padronize tudo"): o movimento em título,
-     com a seta de entrada ou saída e a descrição embaixo, o tipo, a data, o valor com sinal e o saldo depois. */
+  /* As colunas na mesma ordem e no mesmo desenho da tabela de movimentações (2026-10-29, a pedido: "a tabela não
+     está nos padrões e está confusa"): o movimento com a seta do lado e a descrição embaixo; o valor
+     com sinal, na cor do texto na entrada e vermelho na saída, como lá; a data; o tipo; e o saldo que a conta
+     ficou logo depois, que é o que só o extrato tem. */
   const columns: DataTableColumn<Row>[] = [
     {
       id: "title",
@@ -152,6 +145,17 @@ function Statement({ account, movements, today }: { account: FinanceAccount; mov
       ),
     },
     {
+      id: "value",
+      header: "Valor",
+      align: "end",
+      cell: ({ movement }) => (
+        <Text as="span" variant="subheadline" weight="semibold" className={styles.amount} data-kind={movement.kind}>
+          {signedMoney(signedOf(movement))}
+        </Text>
+      ),
+    },
+    { id: "date", header: "Data", cell: ({ movement }) => <DataTableDate iso={movement.date} /> },
+    {
       id: "origin",
       header: "Tipo",
       hideBelow: "md",
@@ -164,18 +168,16 @@ function Statement({ account, movements, today }: { account: FinanceAccount; mov
         );
       },
     },
-    { id: "date", header: "Data", cell: ({ movement }) => <DataTableDate iso={movement.date} /> },
     {
-      id: "value",
-      header: "Valor",
+      id: "balance",
+      header: "Saldo",
       align: "end",
-      cell: ({ movement }) => (
-        <Text as="span" variant="subheadline" weight="semibold" className={styles.amount} data-kind={movement.kind}>
-          {signedMoney(signedOf(movement))}
+      cell: ({ balance }) => (
+        <Text as="span" variant="footnote" weight="medium" tone={balance < 0 ? "danger" : "secondary"} className={styles.amount}>
+          {formatMoney(balance)}
         </Text>
       ),
     },
-    { id: "balance", header: "Saldo depois", align: "end", hideBelow: "md", cell: ({ balance }) => <DataTableMoney cents={balance} weight="medium" /> },
   ];
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -188,64 +190,57 @@ function Statement({ account, movements, today }: { account: FinanceAccount; mov
 
   return (
     <div className={styles.screen}>
-      {/* A conta, no matiz dela: quem é, o que entrou e saiu no período e o saldo de agora */}
-      <div className={styles.hero} style={accountTone(account)}>
+      {/* A conta no lugar do cabeçalho, com o fechar dentro dela (2026-10-29, a pedido: "faça a parte da conta ficar
+          no lugar do header, e o X fica dentro"): o tom do banco translúcido desde o topo da janela, a marca e o
+          nome com o banco e o número. Os números de entrou, saiu e saldo saíram a pedido; o saldo depois de cada
+          movimento está na tabela */}
+      <header className={styles.hero} style={accountTone(account)}>
         <div className={styles.heroWho}>
           <AccountMark account={account} size="lg" />
           <span className={styles.ident}>
-            <strong>{title}</strong>
+            <small>Extrato</small>
+            <h2>{title}</h2>
             <small>{[subtitle, digits].filter(Boolean).join(" / ")}</small>
           </span>
         </div>
-        <dl className={styles.heroFacts}>
-          <div>
-            <dt>Entrou no período</dt>
-            <dd data-kind="in">{formatMoney(totals.in)}</dd>
-          </div>
-          <div>
-            <dt>Saiu no período</dt>
-            <dd data-kind="out">{formatMoney(totals.out)}</dd>
-          </div>
-          <div>
-            <dt>Saldo atual</dt>
-            <dd data-total="" data-negative={account.balance < 0 || undefined}>
-              {formatMoney(account.balance)}
-            </dd>
-          </div>
-        </dl>
-      </div>
+        <IconButton label="Fechar o extrato" variant="ghost" size="sm" onClick={onClose} className={styles.close}>
+          <XIcon />
+        </IconButton>
+      </header>
 
-      <div className={styles.toolbar}>
-        <PageToolbar
-          search={{ value: query, onChange: (value) => (setQuery(value), setPage(1)), placeholder: "Buscar movimento", label: "Buscar movimentos pela descrição" }}
-          filters={filterSections}
-          activeFilters={activeFilters}
-          action={
-            <Button variant="outline" size="sm" radius="md" iconStart={<DownloadSimpleIcon />} disabled={rows.length === 0} onClick={exportCsv}>
-              Exportar
-            </Button>
-          }
-        />
-      </div>
+      <div className={styles.body}>
+        <div className={styles.toolbar}>
+          <PageToolbar
+            search={{ value: query, onChange: (value) => (setQuery(value), setPage(1)), placeholder: "Buscar movimento", label: "Buscar movimentos pela descrição" }}
+            filters={filterSections}
+            activeFilters={activeFilters}
+            action={
+              <Button variant="outline" size="sm" radius="md" iconStart={<DownloadSimpleIcon />} disabled={rows.length === 0} onClick={exportCsv}>
+                Exportar
+              </Button>
+            }
+          />
+        </div>
 
-      <div className={styles.table}>
-        <DataTable
-          label={`Extrato de ${account.name}`}
-          rows={shown}
-          rowKey={(row) => row.movement.id}
-          columns={columns}
-          fill
-          range={{ page: current, pageSize: PAGE_SIZE, total: rows.length }}
-          footer={pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={rows.length} onPageChange={setPage} label="Páginas do extrato" /> : undefined}
-          empty={
-            <EmptyState
-              icon={ListBulletsIcon}
-              size="sm"
-              title={filtered ? "Nenhum movimento encontrado" : "Nenhum movimento no período"}
-              description={filtered ? "Ajuste a busca ou o tipo." : "Escolha um período maior para ver o histórico da conta."}
-            />
-          }
-        />
+        <div className={styles.table}>
+          <DataTable
+            label={`Extrato de ${account.name}`}
+            rows={shown}
+            rowKey={(row) => row.movement.id}
+            columns={columns}
+            fill
+            range={{ page: current, pageSize: PAGE_SIZE, total: rows.length }}
+            footer={pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={rows.length} onPageChange={setPage} label="Páginas do extrato" /> : undefined}
+            empty={
+              <EmptyState
+                icon={ListBulletsIcon}
+                size="sm"
+                title={filtered ? "Nenhum movimento encontrado" : "Nenhum movimento no período"}
+                description={filtered ? "Ajuste a busca ou o tipo." : "Escolha um período maior para ver o histórico da conta."}
+              />
+            }
+          />
+        </div>
       </div>
     </div>
   );

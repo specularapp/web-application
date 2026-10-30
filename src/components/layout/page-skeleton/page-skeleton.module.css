@@ -1,132 +1,406 @@
-/* O esqueleto de uma tela enquanto os dados chegam. Ele existe para a navegação ser instantânea: o Next
-   troca de rota mostrando isto no mesmo quadro em que a pessoa clica, e o conteúdo entra no lugar quando o
-   servidor termina. Sem ele, o clique fica parado na tela anterior até a consulta voltar.
-
-   As medidas são as das telas de verdade, para a troca não dar solavanco: mesma altura de topo, mesmo recuo
-   e a mesma grade. */
+/* O esqueleto de uma tela enquanto os dados chegam (refeito em 2026-10-29): as medidas são as das pranchas de
+   verdade, para a troca não dar solavanco. Sem topo, a barra de 36px no alto, o mesmo recuo da prancha e o corpo
+   enchendo a altura que sobra no desktop, onde a lista rola por dentro. */
 
 .screen {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
   min-height: 100%;
-}
-
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-}
-
-@media (width >= 48rem) {
-  .top {
-    padding-inline: var(--space-6);
-  }
-}
-
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
   padding: var(--space-4);
 }
 
-@media (width >= 48rem) {
-  .body {
+@media (min-width: 48rem) {
+  .screen {
+    height: 100%;
+    min-height: 0;
     padding: var(--space-6);
   }
 }
 
+/* Sem barra, o corpo é a única linha. */
+.screen[data-bare] {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* No desktop o corpo é uma linha só, da altura que sobra: a tabela e o quadro de edição enchem ela, como os de
+   verdade, e as grades ficam presas ao topo. */
+@media (min-width: 48rem) {
+  .body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+/* ---------- A barra ---------- */
+
 .toolbar {
   display: flex;
-  align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
 }
 
 .spacer {
   flex: 1;
 }
 
-/* A grade acompanha a das listagens: uma coluna no celular e até quatro no computador. */
-.grid {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: 1fr;
+.toolbar > .search.search {
+  flex: 1;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
 }
 
-@media (width >= 40rem) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
+.toolbar > .select.select {
+  flex: 0 0 9.5rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+.toolbar > .square.square {
+  flex: 0 0 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+.toolbar > .view.view {
+  flex: 0 0 4rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+/* O botão de contorno é só o contorno, como o de verdade: um bloco cheio pesaria mais que a ação. */
+.outline {
+  flex: 0 0 7rem;
+  height: 2.25rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.toolbar > .action.action {
+  flex: 0 0 9rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+/* No celular a barra fica com a busca e os ícones; o seletor de visão some e a ação vira o "+" quadrado, como
+   nas telas. */
+@media (max-width: 47.9375rem) {
+  .toolbar > .view.view,
+  .outline {
+    display: none;
+  }
+
+  .toolbar > .select.select {
+    flex: 1 1 0;
+  }
+
+  .toolbar > .action.action {
+    flex-basis: 2.25rem;
   }
 }
 
-@media (width >= 64rem) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
+/* ---------- A tabela ---------- */
 
-@media (width >= 90rem) {
-  .grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
+.frame {
+  --line-subtle: var(--color-border);
+  --line-faint: color-mix(in oklab, var(--color-border) 50%, transparent);
 
-.card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  /* A mesma superfície do `Card` da casa, que pinta o miolo com `--color-bg` sobre a página: com o cinza
-     agrupado o esqueleto lia como um cartão de outra tela, e ao carregar a cor mudava embaixo do conteúdo. */
-  background: var(--color-bg);
+  min-width: 0;
+  overflow: hidden;
   border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-.cardHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+@media (min-width: 48rem) {
+  .frame {
+    height: 100%;
+  }
+
+  .mobileOnly {
+    display: none;
+  }
 }
 
-.cardLines {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+/* No celular as listas viram cartões, e a tabela sai do esqueleto pelo mesmo motivo. */
+@media (max-width: 47.9375rem) {
+  .frame {
+    display: none;
+  }
 }
 
-/* O quadro rola na horizontal dentro de si, como o de verdade, e nunca a página. */
-.board {
-  display: flex;
-  gap: var(--space-4);
-  overflow-x: auto;
-  padding-bottom: var(--space-2);
+.head,
+.row {
+  display: grid;
+  flex-shrink: 0;
+  min-width: max-content;
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  flex: 0 0 18rem;
-  min-width: 18rem;
-}
-
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.head {
+  height: 2.25rem;
+  border-block-end: 0.0625rem solid var(--line-subtle);
 }
 
 .row {
+  height: 2.5rem;
+  border-block-end: 0.0625rem solid var(--line-faint);
+}
+
+.cell {
   display: flex;
   align-items: center;
+  min-width: 0;
+  padding: 0 0.625rem 0 1.25rem;
+}
+
+.cell:not(:last-child) {
+  border-inline-end: 0.0625rem solid var(--line-faint);
+}
+
+.cell[data-lines] {
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.cell[data-end] {
+  justify-content: flex-end;
+}
+
+/* ---------- Os cartões ---------- */
+
+.grid {
+  display: grid;
+  align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+}
+
+/* Os de perfil são pequenos e muitos, como os de clientes. */
+.grid[data-card="profile"] {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+
+/* A caixa do cartão de cobrança: o fundo da página com o fio fino e o canto `xl`. */
+.card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+@media (min-width: 48rem) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .card[data-card="profile"] {
+    padding: var(--space-3);
+  }
+}
+
+.card[data-card="profile"] {
+  gap: var(--space-3);
+  justify-items: center;
+  padding: var(--space-3);
+}
+
+.card[data-card="profile"] > .line {
+  align-self: stretch;
+}
+
+.face.face {
+  width: 4rem;
+  height: 4rem;
+}
+
+.center.center {
+  margin-block-end: var(--space-2);
+}
+
+.line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.line[data-foot] {
+  padding-block-start: var(--space-3);
+  border-block-start: 0.0375rem solid var(--color-border);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.stack[data-grow] {
+  flex: 1;
+  gap: var(--space-1);
+}
+
+.pill.pill {
+  height: 1.375rem;
+  border-radius: var(--radius-full);
+}
+
+/* ---------- O quadro ---------- */
+
+.board {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  align-self: start;
+  overflow: hidden;
+}
+
+/* A coluna das etapas: o véu cinza da etapa sem cor, o recuo e o canto das de verdade. */
+.column {
+  display: grid;
+  flex: 0 0 19rem;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-2);
+  background-color: light-dark(color-mix(in oklab, var(--sys-gray) 4%, transparent), color-mix(in oklab, var(--sys-gray) 11%, transparent));
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 47.9375rem) {
+  .column {
+    flex-basis: min(80vw, 19rem);
+  }
+}
+
+.ticket {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Seções, caixa de entrada e quadro de edição ---------- */
+
+.sections {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 48rem;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+}
+
+.inbox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 48rem) {
+  .inbox {
+    grid-template-columns: 20rem minmax(0, 1fr);
+    height: 100%;
+  }
+}
+
+.inboxList {
+  display: grid;
+  align-content: start;
+}
+
+.inboxList > [data-row] {
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 0.0625rem solid color-mix(in oklab, var(--color-border) 50%, transparent);
+}
+
+.thread {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .thread {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    padding: var(--space-5);
+    border-inline-start: 0.0375rem solid var(--color-border);
+  }
+}
+
+.bubble.bubble {
+  height: 2.75rem;
+  border-radius: var(--radius-xl);
+}
+
+.bubble[data-side="end"] {
+  align-self: flex-end;
+}
+
+.canvas {
+  display: grid;
+  gap: var(--space-6);
+  align-content: center;
+  justify-items: center;
+  min-height: 24rem;
+  padding: var(--space-6);
+  background-image: radial-gradient(color-mix(in oklab, var(--color-label) 14%, transparent) 1px, transparent 1px);
+  background-size: 1.25rem 1.25rem;
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 48rem) {
+  .canvas {
+    height: 100%;
+  }
+}
+
+.node {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: min(100%, 17rem);
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 /* Enquanto o esqueleto está na tela, quem usa leitor precisa saber que algo está vindo. */

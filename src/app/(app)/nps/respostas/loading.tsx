@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="rows" label="Carregando as respostas" />;
+  return <PageSkeleton shape="inbox" toolbar={{ filter: true }} label="Carregando as respostas" />;
 }

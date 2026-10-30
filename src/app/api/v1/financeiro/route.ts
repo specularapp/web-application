@@ -8,7 +8,7 @@ import { createTransaction, getFinanceOverview } from "@/features/finance/servic
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "finance-read");
+  const auth = await authorizeDomain(request, "finance-read", "action", "financeiro:ler");
   if ("response" in auth) return auth.response;
 
   const period = financePeriodSchema.parse(new URL(request.url).searchParams.get("periodo") ?? undefined);

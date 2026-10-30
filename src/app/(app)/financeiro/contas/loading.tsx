@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/layout/page-skeleton";
+import { AccountsSkeleton } from "@/features/finance/components/finance-skeletons";
 
 export default function Loading() {
-  return <PageSkeleton shape="grid" label="Carregando o financeiro" />;
+  return <AccountsSkeleton />;
 }

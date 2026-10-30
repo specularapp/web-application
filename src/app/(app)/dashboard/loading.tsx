@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/layout/page-skeleton";
+import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="grid" label="Carregando o painel" />;
+  return <DashboardSkeleton />;
 }

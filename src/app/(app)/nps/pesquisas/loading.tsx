@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="grid" label="Carregando as pesquisas" />;
+  return <PageSkeleton shape="cards" card="item" label="Carregando as pesquisas" />;
 }

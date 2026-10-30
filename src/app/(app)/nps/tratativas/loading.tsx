@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="board" label="Carregando as tratativas" />;
+  return <PageSkeleton shape="board" toolbar={{ filter: true, view: true }} label="Carregando as tratativas" />;
 }

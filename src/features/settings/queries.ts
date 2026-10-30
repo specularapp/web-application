@@ -7,9 +7,10 @@ import type { PointsSummary } from "@/features/gamification/summary";
 import { requireOrganization } from "@/features/organizations/context";
 import { getTeamState, getTeamSummary, type Team, type TeamMember, type TeamState } from "@/features/organizations/service";
 import type { TeamMember as MemberSummary } from "@/features/organizations/summary";
-import { hasAi, hasResend, hasStripe } from "@/lib/env";
 import { siteConfig } from "@/lib/metadata";
-import { getAccount, getCustomDomain, getResume, type Account, type CustomDomain, type Resume } from "./service";
+import type { DomainsOverview } from "./domains";
+import { listPortfolioDomains } from "./domains-service";
+import { getAccount, getResume, type Account, type Resume } from "./service";
 
 /**
  * O que cada página de configuração precisa, de uma vez. Sem cache: são fichas da própria pessoa, lidas ao
@@ -116,35 +117,15 @@ export async function getNotificationsSettings(): Promise<AppNotification[]> {
   }));
 }
 
-export type DomainSettings = { domain: CustomDomain; billing: BillingState | null };
+/* Os domínios do portfólio (2026-10-29): a lista, o plano (o leque de cadastrar é do Pro) e se quem lê pode mexer,
+   que é de dono ou administrador; a RLS confere de novo na escrita. */
+export type DomainSettings = { overview: DomainsOverview; billing: BillingState | null; canManage: boolean };
 
 export async function getDomainSettings(): Promise<DomainSettings | null> {
-  const { supabase, organizationId } = await requireOrganization("/configuracoes/dominio");
-  const [domain, billing] = await Promise.all([getCustomDomain(supabase, organizationId), getBillingState(supabase, organizationId).catch(() => null)]);
-  if (!domain) return null;
-  return { domain, billing };
-}
-
-/** O que está ligado na casa, para a página de integrações dizer a verdade e nada além. */
-export type IntegrationsSettings = {
-  stripe: { configured: boolean; connected: boolean };
-  email: { configured: boolean };
-  ai: { configured: boolean };
-  webhook: { url: string; header: string };
-  api: { baseUrl: string };
-};
-
-export async function getIntegrationsSettings(): Promise<IntegrationsSettings> {
-  const { supabase, organizationId } = await requireOrganization("/configuracoes/integracoes");
-  const billing = await getBillingState(supabase, organizationId).catch(() => null);
-
-  return {
-    stripe: { configured: hasStripe(), connected: Boolean(billing?.hasSubscription || billing?.hasPaymentMethod) },
-    email: { configured: hasResend() },
-    ai: { configured: hasAi() },
-    webhook: { url: `${siteConfig.url}/api/webhooks/n8n`, header: "x-webhook-secret" },
-    api: { baseUrl: `${siteConfig.url}/api/v1` },
-  };
+  const { supabase, organizationId, role } = await requireOrganization("/configuracoes/dominio");
+  const [overview, billing] = await Promise.all([listPortfolioDomains(supabase, organizationId), getBillingState(supabase, organizationId).catch(() => null)]);
+  if (!overview) return null;
+  return { overview, billing, canManage: role === "owner" || role === "admin" };
 }
 
 export type ResumeSettings = { resume: Resume; publicUrl: string | null };

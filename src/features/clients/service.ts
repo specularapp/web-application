@@ -3,6 +3,7 @@ import { dbMessage } from "@/lib/db/message";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { quoteTotals } from "@/features/quotes/totals";
 import type { QuoteStatus } from "@/features/quotes/summary";
+import { emitWebhookEvent } from "@/features/integrations/service";
 import { diffFields, logRecordEvent, summarize } from "@/features/records/history";
 import type { Database } from "@/types/database";
 import type { ClientListItem, ClientsListPage, ClientsQuery } from "./list-options";
@@ -390,6 +391,18 @@ export async function saveClient(
     recordId: data.id,
     action: "created",
     summary: `Cadastrou ${input.name}`,
+  });
+
+  emitWebhookEvent(organizationId, "cliente.criado", {
+    id: data.id,
+    referencia: data.reference,
+    nome: input.name,
+    tipo: input.kind,
+    empresa: values.company,
+    email: values.email,
+    telefone: values.phone,
+    cidade: values.city,
+    etiquetas: input.tags,
   });
 
   return { ok: true, data: { id: data.id } };

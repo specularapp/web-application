@@ -23,6 +23,8 @@ export const rateLimitRules = {
   // Responder um formulário pode criar ou atualizar um cliente. O limite menor reduz envios repetidos sem
   // atrapalhar quem corrige uma resposta e tenta novamente.
   publicForm: { limit: 8, windowSeconds: 900 },
+  // A chave de API traz o próprio teto por minuto (2026-10-29); este é só o padrão de quem não passa a regra.
+  apiKey: { limit: 60, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof rateLimitRules;
@@ -85,8 +87,8 @@ export async function checkRateLimit(
   scope: RateLimitScope,
   identifier: string,
   requestId: string,
+  rule: RateLimitRule = rateLimitRules[scope],
 ): Promise<RateLimitResult> {
-  const rule = rateLimitRules[scope];
   const key = `ratelimit:${scope}:${identifier}`;
   const windowMs = rule.windowSeconds * 1000;
 

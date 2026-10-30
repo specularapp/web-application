@@ -11,7 +11,7 @@ export const accountTone = (account: Pick<FinanceAccount, "hue">) => ({ "--accou
  * O logo do banco num quadradinho ou, sem logo (o caixa, um banco fora da lista), o glifo do tipo de conta no
  * matiz da conta, no mesmo quadradinho (2026-10-27, da Le Ange).
  */
-export function AccountMark({ account, size = "sm" }: { account: MarkAccount; size?: "sm" | "lg" }) {
+export function AccountMark({ account, size = "sm" }: { account: MarkAccount; size?: "sm" | "md" | "lg" }) {
   const bank = bankOf(account.bank);
   if (bank?.logo) {
     return (

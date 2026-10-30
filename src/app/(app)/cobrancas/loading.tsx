@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="rows" label="Carregando as cobranças" />;
+  return <PageSkeleton columns={[13, 13, 8, 8, 9, 8, 7]} label="Carregando as cobranças" />;
 }

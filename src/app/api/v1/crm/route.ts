@@ -9,7 +9,7 @@ import { getCrmTree, listOpportunities, saveOpportunity } from "@/features/crm/s
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "crm-read");
+  const auth = await authorizeDomain(request, "crm-read", "action", "crm:ler");
   if ("response" in auth) return auth.response;
 
   const params = new URL(request.url).searchParams;

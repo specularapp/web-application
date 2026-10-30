@@ -1,0 +1,79 @@
+/* O esqueleto do painel (2026-10-29): o cabeçalho na altura do de verdade e os blocos na caixa dos cartões da
+   grade, cada um com o título no alto e as linhas embaixo. */
+
+.header {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.copy {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.square.square {
+  flex: 0 0 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+.action.action {
+  flex: 0 0 9rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 47.9375rem) {
+  .action.action {
+    flex-basis: 2.25rem;
+  }
+}
+
+/* Sem a entrada em cascata da grade: o esqueleto aparece de uma vez, e quem entra devagar são os blocos de
+   verdade quando chegam. */
+.block.block {
+  animation: none;
+}
+
+.block {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.blockHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.lines {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

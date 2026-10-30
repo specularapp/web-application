@@ -75,26 +75,28 @@ export const accountHueValues = ["blue", "indigo", "purple", "pink", "red", "ora
 /**
  * Os bancos que a tela conhece, com o matiz que a conta ganha ao escolher o banco. Os logos vêm do financeiro da
  * Le Ange (`public/bancos`, do repositório Bancos em SVG); `framed` marca os que são só o símbolo, sem fundo, e
- * ganham o quadrinho claro com borda para ficarem do tamanho dos que já vêm num quadrado.
+ * ganham o quadrinho claro com borda para ficarem do tamanho dos que já vêm num quadrado. Desde 2026-10-29 (a
+ * pedido: "faça todos os bancos terem a logo definitiva do banco") todos têm logo: os que faltavam vieram do
+ * mesmo repositório, e Cielo e Rede, que não estão nele, do Wikimedia Commons.
  */
 export const banks = {
   itau: { label: "Itaú", hue: "orange", logo: "/bancos/itau.svg", framed: false },
   bradesco: { label: "Bradesco", hue: "red", logo: "/bancos/bradesco.svg", framed: false },
   sicredi: { label: "Sicredi", hue: "green", logo: "/bancos/sicredi.svg", framed: true },
   stone: { label: "Stone", hue: "green", logo: "/bancos/stone.svg", framed: true },
-  nubank: { label: "Nubank", hue: "purple", logo: null, framed: false },
-  inter: { label: "Inter", hue: "orange", logo: null, framed: false },
-  bb: { label: "Banco do Brasil", hue: "yellow", logo: null, framed: false },
-  caixa: { label: "Caixa Econômica", hue: "blue", logo: null, framed: false },
-  santander: { label: "Santander", hue: "red", logo: null, framed: false },
-  c6: { label: "C6 Bank", hue: "gray", logo: null, framed: false },
-  sicoob: { label: "Sicoob", hue: "teal", logo: null, framed: false },
-  btg: { label: "BTG Pactual", hue: "indigo", logo: null, framed: false },
-  cora: { label: "Cora", hue: "pink", logo: null, framed: false },
-  mercadopago: { label: "Mercado Pago", hue: "cyan", logo: null, framed: false },
-  pagbank: { label: "PagBank", hue: "yellow", logo: null, framed: false },
-  cielo: { label: "Cielo", hue: "blue", logo: null, framed: false },
-  rede: { label: "Rede", hue: "orange", logo: null, framed: false },
+  nubank: { label: "Nubank", hue: "purple", logo: "/bancos/nubank.svg", framed: false },
+  inter: { label: "Inter", hue: "orange", logo: "/bancos/inter.svg", framed: true },
+  bb: { label: "Banco do Brasil", hue: "yellow", logo: "/bancos/bb.svg", framed: false },
+  caixa: { label: "Caixa Econômica", hue: "blue", logo: "/bancos/caixa.svg", framed: true },
+  santander: { label: "Santander", hue: "red", logo: "/bancos/santander.svg", framed: false },
+  c6: { label: "C6 Bank", hue: "gray", logo: "/bancos/c6.svg", framed: true },
+  sicoob: { label: "Sicoob", hue: "teal", logo: "/bancos/sicoob.svg", framed: true },
+  btg: { label: "BTG Pactual", hue: "indigo", logo: "/bancos/btg.svg", framed: true },
+  cora: { label: "Cora", hue: "pink", logo: "/bancos/cora.svg", framed: false },
+  mercadopago: { label: "Mercado Pago", hue: "cyan", logo: "/bancos/mercadopago.svg", framed: true },
+  pagbank: { label: "PagBank", hue: "yellow", logo: "/bancos/pagbank.svg", framed: true },
+  cielo: { label: "Cielo", hue: "blue", logo: "/bancos/cielo.svg", framed: true },
+  rede: { label: "Rede", hue: "orange", logo: "/bancos/rede.svg", framed: true },
 } as const satisfies Record<string, { label: string; hue: AccountHue; logo: string | null; framed: boolean }>;
 
 export type BankKey = keyof typeof banks;

@@ -69,17 +69,23 @@ export const saveProfileSchema = z
 
 export type SaveProfileInput = z.infer<typeof saveProfileSchema>;
 
-/** Um nome de domínio, sem protocolo nem caminho: `portfolio.estudio.com.br`. */
-export const customDomainSchema = z.object({
-  domain: z.union([
-    z.literal(""),
-    z
-      .string()
-      .trim()
-      .toLowerCase()
-      .max(253, "Domínio longo demais")
-      .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/, "Digite só o domínio, como portfolio.seusite.com.br"),
-  ]),
+/** Um nome de domínio, sem protocolo nem caminho: `portfolio.estudio.com.br`. Quem cola a URL inteira ("https://
+    www.estudio.com.br/") também passa: o protocolo, a barra e o caminho caem antes da conferência. */
+export const domainNameSchema = z.object({
+  domain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .transform((value) => value.replace(/^[a-z]+:\/\//, "").replace(/[/?#].*$/, "").replace(/\.$/, ""))
+    .pipe(
+      z
+        .string()
+        .min(1, "Digite o domínio")
+        .max(253, "Domínio longo demais")
+        .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/, "Digite só o domínio, como portfolio.seusite.com.br"),
+    ),
 });
+
+export const domainIdSchema = z.object({ id: z.uuid() });
 
 export const notificationIdsSchema = z.array(z.uuid()).min(1).max(500);

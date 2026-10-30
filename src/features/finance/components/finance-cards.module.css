@@ -1,0 +1,43 @@
+/*
+ * A área dos cartões nas listas do financeiro (2026-10-29): rola por dentro no desktop, como a tabela, com a grade
+ * de cartões e a paginação no pé. Cada tela desenha o próprio cartão; aqui mora só o que é comum.
+ */
+.area {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .area {
+    padding-block-end: var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.grid > li {
+  display: grid;
+  min-width: 0;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 47.9375rem) {
+  .area {
+    padding-block-end: var(--floating-bar-inset, var(--space-6));
+  }
+}

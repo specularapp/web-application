@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CONFIRM_EMAIL_PATH, MFA_PATH, publicAuthPaths, RESET_PASSWORD_PATH } from "@/lib/auth-paths";
 import { isHomologation } from "@/lib/env";
+import { siteConfig } from "@/lib/metadata";
 import { hasSkippedMfa, MFA_SKIP_COOKIE } from "@/lib/mfa";
 import { applyContentSecurityPolicy, buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 import { updateSession } from "@/lib/supabase/proxy";
@@ -17,6 +18,17 @@ function isPublic(pathname: string) {
     openPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     sharedPrefixes.some((prefix) => pathname.startsWith(prefix))
   );
+}
+
+/* Os endereços da própria casa: o do aplicativo, o configurado, o da máquina de quem desenvolve e os da Vercel
+   (produção e preview). Qualquer outro nome que chegue aqui é o domínio próprio de uma equipe. */
+const houseHosts = new Set([siteConfig.hosts.app, new URL(siteConfig.url).hostname, "localhost", "127.0.0.1", "0.0.0.0"]);
+
+function portfolioHost(request: NextRequest) {
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (!host || houseHosts.has(host) || host.endsWith(".vercel.app") || host === "specular.com.br" || host.endsWith(".specular.com.br")) return null;
+  if (/^[0-9.]+$/.test(host)) return null;
+  return host;
 }
 
 function redirectWithCookies(url: URL, from: NextResponse) {
@@ -45,6 +57,23 @@ function withNext(request: NextRequest, pathname: string, next: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // O domínio próprio de uma equipe (2026-10-29, a pedido: "o cliente acessar o portfólio direto pela URL dele"):
+  // qualquer página que chega por ele mostra o portfólio daquele domínio, sem login. Arquivo com extensão segue
+  // o caminho dele. A página só aparece se o domínio estiver conferido; senão cai no 404, como todo link público
+  // inválido, e a casa não serve o portfólio de quem só apontou um domínio sem ser dono dele.
+  const portfolio = portfolioHost(request);
+  if (portfolio && !/\.[a-z0-9]+$/i.test(pathname)) {
+    const nonce = createNonce();
+    const csp = buildContentSecurityPolicy(nonce);
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("x-pathname", `/p/${portfolio}`);
+    headers.set("Content-Security-Policy", csp);
+    const target = request.nextUrl.clone();
+    target.pathname = `/p/${portfolio}`;
+    return applyContentSecurityPolicy(NextResponse.rewrite(target, { request: { headers } }), csp);
+  }
 
   // O Supabase cai no Site URL quando o redirect_to não bate com a lista de permitidos, e o
   // código do OAuth aterrissa na raiz. Sem repassar para o callback, o código morre aqui: a

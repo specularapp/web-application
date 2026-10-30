@@ -17,9 +17,13 @@ import { callAction } from "@/lib/action";
 import { formatMoney } from "@/lib/utils/format";
 import { undoTransferAction } from "../accounts-actions";
 import { accountDigits, accountIdentity, type FinanceTransfer, type TransfersScreenData } from "../accounts";
+import type { ChargesView } from "../view-cookie";
 import { AccountMark } from "./account-mark";
+import { useFinanceView } from "./finance-view";
+import { TransferCard } from "./transfer-card";
 import type { Opened } from "./money";
 import { TransferDialog, TransferReceiptDialog } from "./transfer-dialog";
+import cards from "./finance-cards.module.css";
 import styles from "./transfers-board.module.css";
 
 type StatusFilter = "todas" | "feitas" | "desfeitas";
@@ -33,9 +37,10 @@ const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, ""
  * onde foi. Clicar na linha abre o comprovante; o leque desfaz, e o dinheiro volta para a conta de onde saiu. A
  * transferência desfeita continua na lista, para o extrato contar a história inteira.
  */
-export function TransfersBoard({ accounts, transfers, today }: TransfersScreenData) {
+export function TransfersBoard({ accounts, transfers, today, view }: TransfersScreenData & { view: ChargesView }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { asTable, toolbar } = useFinanceView("transferencias", view);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("todas");
   const [accountFilter, setAccountFilter] = useState<string | null>(null);
@@ -158,12 +163,42 @@ export function TransfersBoard({ accounts, transfers, today }: TransfersScreenDa
 
   const filtered = query !== "" || activeFilters.length > 0;
 
+  // O leque e o vazio, os mesmos na tabela e nos cartões
+  const menuOf = (transfer: FinanceTransfer) => (
+    <DropdownMenu
+      label={`Ações de ${transfer.reference}`}
+      triggerLabel={`Abrir ações de ${transfer.reference}`}
+      size="sm"
+      sections={[
+        { id: "actions", items: [{ id: "receipt", label: "Ver o comprovante", icon: ReceiptIcon, onSelect: () => setReceipt(transfer) }] },
+        ...(transfer.undone ? [] : [{ id: "danger", items: [{ id: "undo", label: "Desfazer transferência", icon: ArrowUUpLeftIcon, tone: "danger" as const, onSelect: () => setUndoing(transfer) }] }]),
+      ]}
+    />
+  );
+
+  const empty = (
+    <EmptyState
+      icon={ArrowsLeftRightIcon}
+      title={filtered ? "Nenhuma transferência encontrada" : "Nenhuma transferência feita"}
+      description={filtered ? "Ajuste a busca ou os filtros." : "Os repasses da maquininha, os depósitos do caixa e o dinheiro que muda de banco aparecem aqui."}
+    >
+      {!filtered && active.length >= 2 && (
+        <Button size="sm" iconStart={<PlusIcon />} onClick={openNew}>
+          Nova transferência
+        </Button>
+      )}
+    </EmptyState>
+  );
+
+  const pagination = pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label="Páginas de transferências" /> : undefined;
+
   return (
     <div className={styles.board}>
       <PageToolbar
         search={{ value: query, onChange: (value) => (setQuery(value), setPage(1)), placeholder: "Buscar conta, motivo ou código", label: "Buscar transferências por conta, motivo ou código" }}
         filters={filterSections}
         activeFilters={activeFilters}
+        view={toolbar}
         action={
           <>
             <span className={styles.wide}>
@@ -180,42 +215,37 @@ export function TransfersBoard({ accounts, transfers, today }: TransfersScreenDa
         }
       />
 
-      <div className={styles.table}>
-        <DataTable
-          label="Transferências"
-          rows={shown}
-          rowKey={(transfer) => transfer.id}
-          columns={columns}
-          range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
-          footer={pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label="Páginas de transferências" /> : undefined}
-          onRowClick={setReceipt}
-          fill
-          actions={(transfer) => (
-            <DropdownMenu
-              label={`Ações de ${transfer.reference}`}
-              triggerLabel={`Abrir ações de ${transfer.reference}`}
-              size="sm"
-              sections={[
-                { id: "actions", items: [{ id: "receipt", label: "Ver o comprovante", icon: ReceiptIcon, onSelect: () => setReceipt(transfer) }] },
-                ...(transfer.undone ? [] : [{ id: "danger", items: [{ id: "undo", label: "Desfazer transferência", icon: ArrowUUpLeftIcon, tone: "danger" as const, onSelect: () => setUndoing(transfer) }] }]),
-              ]}
-            />
+      {asTable ? (
+        <div className={styles.table}>
+          <DataTable
+            label="Transferências"
+            rows={shown}
+            rowKey={(transfer) => transfer.id}
+            columns={columns}
+            range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
+            footer={pagination}
+            onRowClick={setReceipt}
+            fill
+            actions={menuOf}
+            empty={empty}
+          />
+        </div>
+      ) : (
+        <div className={cards.area}>
+          {shown.length === 0 ? (
+            empty
+          ) : (
+            <ul className={cards.grid}>
+              {shown.map((transfer) => (
+                <li key={transfer.id}>
+                  <TransferCard transfer={transfer} from={accountOf(transfer.fromId)} to={accountOf(transfer.toId)} menu={menuOf(transfer)} onOpen={() => setReceipt(transfer)} />
+                </li>
+              ))}
+            </ul>
           )}
-          empty={
-            <EmptyState
-              icon={ArrowsLeftRightIcon}
-              title={filtered ? "Nenhuma transferência encontrada" : "Nenhuma transferência feita"}
-              description={filtered ? "Ajuste a busca ou os filtros." : "Os repasses da maquininha, os depósitos do caixa e o dinheiro que muda de banco aparecem aqui."}
-            >
-              {!filtered && active.length >= 2 && (
-                <Button size="sm" iconStart={<PlusIcon />} onClick={openNew}>
-                  Nova transferência
-                </Button>
-              )}
-            </EmptyState>
-          }
-        />
-      </div>
+          {pagination && <div className={cards.pager}>{pagination}</div>}
+        </div>
+      )}
 
       <TransferDialog opened={creating} accounts={accounts} today={today} onClose={() => setCreating(null)} />
       <TransferReceiptDialog transfer={receipt} accounts={accounts} onClose={() => setReceipt(null)} />

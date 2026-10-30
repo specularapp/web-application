@@ -1,8 +1,6 @@
 import "server-only";
 import { dbMessage } from "@/lib/db/message";
-import { promises as dns } from "node:dns";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { siteConfig } from "@/lib/metadata";
 import type { Database } from "@/types/database";
 import type { ResumeLink, SaveAccountInput, SaveResumeInput, UserImageKind } from "./schemas";
 
@@ -206,74 +204,4 @@ export async function saveResume(client: SettingsClient, userId: string, input: 
 
   const resume = await getResume(client, userId);
   return resume ? { ok: true, data: resume } : { ok: false, error: SAVE_FAILED };
-}
-
-/** O domínio do portfólio da equipe, como a página mostra. */
-export type CustomDomain = {
-  domain: string | null;
-  verifiedAt: string | null;
-  /** Para onde o CNAME precisa apontar. */
-  target: string;
-  /** O endereço da casa, que sempre funciona. */
-  fallbackUrl: string;
-};
-
-export const DOMAIN_TARGET = siteConfig.hosts.app;
-
-export async function getCustomDomain(client: SettingsClient, organizationId: string): Promise<CustomDomain | null> {
-  const { data } = await client.from("organizations").select("slug, custom_domain, custom_domain_verified_at").eq("id", organizationId).maybeSingle();
-  if (!data) return null;
-  return {
-    domain: data.custom_domain,
-    verifiedAt: data.custom_domain_verified_at,
-    target: DOMAIN_TARGET,
-    fallbackUrl: `${siteConfig.url}/p/${data.slug}`,
-  };
-}
-
-/** Guarda o domínio (ou tira, com vazio). Trocar zera a conferência: o CNAME do novo ainda não foi visto. */
-export async function setCustomDomain(client: SettingsClient, organizationId: string, domain: string | null): Promise<ServiceResult<CustomDomain>> {
-  const { error } = await client
-    .from("organizations")
-    .update({ custom_domain: domain, custom_domain_verified_at: null })
-    .eq("id", organizationId);
-
-  if (error) {
-    if (error.code === "23505") return { ok: false, error: "Esse domínio já está em uso por outra equipe." };
-    return { ok: false, error: dbMessage(error, SAVE_FAILED) };
-  }
-
-  const current = await getCustomDomain(client, organizationId);
-  return current ? { ok: true, data: current } : { ok: false, error: SAVE_FAILED };
-}
-
-/**
- * Confere o CNAME do domínio no DNS: ele precisa apontar para o endereço da casa. A conferência é feita
- * aqui, no servidor, e não pela tela, porque é ela que libera o portfólio naquele endereço.
- */
-export async function verifyCustomDomain(client: SettingsClient, organizationId: string): Promise<ServiceResult<CustomDomain>> {
-  const current = await getCustomDomain(client, organizationId);
-  if (!current?.domain) return { ok: false, error: "Cadastre um domínio antes de conferir." };
-
-  let records: string[] = [];
-  try {
-    records = await dns.resolveCname(current.domain);
-  } catch {
-    return { ok: false, error: `Ainda não achamos um CNAME em ${current.domain}. O DNS pode levar até 24 horas para propagar.` };
-  }
-
-  const points = records.some((record) => record.replace(/\.$/, "").toLowerCase() === DOMAIN_TARGET);
-  if (!points) {
-    return { ok: false, error: `O CNAME de ${current.domain} aponta para ${records.join(", ")}, e precisa apontar para ${DOMAIN_TARGET}.` };
-  }
-
-  const { error } = await client
-    .from("organizations")
-    .update({ custom_domain_verified_at: new Date().toISOString() })
-    .eq("id", organizationId);
-
-  if (error) return { ok: false, error: dbMessage(error, SAVE_FAILED) };
-
-  const verified = await getCustomDomain(client, organizationId);
-  return verified ? { ok: true, data: verified } : { ok: false, error: SAVE_FAILED };
 }

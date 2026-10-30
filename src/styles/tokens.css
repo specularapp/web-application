@@ -28,6 +28,9 @@
   --tracking-tighter: -0.04em;
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
+  /* Para rótulo miúdo em caixa alta (2026-10-29): onze estilos já pediam este token, que não existia, e o
+     espaçamento caía no padrão do navegador. */
+  --tracking-wide: 0.04em;
 
   --weight-regular: 400;
   --weight-medium: 500;

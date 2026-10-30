@@ -14,5 +14,5 @@ export default async function PlanPage() {
   const [data, ai] = await Promise.all([getCurrentBillingPage(), getAiUsageData()]);
   if (!data) return null;
 
-  return <PlanSettings state={data.state} invoices={data.invoices} ai={ai} />;
+  return <PlanSettings state={data.state} invoices={data.invoices} seats={data.seats} ai={ai} />;
 }

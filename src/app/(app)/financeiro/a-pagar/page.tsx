@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { InstallmentsScreen } from "@/features/finance/components/accounts-screen";
+import { financeViews, parseFinanceView } from "@/features/finance/list";
 import { loadInstallmentsScreenData } from "@/features/finance/queries";
 import { createMetadata } from "@/lib/metadata";
 
@@ -9,6 +11,6 @@ export const metadata = createMetadata({
 });
 
 export default async function PayablesPage() {
-  const data = await loadInstallmentsScreenData("outgoing");
-  return <InstallmentsScreen {...data} />;
+  const [data, cookieStore] = await Promise.all([loadInstallmentsScreenData("outgoing"), cookies()]);
+  return <InstallmentsScreen {...data} view={parseFinanceView("pagar", cookieStore.get(financeViews.pagar.cookie)?.value)} />;
 }

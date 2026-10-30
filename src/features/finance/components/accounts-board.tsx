@@ -28,12 +28,15 @@ import { formatMoney } from "@/lib/utils/format";
 import { deleteAccountAction, setAccountActiveAction } from "../accounts-actions";
 import { accountDigits, accountIdentity, accountKinds, accountKindValues, signedOf, type AccountKind, type AccountMovement, type AccountsScreenData, type FinanceAccount } from "../accounts";
 import { AccountEditor } from "./account-editor";
+import type { ChargesView } from "../view-cookie";
 import { AccountMark, accountTone } from "./account-mark";
+import { AccountsTable } from "./accounts-table";
+import { useFinanceView } from "./finance-view";
 import { AdjustDialog } from "./adjust-dialog";
 import { Sparkline } from "./sparkline";
 import { StatementDialog } from "./statement-dialog";
 import { TransferDialog } from "./transfer-dialog";
-import { dayMonth, signedMoney, type Opened } from "./money";
+import type { Opened } from "./money";
 import styles from "./accounts-board.module.css";
 
 type StatusFilter = "todas" | "ativas" | "inativas";
@@ -51,9 +54,11 @@ const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, ""
  * para o extrato e a transferência. O saldo nunca é digitado: é a abertura mais os movimentos, e "Ajustar saldo"
  * lança a diferença para bater com o banco.
  */
-export function AccountsBoard({ accounts, movements, today }: AccountsScreenData) {
+export function AccountsBoard({ accounts, movements, today, view: saved }: AccountsScreenData & { view: ChargesView }) {
   const router = useRouter();
   const { toast } = useToast();
+  // Tabela ou cartões, em cookie (2026-10-29); no celular, sempre os cartões, que cabem na largura.
+  const { asTable, toolbar } = useFinanceView("contas", saved);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<"todos" | AccountKind>("todos");
   const [status, setStatus] = useState<StatusFilter>("todas");
@@ -101,8 +106,6 @@ export function AccountsBoard({ accounts, movements, today }: AccountsScreenData
       )
       .toSorted((a, b) => Number(b.active) - Number(a.active) || Number(b.isDefault) - Number(a.isDefault) || b.balance - a.balance);
   }, [accounts, query, kind, status]);
-
-  const total = active.reduce((sum, account) => sum + account.balance, 0);
 
   const filterSections: DropdownSection[] = [
     {
@@ -166,12 +169,44 @@ export function AccountsBoard({ accounts, movements, today }: AccountsScreenData
 
   const filtered = query !== "" || activeFilters.length > 0;
 
+  // O leque de cada conta, o mesmo no cartão e na linha da tabela
+  const menuOf = (account: FinanceAccount) => (
+    <DropdownMenu
+      label={`Ações de ${account.name}`}
+      triggerLabel={`Abrir ações de ${account.name}`}
+      size="sm"
+      sections={[
+        {
+          id: "actions",
+          items: [
+            { id: "statement", label: "Ver extrato", icon: ListBulletsIcon, onSelect: () => setStatement(account) },
+            ...(account.active && active.length > 1 ? [{ id: "transfer", label: "Transferir daqui", icon: ArrowsLeftRightIcon, onSelect: () => open(setTransferring, account.id) }] : []),
+            ...(account.active ? [{ id: "adjust", label: "Ajustar saldo", icon: ScalesIcon, onSelect: () => open(setAdjusting, account) }] : []),
+            { id: "edit", label: "Editar conta", icon: PencilSimpleIcon, onSelect: () => open(setEditing, account) },
+          ],
+        },
+        ...(account.isDefault
+          ? []
+          : [
+              {
+                id: "danger",
+                items: [
+                  { id: "toggle", label: account.active ? "Inativar conta" : "Ativar conta", icon: PowerIcon, onSelect: () => void toggle(account) },
+                  { id: "delete", label: "Excluir conta", icon: TrashIcon, tone: "danger" as const, onSelect: () => setRemoving(account) },
+                ],
+              },
+            ]),
+      ]}
+    />
+  );
+
   return (
     <div className={styles.board}>
       <PageToolbar
         search={{ value: query, onChange: setQuery, placeholder: "Buscar conta ou banco", label: "Buscar contas por nome, banco ou número" }}
         filters={filterSections}
         activeFilters={activeFilters}
+        view={toolbar}
         action={
           <>
             {/* No celular os dois viram ícones, como o "+" das outras listas, para a busca caber na linha. */}
@@ -195,156 +230,117 @@ export function AccountsBoard({ accounts, movements, today }: AccountsScreenData
         }
       />
 
-      <div className={styles.scroll}>
-        {accounts.length > 0 && !filtered && (
-          <p className={styles.total}>
-            <span>Somando as contas ativas</span>
-            <strong data-negative={total < 0 || undefined}>{formatMoney(total)}</strong>
-          </p>
-        )}
-
-        {visible.length === 0 ? (
-          <EmptyState
-            icon={BankIcon}
-            title={filtered ? "Nenhuma conta encontrada" : "Nenhuma conta cadastrada"}
-            description={filtered ? "Ajuste a busca ou os filtros." : "Cadastre os bancos, as maquininhas e o caixa para registrar de onde o dinheiro sai e onde ele entra."}
-          >
-            {!filtered && (
-              <Button size="sm" iconStart={<PlusIcon />} onClick={() => open(setEditing, null)}>
-                Criar conta
-              </Button>
-            )}
-          </EmptyState>
-        ) : (
-          <div className={styles.grid}>
-            {visible.map((account) => {
-              const { title, subtitle } = accountIdentity(account);
-              const { curve, last } = history.get(account.id) ?? { curve: [], last: null };
-              const flow = account.recentIn + account.recentOut;
-              const digits = accountDigits(account);
-              return (
-                <article key={account.id} className={styles.card} data-inactive={!account.active || undefined} style={accountTone(account)} aria-label={account.name}>
-                  {/* A face: a marca e o saldo sobre o matiz da conta, com a curva dos últimos 30 dias no pé */}
-                  <div className={styles.face}>
-                    <header className={styles.faceHead}>
-                      <AccountMark account={account} size="lg" />
-                      <span className={styles.ident}>
-                        <strong>{title}</strong>
-                        <small>{subtitle}</small>
-                      </span>
-                      <DropdownMenu
-                        label={`Ações de ${account.name}`}
-                        triggerLabel={`Abrir ações de ${account.name}`}
-                        size="sm"
-                        sections={[
-                          {
-                            id: "actions",
-                            items: [
-                              { id: "statement", label: "Ver extrato", icon: ListBulletsIcon, onSelect: () => setStatement(account) },
-                              ...(account.active && active.length > 1 ? [{ id: "transfer", label: "Transferir daqui", icon: ArrowsLeftRightIcon, onSelect: () => open(setTransferring, account.id) }] : []),
-                              ...(account.active ? [{ id: "adjust", label: "Ajustar saldo", icon: ScalesIcon, onSelect: () => open(setAdjusting, account) }] : []),
-                              { id: "edit", label: "Editar conta", icon: PencilSimpleIcon, onSelect: () => open(setEditing, account) },
-                            ],
-                          },
-                          ...(account.isDefault
-                            ? []
-                            : [
-                                {
-                                  id: "danger",
-                                  items: [
-                                    { id: "toggle", label: account.active ? "Inativar conta" : "Ativar conta", icon: PowerIcon, onSelect: () => void toggle(account) },
-                                    { id: "delete", label: "Excluir conta", icon: TrashIcon, tone: "danger" as const, onSelect: () => setRemoving(account) },
-                                  ],
-                                },
-                              ]),
-                        ]}
-                      />
-                    </header>
-                    <div className={styles.balance}>
-                      <span>Saldo registrado no sistema</span>
-                      <strong data-negative={account.balance < 0 || undefined}>{formatMoney(account.balance)}</strong>
-                    </div>
-                    <div className={styles.spark}>
-                      <Sparkline values={curve} label={`Saldo de ${account.name} nos últimos 30 dias`} />
-                    </div>
-                  </div>
-
-                  <div className={styles.details}>
-                    <div className={styles.tags}>
-                      <Badge tone={accountKinds[account.kind].tone} size="sm">
-                        {accountKinds[account.kind].label}
-                      </Badge>
-                      {account.isDefault && (
-                        <Badge tone="neutral" size="sm">
-                          Padrão
-                        </Badge>
-                      )}
-                      {!account.active && (
-                        <Badge tone="warning" size="sm">
-                          Inativa
-                        </Badge>
-                      )}
-                      {digits && <span className={styles.digits}>{digits}</span>}
-                    </div>
-
-                    {/* O que entrou e saiu em 30 dias, com a barra que mostra a proporção entre os dois */}
-                    <dl className={styles.flow}>
-                      <div data-kind="in">
-                        <span className={styles.flowIcon} aria-hidden="true">
-                          <ArrowDownLeftIcon />
+      {asTable && visible.length > 0 ? (
+        <div className={styles.tableArea}>
+          <AccountsTable accounts={visible} lastOf={(account) => history.get(account.id)?.last ?? null} onOpen={setStatement} actionsOf={menuOf} />
+        </div>
+      ) : (
+        <div className={styles.scroll}>
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={BankIcon}
+              title={filtered ? "Nenhuma conta encontrada" : "Nenhuma conta cadastrada"}
+              description={filtered ? "Ajuste a busca ou os filtros." : "Cadastre os bancos, as maquininhas e o caixa para registrar de onde o dinheiro sai e onde ele entra."}
+            >
+              {!filtered && (
+                <Button size="sm" iconStart={<PlusIcon />} onClick={() => open(setEditing, null)}>
+                  Criar conta
+                </Button>
+              )}
+            </EmptyState>
+          ) : (
+            <div className={styles.grid}>
+              {visible.map((account) => {
+                const { title, subtitle } = accountIdentity(account);
+                const { curve } = history.get(account.id) ?? { curve: [] };
+                const flow = account.recentIn + account.recentOut;
+                const digits = accountDigits(account);
+                return (
+                  <article key={account.id} className={styles.card} data-inactive={!account.active || undefined} style={accountTone(account)} aria-label={account.name}>
+                    {/* A face: a marca e o saldo sobre o matiz da conta, com a curva dos últimos 30 dias no pé */}
+                    <div className={styles.face}>
+                      <header className={styles.faceHead}>
+                        <AccountMark account={account} size="lg" />
+                        <span className={styles.ident}>
+                          <strong>{title}</strong>
+                          <small>{subtitle}</small>
                         </span>
-                        <span>
-                          <dt>Entrou em 30 dias</dt>
-                          <dd>{formatMoney(account.recentIn)}</dd>
-                        </span>
+                        {menuOf(account)}
+                      </header>
+                      <div className={styles.balance}>
+                        <span>Saldo atual</span>
+                        <strong data-negative={account.balance < 0 || undefined}>{formatMoney(account.balance)}</strong>
                       </div>
-                      <div data-kind="out">
-                        <span className={styles.flowIcon} aria-hidden="true">
-                          <ArrowUpRightIcon />
-                        </span>
-                        <span>
-                          <dt>Saiu em 30 dias</dt>
-                          <dd>{formatMoney(account.recentOut)}</dd>
-                        </span>
+                      <div className={styles.spark}>
+                        <Sparkline values={curve} label={`Saldo de ${account.name} nos últimos 30 dias`} />
                       </div>
-                    </dl>
-                    <span className={styles.flowBar} role="img" aria-label={flow > 0 ? `${Math.round((account.recentIn / flow) * 100)}% do movimento foi entrada` : "Sem movimento em 30 dias"}>
-                      {flow > 0 && (
-                        <>
-                          <i data-kind="in" style={{ flexGrow: account.recentIn }} />
-                          <i data-kind="out" style={{ flexGrow: account.recentOut }} />
-                        </>
-                      )}
-                    </span>
+                    </div>
 
-                    <p className={styles.last}>
-                      {last ? (
-                        <>
-                          <span>
-                            Último movimento em {dayMonth(last.date)}: {last.title}
+                    <div className={styles.details}>
+                      <div className={styles.tags}>
+                        <Badge tone={accountKinds[account.kind].tone} size="sm">
+                          {accountKinds[account.kind].label}
+                        </Badge>
+                        {account.isDefault && (
+                          <Badge tone="neutral" size="sm">
+                            Padrão
+                          </Badge>
+                        )}
+                        {!account.active && (
+                          <Badge tone="warning" size="sm">
+                            Inativa
+                          </Badge>
+                        )}
+                        {digits && <span className={styles.digits}>{digits}</span>}
+                      </div>
+
+                      {/* O que entrou e saiu em 30 dias, com a barra que mostra a proporção entre os dois */}
+                      <dl className={styles.flow}>
+                        <div data-kind="in">
+                          <span className={styles.flowIcon} aria-hidden="true">
+                            <ArrowDownLeftIcon />
                           </span>
-                          <strong data-kind={last.kind}>{signedMoney(signedOf(last))}</strong>
-                        </>
-                      ) : (
-                        <span>Nenhum movimento ainda</span>
-                      )}
-                    </p>
-                  </div>
+                          <span>
+                            <dt>Entrou em 30 dias</dt>
+                            <dd>{formatMoney(account.recentIn)}</dd>
+                          </span>
+                        </div>
+                        <div data-kind="out">
+                          <span className={styles.flowIcon} aria-hidden="true">
+                            <ArrowUpRightIcon />
+                          </span>
+                          <span>
+                            <dt>Saiu em 30 dias</dt>
+                            <dd>{formatMoney(account.recentOut)}</dd>
+                          </span>
+                        </div>
+                      </dl>
+                      <span className={styles.flowBar} role="img" aria-label={flow > 0 ? `${Math.round((account.recentIn / flow) * 100)}% do movimento foi entrada` : "Sem movimento em 30 dias"}>
+                        {flow > 0 && (
+                          <>
+                            <i data-kind="in" style={{ flexGrow: account.recentIn }} />
+                            <i data-kind="out" style={{ flexGrow: account.recentOut }} />
+                          </>
+                        )}
+                      </span>
 
-                  <footer className={styles.actions}>
-                    <Button variant="secondary" size="sm" radius="md" iconStart={<ListBulletsIcon />} onClick={() => setStatement(account)}>
-                      Extrato
-                    </Button>
-                    <Button variant="secondary" size="sm" radius="md" iconStart={<ArrowsLeftRightIcon />} disabled={!account.active || active.length < 2} onClick={() => open(setTransferring, account.id)}>
-                      Transferir
-                    </Button>
-                  </footer>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    </div>
+
+                    <footer className={styles.actions}>
+                      <Button variant="outline" size="sm" radius="md" iconStart={<ListBulletsIcon />} onClick={() => setStatement(account)}>
+                        Extrato
+                      </Button>
+                      <Button variant="outline" size="sm" radius="md" iconStart={<ArrowsLeftRightIcon />} disabled={!account.active || active.length < 2} onClick={() => open(setTransferring, account.id)}>
+                        Transferir
+                      </Button>
+                    </footer>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <AccountEditor opened={editing} today={today} onClose={() => setEditing(null)} />
       <TransferDialog opened={transferring} accounts={accounts} today={today} onClose={() => setTransferring(null)} />

@@ -19,9 +19,13 @@ import { formatMoney } from "@/lib/utils/format";
 import { reopenInstallmentAction } from "../actions";
 import { installmentSides, installmentStatuses, isPending, reopenIcon, type InstallmentEntry, type InstallmentStatus, type InstallmentsScreenData } from "../installments";
 import { dueLabel, dueTone } from "../labels";
+import type { ChargesView } from "../view-cookie";
 import { AccountMark } from "./account-mark";
+import { useFinanceView } from "./finance-view";
+import { InstallmentCard } from "./installment-card";
 import { dayBefore, dayMonth, type Opened } from "./money";
 import { SettleDialog } from "./settle-dialog";
+import cards from "./finance-cards.module.css";
 import styles from "./installments-board.module.css";
 
 type StatusFilter = "pendentes" | InstallmentStatus | "todas";
@@ -38,10 +42,11 @@ const normalize = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, ""
  * casa. Abre nas pendentes (em aberto e atrasadas), pelo vencimento mais perto. Clicar numa pendente abre a janela
  * de receber ou pagar; numa baixada, a cobrança. O leque baixa, abre a cobrança ou reabre a parcela baixada.
  */
-export function InstallmentsBoard({ direction, entries, accounts, categories, today }: InstallmentsScreenData) {
+export function InstallmentsBoard({ direction, entries, accounts, categories, today, view }: InstallmentsScreenData & { view: ChargesView }) {
   const router = useRouter();
   const { toast } = useToast();
   const side = installmentSides[direction];
+  const { asTable, toolbar } = useFinanceView(direction === "outgoing" ? "pagar" : "receber", view);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("pendentes");
   const [due, setDue] = useState<DueFilter>("todos");
@@ -258,56 +263,88 @@ export function InstallmentsBoard({ direction, entries, accounts, categories, to
 
   const filtered = query !== "" || activeFilters.length > 0;
 
+  // O leque e o vazio, os mesmos na tabela e nos cartões
+  const menuOf = (entry: InstallmentEntry) => (
+    <DropdownMenu
+      label={`Ações de ${entry.title}`}
+      triggerLabel={`Abrir ações de ${entry.title}`}
+      size="sm"
+      sections={[
+        {
+          id: "actions",
+          items: [
+            ...(isPending(entry.status) ? [{ id: "settle", label: side.settleTitle, icon: direction === "outgoing" ? CheckCircleIcon : HandCoinsIcon, onSelect: () => openSettle(entry) }] : []),
+            { id: "open", label: direction === "outgoing" ? "Abrir a despesa" : "Abrir a cobrança", icon: EyeIcon, onSelect: () => router.push(chargePath(entry)) },
+          ],
+        },
+        ...(entry.status === "paid" ? [{ id: "danger", items: [{ id: "reopen", label: "Reabrir a parcela", icon: reopenIcon, tone: "danger" as const, onSelect: () => setReopening(entry) }] }] : []),
+      ]}
+    />
+  );
+
+  const empty = (
+    <EmptyState
+      icon={HandCoinsIcon}
+      title={filtered ? "Nenhuma parcela encontrada" : status === "pendentes" ? "Nada pendente" : "Nenhuma parcela"}
+      description={
+        filtered
+          ? "Ajuste a busca ou os filtros."
+          : direction === "outgoing"
+            ? "As parcelas das despesas aparecem aqui, pelo vencimento, até serem pagas."
+            : "As parcelas das cobranças aparecem aqui, pelo vencimento, até serem recebidas."
+      }
+    />
+  );
+
+  const pagination = pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label={`Páginas de ${side.page.toLocaleLowerCase("pt-BR")}`} /> : undefined;
+
   return (
     <div className={styles.board}>
       <PageToolbar
         search={{ value: query, onChange: (value) => (setQuery(value), setPage(1)), placeholder: `Buscar ${direction === "outgoing" ? "despesa ou fornecedor" : "cobrança ou cliente"}`, label: `Buscar ${side.page.toLocaleLowerCase("pt-BR")} por título, número ou ${side.party.toLocaleLowerCase("pt-BR")}` }}
         filters={filterSections}
         activeFilters={activeFilters}
+        view={toolbar}
       />
 
-      <div className={styles.table}>
-        <DataTable
-          label={side.page}
-          rows={shown}
-          rowKey={(entry) => entry.id}
-          columns={columns}
-          fill
-          onRowClick={openRow}
-          range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
-          footer={pageCount > 1 ? <Pagination page={current} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label={`Páginas de ${side.page.toLocaleLowerCase("pt-BR")}`} /> : undefined}
-          actions={(entry) => (
-            <DropdownMenu
-              label={`Ações de ${entry.title}`}
-              triggerLabel={`Abrir ações de ${entry.title}`}
-              size="sm"
-              sections={[
-                {
-                  id: "actions",
-                  items: [
-                    ...(isPending(entry.status) ? [{ id: "settle", label: side.settleTitle, icon: direction === "outgoing" ? CheckCircleIcon : HandCoinsIcon, onSelect: () => openSettle(entry) }] : []),
-                    { id: "open", label: direction === "outgoing" ? "Abrir a despesa" : "Abrir a cobrança", icon: EyeIcon, onSelect: () => router.push(chargePath(entry)) },
-                  ],
-                },
-                ...(entry.status === "paid" ? [{ id: "danger", items: [{ id: "reopen", label: "Reabrir a parcela", icon: reopenIcon, tone: "danger" as const, onSelect: () => setReopening(entry) }] }] : []),
-              ]}
-            />
+      {asTable ? (
+        <div className={styles.table}>
+          <DataTable
+            label={side.page}
+            rows={shown}
+            rowKey={(entry) => entry.id}
+            columns={columns}
+            fill
+            onRowClick={openRow}
+            range={{ page: current, pageSize: PAGE_SIZE, total: visible.length }}
+            footer={pagination}
+            actions={menuOf}
+            empty={empty}
+          />
+        </div>
+      ) : (
+        <div className={cards.area}>
+          {shown.length === 0 ? (
+            empty
+          ) : (
+            <ul className={cards.grid}>
+              {shown.map((entry) => (
+                <li key={entry.id}>
+                  <InstallmentCard
+                    entry={entry}
+                    due={statusOf(entry)}
+                    category={categoryOf(entry.categoryId)}
+                    account={accountOf(entry.accountId) ?? accounts.find((candidate) => candidate.isDefault) ?? null}
+                    menu={menuOf(entry)}
+                    onOpen={() => openRow(entry)}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
-          empty={
-            <EmptyState
-              icon={HandCoinsIcon}
-              title={filtered ? "Nenhuma parcela encontrada" : status === "pendentes" ? "Nada pendente" : "Nenhuma parcela"}
-              description={
-                filtered
-                  ? "Ajuste a busca ou os filtros."
-                  : direction === "outgoing"
-                    ? "As parcelas das despesas aparecem aqui, pelo vencimento, até serem pagas."
-                    : "As parcelas das cobranças aparecem aqui, pelo vencimento, até serem recebidas."
-              }
-            />
-          }
-        />
-      </div>
+          {pagination && <div className={cards.pager}>{pagination}</div>}
+        </div>
+      )}
 
       <SettleDialog opened={settling} accounts={accounts} categories={categories} today={today} onClose={() => setSettling(null)} />
       <ConfirmDialog

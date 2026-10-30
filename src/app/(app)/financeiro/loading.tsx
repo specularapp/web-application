@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/layout/page-skeleton";
+import { CashFlowSkeleton } from "@/features/finance/components/finance-skeletons";
 
 export default function Loading() {
-  return <PageSkeleton shape="rows" label="Carregando o financeiro" />;
+  return <CashFlowSkeleton />;
 }

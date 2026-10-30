@@ -41,12 +41,6 @@
   }
 }
 
-.slash {
-  flex-shrink: 0;
-  font-size: var(--text-footnote);
-  color: var(--color-label-tertiary);
-}
-
 .reference {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -64,64 +58,109 @@
   .actions > :not(:nth-last-child(-n + 2)) {
     display: none;
   }
-
-  .crumb:not(:first-child),
-  .slash {
-    display: none;
-  }
 }
 
-/* O corpo em duas colunas a partir de 64rem, como a ficha do contrato: o conteúdo à esquerda e o painel à
-   direita, cada um rolando por dentro; abaixo disso o painel desce para baixo do conteúdo. */
+/* O corpo numa coluna só, rolando por inteiro (2026-10-29, a pedido: "está enorme e bagunçado"): a janela
+   tem a altura do conteúdo, e o que passa disso rola aqui. */
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-5);
   min-height: 0;
+  padding: var(--space-5);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-@media (width >= 64rem) {
-  .body {
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    overflow: hidden;
-  }
-
-  .main,
-  .side {
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .side {
-    border-inline-start: 0.0375rem solid var(--color-border);
-  }
-}
-
-@media (width < 64rem) {
-  .side {
-    border-block-start: 0.0375rem solid var(--color-border);
-  }
-}
-
-.main {
+/* O resumo num bloco só: a situação, o título e quem paga à esquerda, o total à direita, a barra e os três
+   números embaixo. */
+.summary {
   display: grid;
-  align-content: start;
-  gap: var(--space-6);
-  min-width: 0;
-  padding: var(--space-5);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: light-dark(var(--color-bg-grouped-secondary), color-mix(in oklab, var(--color-label) 7%, var(--color-bg)));
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.summaryHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  align-items: start;
+  justify-content: space-between;
 }
 
 .heading {
   display: grid;
+  flex: 1 1 16rem;
   justify-items: start;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.heading > :first-child {
+  margin-block-end: var(--space-1);
 }
 
 .title {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* Quem paga, numa linha com a foto: o link para a ficha dele. */
+.party {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  max-width: 100%;
+  margin-block-start: var(--space-1);
+  color: var(--color-label-secondary);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .party:hover {
+    color: var(--color-label);
+  }
+}
+
+.total {
+  display: grid;
+  justify-items: end;
+  gap: 0.0625rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.stats div {
+  display: grid;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+.stats dt {
+  font-size: var(--text-caption-1);
+  color: var(--color-label-secondary);
+}
+
+.stats dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--text-subheadline);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats dd[data-tone="danger"] {
+  color: var(--color-danger);
 }
 
 .section {
@@ -211,113 +250,46 @@
   }
 }
 
-/* Como pagar: a forma em cima com o copiar, e as instruções embaixo. */
-.payment {
+/* O pagamento e os detalhes lado a lado, em dois cartões da mesma altura; no estreito, um embaixo do outro. */
+.pair {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--color-fill-quaternary);
-  border-radius: var(--radius-lg);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
 }
 
-.paymentHead {
+.card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 0.0375rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.cardHead {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  justify-content: space-between;
   min-height: 2rem;
 }
 
-.paymentHead svg {
+.method {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.method svg {
   width: 1rem;
   height: 1rem;
   color: var(--color-label-secondary);
 }
 
-.paymentHead > :last-child:not(:nth-child(2)) {
-  margin-inline-start: auto;
-}
-
 .paymentInfo {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-/* ---------- O painel ---------- */
-
-.side {
-  display: grid;
-  align-content: start;
-  gap: var(--space-5);
-  min-width: 0;
-  padding: var(--space-5) var(--space-4);
-  background-color: light-dark(color-mix(in oklab, var(--color-label) 2.5%, var(--color-bg)), color-mix(in oklab, var(--color-label) 4%, var(--color-bg)));
-}
-
-.client {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  min-width: 0;
-  padding: var(--space-3);
-  color: inherit;
-  text-decoration: none;
-  background-color: var(--color-bg-grouped-secondary);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-@media (hover: hover) {
-  a.client:hover {
-    border-color: color-mix(in oklab, var(--color-label) 24%, transparent);
-  }
-}
-
-.clientCopy {
-  display: grid;
-  min-width: 0;
-}
-
-/* Os valores: o total grande, a barra e o recebido e o em aberto lado a lado. */
-.values {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-4);
-  background-color: var(--color-bg-grouped-secondary);
-  border: 0.0375rem solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.values > [role="progressbar"],
-.values > :nth-child(3) {
-  margin-block: var(--space-2);
-}
-
-.split {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin: 0;
-}
-
-.split div {
-  display: grid;
-  gap: 0.0625rem;
-}
-
-.split dt {
-  font-size: var(--text-caption-1);
-  color: var(--color-label-secondary);
-}
-
-.split dd {
-  margin: 0;
-  font-size: var(--text-subheadline);
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.split dd[data-tone="danger"] {
-  color: var(--color-danger);
 }
 
 /* Os detalhes em linhas de rótulo e valor. */
@@ -343,7 +315,7 @@
 
 .facts dd {
   display: inline-flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
   align-items: center;
   min-width: 0;
   margin: 0;
@@ -351,24 +323,26 @@
   text-align: end;
 }
 
-.facts dd svg {
-  width: 0.875rem;
-  height: 0.875rem;
-  color: var(--color-label-tertiary);
-}
-
-.sideBlock {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 47.9375rem) {
-  .main {
-    padding: var(--space-4);
+  .body {
+    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
   }
 
-  .side {
-    padding: var(--space-4) var(--space-4) var(--floating-bar-inset);
+  .total {
+    justify-items: start;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats div:last-child {
+    grid-column: 1 / -1;
   }
 }

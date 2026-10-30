@@ -8,7 +8,7 @@ import { createCharge, listCharges } from "@/features/finance/service";
 import { authorizeDomain, fromMutation, readPayload } from "@/lib/api/domain";
 
 export async function GET(request: Request) {
-  const auth = await authorizeDomain(request, "charges-read");
+  const auth = await authorizeDomain(request, "charges-read", "action", "cobrancas:ler");
   if ("response" in auth) return auth.response;
 
   const charges = await listCharges(auth.session.supabase, auth.session.organizationId);

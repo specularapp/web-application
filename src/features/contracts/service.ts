@@ -3,6 +3,7 @@ import { dbMessage } from "@/lib/db/message";
 import { addDays, format } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dispatchAutomationEvent } from "@/features/automations/service";
+import { emitWebhookEvent } from "@/features/integrations/service";
 import { getIssuer, listTeamMembers } from "@/features/organizations/service";
 import { quoteTotals } from "@/features/quotes/totals";
 import { siteConfig } from "@/lib/metadata";
@@ -658,6 +659,7 @@ export async function sendContract(
 
   // O envio de verdade (não o lembrete) é um evento para as automações, que rodam sem segurar a resposta.
   if (!reminder) void dispatchAutomationEvent(organizationId, "contract_sent", automationContext(sent)).catch(() => undefined);
+  if (!reminder) emitWebhookEvent(organizationId, "contrato.enviado", { id: sent.id, ...automationContext(sent) });
 
   await logRecordEvent(client, organizationId, { recordType: "contract", recordId: id, action: "updated", summary: reminder ? "Reenviou para assinatura" : "Enviou para assinatura" });
 
@@ -752,6 +754,7 @@ export async function signContract(
   const completed = found.contract.parties.every((entry) => entry.signedAt);
   if (completed) {
     void dispatchAutomationEvent(found.organizationId, "contract_signed", automationContext(found.contract)).catch(() => undefined);
+    emitWebhookEvent(found.organizationId, "contrato.assinado", { id: found.contract.id, ...automationContext(found.contract) });
   }
 
   return { ok: true, contract: found.contract, party: found.party, completed, organizationId: found.organizationId };

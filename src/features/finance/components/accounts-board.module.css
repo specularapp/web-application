@@ -33,27 +33,13 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-}
 
-/* A soma das contas ativas, discreta, acima da grade: é o mesmo número do caixa da visão geral. */
-.total {
-  display: flex;
-  gap: var(--space-2);
-  align-items: baseline;
-  margin: 0;
-  font-size: var(--text-footnote);
-  color: var(--color-label-secondary);
-}
-
-.total strong {
-  font-size: var(--text-headline);
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-label);
-}
-
-.total strong[data-negative] {
-  color: var(--color-danger);
+  /* A tabela enche a altura que sobra e rola as linhas por dentro (2026-10-29). */
+  .tableArea {
+    display: grid;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 .grid {
@@ -68,9 +54,9 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
-  min-height: 23rem;
   overflow: hidden;
-  background-color: var(--color-bg-grouped-secondary);
+  /* O fundo dos outros cartões do financeiro, o do cartão de despesa (2026-10-29, a pedido) */
+  background-color: var(--color-bg);
   border: 0.0625rem solid var(--color-border);
   border-radius: var(--radius-xl);
 }
@@ -86,7 +72,9 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-4) 0;
-  background-color: color-mix(in oklab, var(--account) 10%, var(--color-bg-grouped-secondary));
+  /* O tom do banco bem translúcido, mais forte no alto e sumindo para o fundo do cartão (2026-10-29, a pedido:
+     "deixe a cor bem translúcida para dar um efeito") */
+  background-image: linear-gradient(to bottom, color-mix(in oklab, var(--account) 16%, transparent), color-mix(in oklab, var(--account) 3%, transparent));
 }
 
 .faceHead {
@@ -132,7 +120,6 @@
 .balance strong {
   font-size: var(--text-title-1);
   font-weight: var(--weight-bold);
-  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
@@ -165,7 +152,6 @@
 .digits {
   margin-inline-start: auto;
   font-size: var(--text-footnote);
-  font-variant-numeric: tabular-nums;
   color: var(--color-label-secondary);
 }
 
@@ -222,7 +208,6 @@
   overflow: hidden;
   font-size: var(--text-subheadline);
   font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -249,38 +234,6 @@
 
 .flowBar i[data-kind="out"] {
   background-color: var(--color-danger);
-}
-
-/* O último movimento numa linha: o que foi à esquerda, cortado com reticências, e o valor com sinal. */
-.last {
-  display: flex;
-  gap: var(--space-3);
-  align-items: baseline;
-  justify-content: space-between;
-  min-width: 0;
-  margin: 0;
-  font-size: var(--text-caption-1);
-  color: var(--color-label-secondary);
-}
-
-.last span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.last strong {
-  flex-shrink: 0;
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.last strong[data-kind="in"] {
-  color: var(--color-success);
-}
-
-.last strong[data-kind="out"] {
-  color: var(--color-danger);
 }
 
 .actions {

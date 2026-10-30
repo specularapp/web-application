@@ -1,6 +1,10 @@
 import "server-only";
+import { authorizeApiKey, type ApiKeyCaller } from "@/features/integrations/access";
+import type { ApiScope } from "@/features/integrations/catalog";
+import { looksLikeApiKey } from "@/features/integrations/secrets";
 import { organizationForApi, revalidateDomain } from "@/features/organizations/context";
 import type { DomainTag } from "@/lib/cache/tags";
+import { createAdminClient } from "@/lib/supabase/server";
 import { authorizeRequest, invalidPayload, readJson } from "./v1";
 import type { ApiSession } from "./v1";
 import type { RateLimitScope } from "@/lib/security/rate-limit";
@@ -11,20 +15,38 @@ import type { RateLimitScope } from "@/lib/security/rate-limit";
  * jeito que a web resolve. Sem isto, cada rota repetiria as três linhas e uma delas acabaria esquecendo o
  * time, que é justamente a que devolveria a conta errada.
  */
-export type DomainSession = ApiSession & { organizationId: string };
+export type DomainSession = Pick<ApiSession, "supabase" | "userId"> & {
+  organizationId: string;
+  /** A chave de API que chamou, quando a chamada veio de um sistema de fora e não da sessão de uma pessoa. */
+  apiKey: ApiKeyCaller | null;
+};
 
+/**
+ * `apiScope` é o que abre a rota para uma chave de API (2026-10-29): sem ele, a rota só aceita a sessão de uma
+ * pessoa e a chave recebe 403. Com a chave a leitura corre pela chave secreta do servidor, presa à equipe da chave;
+ * a regra está em `features/integrations/access.ts`.
+ */
 export async function authorizeDomain(
   request: Request,
   operation: string,
   scope: RateLimitScope = "action",
+  apiScope?: ApiScope,
 ): Promise<{ session: DomainSession } | { response: Response }> {
+  const header = request.headers.get("authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (looksLikeApiKey(token)) {
+    const access = await authorizeApiKey(request, token, apiScope);
+    if ("response" in access) return access;
+    return { session: { supabase: createAdminClient(), userId: access.userId, organizationId: access.organizationId, apiKey: access.apiKey } };
+  }
+
   const auth = await authorizeRequest(request, operation, scope);
   if ("response" in auth) return auth;
 
   const organizationId = await organizationForApi(auth.session.supabase, auth.session.userId);
   if (!organizationId) return { response: Response.json({ error: "Sem time em vigor" }, { status: 409 }) };
 
-  return { session: { ...auth.session, organizationId } };
+  return { session: { supabase: auth.session.supabase, userId: auth.session.userId, organizationId, apiKey: null } };
 }
 
 /** O corpo lido e fechado pelo zod, no formato que as rotas já usam. */

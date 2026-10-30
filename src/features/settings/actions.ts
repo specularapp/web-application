@@ -10,7 +10,8 @@ import {
   avatarAttachSchema,
   avatarUploadSchema,
   changePasswordSchema,
-  customDomainSchema,
+  domainIdSchema,
+  domainNameSchema,
   notificationIdsSchema,
   saveAccountSchema,
   saveResumeSchema,
@@ -20,15 +21,13 @@ import {
   attachAvatar,
   clearUserImage,
   createAvatarUpload,
-  getCustomDomain,
   saveAccount,
   saveResume,
-  setCustomDomain,
-  verifyCustomDomain,
   type Account,
-  type CustomDomain,
   type Resume,
 } from "./service";
+import type { DomainsOverview, PortfolioDomain } from "./domains";
+import { addPortfolioDomain, listPortfolioDomains, removePortfolioDomain, verifyPortfolioDomain } from "./domains-service";
 
 export type ActionError = { ok: false; error: string; field?: string };
 
@@ -136,46 +135,60 @@ export async function saveResumeAction(input: unknown): Promise<{ ok: true; resu
 }
 
 /**
- * O domínio próprio do portfólio é do plano Pro (`custom_domain` em `plan_entitlements`), e a conferência é
- * aqui, porque o leque é desenho e desenho se contorna. Tirar o domínio é sempre permitido.
+ * Os domínios do portfólio (2026-10-29). Domínio próprio é do plano Pro (`custom_domain` em `plan_entitlements`),
+ * e a conferência é aqui, porque o leque é desenho e desenho se contorna; tirar e conferir são sempre permitidos.
+ * Quem pode mexer (dono ou administrador) a RLS decide.
  */
-export async function setCustomDomainAction(input: unknown): Promise<{ ok: true; domain: CustomDomain } | ActionError | { ok: false; error: string; plan: true }> {
-  const guard = await guardAction("domain-save");
+export async function addDomainAction(input: unknown): Promise<{ ok: true; domain: PortfolioDomain } | ActionError | { ok: false; error: string; plan: true }> {
+  const guard = await guardAction("domain-add");
   if (!guard.ok) return { ok: false, error: guard.error };
 
-  const parsed = customDomainSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
+  const parsed = domainNameSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, ...firstIssue(parsed.error), field: "domain" };
 
-  const { supabase, organizationId } = guard.context;
-  const domain = parsed.data.domain || null;
+  const { supabase, organizationId, user } = guard.context;
+  if (!(await planAllows(supabase, organizationId, "custom_domain"))) return { ok: false, error: "Domínio próprio é do plano Pro.", plan: true };
 
-  if (domain && !(await planAllows(supabase, organizationId, "custom_domain"))) {
-    return { ok: false, error: "Domínio próprio é do plano Pro.", plan: true };
-  }
-
-  const saved = await setCustomDomain(supabase, organizationId, domain);
+  const saved = await addPortfolioDomain(supabase, organizationId, user.id, parsed.data.domain);
   if (!saved.ok) return { ok: false, error: saved.error, field: "domain" };
 
   await revalidateDomain(organizationId, [cacheTags.organization], ["/configuracoes/dominio"]);
   return { ok: true, domain: saved.data };
 }
 
-export async function verifyCustomDomainAction(): Promise<{ ok: true; domain: CustomDomain } | ActionError> {
+export async function verifyDomainAction(input: unknown): Promise<{ ok: true; domain: PortfolioDomain } | ActionError> {
   const guard = await guardAction("domain-verify");
   if (!guard.ok) return { ok: false, error: guard.error };
 
-  const verified = await verifyCustomDomain(guard.context.supabase, guard.context.organizationId);
+  const parsed = domainIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Domínio inválido." };
+
+  const verified = await verifyPortfolioDomain(guard.context.supabase, guard.context.organizationId, parsed.data.id);
   if (!verified.ok) return { ok: false, error: verified.error };
 
   await revalidateDomain(guard.context.organizationId, [cacheTags.organization], ["/configuracoes/dominio"]);
   return { ok: true, domain: verified.data };
 }
 
-/** O domínio como está, para a tela recarregar depois de conferir. */
-export async function loadCustomDomainAction(): Promise<CustomDomain | null> {
+export async function removeDomainAction(input: unknown): Promise<{ ok: true } | ActionError> {
+  const guard = await guardAction("domain-remove");
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const parsed = domainIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Domínio inválido." };
+
+  const removed = await removePortfolioDomain(guard.context.supabase, guard.context.organizationId, parsed.data.id);
+  if (!removed.ok) return { ok: false, error: removed.error };
+
+  await revalidateDomain(guard.context.organizationId, [cacheTags.organization], ["/configuracoes/dominio"]);
+  return { ok: true };
+}
+
+/** A lista como está, para a tela recarregar sem trocar de página. */
+export async function loadDomainsAction(): Promise<DomainsOverview | null> {
   const guard = await guardAction("domain-load");
   if (!guard.ok) return null;
-  return getCustomDomain(guard.context.supabase, guard.context.organizationId);
+  return listPortfolioDomains(guard.context.supabase, guard.context.organizationId);
 }
 
 /** Marca como lidas as notificações da lista, ou todas as que a página mostra. Derruba a concha, que conta as não lidas. */

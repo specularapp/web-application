@@ -35,6 +35,22 @@
   height: 0.875rem;
 }
 
+/* O do tamanho do rosto dos cartões do financeiro (2026-10-29), no lugar da pessoa na movimentação. */
+.mark[data-size="md"] {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+}
+
+.mark[data-size="md"][data-framed] {
+  padding: 0.25rem;
+}
+
+.mark[data-size="md"][data-glyph] svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 .mark[data-size="lg"] {
   width: 2.5rem;
   height: 2.5rem;
